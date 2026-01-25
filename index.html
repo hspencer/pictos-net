@@ -1,0 +1,110 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PICTOS.NET | Semantic Image Architect</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@100;300;400;500;600;700;800;900&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary-dark: #1e1b4b;
+      --furious-orange: #f97316; 
+    }
+    
+    * {
+      font-family: 'Lexend', sans-serif !important;
+      border-radius: 2px !important;
+    }
+    
+    .mono, .mono * { 
+      font-family: 'Fira Code', monospace !important; 
+    }
+    
+    body { 
+      background-color: #f8fafc;
+      color: #0f172a;
+      margin: 0;
+    }
+
+    @keyframes spectral-pulse {
+      0% { background-color: var(--furious-orange); box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.7); }
+      33% { background-color: #06b6d4; }
+      66% { background-color: #6366f1; }
+      100% { background-color: var(--furious-orange); box-shadow: 0 0 0 12px rgba(99, 102, 241, 0); }
+    }
+    
+    .animate-spectral {
+      animation: spectral-pulse 2s infinite cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Scrollbars técnicos */
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #e2e8f0; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+    .utterance-title {
+      font-size: 1.2em !important;
+      font-weight: 300 !important;
+      letter-spacing: 0.01ex !important; /* Interletra ajustada al mínimo */
+      text-transform: uppercase;
+    }
+
+    .picto-chip {
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      padding: 1.9px 7.9px;
+      font-weight: 500;
+      font-size: 11px;
+      color: #1e293b;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      border-bottom: 2px solid #94a3b8;
+    }
+    
+    /* Etiquetas normalizadas: gris neutro y peso suavizado para legibilidad */
+    .nlu-key { color: #64748b !important; font-weight: 500 !important; text-transform: uppercase; font-size: 9px; letter-spacing: 0.05ex; }
+    .nlu-val { color: #1e293b; font-weight: 400; font-size: 11px; }
+
+    /* Estilos para el Modal de Vista Enfocada */
+    .focus-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background-color: rgba(15, 23, 42, 0.8);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(4px);
+    }
+    .focus-modal-content {
+      background-color: #f8fafc;
+      width: 90%;
+      height: 90%;
+      max-width: 1400px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+    }
+  </style>
+<script type="importmap">
+{
+  "imports": {
+    "@google/genai": "https://esm.sh/@google/genai@^1.38.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3",
+    "lucide-react": "https://esm.sh/lucide-react@^0.562.0"
+  }
+}
+</script>
+</head>
+<body class="bg-slate-50 text-slate-900">
+  <div id="root"></div>
+</body>
+</html>
