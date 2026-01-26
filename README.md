@@ -69,6 +69,30 @@ npm run preview
 
 Sirve la versión de producción localmente para probar el build antes de desplegar.
 
+### Despliegue en GitHub Pages
+
+El proyecto incluye un workflow de GitHub Actions (`.github/workflows/deploy.yml`) que despliega automáticamente a GitHub Pages desde la rama `local-dev`.
+
+#### Configuración inicial:
+
+1. **Habilitar GitHub Pages**:
+   - Ve a Settings → Pages en tu repositorio
+   - En "Source", selecciona "GitHub Actions"
+
+2. **Configurar el secreto GEMINI_API_KEY**:
+   - Ve a Settings → Secrets and variables → Actions
+   - Crea un nuevo "Repository secret" llamado `GEMINI_API_KEY`
+   - Pega tu API key de Google Gemini como valor
+
+3. **Desplegar**:
+   - Haz push a la rama `local-dev`
+   - El workflow se ejecutará automáticamente
+   - La aplicación estará disponible en: `https://<tu-usuario>.github.io/pictos-net/`
+
+También puedes ejecutar el workflow manualmente desde la pestaña "Actions" en GitHub.
+
+**NOTA DE SEGURIDAD**: Aunque la API key está configurada como secreto de GitHub, seguirá siendo visible en el código JavaScript compilado del navegador. Para entornos de producción públicos, considera implementar un backend proxy.
+
 ### Verificación de Servicios de IA
 
 Para verificar que los servicios de Gemini funcionan correctamente en local:
