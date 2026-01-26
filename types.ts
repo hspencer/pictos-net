@@ -56,20 +56,42 @@ export interface VisualElement {
   children?: VisualElement[];
 }
 
+// VCSCI Hexagonal Dimensions (Manual Input - Likert 1-5)
+export interface EvaluationMetrics {
+  semantics: number; 
+  syntactics: number;
+  pragmatics: number;
+  clarity: number;
+  universality: number;
+  aesthetics: number;
+  reasoning: string;
+}
+
 export interface RowData {
   id: string;
   UTTERANCE: string;
+  
+  // Pipeline Data
   NLU?: NLUData | string;
   elements?: VisualElement[];
   prompt?: string;
   bitmap?: string; // Base64 data URL
+  evaluation?: EvaluationMetrics; // New Manual Evaluation Data
+
+  // Global Pipeline Status
   status: 'idle' | 'processing' | 'completed' | 'error';
+  
+  // Step Statuses
   nluStatus: StepStatus;
   visualStatus: StepStatus;
-  bitmapStatus: StepStatus; // Renamed from svgStatus
+  bitmapStatus: StepStatus; 
+  evalStatus: StepStatus; // New Evaluation Step (Manual)
+
+  // Metrics
   nluDuration?: number;
   visualDuration?: number;
-  bitmapDuration?: number; // Renamed from svgDuration
+  bitmapDuration?: number; 
+  evalDuration?: number; // Time spent editing/saving
 }
 
 export interface LogEntry {

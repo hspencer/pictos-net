@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { NLUData, GlobalConfig, RowData, VisualElement } from "../types";
+import { NLUData, GlobalConfig, RowData, VisualElement, EvaluationMetrics } from "../types";
 
 const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
 

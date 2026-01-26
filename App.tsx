@@ -4,9 +4,9 @@ import {
   Upload, Download, Trash2, Terminal, RefreshCw, ChevronDown, 
   PlayCircle, BookOpen, Search, FileDown, StopCircle, Sparkles, Sliders,
   X, Code, Plus, FileText, Maximize, Copy, BrainCircuit, PlusCircle, CornerDownRight, Image as ImageIcon,
-  Library, Share2, MapPin, Globe, Crosshair
+  Library, Share2, MapPin, Globe, Crosshair, Hexagon, Save, Edit3, HelpCircle
 } from 'lucide-react';
-import { RowData, LogEntry, StepStatus, NLUData, GlobalConfig, VOCAB, VisualElement } from './types';
+import { RowData, LogEntry, StepStatus, NLUData, GlobalConfig, VOCAB, VisualElement, EvaluationMetrics } from './types';
 import * as Gemini from './services/geminiService';
 import { VCSCI_MODULE } from './data/canonicalData';
 
@@ -24,6 +24,173 @@ const PipelineIcon = ({ size = 24 }: { size?: number }) => (
     <circle cx="18" cy="6" r="3" />
   </svg>
 );
+
+// --- Hexagon Visualization Component (1-5 Scale) ---
+const HexagonChart: React.FC<{ metrics: EvaluationMetrics; size?: number }> = ({ metrics, size = 180 }) => {
+    const center = size / 2;
+    const radius = size * 0.40; 
+    
+    // Order: Semantics, Syntactics, Pragmatics, Clarity, Universality, Aesthetics
+    const axes = ['semantics', 'syntactics', 'pragmatics', 'clarity', 'universality', 'aesthetics'];
+    const labels = ['SEM', 'SYN', 'PRA', 'CLA', 'UNI', 'AES'];
+    
+    const getPoint = (value: number, index: number) => {
+        // Value is 1-5. 
+        // 0 would be center. 5 is radius.
+        const normalized = value / 5;
+        const angle = (Math.PI / 3) * index - Math.PI / 2;
+        const r = normalized * radius;
+        const x = center + r * Math.cos(angle);
+        const y = center + r * Math.sin(angle);
+        return { x, y };
+    };
+
+    const points = axes.map((axis, i) => {
+        // @ts-ignore
+        const val = metrics[axis] || 0;
+        const { x, y } = getPoint(val, i);
+        return `${x},${y}`;
+    }).join(' ');
+
+    // Generate grid rings for 1, 2, 3, 4, 5
+    const rings = [1, 2, 3, 4, 5].map(level => {
+        return axes.map((_, i) => {
+            const { x, y } = getPoint(level, i);
+            return `${x},${y}`;
+        }).join(' ');
+    });
+
+    const average = useMemo(() => {
+        let sum = 0;
+        axes.forEach(a => sum += ((metrics as any)[a] || 0));
+        return (sum / 6).toFixed(1);
+    }, [metrics]);
+
+    return (
+        <div className="relative flex flex-col items-center justify-center">
+            <svg width={size} height={size} className="overflow-visible">
+                {/* Grid Rings */}
+                {rings.map((ringPoints, i) => (
+                    <polygon 
+                        key={i} 
+                        points={ringPoints} 
+                        fill={i === 4 ? "#f8fafc" : "none"} 
+                        stroke={i === 4 ? "#cbd5e1" : "#e2e8f0"} 
+                        strokeWidth="1" 
+                        strokeDasharray={i === 4 ? "0" : "2 2"}
+                    />
+                ))}
+                
+                {/* Data Hexagon */}
+                <polygon points={points} fill="rgba(76, 29, 149, 0.2)" stroke="#4c1d95" strokeWidth="2" />
+                
+                {/* Labels */}
+                {axes.map((_, i) => {
+                    const labelAngle = (Math.PI / 3) * i - Math.PI / 2;
+                    const lx = center + (radius + 15) * Math.cos(labelAngle);
+                    const ly = center + (radius + 15) * Math.sin(labelAngle);
+                    return (
+                        <text key={i} x={lx} y={ly} textAnchor="middle" dominantBaseline="middle" fontSize={size * 0.05} fontWeight="bold" fill="#64748b">
+                            {labels[i]}
+                        </text>
+                    );
+                })}
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="text-center">
+                    <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">VCSCI</div>
+                    <div className="text-2xl font-bold text-violet-950 leading-none">{average}</div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// --- Evaluation Editor Component (Likert 1-5) ---
+const EvaluationEditor: React.FC<{ 
+    metrics: EvaluationMetrics | undefined; 
+    onUpdate: (m: EvaluationMetrics) => void; 
+    onSave: () => void;
+}> = ({ metrics, onUpdate, onSave }) => {
+    
+    // Default state: 3 (Neutral)
+    const current = metrics || {
+        semantics: 3, syntactics: 3, pragmatics: 3, 
+        clarity: 3, universality: 3, aesthetics: 3, 
+        reasoning: ''
+    };
+
+    const handleChange = (key: keyof EvaluationMetrics, value: any) => {
+        onUpdate({ ...current, [key]: value });
+    };
+
+    const axes = [
+        { key: 'semantics', label: 'Semantics', desc: 'Accuracy of meaning' },
+        { key: 'syntactics', label: 'Syntactics', desc: 'Visual composition' },
+        { key: 'pragmatics', label: 'Pragmatics', desc: 'Context fitness' },
+        { key: 'clarity', label: 'Clarity', desc: 'Legibility' },
+        { key: 'universality', label: 'Universality', desc: 'Neutrality' },
+        { key: 'aesthetics', label: 'Aesthetics', desc: 'Appeal' }
+    ];
+
+    return (
+        <div className="flex flex-col h-full relative">
+            <div className="flex-1 overflow-y-auto pr-2 pb-4 scrollbar-thin scrollbar-thumb-slate-200">
+                {/* Top: Chart */}
+                <div className="flex justify-center py-6 mb-2">
+                    <HexagonChart metrics={current} size={160} />
+                </div>
+
+                {/* Bottom: Sliders */}
+                <div className="space-y-5 px-1">
+                     {axes.map(axis => (
+                         <div key={axis.key} className="space-y-2">
+                             <div className="flex justify-between items-end">
+                                 <span className="text-[10px] font-bold uppercase text-slate-600 tracking-wider">{axis.label}</span>
+                                 <div className="flex gap-1">
+                                    {[1,2,3,4,5].map(v => (
+                                        <div key={v} className={`w-2 h-2 rounded-full transition-colors duration-300 ${(current as any)[axis.key] >= v ? 'bg-violet-600' : 'bg-slate-200'}`}></div>
+                                    ))}
+                                 </div>
+                             </div>
+                             <div className="flex items-center gap-3">
+                                <span className="text-[10px] font-mono text-slate-400 w-3">1</span>
+                                <input 
+                                    type="range" min="1" max="5" step="1"
+                                    value={(current as any)[axis.key]} 
+                                    onChange={(e) => handleChange(axis.key as keyof EvaluationMetrics, parseInt(e.target.value))}
+                                    className="flex-1 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-violet-600 focus:outline-none focus:ring-2 focus:ring-violet-200"
+                                />
+                                <span className="text-[10px] font-mono text-slate-400 w-3 text-right">5</span>
+                             </div>
+                             <p className="text-[9px] text-slate-400 italic leading-none">{axis.desc}</p>
+                         </div>
+                     ))}
+                </div>
+            </div>
+            
+            {/* Footer */}
+            <div className="border-t border-slate-100 pt-3 mt-1 bg-white shrink-0 space-y-3">
+                <div>
+                     <label className="text-[10px] font-medium uppercase text-slate-400 block mb-1">Human Reasoning</label>
+                     <textarea 
+                         value={current.reasoning}
+                         onChange={(e) => handleChange('reasoning', e.target.value)}
+                         placeholder="Rationale for the score..."
+                         className="w-full text-xs p-2 border bg-slate-50 focus:bg-white h-12 resize-none rounded-sm outline-none focus:border-violet-300 transition-colors"
+                     />
+                </div>
+
+                <button 
+                    onClick={onSave}
+                    className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 transition-colors rounded-sm shadow-sm"
+                >
+                    <Save size={14}/> Save Evaluation
+                </button>
+            </div>
+        </div>
+    );
+};
 
 const SearchComponent: React.FC<{
   rows: RowData[];
@@ -102,13 +269,13 @@ const App: React.FC = () => {
   const [config, setConfig] = useState<GlobalConfig>({ 
     lang: 'es', 
     aspectRatio: '1:1',
-    imageModel: 'flash', // 'flash' (2.5) or 'pro' (3.0/NanoBanana Pro)
-    author: 'PICTOS.NET', // Default Author Signature
+    imageModel: 'flash', 
+    author: 'PICTOS.NET', 
     license: 'CC BY 4.0',
     visualStylePrompt: "Diseño de pictograma universal estilo ISO con un enfoque en accesibilidad cognitiva y alto contraste.",
     geoContext: { lat: '40.4168', lng: '-3.7038', region: 'Madrid, ES' }
   });
-  const [focusMode, setFocusMode] = useState<{ step: 'nlu' | 'visual' | 'bitmap', rowId: string } | null>(null);
+  const [focusMode, setFocusMode] = useState<{ step: 'nlu' | 'visual' | 'bitmap' | 'eval', rowId: string } | null>(null);
   const [showMapInputs, setShowMapInputs] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -140,7 +307,8 @@ const App: React.FC = () => {
         status: 'idle',
         nluStatus: 'idle',
         visualStatus: 'idle',
-        bitmapStatus: 'idle'
+        bitmapStatus: 'idle',
+        evalStatus: 'idle'
       }));
       setRows(prev => [...prev, ...newRows]);
       setViewMode('list');
@@ -156,17 +324,14 @@ const App: React.FC = () => {
       type: 'pictonet_graph_dump',
       timestamp: new Date().toISOString(),
       config,
-      rows // This already includes the 'bitmap' field with base64 data
+      rows 
     };
     const blob = new Blob([JSON.stringify(dataToExport, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    
-    // Use the Author Signature as the filename prefix (sanitized)
     const safeFilename = config.author.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'pictonet';
     a.download = `${safeFilename}_graph_${new Date().toISOString().split('T')[0]}.json`;
-    
     a.click();
     URL.revokeObjectURL(url);
     addLog('success', 'Proyecto exportado correctamente (imágenes incluidas).');
@@ -181,20 +346,15 @@ const App: React.FC = () => {
       try {
         const content = event.target?.result as string;
         const parsed = JSON.parse(content);
-        
-        // Handle legacy array format (just rows)
         if (Array.isArray(parsed)) {
             setRows(parsed);
             addLog('success', `Importados ${parsed.length} nodos (Formato Legacy).`);
         } 
-        // Handle new full dump format { config, rows }
         else if (parsed.rows && Array.isArray(parsed.rows)) {
             setRows(parsed.rows);
             if (parsed.config) {
-                // Compatibility check: if imported config has width/height, default to 1:1
                 const newConfig = { ...parsed.config };
                 if (!newConfig.aspectRatio) newConfig.aspectRatio = '1:1';
-                // Ensure model exists if not present in old config
                 if (!newConfig.imageModel) newConfig.imageModel = 'flash';
                 setConfig(newConfig);
                 addLog('info', 'Configuración global restaurada.');
@@ -209,7 +369,7 @@ const App: React.FC = () => {
       }
     };
     reader.readAsText(file);
-    e.target.value = ''; // Reset for next use
+    e.target.value = '';
   };
 
   const addNewRow = (textValue: string = "") => {
@@ -217,7 +377,7 @@ const App: React.FC = () => {
     const newEntry: RowData = {
       id: newId, 
       UTTERANCE: textValue.trim() || 'Nueva Unidad Semántica', 
-      status: 'idle', nluStatus: 'idle', visualStatus: 'idle', bitmapStatus: 'idle'
+      status: 'idle', nluStatus: 'idle', visualStatus: 'idle', bitmapStatus: 'idle', evalStatus: 'idle'
     };
     setRows(prev => [newEntry, ...prev]);
     setViewMode('list');
@@ -235,9 +395,18 @@ const App: React.FC = () => {
     });
   };
 
-  const processStep = async (index: number, step: 'nlu' | 'visual' | 'bitmap'): Promise<boolean> => {
+  const processStep = async (index: number, step: 'nlu' | 'visual' | 'bitmap' | 'eval'): Promise<boolean> => {
     const row = rows[index];
     if (!row) return false;
+    
+    // Manual Evaluation Step Handling
+    if (step === 'eval') {
+        // Just reset status to completed if saving
+        updateRow(index, { evalStatus: 'completed' });
+        addLog('success', `Evaluación guardada para: ${row.UTTERANCE}`);
+        return true;
+    }
+
     stopFlags.current[row.id] = false;
     const statusKey = `${step}Status` as keyof RowData;
     const durationKey = `${step}Duration` as keyof RowData;
@@ -251,7 +420,9 @@ const App: React.FC = () => {
       else if (step === 'visual') {
         const nluObj = typeof row.NLU === 'string' ? JSON.parse(row.NLU) : row.NLU;
         result = await Gemini.generateVisualBlueprint(nluObj as NLUData, config);
-      } else if (step === 'bitmap') result = await Gemini.generateImage(row.elements || [], row.prompt || "", row, config);
+      } else if (step === 'bitmap') {
+          result = await Gemini.generateImage(row.elements || [], row.prompt || "", row, config);
+      }
 
       if (stopFlags.current[row.id]) return false;
 
@@ -259,9 +430,9 @@ const App: React.FC = () => {
       updateRow(index, { 
         [statusKey]: 'completed', 
         [durationKey]: duration,
-        ...(step === 'nlu' ? { NLU: result, visualStatus: 'outdated', bitmapStatus: 'outdated' } : {}),
-        ...(step === 'visual' ? { elements: result.elements, prompt: result.prompt, bitmapStatus: 'outdated' } : {}),
-        ...(step === 'bitmap' ? { bitmap: result, status: 'completed' } : {})
+        ...(step === 'nlu' ? { NLU: result, visualStatus: 'outdated', bitmapStatus: 'outdated', evalStatus: 'outdated' } : {}),
+        ...(step === 'visual' ? { elements: result.elements, prompt: result.prompt, bitmapStatus: 'outdated', evalStatus: 'outdated' } : {}),
+        ...(step === 'bitmap' ? { bitmap: result, status: 'completed', evalStatus: 'idle' } : {}) // Reset eval to idle so user can input
       });
       addLog('success', `${step.toUpperCase()} completo: ${duration.toFixed(1)}s para "${row.UTTERANCE}"`);
       return true;
@@ -283,7 +454,7 @@ const App: React.FC = () => {
 
     try {
         // --- NLU Step ---
-        updateRow(index, { nluStatus: 'processing', visualStatus: 'idle', bitmapStatus: 'idle' });
+        updateRow(index, { nluStatus: 'processing', visualStatus: 'idle', bitmapStatus: 'idle', evalStatus: 'idle' });
         const nluStartTime = Date.now();
         const nluResult = await Gemini.generateNLU(row.UTTERANCE);
         if (stopFlags.current[row.id]) { addLog('info', `Cascada detenida en NLU para ${row.UTTERANCE}`); updateRow(index, { nluStatus: 'idle' }); return; }
@@ -312,6 +483,11 @@ const App: React.FC = () => {
         finalUpdates.bitmapStatus = 'completed';
         finalUpdates.bitmapDuration = (Date.now() - bitmapStartTime) / 1000;
         addLog('success', `Bitmap Renderizado en ${finalUpdates.bitmapDuration.toFixed(1)}s`);
+        
+        // --- End of Automation ---
+        // We do NOT auto-run evaluation. It is manual.
+        // We set evalStatus to 'idle' to indicate it is ready for input.
+        finalUpdates.evalStatus = 'idle';
 
         finalUpdates.status = 'completed';
         updateRow(index, finalUpdates);
@@ -565,19 +741,20 @@ const RowComponent: React.FC<{
     row: RowData; isOpen: boolean; setIsOpen: (v: boolean) => void; 
     onUpdate: (u: any) => void; onProcess: (s: any) => Promise<boolean>;
     onStop: () => void; onCascade: () => void; onDelete: () => void;
-    onFocus: (step: 'nlu' | 'visual' | 'bitmap') => void;
+    onFocus: (step: 'nlu' | 'visual' | 'bitmap' | 'eval') => void;
 }> = ({ row, isOpen, setIsOpen, onUpdate, onProcess, onStop, onCascade, onDelete, onFocus }) => {
     return (
       <div className={`border transition-all duration-300 ${isOpen ? 'ring-8 ring-slate-100 border-violet-950 bg-white' : 'hover:border-slate-300 bg-white shadow-sm'}`}>
         <div className="p-6 flex items-center gap-8 group">
           <input 
-            type="text" value={row.UTTERANCE} onChange={e => onUpdate({ UTTERANCE: e.target.value, nluStatus: 'outdated', visualStatus: 'outdated', bitmapStatus: 'outdated' })}
+            type="text" value={row.UTTERANCE} onChange={e => onUpdate({ UTTERANCE: e.target.value, nluStatus: 'outdated', visualStatus: 'outdated', bitmapStatus: 'outdated', evalStatus: 'outdated' })}
             className="flex-1 w-full bg-transparent border-none outline-none focus:ring-0 utterance-title text-slate-900 uppercase font-light truncate"
           />
           <div className="flex gap-2 cursor-pointer" onClick={() => setIsOpen(!isOpen)}>
             <Badge label="NLU" status={row.nluStatus} />
             <Badge label="VISUAL" status={row.visualStatus} />
             <Badge label="BITMAP" status={row.bitmapStatus} />
+            <Badge label="EVAL" status={row.evalStatus} />
           </div>
           <div className="w-14 h-14 border bg-slate-50 flex items-center justify-center p-1 group-hover:scale-110 transition-transform cursor-pointer overflow-hidden" onClick={() => setIsOpen(!isOpen)}>
             {row.bitmap ? <img src={row.bitmap} alt="Miniature" className="w-full h-full object-contain" /> : <div className="text-slate-200"><ImageIcon size={20} /></div>}
@@ -590,22 +767,22 @@ const RowComponent: React.FC<{
         </div>
   
         {isOpen && (
-          <div className="p-8 border-t bg-slate-50/30 grid grid-cols-1 lg:grid-cols-3 gap-10 animate-in slide-in-from-top-2">
+          <div className="p-8 border-t bg-slate-50/30 grid grid-cols-1 lg:grid-cols-4 gap-10 animate-in slide-in-from-top-2">
             <StepBox label="NLU Architecture" status={row.nluStatus} onRegen={() => onProcess('nlu')} onStop={onStop} onFocus={() => onFocus('nlu')} duration={row.nluDuration}>
-              <SmartNLUEditor data={row.NLU} onUpdate={val => onUpdate({ NLU: val, visualStatus: 'outdated', bitmapStatus: 'outdated' })} />
+              <SmartNLUEditor data={row.NLU} onUpdate={val => onUpdate({ NLU: val, visualStatus: 'outdated', bitmapStatus: 'outdated', evalStatus: 'outdated' })} />
             </StepBox>
             <StepBox label="Visual Strategy" status={row.visualStatus} onRegen={() => onProcess('visual')} onStop={onStop} onFocus={() => onFocus('visual')} duration={row.visualDuration}>
                 <div className="flex flex-col h-full">
                     <div className="flex-1 flex flex-col gap-6 overflow-y-auto">
                         <div>
                             <label className="text-[10px] font-medium uppercase text-slate-400 block mb-2 tracking-widest">Hierarchical Elements</label>
-                            <ElementsEditor elements={row.elements || []} onUpdate={val => onUpdate({ elements: val, bitmapStatus: 'outdated' })} />
+                            <ElementsEditor elements={row.elements || []} onUpdate={val => onUpdate({ elements: val, bitmapStatus: 'outdated', evalStatus: 'outdated' })} />
                         </div>
                         <div className="flex-1 mt-6 border-t pt-6 border-slate-200 flex flex-col">
                             <label className="text-[10px] font-medium uppercase text-slate-400 block mb-3 tracking-widest">Spatial Articulation Logic</label>
                             <textarea 
                                 value={row.prompt || ""} 
-                                onChange={e => onUpdate({ prompt: e.target.value, bitmapStatus: 'outdated' })} 
+                                onChange={e => onUpdate({ prompt: e.target.value, bitmapStatus: 'outdated', evalStatus: 'outdated' })} 
                                 className="w-full flex-1 min-h-[100px] border-none p-0 text-lg font-light text-slate-700 outline-none focus:ring-0 bg-transparent resize-none leading-relaxed" 
                             />
                         </div>
@@ -633,6 +810,21 @@ const RowComponent: React.FC<{
                     )}
                   </div>
               </div>
+            </StepBox>
+            
+            {/* New Manual Evaluation Box */}
+            <StepBox label="Evaluación en Uso" status={row.evalStatus} onRegen={() => onProcess('eval')} onStop={onStop} onFocus={() => onFocus('eval')} duration={row.evalDuration}>
+                {row.bitmap ? (
+                    <EvaluationEditor 
+                        metrics={row.evaluation} 
+                        onUpdate={(m) => onUpdate({ evaluation: m })}
+                        onSave={() => { onProcess('eval'); }}
+                    />
+                ) : (
+                    <div className="h-full flex items-center justify-center text-slate-300 italic text-xs">
+                        Generate bitmap first...
+                    </div>
+                )}
             </StepBox>
           </div>
         )}
@@ -876,7 +1068,7 @@ const Badge: React.FC<{ label: string; status: StepStatus }> = ({ label, status 
 };
 
 const FocusViewModal: React.FC<{
-    mode: 'nlu' | 'visual' | 'bitmap';
+    mode: 'nlu' | 'visual' | 'bitmap' | 'eval';
     row: RowData;
     onClose: () => void;
     onUpdate: (updates: Partial<RowData>) => void;
@@ -890,9 +1082,9 @@ const FocusViewModal: React.FC<{
       } else if (mode === 'visual') {
         contentToCopy = JSON.stringify({ "elements": row.elements, "prompt": row.prompt }, null, 2);
       } else if (mode === 'bitmap') {
-        // For bitmaps we can't easily copy to clipboard as text, so we skip or maybe copy the prompt?
-        // Let's copy the prompt used for generation as a fallback
         contentToCopy = row.prompt || '';
+      } else if (mode === 'eval') {
+        contentToCopy = JSON.stringify(row.evaluation, null, 2);
       }
   
       if (contentToCopy) {
@@ -903,21 +1095,21 @@ const FocusViewModal: React.FC<{
       }
     };
 
-    const titleMap = { nlu: 'NLU Architecture', visual: 'Visual Strategy', bitmap: 'Bitmap Render' };
+    const titleMap = { nlu: 'NLU Architecture', visual: 'Visual Strategy', bitmap: 'Bitmap Render', eval: 'VCSCI Evaluation' };
   
     const renderContent = () => {
       switch (mode) {
-        case 'nlu': return <SmartNLUEditor data={row.NLU} onUpdate={val => onUpdate({ NLU: val, visualStatus: 'outdated', bitmapStatus: 'outdated' })} />;
+        case 'nlu': return <SmartNLUEditor data={row.NLU} onUpdate={val => onUpdate({ NLU: val, visualStatus: 'outdated', bitmapStatus: 'outdated', evalStatus: 'outdated' })} />;
         case 'visual': return (
           <div className="flex flex-col h-full gap-6">
             <div>
               <label className="text-[10px] font-medium uppercase text-slate-400 block mb-2 tracking-widest">Hierarchical Elements</label>
-              <ElementsEditor elements={row.elements || []} onUpdate={val => onUpdate({ elements: val, bitmapStatus: 'outdated' })} />
+              <ElementsEditor elements={row.elements || []} onUpdate={val => onUpdate({ elements: val, bitmapStatus: 'outdated', evalStatus: 'outdated' })} />
             </div>
             <div className="flex-1 mt-6 border-t pt-6 border-slate-200">
               <label className="text-[10px] font-medium uppercase text-slate-400 block mb-3 tracking-widest">Spatial Articulation Logic</label>
               <textarea 
-                value={row.prompt || ""} onChange={e => onUpdate({ prompt: e.target.value, bitmapStatus: 'outdated' })} 
+                value={row.prompt || ""} onChange={e => onUpdate({ prompt: e.target.value, bitmapStatus: 'outdated', evalStatus: 'outdated' })} 
                 className="w-full h-full border-none p-0 text-lg font-light text-slate-700 outline-none focus:ring-0 bg-transparent resize-none leading-relaxed" 
               />
             </div>
@@ -933,6 +1125,15 @@ const FocusViewModal: React.FC<{
                )}
             </div>
           );
+        case 'eval':
+            return row.evaluation ? (
+                <div className="flex flex-col h-full items-center justify-center">
+                    <HexagonChart metrics={row.evaluation} size={350} />
+                    <div className="mt-8 p-4 bg-slate-50 border border-slate-200 max-w-xl w-full">
+                        <p className="text-xs text-slate-600 italic">"{row.evaluation.reasoning}"</p>
+                    </div>
+                </div>
+            ) : <div className="text-center p-10 text-slate-400">No evaluation data available.</div>;
         default: return null;
       }
     }
