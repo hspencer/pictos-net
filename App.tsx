@@ -6,7 +6,7 @@ import {
   X, Code, Plus, FileText, Maximize, Copy, BrainCircuit, PlusCircle, CornerDownRight, Image as ImageIcon,
   Library, Share2, MapPin, Globe, Crosshair, Hexagon, Save, Edit3, HelpCircle
 } from 'lucide-react';
-import { RowData, LogEntry, StepStatus, NLUData, GlobalConfig, VOCAB, VisualElement, EvaluationMetrics } from './types';
+import { RowData, LogEntry, StepStatus, NLUData, GlobalConfig, VOCAB, VisualElement, EvaluationMetrics, NLUFrameRole } from './types';
 import * as Gemini from './services/geminiService';
 import { VCSCI_MODULE } from './data/canonicalData';
 
@@ -110,8 +110,7 @@ const HexagonChart: React.FC<{ metrics: EvaluationMetrics; size?: number }> = ({
 const EvaluationEditor: React.FC<{ 
     metrics: EvaluationMetrics | undefined; 
     onUpdate: (m: EvaluationMetrics) => void; 
-    onSave: () => void;
-}> = ({ metrics, onUpdate, onSave }) => {
+}> = ({ metrics, onUpdate }) => {
     
     // Default state: 3 (Neutral)
     const current = metrics || {
@@ -170,23 +169,14 @@ const EvaluationEditor: React.FC<{
             </div>
             
             {/* Footer */}
-            <div className="border-t border-slate-100 pt-3 mt-1 bg-white shrink-0 space-y-3">
-                <div>
-                     <label className="text-[10px] font-medium uppercase text-slate-400 block mb-1">Human Reasoning</label>
-                     <textarea 
-                         value={current.reasoning}
-                         onChange={(e) => handleChange('reasoning', e.target.value)}
-                         placeholder="Rationale for the score..."
-                         className="w-full text-xs p-2 border bg-slate-50 focus:bg-white h-12 resize-none rounded-sm outline-none focus:border-violet-300 transition-colors"
-                     />
-                </div>
-
-                <button 
-                    onClick={onSave}
-                    className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 transition-colors rounded-sm shadow-sm"
-                >
-                    <Save size={14}/> Save Evaluation
-                </button>
+            <div className="border-t border-slate-100 pt-3 mt-1 bg-white shrink-0">
+                 <label className="text-[10px] font-medium uppercase text-slate-400 block mb-1">Human Reasoning</label>
+                 <textarea 
+                     value={current.reasoning}
+                     onChange={(e) => handleChange('reasoning', e.target.value)}
+                     placeholder="Rationale for the score..."
+                     className="w-full text-xs p-2 border bg-slate-50 focus:bg-white h-24 resize-none rounded-sm outline-none focus:border-violet-300 transition-colors"
+                 />
             </div>
         </div>
     );
@@ -787,15 +777,6 @@ const RowComponent: React.FC<{
                             />
                         </div>
                     </div>
-                    <div className="mt-4 pt-4 border-t border-slate-200 flex justify-end">
-                        <button
-                            onClick={() => onProcess('bitmap')}
-                            disabled={!row.elements || row.elements.length === 0 || row.bitmapStatus === 'processing' || ['error', 'idle'].includes(row.visualStatus)}
-                            className="flex items-center gap-2 bg-violet-800 text-white px-4 py-2 font-bold uppercase text-[10px] tracking-widest hover:bg-violet-950 transition-all shadow-md disabled:bg-slate-300 disabled:cursor-not-allowed"
-                        >
-                            <RefreshCw size={14} /> Generate Bitmap
-                        </button>
-                    </div>
                 </div>
             </StepBox>
             <StepBox label="Bitmap Render" status={row.bitmapStatus} onRegen={() => onProcess('bitmap')} onStop={onStop} onFocus={() => onFocus('bitmap')} duration={row.bitmapDuration}
@@ -818,7 +799,6 @@ const RowComponent: React.FC<{
                     <EvaluationEditor 
                         metrics={row.evaluation} 
                         onUpdate={(m) => onUpdate({ evaluation: m })}
-                        onSave={() => { onProcess('eval'); }}
                     />
                 ) : (
                     <div className="h-full flex items-center justify-center text-slate-300 italic text-xs">
@@ -943,12 +923,14 @@ const SmartNLUEditor: React.FC<{ data: any; onUpdate: (v: any) => void }> = ({ d
             <details key={fIdx} className="border bg-white p-3 shadow-sm text-[10px]" open>
                 <summary className="nlu-key cursor-pointer uppercase">{frame.frame_name} <span className="font-mono lowercase text-violet-500">({frame.lexical_unit})</span></summary>
                 <div className="mt-3 space-y-2 pt-3 border-t">
-                    {Object.entries(frame.roles || {}).map(([role, data]) => (
+                    {Object.entries(frame.roles || {}).map(([role, rawData]) => {
+                        const data = rawData as NLUFrameRole;
+                        return (
                         <div key={role} className="flex gap-2">
                             <span className="font-medium w-20 text-slate-500 shrink-0">{role}:</span>
                             <span className="text-slate-900 truncate">{data.surface} <span className="text-[9px] text-violet-400">[{data.type}]</span></span>
                         </div>
-                    ))}
+                    )})}
                 </div>
             </details>
         ))}
@@ -1126,14 +1108,27 @@ const FocusViewModal: React.FC<{
             </div>
           );
         case 'eval':
-            return row.evaluation ? (
-                <div className="flex flex-col h-full items-center justify-center">
-                    <HexagonChart metrics={row.evaluation} size={350} />
-                    <div className="mt-8 p-4 bg-slate-50 border border-slate-200 max-w-xl w-full">
-                        <p className="text-xs text-slate-600 italic">"{row.evaluation.reasoning}"</p>
+            return (
+                <div className="flex flex-col h-full bg-slate-50">
+                    {/* Image Section */}
+                    <div className="flex-shrink-0 h-2/5 min-h-[250px] bg-white border-b border-slate-200 flex items-center justify-center p-6 relative">
+                        <div className="absolute inset-0 pattern-grid-sm opacity-5 pointer-events-none"></div>
+                        {row.bitmap ? (
+                            <img src={row.bitmap} alt="Evaluation Context" className="h-full w-auto object-contain shadow-sm" />
+                        ) : (
+                            <div className="text-slate-300 font-mono text-xs">No Bitmap Reference</div>
+                        )}
+                    </div>
+                    
+                    {/* Editor Section */}
+                    <div className="flex-1 p-6 overflow-hidden max-w-3xl mx-auto w-full">
+                        <EvaluationEditor 
+                            metrics={row.evaluation} 
+                            onUpdate={(m) => onUpdate({ evaluation: m })}
+                        />
                     </div>
                 </div>
-            ) : <div className="text-center p-10 text-slate-400">No evaluation data available.</div>;
+            );
         default: return null;
       }
     }
