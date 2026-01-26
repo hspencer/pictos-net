@@ -3,20 +3,25 @@ import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { 
   Upload, Download, Trash2, Terminal, RefreshCw, ChevronDown, 
   PlayCircle, BookOpen, Search, FileDown, StopCircle, Sparkles, Sliders,
-  X, Code, Plus, FileText, Maximize, Copy, BrainCircuit, PlusCircle, CornerDownRight, Image as ImageIcon
+  X, Code, Plus, FileText, Maximize, Copy, BrainCircuit, PlusCircle, CornerDownRight, Image as ImageIcon,
+  Library, Share2, MapPin, Globe, Crosshair
 } from 'lucide-react';
 import { RowData, LogEntry, StepStatus, NLUData, GlobalConfig, VOCAB, VisualElement } from './types';
 import * as Gemini from './services/geminiService';
-import { CANONICAL_DATA } from './data/canonicalData';
+import { VCSCI_MODULE } from './data/canonicalData';
 
 const STORAGE_KEY = 'pictonet_v19_storage';
 const CONFIG_KEY = 'pictonet_v19_config';
 
 const PipelineIcon = ({ size = 24 }: { size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-    <circle cx="8.5" cy="8.5" r="1.5" />
-    <polyline points="21 15 16 10 5 21" />
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="6" cy="6" r="3" />
+    <circle cx="6" cy="18" r="3" />
+    <line x1="20" y1="4" x2="8.12" y2="15.88" />
+    <line x1="14.47" y1="14.48" x2="20" y2="20" />
+    <line x1="8.12" y1="8.12" x2="12" y2="12" />
+    <circle cx="18" cy="18" r="3" />
+    <circle cx="18" cy="6" r="3" />
   </svg>
 );
 
@@ -52,7 +57,7 @@ const SearchComponent: React.FC<{
           onBlur={() => setTimeout(() => setIsFocused(false), 200)}
           onChange={(e) => onSearchChange(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Buscar o crear nueva unidad semántica..."
+          placeholder="Buscar nodo o crear nueva intención..."
           className="flex-1 bg-transparent border-none focus:ring-0 text-sm font-bold ml-2"
         />
       </div>
@@ -74,7 +79,7 @@ const SearchComponent: React.FC<{
               onMouseDown={() => onAddNewRow(searchValue)}
             >
               <PlusCircle size={18} />
-              Crear nueva unidad semántica: "{searchValue}"
+              Crear nuevo nodo semántico: "{searchValue}"
             </div>
           )}
         </div>
@@ -97,11 +102,14 @@ const App: React.FC = () => {
   const [config, setConfig] = useState<GlobalConfig>({ 
     lang: 'es', 
     aspectRatio: '1:1',
-    author: 'PictoNet', 
+    imageModel: 'flash', // 'flash' (2.5) or 'pro' (3.0/NanoBanana Pro)
+    author: 'PICTOS.NET', // Default Author Signature
     license: 'CC BY 4.0',
-    visualStylePrompt: "Diseño de pictograma universal estilo ISO con un enfoque en accesibilidad cognitiva y alto contraste."
+    visualStylePrompt: "Diseño de pictograma universal estilo ISO con un enfoque en accesibilidad cognitiva y alto contraste.",
+    geoContext: { lat: '40.4168', lng: '-3.7038', region: 'Madrid, ES' }
   });
   const [focusMode, setFocusMode] = useState<{ step: 'nlu' | 'visual' | 'bitmap', rowId: string } | null>(null);
+  const [showMapInputs, setShowMapInputs] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
@@ -145,6 +153,7 @@ const App: React.FC = () => {
   const exportProject = () => {
     const dataToExport = {
       version: '2.5',
+      type: 'pictonet_graph_dump',
       timestamp: new Date().toISOString(),
       config,
       rows // This already includes the 'bitmap' field with base64 data
@@ -153,7 +162,11 @@ const App: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `pictos_net_backup_${new Date().toISOString().split('T')[0]}.json`;
+    
+    // Use the Author Signature as the filename prefix (sanitized)
+    const safeFilename = config.author.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'pictonet';
+    a.download = `${safeFilename}_graph_${new Date().toISOString().split('T')[0]}.json`;
+    
     a.click();
     URL.revokeObjectURL(url);
     addLog('success', 'Proyecto exportado correctamente (imágenes incluidas).');
@@ -172,7 +185,7 @@ const App: React.FC = () => {
         // Handle legacy array format (just rows)
         if (Array.isArray(parsed)) {
             setRows(parsed);
-            addLog('success', `Importados ${parsed.length} items (Formato Legacy).`);
+            addLog('success', `Importados ${parsed.length} nodos (Formato Legacy).`);
         } 
         // Handle new full dump format { config, rows }
         else if (parsed.rows && Array.isArray(parsed.rows)) {
@@ -181,16 +194,18 @@ const App: React.FC = () => {
                 // Compatibility check: if imported config has width/height, default to 1:1
                 const newConfig = { ...parsed.config };
                 if (!newConfig.aspectRatio) newConfig.aspectRatio = '1:1';
+                // Ensure model exists if not present in old config
+                if (!newConfig.imageModel) newConfig.imageModel = 'flash';
                 setConfig(newConfig);
                 addLog('info', 'Configuración global restaurada.');
             }
-            addLog('success', `Proyecto completo restaurado: ${parsed.rows.length} items.`);
+            addLog('success', `Grafo restaurado: ${parsed.rows.length} nodos.`);
         } else {
             throw new Error("Formato de archivo no reconocido");
         }
         setViewMode('list');
       } catch (err) {
-        addLog('error', 'Fallo al importar archivo JSON. Verifique el formato.');
+        addLog('error', 'Fallo al importar grafo. Verifique el formato.');
       }
     };
     reader.readAsText(file);
@@ -262,7 +277,7 @@ const App: React.FC = () => {
     if (!row) return;
 
     stopFlags.current[row.id] = false;
-    addLog('info', `Iniciando pipeline en cascada para: ${row.UTTERANCE}`);
+    addLog('info', `Iniciando propagación en grafo para: ${row.UTTERANCE}`);
 
     let finalUpdates: Partial<RowData> = { status: 'processing' };
 
@@ -275,7 +290,7 @@ const App: React.FC = () => {
         finalUpdates.NLU = nluResult;
         finalUpdates.nluStatus = 'completed';
         finalUpdates.nluDuration = (Date.now() - nluStartTime) / 1000;
-        addLog('success', `NLU para "${row.UTTERANCE}" completo en ${finalUpdates.nluDuration.toFixed(1)}s`);
+        addLog('success', `NLU Node calculado en ${finalUpdates.nluDuration.toFixed(1)}s`);
         
         // --- Visual Step ---
         updateRow(index, { nluStatus: 'completed', nluDuration: finalUpdates.nluDuration, NLU: nluResult, visualStatus: 'processing' });
@@ -286,7 +301,7 @@ const App: React.FC = () => {
         finalUpdates.prompt = visualResult.prompt;
         finalUpdates.visualStatus = 'completed';
         finalUpdates.visualDuration = (Date.now() - visualStartTime) / 1000;
-        addLog('success', `Visual Strategy para "${row.UTTERANCE}" completa en ${finalUpdates.visualDuration.toFixed(1)}s`);
+        addLog('success', `Visual Topology generada en ${finalUpdates.visualDuration.toFixed(1)}s`);
 
         // --- Bitmap Step (NanoBanana) ---
         updateRow(index, { visualStatus: 'completed', visualDuration: finalUpdates.visualDuration, elements: visualResult.elements, prompt: visualResult.prompt, bitmapStatus: 'processing' });
@@ -296,7 +311,7 @@ const App: React.FC = () => {
         finalUpdates.bitmap = bitmapResult;
         finalUpdates.bitmapStatus = 'completed';
         finalUpdates.bitmapDuration = (Date.now() - bitmapStartTime) / 1000;
-        addLog('success', `Generación de Imagen para "${row.UTTERANCE}" completo en ${finalUpdates.bitmapDuration.toFixed(1)}s`);
+        addLog('success', `Bitmap Renderizado en ${finalUpdates.bitmapDuration.toFixed(1)}s`);
 
         finalUpdates.status = 'completed';
         updateRow(index, finalUpdates);
@@ -307,7 +322,7 @@ const App: React.FC = () => {
         else if (finalUpdates.visualStatus === 'completed') stepFailed = 'bitmap';
         
         updateRow(index, { [`${stepFailed}Status`]: 'error', status: 'error' });
-        addLog('error', `Error en cascada (${stepFailed.toUpperCase()}) para "${row.UTTERANCE}": ${err.message}`);
+        addLog('error', `Fallo de nodo (${stepFailed.toUpperCase()}) para "${row.UTTERANCE}": ${err.message}`);
     }
   };
 
@@ -328,8 +343,8 @@ const App: React.FC = () => {
         <div className="flex items-center gap-4 cursor-pointer" onClick={() => setViewMode('home')}>
           <div className="bg-violet-950 p-2.5 text-white"><PipelineIcon size={24} /></div>
           <div>
-            <h1 className="font-bold uppercase tracking-tight text-xl text-slate-900 leading-none">PICTOS<span className="text-violet-950">.NET</span></h1>
-            <span className="text-[9px] text-slate-400 font-mono tracking-widest uppercase">v2.5 Semantic Image Architect</span>
+            <h1 className="font-bold uppercase tracking-tight text-xl text-slate-900 leading-none">{config.author}</h1>
+            <span className="text-[9px] text-slate-400 font-mono tracking-widest uppercase">v2.5 Semantic Graph Architecture</span>
           </div>
         </div>
 
@@ -353,7 +368,7 @@ const App: React.FC = () => {
                 className="p-2.5 hover:bg-slate-50 text-slate-600 border-r border-slate-100 flex items-center gap-2" 
                 title="Ir a la Librería (Workbench)"
              >
-                <BookOpen size={18}/>
+                <Library size={18}/>
                 <span className="text-xs font-medium text-slate-500 hidden md:inline">Librería</span>
              </button>
              <button 
@@ -368,7 +383,7 @@ const App: React.FC = () => {
                     <div className="fixed inset-0 z-40" onClick={() => setShowLibraryMenu(false)}></div>
                     <div className="absolute top-full right-0 mt-2 w-56 bg-white border border-slate-200 shadow-xl z-50 rounded-sm animate-in fade-in slide-in-from-top-2">
                         <div className="p-2 border-b border-slate-100 text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                            Gestión de Proyecto
+                            Gestión de Grafo
                         </div>
                         <button 
                             onClick={() => { importInputRef.current?.click(); setShowLibraryMenu(false); }} 
@@ -381,7 +396,7 @@ const App: React.FC = () => {
                             disabled={rows.length === 0}
                             className="w-full text-left px-4 py-3 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors disabled:opacity-50"
                         >
-                            <Download size={14} className="text-emerald-600"/> Exportar JSON (con Imágenes)
+                            <Download size={14} className="text-emerald-600"/> Exportar Grafo (Full Dump)
                         </button>
                     </div>
                 </>
@@ -390,25 +405,55 @@ const App: React.FC = () => {
 
           <div className="w-px h-8 bg-slate-200 mx-2"></div>
 
-          <button onClick={() => setShowConfig(!showConfig)} className="p-2.5 hover:bg-slate-50 text-slate-400 border border-transparent hover:border-slate-200 rounded-md transition-all" title="Ajustes Globales"><Sliders size={18}/></button>
+          <button onClick={() => setShowConfig(!showConfig)} className={`p-2.5 hover:bg-slate-50 text-slate-400 border border-transparent hover:border-slate-200 rounded-md transition-all ${showConfig ? 'bg-slate-100 text-violet-950' : ''}`} title="Ajustes de Grafo"><Sliders size={18}/></button>
           <button onClick={() => setShowConsole(!showConsole)} className="p-2.5 hover:bg-slate-50 text-slate-400 border border-transparent hover:border-slate-200 rounded-md transition-all" title="Monitor Semántico"><Terminal size={18}/></button>
         </div>
       </header>
 
       {showConfig && (
-        <div className="bg-white border-b p-8 animate-in slide-in-from-top duration-200 shadow-xl">
-          <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="fixed top-20 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-b shadow-2xl p-8 animate-in slide-in-from-top duration-200">
+          <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-6">
             <div className="md:col-span-4">
-                <label className="text-[10px] font-medium uppercase text-slate-400 block mb-2">Visual Style Prompt (Transversal)</label>
+                <label className="text-[10px] font-medium uppercase text-slate-400 block mb-2">Visual Style Prompt (Node Attribute)</label>
                 <textarea value={config.visualStylePrompt} onChange={e => setConfig({...config, visualStylePrompt: e.target.value})} className="w-full text-xs border p-3 bg-slate-50 focus:bg-white transition-colors h-24" />
             </div>
-            <div>
-              <label className="text-[10px] font-medium uppercase text-slate-400 block mb-2">Target Language</label>
-              <input type="text" value={config.lang} onChange={e => setConfig({...config, lang: e.target.value})} className="w-full text-xs border p-3 bg-slate-50 focus:bg-white transition-colors" />
+            
+            <div className="md:col-span-1 relative group">
+               <label className="text-[10px] font-medium uppercase text-slate-400 block mb-2 flex justify-between">
+                  <span>Geo-Linguistic Context</span>
+                  <button onClick={() => setShowMapInputs(!showMapInputs)} className="text-violet-600 hover:text-violet-900 flex items-center gap-1">
+                     <MapPin size={10} /> {showMapInputs ? 'Simple' : 'Map Mode'}
+                  </button>
+               </label>
+               <div className={`border p-3 bg-slate-50 focus-within:bg-white focus-within:ring-1 focus-within:ring-violet-200 transition-colors flex flex-col gap-2 ${showMapInputs ? 'h-32' : ''}`}>
+                  <div className="flex items-center gap-2">
+                     <Globe size={14} className="text-slate-400"/>
+                     <input type="text" placeholder="Language (es, en...)" value={config.lang} onChange={e => setConfig({...config, lang: e.target.value})} className="w-full text-xs bg-transparent border-none outline-none font-medium" />
+                  </div>
+                  {showMapInputs && (
+                    <div className="animate-in fade-in slide-in-from-top-1 pt-2 border-t border-slate-200 flex flex-col gap-2">
+                        <div className="flex items-center gap-2">
+                            <MapPin size={14} className="text-rose-400"/>
+                            <input type="text" placeholder="Region Name (e.g. Madrid)" value={config.geoContext?.region || ''} onChange={e => setConfig({...config, geoContext: { ...config.geoContext, region: e.target.value } as any })} className="w-full text-[10px] bg-transparent border-none outline-none" />
+                        </div>
+                        <div className="flex gap-2">
+                           <div className="flex items-center gap-1 bg-white border rounded px-1">
+                              <Crosshair size={10} className="text-slate-400"/>
+                              <input type="text" placeholder="Lat" value={config.geoContext?.lat || ''} onChange={e => setConfig({...config, geoContext: { ...config.geoContext, lat: e.target.value } as any })} className="w-full text-[9px] bg-transparent outline-none" />
+                           </div>
+                           <div className="flex items-center gap-1 bg-white border rounded px-1">
+                              <Crosshair size={10} className="text-slate-400"/>
+                              <input type="text" placeholder="Lng" value={config.geoContext?.lng || ''} onChange={e => setConfig({...config, geoContext: { ...config.geoContext, lng: e.target.value } as any })} className="w-full text-[9px] bg-transparent outline-none" />
+                           </div>
+                        </div>
+                    </div>
+                  )}
+               </div>
             </div>
-            <div>
+
+            <div className="md:col-span-1">
               <label className="text-[10px] font-medium uppercase text-slate-400 block mb-2">Aspect Ratio</label>
-              <select value={config.aspectRatio} onChange={e => setConfig({...config, aspectRatio: e.target.value})} className="w-full text-xs border p-3 bg-slate-50 focus:bg-white transition-colors">
+              <select value={config.aspectRatio} onChange={e => setConfig({...config, aspectRatio: e.target.value})} className="w-full text-xs border p-3 bg-slate-50 focus:bg-white transition-colors h-[42px]">
                 <option value="1:1">Square (1:1)</option>
                 <option value="4:3">Standard (4:3)</option>
                 <option value="3:4">Portrait (3:4)</option>
@@ -416,9 +461,18 @@ const App: React.FC = () => {
                 <option value="9:16">Mobile (9:16)</option>
               </select>
             </div>
-            <div>
+
+            <div className="md:col-span-1">
+                <label className="text-[10px] font-medium uppercase text-slate-400 block mb-2">Image Model</label>
+                <select value={config.imageModel || 'flash'} onChange={e => setConfig({...config, imageModel: e.target.value})} className="w-full text-xs border p-3 bg-slate-50 focus:bg-white transition-colors h-[42px]">
+                    <option value="flash">NanoBanana (Flash 2.5)</option>
+                    <option value="pro">NanoBanana Pro (Gemini 3 Pro)</option>
+                </select>
+            </div>
+
+            <div className="md:col-span-1">
               <label className="text-[10px] font-medium uppercase text-slate-400 block mb-2">Author Signature</label>
-              <input type="text" value={config.author} onChange={e => setConfig({...config, author: e.target.value})} className="w-full text-xs border p-3 bg-slate-50 focus:bg-white transition-colors" />
+              <input type="text" value={config.author} onChange={e => setConfig({...config, author: e.target.value})} className="w-full text-xs border p-3 bg-slate-50 focus:bg-white transition-colors h-[42px]" />
             </div>
           </div>
         </div>
@@ -429,26 +483,33 @@ const App: React.FC = () => {
           <div className="py-20 text-center space-y-16 animate-in fade-in zoom-in-95 duration-700">
             <div className="space-y-4">
               <div className="inline-flex gap-4 bg-violet-950 text-white px-6 py-2 text-[10px] font-medium uppercase tracking-[0.4em] shadow-lg">
-                <Sparkles size={14}/> Expert Visual Strategy System
+                <Share2 size={14}/> Graph Architecture
               </div>
-              <h2 className="text-8xl font-black tracking-tighter text-slate-900 leading-none">PICTOS<span className="text-violet-950">.NET</span></h2>
+              <h2 className="text-8xl font-black tracking-tighter text-slate-900 leading-none">{config.author}</h2>
               <p className="text-slate-400 text-xl font-medium max-w-2xl mx-auto leading-relaxed italic">
-                Arquitectura de pictogramas basada en NSM y accesibilidad cognitiva.
-                ISO 7001 Compliance Engine.
+                Arquitectura de nodos semánticos basada en NSM y accesibilidad cognitiva.
+                Integración de Módulos (MediaFranca).
               </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
-              <div onClick={() => { setRows(CANONICAL_DATA as RowData[]); setViewMode('list'); }} className="bg-white p-12 border border-slate-200 text-left space-y-6 shadow-xl hover:border-violet-950 transition-all cursor-pointer group hover:-translate-y-1">
+              <div onClick={() => { setRows(VCSCI_MODULE.data as RowData[]); setViewMode('list'); }} className="bg-white p-12 border border-slate-200 text-left space-y-6 shadow-xl hover:border-violet-950 transition-all cursor-pointer group hover:-translate-y-1 relative overflow-hidden">
+                <div className="absolute top-0 right-0 bg-emerald-100 text-emerald-800 text-[9px] font-bold px-2 py-1 uppercase tracking-widest">{VCSCI_MODULE.version}</div>
                 <div className="text-emerald-600 group-hover:scale-110 transition-transform"><BookOpen size={40}/></div>
-                <h3 className="font-bold text-xl uppercase tracking-wider text-slate-900">Canon Dataset</h3>
-                <p className="text-xs text-slate-500 leading-relaxed font-medium">Carga el set de datos canónico de PictoNet.</p>
+                <div>
+                    <h3 className="font-bold text-xl uppercase tracking-wider text-slate-900">VCSCI Core Module</h3>
+                    <div className="text-[10px] text-slate-400 font-mono mt-1">{VCSCI_MODULE.namespace}</div>
+                </div>
+                <p className="text-xs text-slate-500 leading-relaxed font-medium">{VCSCI_MODULE.description}</p>
               </div>
 
               <div onClick={() => fileInputRef.current?.click()} className="bg-violet-950 p-12 text-left space-y-6 shadow-xl hover:bg-black transition-all cursor-pointer group hover:-translate-y-1">
                 <div className="text-white group-hover:scale-110 transition-transform"><FileText size={40}/></div>
-                <h3 className="font-bold text-xl uppercase tracking-wider text-white">Import Phrases</h3>
-                <p className="text-xs text-violet-300 leading-relaxed font-medium">Carga un archivo de texto con una frase por línea.</p>
+                <div>
+                    <h3 className="font-bold text-xl uppercase tracking-wider text-white">Import Text Node</h3>
+                    <div className="text-[10px] text-violet-400 font-mono mt-1">raw_text_ingest</div>
+                </div>
+                <p className="text-xs text-violet-300 leading-relaxed font-medium">Carga un archivo de texto con una frase por línea para iniciar el proceso de grafado.</p>
                 <input ref={fileInputRef} type="file" accept=".txt" className="hidden" onChange={e => e.target.files?.[0]?.text().then(processPhrases)}/>
               </div>
             </div>

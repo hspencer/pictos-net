@@ -81,7 +81,13 @@ export interface LogEntry {
 
 export interface GlobalConfig {
   lang: string;
+  geoContext?: {
+    lat: string;
+    lng: string;
+    region: string;
+  };
   aspectRatio: string; // '1:1', '3:4', '4:3', '9:16', '16:9'
+  imageModel: string; // 'flash' | 'pro'
   author: string;
   license: string;
   visualStylePrompt: string;
@@ -98,18 +104,21 @@ export const VOCAB = {
 export const VOCAB_NSM = {
   substantives: ['I', 'YOU', 'SOMEONE', 'SOMETHING', 'PEOPLE', 'BODY'],
   determiners: ['THIS', 'THE SAME', 'OTHER'],
-  quantifiers: ['ONE', 'TWO', 'MUCH', 'MANY', 'ALL'],
+  quantifiers: ['ONE', 'TWO', 'SOME', 'ALL', 'MUCH/MANY', 'LITTLE/FEW'],
   evaluators: ['GOOD', 'BAD'],
   descriptors: ['BIG', 'SMALL'],
+  actions_events_movement: ['DO', 'HAPPEN', 'MOVE'],
+  existence: ['EXIST'],
   mental_predicates: ['THINK', 'KNOW', 'WANT', 'FEEL', 'SEE', 'HEAR'],
   speech: ['SAY', 'WORD'],
-  actions_events_movement: ['DO', 'HAPPEN', 'MOVE'],
-  existence_possession: ['BE', 'HAVE'],
+  propositions: ['KNOW', 'UNDERSTAND'],
+  connectors: ['AND', 'NOT', 'MAYBE', 'CAN', 'BECAUSE', 'IF'],
+  intensifiers: ['VERY', 'MORE'],
+  similarity: ['LIKE', 'AS', 'WAY'],
+  time: ['WHEN', 'TIME', 'NOW', 'BEFORE', 'AFTER', 'A LONG TIME', 'A SHORT TIME', 'FOR SOME TIME', 'MOMENT'],
+  space: ['WHERE', 'PLACE', 'HERE', 'ABOVE', 'BELOW', 'FAR', 'NEAR', 'SIDE', 'INSIDE', 'TOUCH'],
+  possession: ['MINE'],
   life_death: ['LIVE', 'DIE'],
-  time: ['WHEN', 'TIME', 'NOW', 'BEFORE', 'AFTER', 'A LONG TIME', 'A SHORT TIME', 'FOR SOME TIME'],
-  space: ['WHERE', 'PLACE', 'HERE', 'ABOVE', 'BELOW', 'FAR', 'NEAR', 'SIDE', 'INSIDE'],
-  logical_concepts: ['NOT', 'MAYBE', 'CAN', 'BECAUSE', 'IF'],
-  intensifiers_augmentors: ['VERY', 'MORE'],
-  taxonomy_partonomy: ['KIND OF', 'PART OF'],
-  similarity: ['LIKE', 'AS']
+  parts: ['PART'],
+  taxonomy: ['KIND']
 };

@@ -26,38 +26,34 @@ const cleanJSONResponse = (text: string): string => {
 
 export const generateNLU = async (utterance: string): Promise<NLUData> => {
   const ai = getAI();
-  const systemInstruction = `**Contexto y Rol Principal:**
-Eres el "Analizador Semántico NLU" del pipeline PictoNet. Tu única función es recibir una intención comunicativa (un texto de entrada, o \`utterance\`) y generar como salida un único bloque de código JSON estructurado que descompone ese texto en su significado semántico y pragmático profundo.
+  const systemInstruction = `**Contexto de Arquitectura:**
+Operas como el nodo de procesamiento "NLU Schema Engine" dentro de la arquitectura de grafo PictoNet.
+Tu tarea es instanciar el esquema JSON definido oficialmente en el repositorio **\`mediafranca/nlu-schema\`**.
 
-**Base de Conocimiento Teórico (Fundamental):**
-Para realizar tu tarea, actúas como un lingüista computacional experto con conocimiento profundo de:
+**Función del Nodo:**
+Recibes una intención comunicativa (\`utterance\`) y debes mapearla al grafo semántico utilizando la ontología NSM (65 primos universales).
 
-1.  **Natural Semantic Metalanguage (NSM):** Conoces y sabes aplicar activamente los ~65 primos semánticos universales (de Wierzbicka y Goddard) para descomponer conceptos.
-2.  **Semántica de Marcos (Frame Semantics):** Eres experto en identificar marcos conceptuales (Frames, ej. \`Directed_action\`, \`Desire\`), sus unidades léxicas (LU) y sus roles (Agente, Tema, Experimentador, EventoDeseado, etc.), basándote en los principios de FrameNet.
-3.  **Teoría de los Actos de Habla:** Sabes clasificar enunciados según su función pragmática (ej. \`directive\`, \`commissive\`, \`expressive\`, \`assertive\`).
-4.  **Pragmática:** Entiendes y puedes analizar el contexto social, la formalidad, la cortesía y la intención implícita.
-5.  **Forma Lógica:** Sabes cómo estructurar la semántica en una forma lógica predicado-argumento (ej. \`quiere(hablante, hace(oyente, cama))\`).
+**Ontología NSM (mediafranca/nsm-core):**
+Debes aplicar rigurosamente estos 65 primitivos para las explicaciones:
+*   **Substantives:** I, YOU, SOMEONE, SOMETHING, PEOPLE, BODY
+*   **Determiners:** THIS, THE SAME, OTHER
+*   **Quantifiers:** ONE, TWO, SOME, ALL, MUCH/MANY, LITTLE/FEW
+*   **Evaluators:** GOOD, BAD
+*   **Descriptors:** BIG, SMALL
+*   **Verbs:** DO, HAPPEN, MOVE, EXIST, THINK, SAY, WANT, FEEL, SEE, HEAR
+*   **Propositions:** KNOW, UNDERSTAND
+*   **Connectors:** AND, NOT, MAYBE, CAN, BECAUSE, IF
+*   **Intensifiers:** VERY, MORE
+*   **Similarity:** LIKE~AS~WAY
+*   **Time:** WHEN~TIME, NOW, BEFORE, AFTER, A LONG TIME, A SHORT TIME, FOR SOME TIME, MOMENT
+*   **Space:** WHERE~PLACE, HERE, ABOVE, BELOW, FAR, NEAR, SIDE, INSIDE, TOUCH
+*   **Possession:** (IS) MINE
+*   **Life/Death:** LIVE, DIE
+*   **Parts:** PART
+*   **Kind:** KIND
 
------
-
-**Proceso de Análisis (Pipeline):**
-Al recibir un texto del usuario, sigues rigurosamente este proceso para construir el JSON:
-
-1.  **Datos de Superficie:** Establece \`utterance\` (el texto de entrada exacto) y \`lang\` (el código ISO de 2 letras del idioma).
-2.  **Metadatos:** Analiza el \`speech_act\` (la función pragmática principal) y el \`intent\` (la intención específica del hablante, ej. 'request', 'question', 'inform').
-3.  **Marcos (Frames):** Esta es la parte central. Identifica *todos* los marcos evocados por las unidades léxicas.
-      * Para cada marco, define \`frame_name\` y \`lexical_unit\`.
-      * Puebla los \`roles\` de ese marco. Cada rol debe ser un objeto detallado que especifique \`type\`, \`ref\` (si es una entidad como 'speaker' o 'addressee'), \`surface\` (el texto exacto), \`lemma\`, etc.
-      * Maneja las dependencias. Si un marco (ej. \`Desire\`) toma otro evento como argumento (ej. \`Directed_action\`), usa el campo \`ref_frame\` para conectar ambos marcos.
-4.  **Explicaciones NSM (Opcional):** Si el enunciado contiene conceptos clave que se benefician de la descomposición, proporciona el objeto \`nsm_explications\`. Descompón los conceptos (ej. \`WANT\`, \`DO\`, \`BED\`) en sus primos semánticos.
-5.  **Forma Lógica:** Construye el objeto \`logical_form\` que represente formalmente la semántica del evento y su modalidad.
-6.  **Pragmática (Opcional):** Si el contexto lo permite, analiza las dimensiones sociales y puebla el objeto \`pragmatics\` (ej. \`politeness\`, \`formality\`, \`expected_response\`).
-7.  **Guías Visuales (Opcional):** Basado en el análisis semántico, proporciona \`visual_guidelines\` para un futuro generador de pictogramas. Identifica \`focus_actor\`, \`action_core\`, \`object_core\` y \`context\` (el escenario).
-
------
-
-**Esquema JSON de Salida (Schema OBLIGATORIO):**
-Tu salida debe adherirse *estrictamente* a este esquema. Los campos marcados como \`[opcional]\` deben incluirse solo si hay información relevante que extraer.
+**Esquema de Salida (mediafranca/nlu-schema v1.0):**
+Tu salida debe adherirse *estrictamente* a este esquema.
 
 \`\`\`json
 {
@@ -69,21 +65,19 @@ Tu salida debe adherirse *estrictamente* a este esquema. Los campos marcados com
   },
   "frames": [
     {
-      "frame_name": "string",
+      "frame_name": "string (FrameNet compatible)",
       "lexical_unit": "string",
       "roles": {
-        "RoleName_1": {
+        "RoleName": {
           "type": "string",
           "ref": "string",
-          "surface": "string",
-          "lemma": "string [opcional]",
-          "definiteness": "string [opcional]"
+          "surface": "string"
         }
       }
     }
   ],
   "nsm_explications": {
-    "KEY_CONCEPT_1": "string (explicación en primos)"
+    "KEY_CONCEPT": "string (usando SOLO primos NSM)"
   },
   "logical_form": {
     "event": "string",
@@ -104,87 +98,10 @@ Tu salida debe adherirse *estrictamente* a este esquema. Los campos marcados com
 }
 \`\`\`
 
------
-
-**Ejemplo de Referencia (Gold Standard):**
-Usa el siguiente análisis como tu ejemplo de referencia principal para "I want you to make the bed". Tu objetivo es replicar este nivel de detalle y estructura para cualquier enunciado que recibas.
-
-\`\`\`json
-{
-  "utterance": "I want you to make the bed",
-  "lang": "en",
-  "metadata": {
-    "speech_act": "directive",
-    "intent": "request"
-  },
-  "frames": [
-    {
-      "frame_name": "Directed_action",
-      "lexical_unit": "make",
-      "roles": {
-        "Agent": {
-          "type": "Addressee",
-          "ref": "you",
-          "surface": "you"
-        },
-        "Theme": {
-          "type": "Object",
-          "lemma": "bed",
-          "surface": "the bed",
-          "definiteness": "definite"
-        }
-      }
-    },
-    {
-      "frame_name": "Desire",
-      "lexical_unit": "want",
-      "roles": {
-        "Experiencer": {
-          "type": "Agent",
-          "ref": "speaker",
-          "surface": "I"
-        },
-        "DesiredEvent": {
-          "type": "Event",
-          "ref_frame": "Directed_action"
-        }
-      }
-    }
-  ],
-  "nsm_explications": {
-    "WANT": "I feel something. I don’t have something. I want it to happen.",
-    "DO": "Someone does something.",
-    "CAUSE": "Someone causes something to happen.",
-    "BED": "Something. A thing. Used for sleeping."
-  },
-  "logical_form": {
-    "event": "make(you, bed)",
-    "modality": "want(I, event)"
-  },
-  "pragmatics": {
-    "politeness": "neutral",
-    "formality": "informal",
-    "expected_response": "compliance"
-  },
-  "visual_guidelines": {
-    "focus_actor": "you",
-    "secondary_actor": "speaker",
-    "action_core": "make",
-    "object_core": "bed",
-    "context": "bedroom",
-    "temporal": "immediate"
-  }
-}
-\`\`\`
-
------
-
-**Reglas de Salida Estrictas (¡MUY IMPORTANTE!):**
-
-1.  Tu respuesta debe ser *únicamente* el bloque de código JSON.
-2.  No incluyas *nada* de texto explicativo, saludos, preámbulos o comentarios (ej. "Aquí está el JSON:").
-3.  Tu salida debe empezar siempre con \`{\` y terminar siempre con \`}\`.
-4.  Asegúrate de que el JSON esté perfectamente formado y sea válido.`;
+**Reglas de Ejecución:**
+1.  Retorna SOLO el JSON.
+2.  Analiza la pragmática y semántica profunda, no solo la superficie.
+3.  Asegura JSON válido.`;
   
   const response = await ai.models.generateContent({
     model: "gemini-3-pro-preview",
@@ -199,26 +116,28 @@ Usa el siguiente análisis como tu ejemplo de referencia principal para "I want 
 
 export const generateVisualBlueprint = async (nlu: NLUData, config: GlobalConfig): Promise<Partial<RowData>> => {
   const ai = getAI();
-  const systemInstruction = `You are a Senior Visual Communication Strategist specializing in Cognitive Accessibility and ISO visual standards. Your goal is to define the visual structure for a universal pictogram based on a detailed semantic analysis (NLU).
+  const targetLang = nlu.lang || config.lang || 'en';
 
-**Primary Task:** Decompose the core semantic concepts from the NLU into a hierarchical list of visual components and describe their spatial arrangement.
+  const systemInstruction = `You are the "Visual Topology Node" in the PictoNet graph.
+Your function is to translate the semantic graph (NLU) into a hierarchical visual graph (Elements & Spatial Logic).
 
-**Reglas de Estructura de Salida (Output MUST be a single raw JSON object):**
+**Language Context:**
+The "utterance" language is: **${targetLang}**.
+You MUST generate Element IDs and the prompt logic in **${targetLang}**.
 
-1.  **"elements" key:**
-    *   **Content:** Define a hierarchical list of visual components.
-    *   **Format:** An array of objects. Each object must have an 'id' (string) and may optionally have a 'children' array for nested elements.
-    *   **Naming Convention:** IDs must be descriptive, pure nouns in \`snake_case\` format (e.g., 'human_profile', 'kinetic_lines', 'liquid_level').
+**Output Graph Schema:**
 
-2.  **"prompt" key:**
-    *   **Content:** This is the **Spatial Articulation Logic**.
-    *   **Language:** Write in ${config.lang}.
-    *   **CRITICAL RULE:** Write **exclusively** the spatial articulation logic. **DO NOT include general style descriptions** (e.g., 'ISO pictogram style', 'high contrast', 'minimalist design'), as this is handled by a separate global configuration. Focus ONLY on the composition: the relative positioning, proportion, connection, and action between the visual elements defined in the "elements" key.
+1.  **"elements" (Visual Hierarchy):**
+    *   A recursive list of visual nodes.
+    *   IDs must be \`snake_case\` nouns in **${targetLang}**.
 
-**Example of a GOOD "prompt" value:**
-"The \`human_profile\` is positioned on the left, facing right. In front of its oral area is a \`cup\` tilted at a 45-degree angle. Inside the cup, the \`liquid_level\` indicates content. A stylized \`drop\` is suspended above the rim. Two curved \`kinetic_lines\` suggest the upward motion of the cup."
+2.  **"prompt" (Spatial Edges):**
+    *   Describes the edges/relationships between visual nodes in space incorporating visual metaphors.
+    *   Write in **${targetLang}**.
+    *   **Focus exclusively on TOPOLOGY and COMPOSITION** (relative position, size relations, connections).
+    *   Do NOT define style (handled by the Global Style Node).
 
-**Final Output MUST be a single, raw, valid JSON object with keys "elements" and "prompt". Do not add any commentary or markdown wrappers.**`;
+**Final Output:** A single valid JSON object containing \`elements\` and \`prompt\`.`;
   
   const response = await ai.models.generateContent({
     model: "gemini-3-pro-preview",
@@ -250,8 +169,15 @@ export const generateImage = async (elements: VisualElement[], prompt: string, r
     Important: The image should be clean, with no text, on a plain background (white or transparent if possible). High contrast.
   `;
 
+  // Select model based on config.
+  // 'pro' maps to gemini-3-pro-image-preview (NanoBanana Pro / High Quality)
+  // 'flash' maps to gemini-2.5-flash-image (NanoBanana / Fast)
+  const modelName = config.imageModel === 'pro' 
+    ? 'gemini-3-pro-image-preview' 
+    : 'gemini-2.5-flash-image';
+
   const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash-image",
+    model: modelName,
     contents: {
       parts: [
         { text: fullPrompt }

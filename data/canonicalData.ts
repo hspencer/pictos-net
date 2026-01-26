@@ -1,71 +1,134 @@
 
 import { RowData } from "../types";
 
-export const CANONICAL_DATA: Partial<RowData>[] = [
-  {
-    "UTTERANCE": "Quiero beber agua",
-    "NLU": {
-      "utterance": "I want to drink water",
-      "lang": "en",
-      "metadata": {
-        "speech_act": "directive",
-        "intent": "desire_expression"
-      },
-      "frames": [
-        {
-          "frame_name": "Ingestion",
-          "lexical_unit": "drink",
-          "roles": {
-            "Ingestor": { "type": "Agent", "ref": "speaker", "surface": "I" },
-            "Ingestibles": { "type": "Object", "surface": "water", "lemma": "water", "definiteness": "indefinite" }
-          }
-        },
-        {
-          "frame_name": "Desire",
-          "lexical_unit": "want",
-          "roles": {
-            "Experiencer": { "type": "Agent", "ref": "speaker", "surface": "I" },
-            "DesiredEvent": { "type": "Event", "ref_frame": "Ingestion", "surface": "to drink water" }
-          }
-        }
-      ],
-      "nsm_explications": {
-        "WANT": "Someone feels something. This person thinks: ‘I want this to happen’",
-        "DRINK": "Someone puts water or another liquid inside their body through the mouth",
-        "WATER": "Something. People drink it. It is clear. It is not a thing someone made"
-      },
-      "logical_form": {
-        "event": "drink(I, water)",
-        "modality": "want(I, event)"
-      },
-      "pragmatics": {
-        "politeness": "neutral",
-        "formality": "neutral",
-        "expected_response": "none (self-expression)"
-      },
-      "visual_guidelines": {
-        "focus_actor": "speaker",
-        "action_core": "drink",
-        "object_core": "water",
-        "context": "everyday activity",
-        "temporal": "immediate"
-      }
+// Module Definition: Vocabulary of Core Semantic Communicative Intentions
+// Namespace: mediafranca/vcsci-core
+// Type: Semantic Graph Node (Dataset)
+
+export interface GraphModule {
+  id: string;
+  namespace: string;
+  version: string;
+  description: string;
+  data: Partial<RowData>[];
+}
+
+export const VCSCI_MODULE: GraphModule = {
+  id: "vcsci-core",
+  namespace: "mediafranca.graph.dataset",
+  version: "1.0.0",
+  description: "Vocabulary of Core Semantic Communicative Intentions (20 functional nodes)",
+  data: [
+    // 1. PETICIONES FISIOLÓGICAS Y BÁSICAS
+    {
+      "id": "VCSCI_01",
+      "UTTERANCE": "Quiero beber agua",
+      "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
     },
-    "elements": [
-      { "id": "perfil_humano" },
-      {
-        "id": "vaso",
-        "children": [
-          { "id": "nivel_liquido" },
-          { "id": "gota" },
-          { "id": "lineas_cineticas" }
-        ]
-      }
-    ],
-    "prompt": "La composición se centra en un `perfil_humano` simplificado, orientado hacia la derecha. Frente a la zona oral se encuentra un `vaso` inclinado 45 grados. Dentro del vaso, `nivel_liquido` indica contenido. Una `gota` estilizada está suspendida sobre el borde. Dos `lineas_cineticas` curvas sugieren el movimiento ascendente del vaso."
-  },
-  {
-    "id": "C_002",
-    "UTTERANCE": "Ayúdame a hacer la cama"
-  }
-];
+    {
+      "id": "VCSCI_02",
+      "UTTERANCE": "Quiero comer algo",
+      "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
+    },
+    {
+      "id": "VCSCI_03",
+      "UTTERANCE": "Necesito ir al baño",
+      "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
+    },
+    {
+      "id": "VCSCI_04",
+      "UTTERANCE": "Quiero descansar (dormir)",
+      "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
+    },
+
+    // 2. REGULACIÓN DE LA ACCIÓN (CONTROL)
+    {
+      "id": "VCSCI_05",
+      "UTTERANCE": "Ayúdame, por favor",
+      "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
+    },
+    {
+      "id": "VCSCI_06",
+      "UTTERANCE": "Para (detente ahora)",
+      "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
+    },
+    {
+      "id": "VCSCI_07",
+      "UTTERANCE": "Quiero más",
+      "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
+    },
+    {
+      "id": "VCSCI_08",
+      "UTTERANCE": "Ya he terminado (acabado)",
+      "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
+    },
+
+    // 3. EXPRESIÓN DE PREFERENCIA Y RECHAZO
+    {
+      "id": "VCSCI_09",
+      "UTTERANCE": "Me gusta esto",
+      "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
+    },
+    {
+      "id": "VCSCI_10",
+      "UTTERANCE": "No me gusta esto",
+      "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
+    },
+    {
+      "id": "VCSCI_11",
+      "UTTERANCE": "No quiero (rechazo)",
+      "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
+    },
+
+    // 4. ESTADOS FÍSICOS Y EMOCIONALES
+    {
+      "id": "VCSCI_12",
+      "UTTERANCE": "Me duele (tengo dolor)",
+      "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
+    },
+    {
+      "id": "VCSCI_13",
+      "UTTERANCE": "Estoy feliz",
+      "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
+    },
+    {
+      "id": "VCSCI_14",
+      "UTTERANCE": "Estoy triste",
+      "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
+    },
+
+    // 5. OBTENCIÓN DE INFORMACIÓN (INTERROGATIVOS)
+    {
+      "id": "VCSCI_15",
+      "UTTERANCE": "¿Qué es eso?",
+      "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
+    },
+    {
+      "id": "VCSCI_16",
+      "UTTERANCE": "¿Dónde está?",
+      "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
+    },
+
+    // 6. INTERACCIÓN SOCIAL
+    {
+      "id": "VCSCI_17",
+      "UTTERANCE": "Hola (saludo)",
+      "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
+    },
+    {
+      "id": "VCSCI_18",
+      "UTTERANCE": "Adiós (despedida)",
+      "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
+    },
+    {
+      "id": "VCSCI_19",
+      "UTTERANCE": "Gracias",
+      "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
+    },
+    {
+      "id": "VCSCI_20",
+      "UTTERANCE": "Vamos a jugar",
+      "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
+    }
+  ]
+};
