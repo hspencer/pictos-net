@@ -4,7 +4,7 @@ import {
   Upload, Download, Trash2, Terminal, RefreshCw, ChevronDown, 
   PlayCircle, BookOpen, Search, FileDown, StopCircle, Sparkles, Sliders,
   X, Code, Plus, FileText, Maximize, Copy, BrainCircuit, PlusCircle, CornerDownRight, Image as ImageIcon,
-  Library, Share2, MapPin, Globe, Crosshair, Hexagon, Save, Edit3, HelpCircle
+  Library, Share2, MapPin, Globe, Crosshair, Hexagon, Save, Edit3, HelpCircle, CheckCircle
 } from 'lucide-react';
 import { RowData, LogEntry, StepStatus, NLUData, GlobalConfig, VOCAB, VisualElement, EvaluationMetrics, NLUFrameRole } from './types';
 import * as Gemini from './services/geminiService';
@@ -262,7 +262,7 @@ const App: React.FC = () => {
     imageModel: 'flash', 
     author: 'PICTOS.NET', 
     license: 'CC BY 4.0',
-    visualStylePrompt: "Diseño de pictograma universal estilo ISO con un enfoque en accesibilidad cognitiva y alto contraste.",
+    visualStylePrompt: "Siluetas sobre un fondo blanco plano. Sin degradados, sin sombras, sin texturas y sin contornos. Geometría: Usa trazos gruesos y consistentes y simplificación geométrica. Todas las extremidades y terminales deben tener puntas redondeadas y vértices suavizados. Composición: Representación plana 2D centrada. Usa el espacio negativo (blanco) para definir la separación interna entre formas negras superpuestas (por ejemplo, el espacio entre una cabeza y un torso). Claridad: Maximiza la legibilidad y el reconocimiento semántico a escalas pequeñas. Evita cualquier rasgo facial o detalles intrincados. Usa color solo en el elemento distintivo, si es necesario.",
     geoContext: { lat: '40.4168', lng: '-3.7038', region: 'Madrid, ES' }
   });
   const [focusMode, setFocusMode] = useState<{ step: 'nlu' | 'visual' | 'bitmap' | 'eval', rowId: string } | null>(null);
@@ -796,10 +796,22 @@ const RowComponent: React.FC<{
             {/* New Manual Evaluation Box */}
             <StepBox label="Evaluación en Uso" status={row.evalStatus} onRegen={() => onProcess('eval')} onStop={onStop} onFocus={() => onFocus('eval')} duration={row.evalDuration}>
                 {row.bitmap ? (
-                    <EvaluationEditor 
-                        metrics={row.evaluation} 
-                        onUpdate={(m) => onUpdate({ evaluation: m })}
-                    />
+                    <div className="flex flex-col h-full">
+                        <div className="flex-1 overflow-hidden">
+                            <EvaluationEditor 
+                                metrics={row.evaluation} 
+                                onUpdate={(m) => onUpdate({ evaluation: m })}
+                            />
+                        </div>
+                        <div className="pt-3 mt-auto flex justify-end">
+                            <button 
+                                onClick={() => onProcess('eval')}
+                                className="flex items-center gap-2 bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300 px-4 py-2 text-[10px] font-bold uppercase tracking-widest transition-all rounded-sm"
+                            >
+                                <CheckCircle size={14} className="text-emerald-600"/> Confirmar Evaluación
+                            </button>
+                        </div>
+                    </div>
                 ) : (
                     <div className="h-full flex items-center justify-center text-slate-300 italic text-xs">
                         Generate bitmap first...
@@ -1122,10 +1134,22 @@ const FocusViewModal: React.FC<{
                     
                     {/* Editor Section */}
                     <div className="flex-1 p-6 overflow-hidden max-w-3xl mx-auto w-full">
-                        <EvaluationEditor 
-                            metrics={row.evaluation} 
-                            onUpdate={(m) => onUpdate({ evaluation: m })}
-                        />
+                        <div className="flex flex-col h-full">
+                            <div className="flex-1 overflow-y-auto pr-2 pb-4 scrollbar-thin scrollbar-thumb-slate-200">
+                                <EvaluationEditor 
+                                    metrics={row.evaluation} 
+                                    onUpdate={(m) => onUpdate({ evaluation: m })}
+                                />
+                            </div>
+                            <div className="mt-4 pt-4 border-t border-slate-100 flex justify-end">
+                                <button 
+                                    onClick={() => onUpdate({ evalStatus: 'completed' })}
+                                    className="flex items-center gap-2 bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300 px-6 py-3 text-[10px] font-bold uppercase tracking-widest transition-all rounded-sm shadow-sm"
+                                >
+                                    <CheckCircle size={14} className="text-emerald-600"/> Confirmar Evaluación
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             );
