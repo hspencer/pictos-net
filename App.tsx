@@ -15,15 +15,28 @@ const CONFIG_KEY = 'pictonet_v19_config';
 
 const PipelineIcon = ({ size = 24 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="6" cy="6" r="3" />
-    <circle cx="6" cy="18" r="3" />
-    <line x1="20" y1="4" x2="8.12" y2="15.88" />
-    <line x1="14.47" y1="14.48" x2="20" y2="20" />
-    <line x1="8.12" y1="8.12" x2="12" y2="12" />
-    <circle cx="18" cy="18" r="3" />
-    <circle cx="18" cy="6" r="3" />
+    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z" />
+    <circle cx="12" cy="12" r="3" />
   </svg>
 );
+
+// Helper function to get evaluation score total and color
+const getEvaluationScore = (metrics: EvaluationMetrics | undefined): { total: number; average: number; color: string } => {
+  if (!metrics) return { total: 0, average: 0, color: '#64748b' };
+  const { semantics, syntactics, pragmatics, clarity, universality, aesthetics } = metrics;
+  const total = semantics + syntactics + pragmatics + clarity + universality + aesthetics;
+  const average = total / 6;
+
+  // Color mapping based on average score (1-5 scale)
+  let color = '#64748b'; // default gray
+  if (average >= 4.5) color = '#22c55e'; // verde oscuro (5)
+  else if (average >= 3.5) color = '#84cc16'; // verde limón (4)
+  else if (average >= 2.5) color = '#eab308'; // amarillo (3)
+  else if (average >= 1.5) color = '#f97316'; // naranjo (2)
+  else color = '#ef4444'; // rojo (1)
+
+  return { total, average, color };
+};
 
 // --- Hexagon Visualization Component (1-5 Scale) ---
 const HexagonChart: React.FC<{ metrics: EvaluationMetrics; size?: number }> = ({ metrics, size = 180 }) => {
@@ -107,15 +120,16 @@ const HexagonChart: React.FC<{ metrics: EvaluationMetrics; size?: number }> = ({
 };
 
 // --- Evaluation Editor Component (Likert 1-5) ---
-const EvaluationEditor: React.FC<{ 
-    metrics: EvaluationMetrics | undefined; 
-    onUpdate: (m: EvaluationMetrics) => void; 
-}> = ({ metrics, onUpdate }) => {
-    
+const EvaluationEditor: React.FC<{
+    metrics: EvaluationMetrics | undefined;
+    onUpdate: (m: EvaluationMetrics) => void;
+    compact?: boolean; // New prop for modal view
+}> = ({ metrics, onUpdate, compact = false }) => {
+
     // Default state: 3 (Neutral)
     const current = metrics || {
-        semantics: 3, syntactics: 3, pragmatics: 3, 
-        clarity: 3, universality: 3, aesthetics: 3, 
+        semantics: 3, syntactics: 3, pragmatics: 3,
+        clarity: 3, universality: 3, aesthetics: 3,
         reasoning: ''
     };
 
@@ -132,6 +146,56 @@ const EvaluationEditor: React.FC<{
         { key: 'aesthetics', label: 'Aesthetics', desc: 'Appeal' }
     ];
 
+    if (compact) {
+        // Compact version for modal - no scroll needed
+        return (
+            <div className="flex flex-col h-full">
+                {/* Top: Chart - smaller to save space */}
+                <div className="flex justify-center py-3 mb-2 shrink-0">
+                    <HexagonChart metrics={current} size={120} />
+                </div>
+
+                {/* Bottom: Sliders - very compact spacing */}
+                <div className="space-y-2 shrink-0">
+                     {axes.map(axis => (
+                         <div key={axis.key} className="space-y-1">
+                             <div className="flex justify-between items-end">
+                                 <span className="text-[10px] font-bold uppercase text-slate-600 tracking-wider">{axis.label}</span>
+                                 <div className="flex gap-1">
+                                    {[1,2,3,4,5].map(v => (
+                                        <div key={v} className={`w-2 h-2 rounded-full transition-colors duration-300 ${(current as any)[axis.key] >= v ? 'bg-violet-600' : 'bg-slate-200'}`}></div>
+                                    ))}
+                                 </div>
+                             </div>
+                             <div className="flex items-center gap-3">
+                                <span className="text-[10px] font-mono text-slate-400 w-3">1</span>
+                                <input
+                                    type="range" min="1" max="5" step="1"
+                                    value={(current as any)[axis.key]}
+                                    onChange={(e) => handleChange(axis.key as keyof EvaluationMetrics, parseInt(e.target.value))}
+                                    className="flex-1 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-violet-600 focus:outline-none focus:ring-2 focus:ring-violet-200"
+                                />
+                                <span className="text-[10px] font-mono text-slate-400 w-3 text-right">5</span>
+                             </div>
+                         </div>
+                     ))}
+                </div>
+
+                {/* Reasoning textarea - more space */}
+                <div className="border-t border-slate-100 pt-3 mt-3 flex-1 min-h-0 flex flex-col">
+                     <label className="text-[10px] font-medium uppercase text-slate-400 block mb-2">Reasoning</label>
+                     <textarea
+                         value={current.reasoning}
+                         onChange={(e) => handleChange('reasoning', e.target.value)}
+                         placeholder="Optional rationale..."
+                         className="w-full text-xs p-2 border bg-slate-50 focus:bg-white flex-1 resize-none rounded-sm outline-none focus:border-violet-300 transition-colors"
+                     />
+                </div>
+            </div>
+        );
+    }
+
+    // Full version for StepBox - with scroll
     return (
         <div className="flex flex-col h-full relative">
             <div className="flex-1 overflow-y-auto pr-2 pb-4 scrollbar-thin scrollbar-thumb-slate-200">
@@ -154,9 +218,9 @@ const EvaluationEditor: React.FC<{
                              </div>
                              <div className="flex items-center gap-3">
                                 <span className="text-[10px] font-mono text-slate-400 w-3">1</span>
-                                <input 
+                                <input
                                     type="range" min="1" max="5" step="1"
-                                    value={(current as any)[axis.key]} 
+                                    value={(current as any)[axis.key]}
                                     onChange={(e) => handleChange(axis.key as keyof EvaluationMetrics, parseInt(e.target.value))}
                                     className="flex-1 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-violet-600 focus:outline-none focus:ring-2 focus:ring-violet-200"
                                 />
@@ -167,11 +231,11 @@ const EvaluationEditor: React.FC<{
                      ))}
                 </div>
             </div>
-            
+
             {/* Footer */}
             <div className="border-t border-slate-100 pt-3 mt-1 bg-white shrink-0">
                  <label className="text-[10px] font-medium uppercase text-slate-400 block mb-1">Human Reasoning</label>
-                 <textarea 
+                 <textarea
                      value={current.reasoning}
                      onChange={(e) => handleChange('reasoning', e.target.value)}
                      placeholder="Rationale for the score..."
@@ -256,6 +320,7 @@ const App: React.FC = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [openRowId, setOpenRowId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'home' | 'list'>('home');
+  const [sortBy, setSortBy] = useState<'alphabetical' | 'completeness' | 'evaluation'>('alphabetical');
   const [config, setConfig] = useState<GlobalConfig>({ 
     lang: 'es', 
     aspectRatio: '1:1',
@@ -492,11 +557,43 @@ const App: React.FC = () => {
     }
   };
 
+  // Helper functions for sorting
+  const getRowCompleteness = (row: RowData): number => {
+    let count = 0;
+    if (row.NLU && row.nluStatus === 'completed') count++;
+    if (row.elements && row.prompt && row.visualStatus === 'completed') count++;
+    if (row.bitmap && row.bitmapStatus === 'completed') count++;
+    return count;
+  };
+
+  const getRowEvaluationTotal = (row: RowData): number => {
+    if (!row.evaluation) return 0;
+    const { semantics, syntactics, pragmatics, clarity, universality, aesthetics } = row.evaluation;
+    return semantics + syntactics + pragmatics + clarity + universality + aesthetics;
+  };
+
   const filteredRows = useMemo(() => {
-    if (!searchValue) return rows;
-    const lowSearch = searchValue.toLowerCase();
-    return rows.filter(r => r.UTTERANCE.toLowerCase().includes(lowSearch));
-  }, [rows, searchValue]);
+    // First filter by search
+    let filtered = rows;
+    if (searchValue) {
+      const lowSearch = searchValue.toLowerCase();
+      filtered = rows.filter(r => r.UTTERANCE.toLowerCase().includes(lowSearch));
+    }
+
+    // Then sort by selected criteria
+    const sorted = [...filtered].sort((a, b) => {
+      if (sortBy === 'alphabetical') {
+        return a.UTTERANCE.localeCompare(b.UTTERANCE);
+      } else if (sortBy === 'completeness') {
+        return getRowCompleteness(b) - getRowCompleteness(a); // descending (more complete first)
+      } else if (sortBy === 'evaluation') {
+        return getRowEvaluationTotal(b) - getRowEvaluationTotal(a); // descending (higher score first)
+      }
+      return 0;
+    });
+
+    return sorted;
+  }, [rows, searchValue, sortBy]);
 
   const focusedRowData = useMemo(() => {
     if (!focusMode) return null;
@@ -645,6 +742,29 @@ const App: React.FC = () => {
       )}
 
       <main className="flex-1 p-8 max-w-7xl mx-auto w-full">
+        {viewMode === 'list' && rows.length > 0 && (
+          <div className="mb-6 flex justify-end gap-2">
+            <span className="text-[10px] font-medium uppercase text-slate-400 tracking-wider self-center mr-2">Ordenar por:</span>
+            <button
+              onClick={() => setSortBy('alphabetical')}
+              className={`px-3 py-1.5 text-[10px] font-medium uppercase tracking-wider border transition-all ${sortBy === 'alphabetical' ? 'bg-violet-950 text-white border-violet-950' : 'bg-white text-slate-600 border-slate-200 hover:border-violet-300'}`}
+            >
+              Alfabético
+            </button>
+            <button
+              onClick={() => setSortBy('completeness')}
+              className={`px-3 py-1.5 text-[10px] font-medium uppercase tracking-wider border transition-all ${sortBy === 'completeness' ? 'bg-violet-950 text-white border-violet-950' : 'bg-white text-slate-600 border-slate-200 hover:border-violet-300'}`}
+            >
+              Completitud
+            </button>
+            <button
+              onClick={() => setSortBy('evaluation')}
+              className={`px-3 py-1.5 text-[10px] font-medium uppercase tracking-wider border transition-all ${sortBy === 'evaluation' ? 'bg-violet-950 text-white border-violet-950' : 'bg-white text-slate-600 border-slate-200 hover:border-violet-300'}`}
+            >
+              Evaluación
+            </button>
+          </div>
+        )}
         {viewMode === 'home' ? (
           <div className="py-20 text-center space-y-16 animate-in fade-in zoom-in-95 duration-700">
             <div className="space-y-4">
@@ -741,14 +861,34 @@ const RowComponent: React.FC<{
             className="flex-1 w-full bg-transparent border-none outline-none focus:ring-0 utterance-title text-slate-900 uppercase font-light truncate"
           />
           <div className="flex gap-2 cursor-pointer" onClick={() => setIsOpen(!isOpen)}>
-            <Badge label="NLU" status={row.nluStatus} />
-            <Badge label="VISUAL" status={row.visualStatus} />
-            <Badge label="BITMAP" status={row.bitmapStatus} />
-            <Badge label="EVAL" status={row.evalStatus} />
+            <Badge label="COMPRENDER" status={row.nluStatus} />
+            <Badge label="COMPONER" status={row.visualStatus} />
+            <Badge label="PRODUCIR" status={row.bitmapStatus} />
           </div>
-          <div className="w-14 h-14 border bg-slate-50 flex items-center justify-center p-1 group-hover:scale-110 transition-transform cursor-pointer overflow-hidden" onClick={() => setIsOpen(!isOpen)}>
-            {row.bitmap ? <img src={row.bitmap} alt="Miniature" className="w-full h-full object-contain" /> : <div className="text-slate-200"><ImageIcon size={20} /></div>}
-          </div>
+          {(() => {
+            const evalScore = getEvaluationScore(row.evaluation);
+            const hasBorder = row.evaluation && row.bitmap;
+            return (
+              <div
+                style={{
+                  borderColor: hasBorder ? evalScore.color : '#e2e8f0',
+                  borderWidth: hasBorder ? '3px' : '1px'
+                }}
+                className="w-14 h-14 border bg-slate-50 flex items-center justify-center p-1 group-hover:scale-110 transition-all cursor-pointer overflow-hidden relative"
+                onClick={() => setIsOpen(!isOpen)}
+              >
+                {row.bitmap ? <img src={row.bitmap} alt="Miniature" className="w-full h-full object-contain" /> : <div className="text-slate-200"><ImageIcon size={20} /></div>}
+                {hasBorder && (
+                  <div
+                    className="absolute -top-1 -right-1 px-1 py-0.5 rounded-sm text-white font-bold text-[9px] shadow-md"
+                    style={{ backgroundColor: evalScore.color }}
+                  >
+                    {evalScore.average.toFixed(1)}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
           <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
             <button onClick={e => { e.stopPropagation(); onCascade(); }} className="p-3 bg-violet-950 text-white shadow-lg hover:bg-black transition-all"><PlayCircle size={18}/></button>
             <button onClick={e => { e.stopPropagation(); onDelete(); }} className="p-3 text-rose-300 hover:text-rose-600 transition-colors"><Trash2 size={18}/></button>
@@ -757,11 +897,11 @@ const RowComponent: React.FC<{
         </div>
   
         {isOpen && (
-          <div className="p-8 border-t bg-slate-50/30 grid grid-cols-1 lg:grid-cols-4 gap-10 animate-in slide-in-from-top-2">
-            <StepBox label="NLU Architecture" status={row.nluStatus} onRegen={() => onProcess('nlu')} onStop={onStop} onFocus={() => onFocus('nlu')} duration={row.nluDuration}>
+          <div className="p-8 border-t bg-slate-50/30 grid grid-cols-1 lg:grid-cols-3 gap-10 animate-in slide-in-from-top-2">
+            <StepBox label="Comprender" status={row.nluStatus} onRegen={() => onProcess('nlu')} onStop={onStop} onFocus={() => onFocus('nlu')} duration={row.nluDuration}>
               <SmartNLUEditor data={row.NLU} onUpdate={val => onUpdate({ NLU: val, visualStatus: 'outdated', bitmapStatus: 'outdated', evalStatus: 'outdated' })} />
             </StepBox>
-            <StepBox label="Visual Strategy" status={row.visualStatus} onRegen={() => onProcess('visual')} onStop={onStop} onFocus={() => onFocus('visual')} duration={row.visualDuration}>
+            <StepBox label="Componer" status={row.visualStatus} onRegen={() => onProcess('visual')} onStop={onStop} onFocus={() => onFocus('visual')} duration={row.visualDuration}>
                 <div className="flex flex-col h-full">
                     <div className="flex-1 flex flex-col gap-6 overflow-y-auto">
                         <div>
@@ -770,53 +910,78 @@ const RowComponent: React.FC<{
                         </div>
                         <div className="flex-1 mt-6 border-t pt-6 border-slate-200 flex flex-col">
                             <label className="text-[10px] font-medium uppercase text-slate-400 block mb-3 tracking-widest">Spatial Articulation Logic</label>
-                            <textarea 
-                                value={row.prompt || ""} 
-                                onChange={e => onUpdate({ prompt: e.target.value, bitmapStatus: 'outdated', evalStatus: 'outdated' })} 
-                                className="w-full flex-1 min-h-[100px] border-none p-0 text-lg font-light text-slate-700 outline-none focus:ring-0 bg-transparent resize-none leading-relaxed" 
+                            <textarea
+                                value={row.prompt || ""}
+                                onChange={e => onUpdate({ prompt: e.target.value, bitmapStatus: 'outdated', evalStatus: 'outdated' })}
+                                className="w-full flex-1 min-h-[100px] border-none p-0 text-lg font-light text-slate-700 outline-none focus:ring-0 bg-transparent resize-none leading-relaxed"
                             />
                         </div>
                     </div>
                 </div>
             </StepBox>
-            <StepBox label="Bitmap Render" status={row.bitmapStatus} onRegen={() => onProcess('bitmap')} onStop={onStop} onFocus={() => onFocus('bitmap')} duration={row.bitmapDuration}
+            <StepBox label="Producir" status={row.bitmapStatus} onRegen={() => onProcess('bitmap')} onStop={onStop} onFocus={() => onFocus('bitmap')} duration={row.bitmapDuration}
               actionNode={row.bitmap && <button onClick={(e) => { e.stopPropagation(); const a = document.createElement('a'); a.href = row.bitmap!; a.download = `${row.UTTERANCE.replace(/\s+/g, '_').toLowerCase()}.png`; a.click(); }} className="p-2 border hover:border-violet-950 text-slate-400 hover:text-violet-950 transition-all rounded-full flex items-center justify-center bg-white shadow-sm" title="Download Image"><FileDown size={14}/></button>}
             >
               <div className="flex flex-col h-full gap-4">
-                  <div style={{ backgroundColor: '#eeeeee' }} className="flex-1 border-2 border-slate-200 flex items-center justify-center p-4 shadow-inner relative overflow-hidden group/preview min-h-[250px]">
-                    {row.bitmap ? (
-                      <img src={row.bitmap} alt="Generated Pictogram" className="w-full h-full object-contain transition-transform duration-500 group-hover/preview:scale-110" />
-                    ) : (
-                      <div className="text-[10px] text-slate-400 uppercase font-medium">No Bitmap Render</div>
-                    )}
-                  </div>
+                  {(() => {
+                    const evalScore = getEvaluationScore(row.evaluation);
+                    const hasBorder = row.evaluation && row.bitmap;
+                    return (
+                      <div
+                        style={{
+                          backgroundColor: '#eeeeee',
+                          borderColor: hasBorder ? evalScore.color : '#e2e8f0',
+                          borderWidth: hasBorder ? '4px' : '2px'
+                        }}
+                        className="flex-1 border flex items-center justify-center p-4 shadow-inner relative overflow-hidden group/preview min-h-[250px] transition-all"
+                      >
+                        {row.bitmap ? (
+                          <img src={row.bitmap} alt="Generated Pictogram" className="w-full h-full object-contain transition-transform duration-500 group-hover/preview:scale-110" />
+                        ) : (
+                          <div className="text-[10px] text-slate-400 uppercase font-medium">No Bitmap Render</div>
+                        )}
+                        {hasBorder && (
+                          <div
+                            className="absolute top-2 right-2 px-2 py-1 rounded-sm text-white font-bold text-sm shadow-lg"
+                            style={{ backgroundColor: evalScore.color }}
+                          >
+                            {evalScore.average.toFixed(1)}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+
+                  {/* Evaluation Section - Integrated within Producir */}
+                  {row.bitmap && (
+                    <div className="mt-4 pt-4 border-t border-slate-200">
+                      <div className="flex justify-between items-center mb-3">
+                        <label className="text-[10px] font-medium uppercase text-slate-400 tracking-widest">Evaluación VCSCI</label>
+                        <button
+                          onClick={() => onFocus('eval')}
+                          className="p-1.5 border hover:border-violet-950 text-slate-400 hover:text-violet-950 transition-all rounded-full flex items-center justify-center"
+                          title="Abrir Editor de Evaluación"
+                        >
+                          <Hexagon size={14}/>
+                        </button>
+                      </div>
+                      {row.evaluation ? (
+                        <div className="flex items-center justify-center">
+                          <HexagonChart metrics={row.evaluation} size={120} />
+                        </div>
+                      ) : (
+                        <div className="text-center py-4">
+                          <button
+                            onClick={() => onFocus('eval')}
+                            className="flex items-center gap-2 mx-auto bg-violet-50 text-violet-700 border border-violet-200 hover:bg-violet-100 hover:border-violet-300 px-4 py-2 text-[10px] font-bold uppercase tracking-widest transition-all rounded-sm"
+                          >
+                            <Hexagon size={14}/> Evaluar Pictograma
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
               </div>
-            </StepBox>
-            
-            {/* New Manual Evaluation Box */}
-            <StepBox label="Evaluación en Uso" status={row.evalStatus} onRegen={() => onProcess('eval')} onStop={onStop} onFocus={() => onFocus('eval')} duration={row.evalDuration}>
-                {row.bitmap ? (
-                    <div className="flex flex-col h-full">
-                        <div className="flex-1 overflow-hidden">
-                            <EvaluationEditor 
-                                metrics={row.evaluation} 
-                                onUpdate={(m) => onUpdate({ evaluation: m })}
-                            />
-                        </div>
-                        <div className="pt-3 mt-auto flex justify-end">
-                            <button 
-                                onClick={() => onProcess('eval')}
-                                className="flex items-center gap-2 bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300 px-4 py-2 text-[10px] font-bold uppercase tracking-widest transition-all rounded-sm"
-                            >
-                                <CheckCircle size={14} className="text-emerald-600"/> Confirmar Evaluación
-                            </button>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="h-full flex items-center justify-center text-slate-300 italic text-xs">
-                        Generate bitmap first...
-                    </div>
-                )}
             </StepBox>
           </div>
         )}
@@ -1089,7 +1254,7 @@ const FocusViewModal: React.FC<{
       }
     };
 
-    const titleMap = { nlu: 'NLU Architecture', visual: 'Visual Strategy', bitmap: 'Bitmap Render', eval: 'VCSCI Evaluation' };
+    const titleMap = { nlu: 'Comprender', visual: 'Componer', bitmap: 'Producir', eval: 'Evaluación VCSCI' };
   
     const renderContent = () => {
       switch (mode) {
@@ -1121,34 +1286,25 @@ const FocusViewModal: React.FC<{
           );
         case 'eval':
             return (
-                <div className="flex flex-col h-full bg-slate-50">
-                    {/* Image Section */}
-                    <div className="flex-shrink-0 h-2/5 min-h-[250px] bg-white border-b border-slate-200 flex items-center justify-center p-6 relative">
+                <div className="flex h-full bg-slate-50 gap-0">
+                    {/* Left Column: Image Section */}
+                    <div className="w-1/2 bg-white border-r border-slate-200 flex items-center justify-center p-8 relative">
                         <div className="absolute inset-0 pattern-grid-sm opacity-5 pointer-events-none"></div>
                         {row.bitmap ? (
-                            <img src={row.bitmap} alt="Evaluation Context" className="h-full w-auto object-contain shadow-sm" />
+                            <img src={row.bitmap} alt="Evaluation Context" className="max-w-full max-h-full object-contain shadow-lg" />
                         ) : (
                             <div className="text-slate-300 font-mono text-xs">No Bitmap Reference</div>
                         )}
                     </div>
-                    
-                    {/* Editor Section */}
-                    <div className="flex-1 p-6 overflow-hidden max-w-3xl mx-auto w-full">
-                        <div className="flex flex-col h-full">
-                            <div className="flex-1 overflow-y-auto pr-2 pb-4 scrollbar-thin scrollbar-thumb-slate-200">
-                                <EvaluationEditor 
-                                    metrics={row.evaluation} 
-                                    onUpdate={(m) => onUpdate({ evaluation: m })}
-                                />
-                            </div>
-                            <div className="mt-4 pt-4 border-t border-slate-100 flex justify-end">
-                                <button 
-                                    onClick={() => onUpdate({ evalStatus: 'completed' })}
-                                    className="flex items-center gap-2 bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300 px-6 py-3 text-[10px] font-bold uppercase tracking-widest transition-all rounded-sm shadow-sm"
-                                >
-                                    <CheckCircle size={14} className="text-emerald-600"/> Confirmar Evaluación
-                                </button>
-                            </div>
+
+                    {/* Right Column: Editor Section */}
+                    <div className="w-1/2 p-8 flex flex-col overflow-hidden">
+                        <div className="flex-1 flex flex-col min-h-0">
+                            <EvaluationEditor
+                                metrics={row.evaluation}
+                                onUpdate={(m) => onUpdate({ evaluation: m })}
+                                compact={true}
+                            />
                         </div>
                     </div>
                 </div>
@@ -1177,6 +1333,17 @@ const FocusViewModal: React.FC<{
              <button onClick={handleCopy} className="flex items-center gap-2 bg-violet-950 text-white px-6 py-3 font-bold uppercase text-[10px] tracking-widest hover:bg-black transition-all shadow-lg">
                <Copy size={14} /> {copyStatus}
              </button>
+             {mode === 'eval' && (
+                <button
+                    onClick={() => {
+                        onUpdate({ evalStatus: 'completed' });
+                        onClose();
+                    }}
+                    className="flex items-center gap-2 bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300 px-6 py-3 text-[10px] font-bold uppercase tracking-widest transition-all rounded-sm shadow-sm"
+                >
+                    <CheckCircle size={14} className="text-emerald-600"/> Confirmar Evaluación
+                </button>
+             )}
            </footer>
         </div>
       </div>

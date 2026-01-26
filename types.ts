@@ -51,6 +51,8 @@ export interface NLUData {
 
 export type StepStatus = 'idle' | 'processing' | 'completed' | 'error' | 'outdated';
 
+export type SortCriteria = 'alphabetical' | 'completeness' | 'evaluation';
+
 export interface VisualElement {
   id: string;
   children?: VisualElement[];
@@ -70,28 +72,33 @@ export interface EvaluationMetrics {
 export interface RowData {
   id: string;
   UTTERANCE: string;
-  
+
   // Pipeline Data
+  // Phase 1: "Comprender" (Understanding) - NLU Analysis
   NLU?: NLUData | string;
+
+  // Phase 2: "Componer" (Compose) - Visual Strategy
   elements?: VisualElement[];
   prompt?: string;
+
+  // Phase 3: "Producir" (Produce) - Bitmap Generation + Evaluation
   bitmap?: string; // Base64 data URL
-  evaluation?: EvaluationMetrics; // New Manual Evaluation Data
+  evaluation?: EvaluationMetrics; // Manual Evaluation (part of Producir phase)
 
   // Global Pipeline Status
   status: 'idle' | 'processing' | 'completed' | 'error';
-  
-  // Step Statuses
-  nluStatus: StepStatus;
-  visualStatus: StepStatus;
-  bitmapStatus: StepStatus; 
-  evalStatus: StepStatus; // New Evaluation Step (Manual)
+
+  // Step Statuses (3 phases + evaluation integrated in phase 3)
+  nluStatus: StepStatus;       // Phase 1: Comprender
+  visualStatus: StepStatus;    // Phase 2: Componer
+  bitmapStatus: StepStatus;    // Phase 3: Producir (includes generation)
+  evalStatus: StepStatus;      // Evaluation (integrated within Producir phase)
 
   // Metrics
   nluDuration?: number;
   visualDuration?: number;
-  bitmapDuration?: number; 
-  evalDuration?: number; // Time spent editing/saving
+  bitmapDuration?: number;
+  evalDuration?: number;
 }
 
 export interface LogEntry {

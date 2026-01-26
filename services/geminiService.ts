@@ -2,6 +2,9 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { NLUData, GlobalConfig, RowData, VisualElement, EvaluationMetrics } from "../types";
 
+// SECURITY WARNING: API key is exposed in client-side code
+// This is acceptable for development/research, but for production
+// you should use a backend proxy to protect your API credentials
 const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 const cleanJSONResponse = (text: string): string => {
