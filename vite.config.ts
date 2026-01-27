@@ -5,8 +5,8 @@ import react from '@vitejs/plugin-react';
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     return {
-      // GitHub Pages deployment: use repo name as base path in production
-      base: mode === 'production' ? '/pictos-net/' : '/',
+      // GitHub Pages with custom domain: use root path
+      base: '/',
       server: {
         port: 3000,
         host: '0.0.0.0',
