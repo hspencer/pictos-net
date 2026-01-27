@@ -47,6 +47,36 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog }
             .replace(/<g /g, '<g tabindex="0" style="cursor: pointer;" ');
     }, [existingSVG, config]);
 
+    // Raw SVG with basic styling for visualization
+    const displayRawSvg = React.useMemo(() => {
+        if (!rawSvg) return '';
+        const basicStyles = `
+            path, polygon, circle, rect, ellipse, line, polyline {
+                fill: #000;
+                stroke: none;
+            }
+        `;
+        // Inject basic styles if no <style> tag exists
+        if (rawSvg.includes('<style>')) {
+            return rawSvg;
+        }
+        return rawSvg.replace('</svg>', `<style>${basicStyles}</style></svg>`);
+    }, [rawSvg]);
+
+    // Download raw SVG
+    const downloadRawSvg = () => {
+        if (!rawSvg) return;
+        const blob = new Blob([rawSvg], { type: 'image/svg+xml' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${row.UTTERANCE.replace(/\s+/g, '_').substring(0, 30)}_raw.svg`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+
     // Handle SVG interaction (Block Editing)
     const handleSvgInteraction = (e: React.MouseEvent<HTMLDivElement>) => {
         if (!existingSVG) return;
@@ -310,7 +340,7 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog }
                         Raw Trace
                     </div>
                     <div
-                        dangerouslySetInnerHTML={{ __html: rawSvg }}
+                        dangerouslySetInnerHTML={{ __html: displayRawSvg }}
                         className="w-full h-full svg-preview flex items-center justify-center [&>svg]:w-full [&>svg]:h-full [&>svg]:max-w-full [&>svg]:max-h-full"
                     />
                 </div>
@@ -321,6 +351,14 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog }
                         className="flex-1 flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 text-white py-3 px-4 text-xs font-bold uppercase tracking-widest rounded transition-colors shadow-md hover:shadow-lg"
                     >
                         <FileCode size={16} /> Format with Gemini
+                    </button>
+
+                    <button
+                        onClick={downloadRawSvg}
+                        title="Download raw SVG"
+                        className="flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 py-2 px-3 rounded transition-colors border border-slate-200"
+                    >
+                        <Download size={14} />
                     </button>
 
                     <button
