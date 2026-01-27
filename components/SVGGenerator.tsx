@@ -51,7 +51,8 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog }
     const displayRawSvg = React.useMemo(() => {
         if (!rawSvg) return '';
         const basicStyles = `
-            path, polygon, circle, rect, ellipse, line, polyline {
+            svg > path, svg > polygon, svg > circle, svg > rect, svg > ellipse, svg > line, svg > polyline,
+            svg > g > path, svg > g > polygon, svg > g > circle, svg > g > rect, svg > g > ellipse, svg > g > line, svg > g > polyline {
                 fill: #000;
                 stroke: none;
             }
