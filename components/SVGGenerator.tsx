@@ -19,12 +19,13 @@ interface SVGGeneratorProps {
 export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog }) => {
     const { t } = useTranslation();
     const { addSVG, getSVGByRowId, downloadSVG } = useSVGLibrary();
-    const [status, setStatus] = useState<'idle' | 'vectorizing' | 'structuring' | 'completed' | 'error'>('idle');
+    const [status, setStatus] = useState<'idle' | 'vectorizing' | 'traced' | 'structuring' | 'completed' | 'error'>('idle');
     const [error, setError] = useState<string | undefined>();
     const [progress, setProgress] = useState(0);
     const [processStartTime, setProcessStartTime] = useState<number | null>(null);
     const [elapsedTime, setElapsedTime] = useState(0);
     const [subStatus, setSubStatus] = useState<string>('');
+    const [rawSvg, setRawSvg] = useState<string | null>(null); // Store raw vtracer output
 
     // Check if SVG already exists in library
     const existingSVG = getSVGByRowId(row.id);
@@ -134,7 +135,7 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog }
         }
     }, [existingSVG, row.id]);
 
-    const handleGenerate = async () => {
+    const handleTrace = async () => {
         if (!eligibility.eligible || !row.bitmap) return;
 
         try {
@@ -152,13 +153,37 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog }
             await new Promise(r => setTimeout(r, 600)); // UX Delay
 
             const vStart = performance.now();
-            const rawSvg = await vectorizeBitmap(
+            const tracedSvg = await vectorizeBitmap(
                 row.bitmap.replace(/^data:image\/\w+;base64,/, ""),
                 {},
                 (p) => setProgress(p)
             );
             const vEnd = performance.now();
             onLog('success', `Vectorización completada en ${((vEnd - vStart) / 1000).toFixed(2)}s`);
+
+            // Store raw SVG and show it
+            setRawSvg(tracedSvg);
+            setStatus('traced');
+            setProcessStartTime(null);
+            setElapsedTime(0);
+
+        } catch (err) {
+            console.error(err);
+            setStatus('error');
+            const msg = err instanceof Error ? err.message : "Unknown error";
+            setError(msg);
+            onLog('error', `Fallo en vectorización: ${msg}`);
+        }
+    };
+
+    const handleFormat = async () => {
+        if (!rawSvg) return;
+
+        try {
+            setError(undefined);
+            const startTime = performance.now();
+            setProcessStartTime(Date.now());
+            setElapsedTime(0);
 
             // Step 2: Structure with Gemini
             setStatus('structuring');
@@ -211,6 +236,7 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog }
             });
 
             setStatus('completed');
+            setRawSvg(null); // Clear raw SVG
             const totalTime = ((performance.now() - startTime) / 1000).toFixed(2);
             onLog('success', `Proceso SVG finalizado. Tiempo total: ${totalTime}s`);
 
@@ -259,7 +285,7 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog }
                     </button>
 
                     <button
-                        onClick={handleGenerate}
+                        onClick={handleTrace}
                         title="Regenerate SVG"
                         className="flex items-center justify-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-400 hover:text-slate-600 py-2 px-3 rounded transition-colors border border-slate-200"
                     >
@@ -269,6 +295,45 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog }
 
                 <div className="mt-2 flex items-center justify-center gap-1 text-[10px] text-emerald-600 font-medium">
                     <Check size={12} /> mf-svg-schema compliant
+                </div>
+            </div>
+        );
+    }
+
+    // New: Show raw traced SVG with Format button
+    if (status === 'traced' && rawSvg) {
+        return (
+            <div className="flex flex-col h-full">
+                <div className="flex-1 bg-white border border-slate-200 flex items-center justify-center p-4 relative mb-3 overflow-hidden">
+                    <div className="absolute inset-0 pattern-grid-sm opacity-5 pointer-events-none"></div>
+                    <div className="absolute top-2 right-2 bg-amber-500 text-white text-[10px] px-2 py-1 rounded font-bold uppercase tracking-wider">
+                        Raw Trace
+                    </div>
+                    <div
+                        dangerouslySetInnerHTML={{ __html: rawSvg }}
+                        className="w-full h-full svg-preview flex items-center justify-center [&>svg]:w-full [&>svg]:h-full [&>svg]:max-w-full [&>svg]:max-h-full"
+                    />
+                </div>
+
+                <div className="flex gap-2">
+                    <button
+                        onClick={handleFormat}
+                        className="flex-1 flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 text-white py-3 px-4 text-xs font-bold uppercase tracking-widest rounded transition-colors shadow-md hover:shadow-lg"
+                    >
+                        <FileCode size={16} /> Format with Gemini
+                    </button>
+
+                    <button
+                        onClick={handleTrace}
+                        title="Re-trace bitmap"
+                        className="flex items-center justify-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-400 hover:text-slate-600 py-2 px-3 rounded transition-colors border border-slate-200"
+                    >
+                        <RefreshCw size={14} />
+                    </button>
+                </div>
+
+                <div className="mt-2 text-center text-[10px] text-slate-500">
+                    Raw vectorization complete. Click <strong>Format</strong> to apply semantic structure.
                 </div>
             </div>
         );
@@ -301,10 +366,10 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog }
                 <>
                     <FileCode size={32} className="text-slate-300 group-hover:text-violet-500 mb-3 transition-colors" />
                     <button
-                        onClick={handleGenerate}
+                        onClick={handleTrace}
                         className="bg-white border-2 border-violet-100 group-hover:border-violet-600 text-violet-900 group-hover:text-violet-700 px-6 py-2 font-bold uppercase text-xs tracking-widest transition-all shadow-sm group-hover:shadow-md rounded-full"
                     >
-                        Generate SVG
+                        Trace SVG
                     </button>
                     <p className="text-[10px] text-slate-400 mt-3 text-center max-w-[200px]">
                         Converts bitmap to semantic SVG using vtracer and Gemini Pro
