@@ -14,6 +14,7 @@ import type { Locale } from './locales';
 
 const STORAGE_KEY = 'pictonet_v19_storage';
 const CONFIG_KEY = 'pictonet_v19_config';
+const APP_VERSION = '2.6';
 
 const PipelineIcon = ({ size = 24 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -379,7 +380,7 @@ const App: React.FC = () => {
 
   const exportProject = () => {
     const dataToExport = {
-      version: '2.5',
+      version: APP_VERSION,
       type: 'pictonet_graph_dump',
       timestamp: new Date().toISOString(),
       config,
@@ -623,7 +624,7 @@ const App: React.FC = () => {
           <div className="bg-violet-950 p-2.5 text-white"><PipelineIcon size={24} /></div>
           <div>
             <h1 className="font-bold uppercase tracking-tight text-xl text-slate-900 leading-none">{config.author}</h1>
-            <span className="text-[9px] text-slate-400 font-mono tracking-widest uppercase">v2.5 {t('header.subtitle')}</span>
+            <span className="text-[9px] text-slate-400 font-mono tracking-widest uppercase">v{APP_VERSION} {t('header.subtitle')}</span>
           </div>
         </div>
 
