@@ -50,18 +50,25 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog }
     // Raw SVG with basic styling for visualization
     const displayRawSvg = React.useMemo(() => {
         if (!rawSvg) return '';
-        const basicStyles = `
-            svg > path, svg > polygon, svg > circle, svg > rect, svg > ellipse, svg > line, svg > polyline,
-            svg > g > path, svg > g > polygon, svg > g > circle, svg > g > rect, svg > g > ellipse, svg > g > line, svg > g > polyline {
-                fill: #000;
-                stroke: none;
-            }
-        `;
-        // Inject basic styles if no <style> tag exists
-        if (rawSvg.includes('<style>')) {
-            return rawSvg;
-        }
-        return rawSvg.replace('</svg>', `<style>${basicStyles}</style></svg>`);
+
+        // Instead of injecting global styles, apply inline styles to elements
+        // This prevents the styles from leaking to the rest of the page
+        let styledSvg = rawSvg;
+
+        // Apply fill and stroke to common SVG elements
+        const elements = ['path', 'polygon', 'circle', 'rect', 'ellipse', 'line', 'polyline'];
+        elements.forEach(tag => {
+            const regex = new RegExp(`<${tag}([^>]*)>`, 'gi');
+            styledSvg = styledSvg.replace(regex, (match, attrs) => {
+                // Only add styles if not already present
+                if (!attrs.includes('fill=') && !attrs.includes('style=')) {
+                    return `<${tag}${attrs} fill="#000" stroke="none">`;
+                }
+                return match;
+            });
+        });
+
+        return styledSvg;
     }, [rawSvg]);
 
     // Download raw SVG
