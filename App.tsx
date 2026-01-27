@@ -17,7 +17,7 @@ import { StyleEditor } from './components/PictoForge/StyleEditor';
 
 const STORAGE_KEY = 'pictonet_v19_storage';
 const CONFIG_KEY = 'pictonet_v19_config';
-const APP_VERSION = '2.8.0';
+const APP_VERSION = '2.8.1';
 
 const PipelineIcon = ({ size = 24 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">

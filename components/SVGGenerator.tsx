@@ -22,6 +22,8 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog }
     const [status, setStatus] = useState<'idle' | 'vectorizing' | 'structuring' | 'completed' | 'error'>('idle');
     const [error, setError] = useState<string | undefined>();
     const [progress, setProgress] = useState(0);
+    const [processStartTime, setProcessStartTime] = useState<number | null>(null);
+    const [elapsedTime, setElapsedTime] = useState(0);
 
     // Check if SVG already exists in library
     const existingSVG = getSVGByRowId(row.id);
@@ -82,6 +84,19 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog }
 
 
 
+    // Timer Effect
+    useEffect(() => {
+        let interval: NodeJS.Timeout;
+        if ((status === 'vectorizing' || status === 'structuring') && processStartTime) {
+            interval = setInterval(() => {
+                setElapsedTime((Date.now() - processStartTime) / 1000);
+            }, 100);
+        }
+        return () => {
+            if (interval) clearInterval(interval);
+        };
+    }, [status, processStartTime]);
+
     // Debugging: Monitor row updates and eligibility
     useEffect(() => {
         if (row.evaluation) {
@@ -118,6 +133,9 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog }
         try {
             setError(undefined);
             const startTime = performance.now();
+            setProcessStartTime(Date.now());
+            setElapsedTime(0);
+
             onLog('info', `Iniciando vectorización para: ${row.UTTERANCE}`);
 
             // Step 1: Vectorize
@@ -249,9 +267,14 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog }
                             style={{ width: status === 'vectorizing' ? `${progress}%` : '90%' }}
                         ></div>
                     </div>
-                    <p className="text-[10px] text-slate-400 mt-2">
-                        {status === 'structuring' ? 'Applying semantic schema with Gemini...' : 'Tracing bitmap paths...'}
-                    </p>
+                    <div className="flex justify-between items-center mt-2">
+                        <p className="text-[10px] text-slate-400">
+                            {status === 'structuring' ? 'Applying semantic schema with Gemini...' : 'Tracing bitmap paths...'}
+                        </p>
+                        <span className="text-[10px] font-mono text-violet-600 font-bold bg-violet-50 px-1.5 py-0.5 rounded">
+                            {elapsedTime.toFixed(1)}s
+                        </span>
+                    </div>
                 </div>
             ) : (
                 <>
