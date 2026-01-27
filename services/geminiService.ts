@@ -1,6 +1,6 @@
 
-import { GoogleGenAI, Type } from "@google/genai";
-import { NLUData, GlobalConfig, RowData, VisualElement, EvaluationMetrics } from "../types";
+import { GoogleGenAI } from "@google/genai";
+import { NLUData, GlobalConfig, RowData, VisualElement } from "../types";
 
 // SECURITY WARNING: API key is exposed in client-side code
 // This is acceptable for development/research, but for production
@@ -27,8 +27,9 @@ const cleanJSONResponse = (text: string): string => {
   return cleaned;
 };
 
-export const generateNLU = async (utterance: string): Promise<NLUData> => {
+export const generateNLU = async (utterance: string, onLog?: (type: 'info' | 'error' | 'success', msg: string) => void): Promise<NLUData> => {
   const ai = getAI();
+  onLog?.('info', `[NLU] Iniciando análisis semántico de: "${utterance.substring(0, 50)}..."`);
   const systemInstruction = `**Contexto de Arquitectura:**
 Operas como el nodo de procesamiento "NLU Schema Engine" dentro de la arquitectura de grafo PictoNet.
 Tu tarea es instanciar el esquema JSON definido oficialmente en el repositorio **\`mediafranca/nlu-schema\`**.
@@ -106,6 +107,7 @@ Tu salida debe adherirse *estrictamente* a este esquema.
 2.  Analiza la pragmática y semántica profunda, no solo la superficie.
 3.  Asegura JSON válido.`;
 
+  onLog?.('info', `[NLU] Enviando solicitud a Gemini 3 Pro...`);
   const response = await ai.models.generateContent({
     model: "gemini-3-pro-preview",
     contents: `UTTERANCE: "${utterance}"`,
@@ -114,12 +116,18 @@ Tu salida debe adherirse *estrictamente* a este esquema.
     }
   });
 
-  return JSON.parse(cleanJSONResponse(response.text)) as NLUData;
+  onLog?.('info', `[NLU] Respuesta recibida, parseando JSON...`);
+  const result = JSON.parse(cleanJSONResponse(response.text)) as NLUData;
+  onLog?.('success', `[NLU] Análisis semántico completado. Detectado: ${result.metadata?.intent || 'N/A'}`);
+  return result;
 };
 
-export const generateVisualBlueprint = async (nlu: NLUData, config: GlobalConfig): Promise<Partial<RowData>> => {
+export const generateVisualBlueprint = async (nlu: NLUData, config: GlobalConfig, onLog?: (type: 'info' | 'error' | 'success', msg: string) => void): Promise<Partial<RowData>> => {
   const ai = getAI();
   const targetLang = nlu.lang || config.lang || 'en';
+
+  onLog?.('info', `[VISUAL] Iniciando generación de blueprint visual (idioma: ${targetLang})...`);
+  onLog?.('info', `[VISUAL] Contexto semántico: ${nlu.metadata?.intent || 'N/A'}`);
 
   const systemInstruction = `You are the "Visual Topology Node" in the PictoNet graph.
 Your function is to translate the semantic graph (NLU) into a hierarchical visual graph (Elements & Spatial Logic).
@@ -144,6 +152,7 @@ You MUST generate Element IDs and the prompt logic in **${targetLang}**.
 
 **Final Output:** A single valid JSON object containing \`elements\` and \`prompt\`.`;
 
+  onLog?.('info', `[VISUAL] Enviando contexto NLU a Gemini 3 Pro...`);
   const response = await ai.models.generateContent({
     model: "gemini-3-pro-preview",
     contents: `NLU Semantics: ${JSON.stringify(nlu)}`,
@@ -152,30 +161,63 @@ You MUST generate Element IDs and the prompt logic in **${targetLang}**.
     }
   });
 
-  return JSON.parse(cleanJSONResponse(response.text));
+  onLog?.('info', `[VISUAL] Respuesta recibida, parseando blueprint...`);
+  const result = JSON.parse(cleanJSONResponse(response.text));
+  onLog?.('success', `[VISUAL] Blueprint completado. Elementos: ${result.elements?.length || 0}, Prompt: ${result.prompt?.substring(0, 50) || 'N/A'}...`);
+  return result;
 };
 
-export const generateImage = async (elements: VisualElement[], prompt: string, row: any, config: GlobalConfig): Promise<string> => {
+export const generateImage = async (elements: VisualElement[], prompt: string, row: any, config: GlobalConfig, onLog?: (type: 'info' | 'error' | 'success', msg: string) => void): Promise<string> => {
   const ai = getAI();
+
+  onLog?.('info', `[BITMAP] Iniciando generación de imagen...`);
+  onLog?.('info', `[BITMAP] Elementos a renderizar: ${elements.length}`);
+
+  // Helper function to format elements hierarchy as readable text
+  const formatElements = (els: VisualElement[], depth = 0): string => {
+    return els.map(el => {
+      const indent = '  '.repeat(depth);
+      const children = el.children ? '\n' + formatElements(el.children, depth + 1) : '';
+      return `${indent}- ${el.id}${children}`;
+    }).join('\n');
+  };
+
+  // Format NLU context if available
+  const nluContext = row.NLU && typeof row.NLU === 'object' ? `
+    SEMANTIC CONTEXT (from Step 1 - UNDERSTAND):
+    Utterance: "${row.NLU.utterance || row.UTTERANCE}"
+    Intent: ${row.NLU.metadata?.intent || 'N/A'}
+    Speech Act: ${row.NLU.metadata?.speech_act || 'N/A'}
+    Focus: ${row.NLU.visual_guidelines?.focus_actor || 'N/A'}
+    Core Action: ${row.NLU.visual_guidelines?.action_core || 'N/A'}
+    Core Object: ${row.NLU.visual_guidelines?.object_core || 'N/A'}
+  ` : '';
 
   // Combine the specific spatial articulation prompt with the global style prompt and author
   const fullPrompt = `
     Create a pictogram image based on these instructions:
-    
-    STYLE (STRICT):
-    ${config.visualStylePrompt}
-    
-    METADATA & CONTEXT:
-    (Internal graph processing, do not render metadata as text)
-    
-    COMPOSITION / CONTENT:
+
+    CONTEXT FROM PIPELINE:
+    Original communicative intent: "${row.UTTERANCE}"
+    ${nluContext}
+
+    HIERARCHICAL ELEMENTS (from Step 2 - COMPOSE):
+    ${formatElements(elements)}
+
+    SPATIAL COMPOSITION (from Step 2 - COMPOSE):
     ${prompt}
-    
+
+    GRAPHIC STYLE (from Global Config):
+    ${config.visualStylePrompt}
+
     CRITICAL CONSTRAINTS:
-    1. NO TEXT of any kind (no labels, no signatures, no watermarks).
-    2. PURE VISUAL REPRESENTATION only.
-    3. FLAT DESIGN ideal for vectorization (solid colors, clear distinct shapes, consistent stroke widths if applicable).
-    4. Plain white background.
+    1. Follow the HIERARCHICAL ELEMENTS structure exactly - each element must be visually present
+    2. Apply the SPATIAL COMPOSITION description for layout and relationships
+    3. Use the GRAPHIC STYLE for visual treatment
+    4. NO TEXT of any kind (no labels, no signatures, no watermarks)
+    5. PURE VISUAL REPRESENTATION only
+    6. FLAT DESIGN ideal for vectorization (solid colors, clear distinct shapes, consistent stroke widths)
+    7. Plain white background
   `;
 
   // Select model based on config.
@@ -184,6 +226,9 @@ export const generateImage = async (elements: VisualElement[], prompt: string, r
   const modelName = config.imageModel === 'pro'
     ? 'gemini-3-pro-image-preview'
     : 'gemini-2.5-flash-image';
+
+  onLog?.('info', `[BITMAP] Modelo seleccionado: ${modelName} (${config.aspectRatio})`);
+  onLog?.('info', `[BITMAP] Enviando prompt completo a Gemini...`);
 
   const response = await ai.models.generateContent({
     model: modelName,
@@ -199,6 +244,8 @@ export const generateImage = async (elements: VisualElement[], prompt: string, r
     }
   });
 
+  onLog?.('info', `[BITMAP] Respuesta recibida, extrayendo imagen...`);
+
   // Extract image from response
   let base64Image = "";
 
@@ -206,12 +253,14 @@ export const generateImage = async (elements: VisualElement[], prompt: string, r
     for (const part of response.candidates[0].content.parts) {
       if (part.inlineData) {
         base64Image = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+        onLog?.('success', `[BITMAP] Imagen generada exitosamente (${part.inlineData.mimeType})`);
         break;
       }
     }
   }
 
   if (!base64Image) {
+    onLog?.('error', `[BITMAP] No se pudo generar la imagen`);
     throw new Error("No image generated.");
   }
 

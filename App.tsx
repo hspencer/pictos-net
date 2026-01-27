@@ -663,15 +663,20 @@ const App: React.FC = () => {
 
     try {
       let result: any;
-      if (step === 'nlu') result = await Gemini.generateNLU(row.UTTERANCE);
-      else if (step === 'visual') {
+      if (step === 'nlu') {
+        result = await Gemini.generateNLU(row.UTTERANCE, addLog);
+      } else if (step === 'visual') {
         const nluObj = typeof row.NLU === 'string' ? JSON.parse(row.NLU) : row.NLU;
-        result = await Gemini.generateVisualBlueprint(nluObj as NLUData, config);
+        result = await Gemini.generateVisualBlueprint(nluObj as NLUData, config, addLog);
       } else if (step === 'bitmap') {
-        result = await Gemini.generateImage(row.elements || [], row.prompt || "", row, config);
+        result = await Gemini.generateImage(row.elements || [], row.prompt || "", row, config, addLog);
       }
 
-      if (stopFlags.current[row.id]) return false;
+      if (stopFlags.current[row.id]) {
+        addLog('info', `🛑 Proceso detenido por usuario en paso ${step.toUpperCase()}`);
+        updateRow(index, { [statusKey]: 'idle' });
+        return false;
+      }
 
       const duration = (Date.now() - startTime) / 1000;
       updateRow(index, {
@@ -701,35 +706,50 @@ const App: React.FC = () => {
 
     try {
       // --- NLU Step ---
+      addLog('info', `[CASCADA] Paso 1/3: COMPRENDER - Análisis semántico`);
       updateRow(index, { nluStatus: 'processing', visualStatus: 'idle', bitmapStatus: 'idle', evalStatus: 'idle' });
       const nluStartTime = Date.now();
-      const nluResult = await Gemini.generateNLU(row.UTTERANCE);
-      if (stopFlags.current[row.id]) { addLog('info', `Cascada detenida en NLU para ${row.UTTERANCE}`); updateRow(index, { nluStatus: 'idle' }); return; }
+      const nluResult = await Gemini.generateNLU(row.UTTERANCE, addLog);
+      if (stopFlags.current[row.id]) {
+        addLog('info', `❌ [CASCADA] Detenida por usuario en paso COMPRENDER`);
+        updateRow(index, { nluStatus: 'idle', status: 'idle' });
+        return;
+      }
       finalUpdates.NLU = nluResult;
       finalUpdates.nluStatus = 'completed';
       finalUpdates.nluDuration = (Date.now() - nluStartTime) / 1000;
-      addLog('success', `NLU Node calculado en ${finalUpdates.nluDuration.toFixed(1)}s`);
+      addLog('success', `✓ [CASCADA] Paso 1/3 completado en ${finalUpdates.nluDuration.toFixed(1)}s`);
 
       // --- Visual Step ---
+      addLog('info', `[CASCADA] Paso 2/3: COMPONER - Blueprint visual`);
       updateRow(index, { nluStatus: 'completed', nluDuration: finalUpdates.nluDuration, NLU: nluResult, visualStatus: 'processing' });
       const visualStartTime = Date.now();
-      const visualResult = await Gemini.generateVisualBlueprint(nluResult, config);
-      if (stopFlags.current[row.id]) { addLog('info', `Cascada detenida en Visual para ${row.UTTERANCE}`); updateRow(index, { visualStatus: 'idle' }); return; }
+      const visualResult = await Gemini.generateVisualBlueprint(nluResult, config, addLog);
+      if (stopFlags.current[row.id]) {
+        addLog('info', `❌ [CASCADA] Detenida por usuario en paso COMPONER`);
+        updateRow(index, { visualStatus: 'idle' });
+        return;
+      }
       finalUpdates.elements = visualResult.elements;
       finalUpdates.prompt = visualResult.prompt;
       finalUpdates.visualStatus = 'completed';
       finalUpdates.visualDuration = (Date.now() - visualStartTime) / 1000;
-      addLog('success', `Visual Topology generada en ${finalUpdates.visualDuration.toFixed(1)}s`);
+      addLog('success', `✓ [CASCADA] Paso 2/3 completado en ${finalUpdates.visualDuration.toFixed(1)}s`);
 
       // --- Bitmap Step (NanoBanana) ---
+      addLog('info', `[CASCADA] Paso 3/3: PRODUCIR - Renderizado de imagen`);
       updateRow(index, { visualStatus: 'completed', visualDuration: finalUpdates.visualDuration, elements: visualResult.elements, prompt: visualResult.prompt, bitmapStatus: 'processing' });
       const bitmapStartTime = Date.now();
-      const bitmapResult = await Gemini.generateImage(visualResult.elements!, visualResult.prompt!, row, config);
-      if (stopFlags.current[row.id]) { addLog('info', `Cascada detenida en Bitmap para ${row.UTTERANCE}`); updateRow(index, { bitmapStatus: 'idle' }); return; }
+      const bitmapResult = await Gemini.generateImage(visualResult.elements!, visualResult.prompt!, row, config, addLog);
+      if (stopFlags.current[row.id]) {
+        addLog('info', `❌ [CASCADA] Detenida por usuario en paso PRODUCIR`);
+        updateRow(index, { bitmapStatus: 'idle' });
+        return;
+      }
       finalUpdates.bitmap = bitmapResult;
       finalUpdates.bitmapStatus = 'completed';
       finalUpdates.bitmapDuration = (Date.now() - bitmapStartTime) / 1000;
-      addLog('success', `Bitmap Renderizado en ${finalUpdates.bitmapDuration.toFixed(1)}s`);
+      addLog('success', `✓ [CASCADA] Paso 3/3 completado en ${finalUpdates.bitmapDuration.toFixed(1)}s`);
 
       // --- End of Automation ---
       // We do NOT auto-run evaluation. It is manual.
@@ -739,13 +759,18 @@ const App: React.FC = () => {
       finalUpdates.status = 'completed';
       updateRow(index, finalUpdates);
 
+      const totalTime = (finalUpdates.nluDuration || 0) + (finalUpdates.visualDuration || 0) + (finalUpdates.bitmapDuration || 0);
+      addLog('success', `✓ [CASCADA] Pipeline completo en ${totalTime.toFixed(1)}s total para "${row.UTTERANCE}"`);
+      addLog('info', `→ Pictograma listo para evaluación VCSCI`);
+
     } catch (err: any) {
       let stepFailed: 'nlu' | 'visual' | 'bitmap' = 'nlu';
       if (finalUpdates.nluStatus === 'completed' && finalUpdates.visualStatus !== 'completed') stepFailed = 'visual';
       else if (finalUpdates.visualStatus === 'completed') stepFailed = 'bitmap';
 
+      const stepNames = { nlu: 'COMPRENDER', visual: 'COMPONER', bitmap: 'PRODUCIR' };
       updateRow(index, { [`${stepFailed}Status`]: 'error', status: 'error' });
-      addLog('error', `Fallo de nodo (${stepFailed.toUpperCase()}) para "${row.UTTERANCE}": ${err.message}`);
+      addLog('error', `❌ [CASCADA] Fallo en paso ${stepNames[stepFailed]}: ${err.message}`);
     }
   };
 
@@ -1068,7 +1093,10 @@ const App: React.FC = () => {
                 <RowComponent
                   key={row.id} row={row} isOpen={openRowId === row.id} setIsOpen={v => setOpenRowId(v ? row.id : null)}
                   onUpdate={u => updateRow(globalIndex, u)} onProcess={s => processStep(globalIndex, s)}
-                  onStop={() => stopFlags.current[row.id] = true}
+                  onStop={() => {
+                    stopFlags.current[row.id] = true;
+                    addLog('info', `🛑 Solicitud de detención para: "${row.UTTERANCE}"`);
+                  }}
                   onCascade={() => processCascade(globalIndex)}
                   onDelete={() => setRows(prev => prev.filter(r => r.id !== row.id))}
                   onFocus={step => setFocusMode({ step, rowId: row.id })}
@@ -1161,7 +1189,15 @@ const RowComponent: React.FC<{
           );
         })()}
         <div className="flex gap-2 transition-all">
-          <button onClick={e => { e.stopPropagation(); onCascade(); }} className="p-2 border border-slate-200 hover:border-violet-950 text-slate-400 hover:text-violet-950 transition-all rounded-full bg-white shadow-sm"><PlayCircle size={18} /></button>
+          {row.status === 'processing' ? (
+            <button onClick={e => { e.stopPropagation(); onStop(); }} className="p-2 bg-orange-600 text-white hover:bg-orange-700 transition-all rounded-full shadow-sm animate-pulse" title="Detener proceso">
+              <StopCircle size={18} />
+            </button>
+          ) : (
+            <button onClick={e => { e.stopPropagation(); onCascade(); }} className="p-2 border border-slate-200 hover:border-violet-950 text-slate-400 hover:text-violet-950 transition-all rounded-full bg-white shadow-sm" title="Ejecutar pipeline completo">
+              <PlayCircle size={18} />
+            </button>
+          )}
         </div>
         <ChevronDown onClick={() => setIsOpen(!isOpen)} size={20} className={`text-slate-300 transition-transform duration-500 cursor-pointer ${isOpen ? 'rotate-180 text-violet-950' : ''}`} />
       </div>
