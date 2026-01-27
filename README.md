@@ -231,7 +231,6 @@ PICTOS es un proyecto abierto que invita a:
 
 Las contribuciones son bienvenidas. Por favor lee [CONTRIBUTING.md](./CONTRIBUTING.md) antes de comenzar.
 
----
 
 ## Reconocimientos
 
@@ -242,7 +241,6 @@ Este proyecto se inspira en el trabajo de:
 - La comunidad de Comunicación Aumentativa y Alternativa (AAC)
 - Investigadores en accesibilidad cognitiva y diseño universal
 
----
 
 ## Contacto
 
@@ -255,6 +253,6 @@ Para preguntas, sugerencias o colaboraciones:
 
 ---
 
-*PICTOS.NET - Transformando intenciones en pictogramas, una frase a la vez.*
+*PICTOS.NET - es una iniciativa de código abierto de MediaFranca.*
 
 **Versión 2.7** | Optimizado para investigación en lingüística aplicada y accesibilidad cognitiva.
