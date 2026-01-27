@@ -249,11 +249,11 @@ const EvaluationEditor: React.FC<{
 
     const axes = [
         { key: 'semantics', label: t('evaluation.semantics'), desc: t('vcsci.descriptions.semantics'), vcsciKey: 'semantic_transparency' },
-        { key: 'syntactics', label: t('evaluation.syntactics'), desc: t('vcsci.descriptions.syntactics'), vcsciKey: 'syntactics' },
-        { key: 'pragmatics', label: t('evaluation.pragmatics'), desc: t('vcsci.descriptions.pragmatics'), vcsciKey: 'pragmatics' },
+        { key: 'syntactics', label: t('evaluation.syntactics'), desc: t('vcsci.descriptions.syntactics'), vcsciKey: 'recognizability' },
+        { key: 'pragmatics', label: t('evaluation.pragmatics'), desc: t('vcsci.descriptions.pragmatics'), vcsciKey: 'pragmatic_fit' },
         { key: 'clarity', label: t('evaluation.clarity'), desc: t('vcsci.descriptions.clarity'), vcsciKey: 'clarity' },
-        { key: 'universality', label: t('evaluation.universality'), desc: t('vcsci.descriptions.universality'), vcsciKey: 'universality' },
-        { key: 'aesthetics', label: t('evaluation.aesthetics'), desc: t('vcsci.descriptions.aesthetics'), vcsciKey: 'aesthetics' }
+        { key: 'universality', label: t('evaluation.universality'), desc: t('vcsci.descriptions.universality'), vcsciKey: 'cultural_adequacy' },
+        { key: 'aesthetics', label: t('evaluation.aesthetics'), desc: t('vcsci.descriptions.aesthetics'), vcsciKey: 'cognitive_accessibility' }
     ];
 
     if (compact) {
