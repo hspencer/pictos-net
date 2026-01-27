@@ -166,7 +166,8 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog }
                 elements: row.elements || [],
                 evaluation: row.evaluation || {} as EvaluationMetrics,
                 utterance: row.UTTERANCE,
-                config
+                config,
+                onProgress: (msg) => onLog('info', msg)
             });
             const sEnd = performance.now();
 

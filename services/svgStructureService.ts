@@ -117,6 +117,8 @@ export interface SVGStructureInput {
     utterance: string;
     /** Global configuration */
     config: GlobalConfig;
+    /** Callback for progress updates */
+    onProgress?: (msg: string) => void;
 }
 
 /**
@@ -423,7 +425,8 @@ export async function structureSVG(input: SVGStructureInput): Promise<SVGStructu
         const systemInstruction = buildSystemInstruction(metadata, input.elements, input.config, lang);
 
         // Call Gemini with standardized model
-        const response = await ai.models.generateContent({
+        // Call Gemini with standardized model
+        const result = await ai.models.generateContentStream({
             model: "gemini-3-pro-preview",
             contents: `Here is the raw SVG to restructure:\n\n${input.rawSvg}`,
             config: {
@@ -431,8 +434,22 @@ export async function structureSVG(input: SVGStructureInput): Promise<SVGStructu
             }
         });
 
+        let text = '';
+        let lastReportSize = 0;
+
+        for await (const chunk of result) {
+            const chunkText = chunk.text;
+            text += chunkText;
+
+            // Report progress every ~1KB or so
+            if (input.onProgress && (text.length - lastReportSize > 500)) {
+                input.onProgress(`Recibiendo datos de Gemini... (${(text.length / 1024).toFixed(1)} KB)`);
+                lastReportSize = text.length;
+            }
+        }
+
         // Parse the response
-        const text = response.text || '';
+
         let svgContent = cleanSVGResponse(text);
 
         // Sanitize to remove inline styles and force CSS usage
