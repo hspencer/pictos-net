@@ -4,8 +4,10 @@
 
 **PICTOS** es una herramienta de [investigación doctoral](http://herbertspencer.net/cc) que explora la generación automática de pictogramas a partir de intenciones comunicativas expresadas en lenguaje natural. El proyecto investiga cómo transformar el significado profundo del lenguaje en representaciones visuales universales que faciliten la comunicación para personas con diversidad cognitiva.
 
+Este proyecto avanza sobre [PICTOS.cl](https://pictos.cl) desarrollado por el [Núcleo de Accesibilidad e Inclusión PUCV](https://accesibilidad-inclusion.cl/) enfocado en el desarrollo de apoyos visuales y procedimentales para la interacción accesible con los servicios públicos en Chile.
 
-## Cómo Funciona
+
+## Cómo Funciona PICTOS.NET
 
 ### Almacenamiento Local
 
@@ -54,7 +56,6 @@ La **evaluación VCSCI** (cuarto bloque) es siempre manual, permitiendo valorar 
 - **Exportar**: Genera un archivo JSON con todos los nodos, incluyendo imágenes embebidas
 - **Importar**: Carga un archivo JSON previamente exportado (se pedirá confirmación si hay datos existentes)
 
----
 
 ## Filosofía del Proyecto
 
@@ -173,7 +174,6 @@ PICTOS integra esquemas de investigación como **git submodules**, permitiendo v
 
 Cada esquema evoluciona de forma independiente, permitiendo actualizaciones controladas sin afectar la estabilidad de PICTOS.
 
----
 
 ## Comenzar a Usar PICTOS
 
@@ -182,7 +182,6 @@ Cada esquema evoluciona de forma independiente, permitiendo actualizaciones cont
 - **Consideraciones de seguridad**: Lee [SECURITY.md](./SECURITY.md)
 - **Arquitectura técnica**: Ver [ARCHITECTURE.md](./ARCHITECTURE.md)
 
----
 
 ## Citar este Proyecto
 
