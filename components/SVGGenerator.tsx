@@ -51,25 +51,107 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog }
     const displayRawSvg = React.useMemo(() => {
         if (!rawSvg) return '';
 
-        // Instead of injecting global styles, apply inline styles to elements
-        // This prevents the styles from leaking to the rest of the page
-        let styledSvg = rawSvg;
+        try {
+            // Parse SVG to DOM
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(rawSvg, 'image/svg+xml');
+            const svgEl = doc.querySelector('svg');
 
-        // Apply fill and stroke to common SVG elements
-        const elements = ['path', 'polygon', 'circle', 'rect', 'ellipse', 'line', 'polyline'];
-        elements.forEach(tag => {
-            const regex = new RegExp(`<${tag}([^>]*)>`, 'gi');
-            styledSvg = styledSvg.replace(regex, (match, attrs) => {
-                // Only add styles if not already present
-                if (!attrs.includes('fill=') && !attrs.includes('style=')) {
-                    return `<${tag}${attrs} fill="#000" stroke="none">`;
+            if (!svgEl) return rawSvg;
+
+            // Parse aspect ratio from config (e.g., '16:9' -> 16/9)
+            const [widthRatio, heightRatio] = config.aspectRatio.split(':').map(Number);
+            const targetAspectRatio = widthRatio / heightRatio;
+
+            // Calculate bounding box from all paths
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+
+            // Extract coordinates from transform attributes and path data
+            const paths = svgEl.querySelectorAll('path');
+            paths.forEach(path => {
+                const transform = path.getAttribute('transform');
+                const d = path.getAttribute('d');
+
+                if (transform) {
+                    const match = transform.match(/translate\(([^,]+),\s*([^)]+)\)/);
+                    if (match) {
+                        const tx = parseFloat(match[1]);
+                        const ty = parseFloat(match[2]);
+                        minX = Math.min(minX, tx);
+                        minY = Math.min(minY, ty);
+                        maxX = Math.max(maxX, tx);
+                        maxY = Math.max(maxY, ty);
+                    }
                 }
-                return match;
-            });
-        });
 
-        return styledSvg;
-    }, [rawSvg]);
+                if (d) {
+                    // Extract all numbers from path data
+                    const coords = d.match(/-?\d+\.?\d*/g);
+                    if (coords) {
+                        coords.forEach(coord => {
+                            const val = parseFloat(coord);
+                            minX = Math.min(minX, val);
+                            minY = Math.min(minY, val);
+                            maxX = Math.max(maxX, val);
+                            maxY = Math.max(maxY, val);
+                        });
+                    }
+                }
+            });
+
+            // Calculate content dimensions
+            const contentWidth = maxX - minX;
+            const contentHeight = maxY - minY;
+            const contentCenterX = (minX + maxX) / 2;
+            const contentCenterY = (minY + maxY) / 2;
+
+            // Add 5% padding around content
+            const paddingFactor = 0.05;
+            const paddedContentWidth = contentWidth * (1 + paddingFactor * 2);
+            const paddedContentHeight = contentHeight * (1 + paddingFactor * 2);
+
+            // Calculate viewBox dimensions that respect target aspect ratio
+            // We want to fit the content within a box that has the target aspect ratio
+            let viewBoxWidth, viewBoxHeight;
+
+            const contentAspectRatio = paddedContentWidth / paddedContentHeight;
+
+            if (contentAspectRatio > targetAspectRatio) {
+                // Content is wider than target - fit by width
+                viewBoxWidth = paddedContentWidth;
+                viewBoxHeight = viewBoxWidth / targetAspectRatio;
+            } else {
+                // Content is taller than target - fit by height
+                viewBoxHeight = paddedContentHeight;
+                viewBoxWidth = viewBoxHeight * targetAspectRatio;
+            }
+
+            // Center the viewBox around the content center
+            const viewBoxX = contentCenterX - viewBoxWidth / 2;
+            const viewBoxY = contentCenterY - viewBoxHeight / 2;
+
+            // Set viewBox and dimensions
+            svgEl.setAttribute('viewBox', `${viewBoxX} ${viewBoxY} ${viewBoxWidth} ${viewBoxHeight}`);
+            svgEl.setAttribute('width', '100%');
+            svgEl.setAttribute('height', '100%');
+            svgEl.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+
+            // Apply fill and stroke to paths
+            paths.forEach(path => {
+                if (!path.getAttribute('fill') || path.getAttribute('fill') === '#000000') {
+                    path.setAttribute('fill', '#000');
+                }
+                if (!path.getAttribute('stroke')) {
+                    path.setAttribute('stroke', 'none');
+                }
+            });
+
+            return new XMLSerializer().serializeToString(svgEl);
+        } catch (error) {
+            console.error('Error processing raw SVG:', error);
+            return rawSvg;
+        }
+    }, [rawSvg, config.aspectRatio]);
 
     // Download raw SVG
     const downloadRawSvg = () => {

@@ -1,8 +1,9 @@
-# PICTOS.NET v2.5 - Architecture Documentation
+# PICTOS.NET v2.8 - Architecture Documentation
 
 **Semantic Image Architect / Semantic Pictogram Architect**
 
 Generated: 2026-01-27
+Updated: SVG Generation Pipeline
 
 ---
 
@@ -48,17 +49,26 @@ PictoNet transforms natural language utterances into high-fidelity semantic pict
 
 ```
 pictos-net/
-├── App.tsx                          # Main React application (1186 lines)
+├── App.tsx                          # Main React application
 ├── index.tsx                        # React entry point
 ├── index.html                       # HTML template with Tailwind & fonts
 ├── types.ts                         # TypeScript type definitions
 ├── vite.config.ts                   # Vite build configuration
 ├── tsconfig.json                    # TypeScript configuration
 ├── package.json                     # Dependencies and scripts
-├── metadata.json                    # Project metadata
 ├── README.md                        # Spanish documentation
+├── ARCHITECTURE.md                  # This document
 ├── services/
-│   └── geminiService.ts             # Google Gemini API integration
+│   ├── geminiService.ts             # Google Gemini API integration
+│   ├── vtracerService.ts            # VTracer WASM bitmap→SVG conversion
+│   └── svgStructureService.ts       # Gemini-powered SVG structuring (mf-svg-schema)
+├── types/
+│   └── svg.ts                       # SVG-specific type definitions
+├── hooks/
+│   └── useSVGLibrary.ts             # SVG library state management
+├── components/
+│   ├── SVGGenerator.tsx             # SVG generation UI component
+│   └── PictoForge/                  # SVG editing components
 ├── data/
 │   └── canonicalData.ts             # VCSCI core semantic module
 └── .git/                            # Version control
@@ -83,6 +93,7 @@ pictos-net/
 | ReactDOM | ^19.2.3 | DOM rendering |
 | @google/genai | ^1.38.0 | Google Gemini AI API |
 | lucide-react | ^0.562.0 | Icon library |
+| vectortracer | Latest | WASM bitmap→SVG vectorization |
 
 ### Development Dependencies
 
@@ -102,10 +113,16 @@ pictos-net/
 
 ## 4. Core Features
 
-### 4.1 Four-Stage Semantic Pipeline
+### 4.1 Four-Stage Semantic Pipeline + SVG Extension
 
 ```
 Utterance → NLU → Visual Topology → Bitmap → Evaluation
+                                        ↓
+                                [VCSCI ≥ 4.0]
+                                        ↓
+                        Trace (vtracer) → Raw SVG
+                                        ↓
+                        Format (Gemini) → Structured SVG (mf-svg-schema)
 ```
 
 #### Stage 1: NLU (Natural Language Understanding)
@@ -148,13 +165,49 @@ Utterance → NLU → Visual Topology → Bitmap → Evaluation
   - **Universality**: Cultural independence
   - **Aesthetics**: Visual appeal
 
+#### Stage 5: SVG Generation (Optional - Quality Gated)
+
+##### Eligibility Requirements
+
+- Bitmap must exist
+- NLU data must be complete
+- Visual elements must be defined
+- VCSCI average score ≥ 4.0
+
+##### Step 5a: Trace (Vectorization)
+
+- **Input**: Bitmap PNG (Base64)
+- **Engine**: VTracer WASM (`vectortracer` package)
+- **Process**: Raster-to-vector conversion
+  - Automatic path tracing with spline curve fitting
+  - Fallback to polygon mode if spline fails
+  - Noise removal (filter speckle)
+  - Path optimization
+- **Output**: Raw SVG with unstructured paths
+
+##### Step 5b: Format (Semantic Structuring)
+
+- **Input**: Raw SVG + NLU + Elements + Evaluation + Config
+- **Model**: Gemini 3 Pro
+- **Process**: Transform raw SVG to mf-svg-schema compliant structure
+  - Group paths by semantic roles (Agent, Patient, Theme, Action)
+  - Embed metadata: NSM primes, concepts, VCSCI scores
+  - Add accessibility attributes (ARIA labels, descriptions)
+  - Generate CSS classes and styling system
+  - Include provenance data (generator, timestamp, license)
+- **Output**: Structured SVG with embedded semantics
+- **Storage**: Saved to independent SVG Library (SSoT pattern)
+
 ### 4.2 Data Management Features
 
 - **Transversal Consistency**: Unified JSON schema across entire pipeline
+- **Dual Storage Architecture**: Separate bitmap (RowData) and SVG (SVGLibrary) storage
 - **Full-Dump Export**: Projects exported with Base64 embedded images
-- **Project Import**: Support for legacy and v2.5 formats
-- **Local Storage**: Persistent browser storage
+- **SVG Independent Export**: Individual SVG downloads with embedded metadata
+- **Project Import**: Support for legacy and current formats
+- **Local Storage**: Persistent browser storage for both bitmaps and SVGs
 - **Batch Processing**: Multi-row processing with cascading execution
+- **SSoT Pattern**: SVGs are self-contained artifacts with complete semantics
 
 ### 4.3 Workbench Capabilities
 
@@ -168,10 +221,11 @@ Utterance → NLU → Visual Topology → Bitmap → Evaluation
 
 - **Real-time Trace Console**:
   - API call timestamps
-  - Processing stage completion messages
+  - Processing stage completion messages (NLU, Visual, Bitmap, SVG)
   - Duration tracking (ms to seconds)
+  - Vectorization progress (0-100%)
   - Error logs with context
-- **Performance Metrics**: Per-row timing data
+- **Performance Metrics**: Per-row timing data for all pipeline stages
 
 ---
 
@@ -419,6 +473,30 @@ App (Main Container)
 }
 ```
 
+#### SVGPictogram (Structured SVG artifact)
+
+```typescript
+{
+  id: string;                    // Unique identifier (matches source row ID)
+  utterance: string;             // Original communicative intent
+  svg: string;                   // Complete mf-svg-schema compliant SVG
+  createdAt: string;             // ISO timestamp
+  sourceRowId: string;           // Reference to original RowData
+  vcsciScore: number;            // VCSCI average at generation time
+  lang?: string;                 // Language of utterance
+}
+```
+
+#### SVGLibraryState (SVG collection management)
+
+```typescript
+{
+  svgs: SVGPictogram[];          // Array of all SVG pictograms
+  isLoading: boolean;            // Loading state
+  error?: string;                // Error message if any
+}
+```
+
 ### 7.2 Vocabulary Enumerations
 
 #### VOCAB (Semantic vocabulary)
@@ -475,11 +553,88 @@ Based on Wierzbicka/Goddard Natural Semantic Metalanguage:
 - Client: `GoogleGenAI` from `@google/genai`
 
 **Models:**
-- `gemini-3-pro-preview`: NLU and visual topology
+- `gemini-3-pro-preview`: NLU, visual topology, and SVG structuring
 - `gemini-2.5-flash-image`: Fast image generation
 - `gemini-3-pro-image-preview`: High-quality images
 
-### 8.2 Service Functions
+### 8.2 VTracer Service (vtracerService.ts)
+
+**Purpose**: Bitmap to vector conversion using WebAssembly
+
+**Key Functions:**
+
+#### vectorizeBitmap(base64Png: string, config?: VectorizerConfig): Promise
+
+**Purpose**: Convert bitmap image to SVG paths
+
+**Input**: Base64 PNG image (with or without data URL prefix)
+
+**Processing**:
+
+- Convert Base64 to ImageData using canvas
+- Initialize BinaryImageConverter (WASM)
+- Process with spline curve fitting (default) or polygon fallback
+- Progress tracking via callbacks
+- Automatic retry with polygon mode if spline fails
+
+**Output**: Raw SVG string with vectorized paths
+
+**Configuration Options**:
+
+- `mode`: 'spline' (smooth curves) or 'polygon' (sharp corners)
+- `filterSpeckle`: Remove noise smaller than N pixels (default: 4)
+- `cornerThreshold`: Minimum angle to detect corners (default: 60°)
+- `lengthThreshold`: Minimum segment length (default: 4.0)
+- `pathPrecision`: Decimal places for coordinates (default: 3)
+
+### 8.3 SVG Structure Service (svgStructureService.ts)
+
+**Purpose**: Transform raw SVG into semantically structured SVG following mf-svg-schema
+
+**Key Functions:**
+
+#### structureSVG(input: SVGStructureInput): Promise
+
+**Purpose**: Apply semantic structure and metadata to raw SVG
+
+**Input**: Complex object containing:
+
+- `rawSvg`: Vectorized SVG from vtracer
+- `nlu`: NLU semantic analysis
+- `elements`: Visual element hierarchy
+- `evaluation`: VCSCI metrics
+- `utterance`: Original text
+- `config`: Global configuration with styling
+
+**Processing**:
+
+- Build metadata JSON (NSM, concepts, accessibility, provenance, VCSCI)
+- Generate dynamic CSS stylesheet from config
+- Create system instruction for Gemini with mf-svg-schema spec
+- Stream response from Gemini 3 Pro
+- Clean and sanitize SVG (remove inline styles, enforce CSS classes)
+- Group paths by semantic roles (Agent, Patient, Theme, Action)
+
+**Output**: Structured SVG with:
+
+- Semantic groups with roles and ARIA attributes
+- Embedded metadata block with complete JSON
+- Style section with CSS classes
+- Title and description for accessibility
+- Proper SVG attributes (viewBox, role, tabindex, lang)
+
+#### canGenerateSVG(row: RowData): object
+
+**Purpose**: Check if a row meets requirements for SVG generation
+
+**Requirements**:
+
+- Bitmap must exist
+- NLU must be complete (not string)
+- Visual elements must exist
+- VCSCI average score ≥ 4.0
+
+### 8.4 Service Functions
 
 #### generateNLU(utterance: string): Promise<NLUData>
 
@@ -666,14 +821,45 @@ GEMINI_API_KEY=<Google Generative AI API Key>
 - Sequential API calls (no batching)
 - Limited to Gemini API rate limits
 
-### 11.4 Potential Extensions
+### 11.4 Dual Storage Architecture
+
+PICTOS v2.8 implements a **dual storage pattern** that separates bitmap and vector data:
+
+#### RowData Storage (Primary Pipeline)
+
+- Contains: Utterance, NLU, elements, prompt, bitmap (Base64 PNG), evaluation
+- Purpose: Main generative pipeline with full semantic traceability
+- Format: JSON array in localStorage (`pictos_v19_storage`)
+- Export: Complete graphs with embedded Base64 images
+
+#### SVG Library Storage (Quality-Gated Artifacts)
+
+- Contains: Structured SVGs following mf-svg-schema
+- Eligibility: VCSCI ≥ 4.0 only (quality threshold)
+- Principle: Single Source of Truth (SSoT) - each SVG is self-contained
+- Format: JSON array in localStorage (`pictos_svg_library`)
+- Export: Individual SVG files with embedded metadata
+- Relationship: 1:1 with RowData via `sourceRowId`
+
+#### Benefits of Dual Storage
+
+1. **Performance**: Bitmaps for quick iteration; SVGs only for production-ready pictograms
+2. **Independence**: SVGs are portable artifacts that work outside PICTOS
+3. **Semantics**: Full metadata embedded in SVG (NSM, VCSCI, accessibility)
+4. **Interoperability**: mf-svg-schema compliance enables external tool integration
+5. **Storage Efficiency**: Generate SVGs selectively rather than storing both formats for all items
+
+### 11.5 Potential Extensions
 
 - Backend with database for persistent projects
 - Multi-user collaboration features
-- Batch processing pipeline
+- Batch processing pipeline for SVG generation
 - Vector search for semantic similarity
-- Export to AAC device formats (SVG, PDF)
+- Export to AAC device formats (optimized SVG, PDF)
 - Version control for project iterations
+- Visual SVG editor with semantic group manipulation
+- Bulk SVG export as research datasets
+- Integration with existing pictogram libraries (ARASAAC, Mulberry)
 
 ---
 

@@ -16,11 +16,37 @@ Este proyecto avanza sobre [PICTOS.cl](https://pictos.cl) desarrollado por el [N
 - Los datos persisten entre sesiones en el mismo navegador
 - Si limpias los datos del navegador, **perderás todo tu trabajo**
 - Para respaldar tu trabajo, usa la función **Exportar Grafo** en el menú de Librería
-- Los archivos JSON exportados contienen toda la información, incluyendo las imágenes en Base64 y las evaluaciones. 
+- Los archivos JSON exportados contienen toda la información, incluyendo las imágenes en Base64 y las evaluaciones.
 
 💡 **Contribuye al proyecto**: Puedes enviar tu grafo exportado con tus comentarios y recomendaciones a [hspencer@ead.cl](mailto:hspencer@ead.cl). De esta forma ayudarás a mejorar esta herramienta de comunicación de código abierto.
 
 ![código abierto](https://img.shields.io/badge/opensource--always-available-blue)
+
+#### Arquitectura de Almacenamiento: Bitmaps + SVGs
+
+PICTOS implementa un sistema de **almacenamiento dual** que mantiene tanto versiones bitmap como vectoriales:
+
+##### Bitmaps (RowData)
+
+- Almacenados como parte del grafo principal en `RowData.bitmap`
+- Formato: Base64 data URLs (PNG)
+- Incluyen: NLU, elementos visuales, prompts, evaluación VCSCI
+- Exportables como JSON con toda la trazabilidad del pipeline
+
+##### SVGs (Biblioteca Separada)
+
+- Almacenados en una biblioteca independiente (`SVGLibrary`)
+- Principio **Single Source of Truth (SSoT)**: cada SVG es autosuficiente
+- Incluyen metadatos embebidos: NSM, conceptos semánticos, VCSCI, accesibilidad
+- Referencia al RowData original mediante `sourceRowId` (relación 1:1)
+- Cumplen con el estándar [mf-svg-schema](https://github.com/mediafranca/mf-svg-schema)
+
+Esta arquitectura permite:
+
+- Mantener bitmaps para iteración rápida del pipeline generativo
+- Generar SVGs solo para pictogramas de alta calidad (VCSCI ≥ 4.0)
+- Exportar SVGs como artefactos independientes con toda su semántica embebida
+- Interoperar con otras herramientas que consuman mf-svg-schema
 
 ### Generando Pictogramas
 
@@ -51,10 +77,41 @@ Cada bloque tiene su propio botón de regeneración, permitiéndote:
 
 La **evaluación VCSCI** (cuarto bloque) es siempre manual, permitiendo valorar la calidad del pictograma generado según 6 dimensiones.
 
+### Generación de Pictogramas Vectoriales (SVG)
+
+Una vez completadas las fases principales y la evaluación VCSCI, los pictogramas con calificación **≥ 4.0** pueden convertirse a formato vectorial estructurado:
+
+#### Proceso de Vectorización en Dos Etapas
+
+1. **Trace (Vectorizar)**: Convierte el bitmap PNG a SVG vectorial usando vtracer (WASM)
+   - Genera un SVG "crudo" con paths optimizados
+   - Permite previsualizar y descargar el SVG sin procesar
+   - Usa algoritmos de ajuste de curvas spline para suavidad óptima
+
+2. **Format (Estructurar)**: Transforma el SVG crudo en un SVG semántico usando Gemini Pro
+   - Agrupa elementos según roles semánticos (Agent, Patient, Theme, Action)
+   - Embebe metadatos completos: NSM primes, conceptos, accesibilidad, VCSCI
+   - Aplica el esquema [mf-svg-schema](https://github.com/mediafranca/mf-svg-schema) para máxima interoperabilidad
+   - Genera estilos CSS configurables y clases reutilizables
+
+Los SVGs generados son **autocontenidos** e incluyen toda la información semántica, permitiendo su uso independiente en cualquier contexto.
+
 ### Importación y Exportación
 
-- **Exportar**: Genera un archivo JSON con todos los nodos, incluyendo imágenes embebidas
-- **Importar**: Carga un archivo JSON previamente exportado (se pedirá confirmación si hay datos existentes)
+#### Grafos (RowData)
+
+- **Exportar Grafo**: Genera un archivo JSON con todos los nodos, incluyendo imágenes bitmap en Base64
+- **Importar Grafo**: Carga un archivo JSON previamente exportado (se pedirá confirmación si hay datos existentes)
+
+#### SVGs Individuales
+
+- **Descargar SVG**: Cada pictograma vectorial puede descargarse como archivo `.svg` independiente
+- Los SVGs descargados son **autocontenidos** e incluyen:
+  - Metadatos semánticos (NSM, conceptos, roles)
+  - Información de accesibilidad (ARIA labels, descriptions)
+  - Datos de evaluación VCSCI
+  - Información de proveniencia (generador, fecha, licencia)
+  - Estilos CSS embebidos y configurables
 
 
 ## Filosofía del Proyecto
@@ -91,13 +148,22 @@ PICTOS implementa una **arquitectura de grafo semántico** donde cada nodo repre
 
 ```
 Utterance → Análisis NSM → Blueprint Visual → Imagen PNG → Evaluación VCSCI
+                                                      ↓
+                                          [Si VCSCI ≥ 4.0]
+                                                      ↓
+                                    Vectorización (vtracer) → SVG crudo
+                                                      ↓
+                              Estructuración semántica (Gemini) → SVG mf-schema
 ```
 
 Esta arquitectura permite:
-- **Trazabilidad completa**: Desde la intención original hasta la imagen final
+
+- **Trazabilidad completa**: Desde la intención original hasta la imagen final (bitmap o SVG)
 - **Iteración experimental**: Regenerar cualquier paso sin perder el contexto
 - **Evaluación sistemática**: Medir la calidad de los pictogramas según criterios objetivos
 - **Exportación de datasets**: Construir corpus de pictogramas para investigación
+- **Formatos múltiples**: Mantener bitmaps para iteración y generar SVGs para producción
+- **Semántica embebida**: Los SVGs son artefactos autocontenidos con metadatos completos
 
 ### Accesibilidad e Inclusión
 
@@ -129,19 +195,28 @@ Este vocabulario base sirve como **benchmark** para evaluar y comparar diferente
 ## Casos de Uso
 
 ### Investigación Lingüística
-Explorar cómo diferentes lenguas expresan conceptos universales y cómo estos se pueden visualizar de manera transcultural.
+
+Explorar cómo diferentes lenguas expresan conceptos universales y cómo estos se pueden visualizar de manera transcultural. Los SVGs semánticos permiten analizar la correspondencia entre primitivos NSM y elementos visuales.
 
 ### Diseño de Sistemas de Comunicación Aumentativa
-Generar rápidamente prototipos de pictogramas para sistemas AAC (Augmentative and Alternative Communication).
+
+Generar rápidamente prototipos de pictogramas para sistemas AAC (Augmentative and Alternative Communication). Los SVGs escalables garantizan legibilidad en cualquier dispositivo, desde tablets hasta pantallas grandes.
 
 ### Educación Especial
-Crear materiales visuales personalizados adaptados a las necesidades específicas de cada estudiante.
+
+Crear materiales visuales personalizados adaptados a las necesidades específicas de cada estudiante. Los SVGs permiten ajustar estilos, colores y tamaños sin pérdida de calidad.
 
 ### Evaluación de Pictogramas Existentes
-Usar los criterios VCSCI para analizar y mejorar pictogramas de bibliotecas existentes (ARASAAC, Mulberry, etc.).
+
+Usar los criterios VCSCI para analizar y mejorar pictogramas de bibliotecas existentes (ARASAAC, Mulberry, etc.). Comparar pictogramas generados automáticamente con estándares establecidos.
 
 ### Desarrollo de Corpus Visuales
-Construir datasets de pictogramas para entrenar modelos de IA o realizar estudios de percepción visual.
+
+Construir datasets de pictogramas para entrenar modelos de IA o realizar estudios de percepción visual. Los SVGs con metadatos embebidos facilitan el análisis computacional de características semánticas.
+
+### Interoperabilidad y Publicación
+
+Exportar pictogramas vectoriales con metadatos completos para integración en aplicaciones web, sistemas AAC comerciales, o publicación como recursos educativos abiertos (OER).
 
 
 ## Principios de Diseño
@@ -158,7 +233,10 @@ Construir datasets de pictogramas para entrenar modelos de IA o realizar estudio
 - **Frontend**: React + TypeScript + Vite
 - **Procesamiento Lingüístico**: Google Gemini 3 Pro (análisis NSM)
 - **Generación de Imágenes**: Gemini 2.5 Flash Image / Gemini 3 Pro Image
+- **Vectorización**: VTracer WASM (bitmap → SVG)
+- **Estructuración SVG**: Gemini 3 Pro (aplicación de mf-svg-schema)
 - **Arquitectura**: Cliente-lado con almacenamiento local (localStorage)
+- **Almacenamiento Dual**: Bitmaps (RowData) + SVGs (Biblioteca independiente)
 - **Internacionalización**: Soporte para inglés (UK) y español (Latinoamérica)
 - **Licencia**: MIT (código) / CC-BY-4.0 (imágenes generadas)
 
@@ -197,7 +275,20 @@ Disponible en: https://pictos.net
 
 ## Roadmap
 
-### v2.7 (Actual)
+### v2.8 (Actual - SVG Generation)
+
+- ✅ Generación de pictogramas vectoriales (SVG)
+- ✅ Pipeline de vectorización en dos etapas: Trace + Format
+- ✅ Integración con vtracer (WASM) para conversión bitmap→SVG
+- ✅ Estructuración semántica con Gemini Pro según mf-svg-schema
+- ✅ Biblioteca SVG independiente con almacenamiento SSoT
+- ✅ Sistema de estilos CSS configurable para SVGs
+- ✅ Metadatos embebidos: NSM, conceptos, VCSCI, accesibilidad
+- ✅ Exportación e importación de SVGs individuales
+- ✅ Filtro de elegibilidad VCSCI ≥ 4.0 para generación SVG
+
+### v2.7
+
 - ✅ Integración de esquemas de investigación como git submodules
 - ✅ Documentación completa de workflow con submodules
 - ✅ Mejoras en sistema de ayuda de evaluación VCSCI
@@ -211,9 +302,12 @@ Disponible en: https://pictos.net
 - ✅ Exportación con imágenes embebidas
 
 ### Próximas Versiones
+
 - 🔄 Soporte para más idiomas (FR, PT, CA)
-- 🔄 Integración con bibliotecas de pictogramas existentes
-- 🔄 Modos de generación alternativos (SVG, animaciones)
+- 🔄 Integración con bibliotecas de pictogramas existentes (ARASAAC, Mulberry)
+- 🔄 Editor visual de SVG con manipulación directa de grupos semánticos
+- 🔄 Exportación masiva de SVGs como dataset
+- 🔄 Animaciones SVG basadas en roles semánticos
 - 🔄 Colaboración multi-usuario en tiempo real
 - 🔄 API pública para integración con otros sistemas
 
@@ -255,4 +349,4 @@ Para preguntas, sugerencias o colaboraciones:
 
 *PICTOS.NET - es una iniciativa de código abierto de MediaFranca.*
 
-**Versión 2.7** | Optimizado para investigación en lingüística aplicada y accesibilidad cognitiva.
+**Versión 2.8** | Pictogramas vectoriales semánticos para investigación en lingüística aplicada y accesibilidad cognitiva.

@@ -1161,7 +1161,7 @@ const RowComponent: React.FC<{
           );
         })()}
         <div className="flex gap-2 transition-all">
-          <button onClick={e => { e.stopPropagation(); onCascade(); }} className="p-3 text-slate-600 hover:bg-violet-950 hover:text-white shadow-sm hover:shadow-lg hover:scale-110 transition-all rounded"><PlayCircle size={18} /></button>
+          <button onClick={e => { e.stopPropagation(); onCascade(); }} className="p-2 border border-slate-200 hover:border-violet-950 text-slate-400 hover:text-violet-950 transition-all rounded-full bg-white shadow-sm"><PlayCircle size={18} /></button>
         </div>
         <ChevronDown onClick={() => setIsOpen(!isOpen)} size={20} className={`text-slate-300 transition-transform duration-500 cursor-pointer ${isOpen ? 'rotate-180 text-violet-950' : ''}`} />
       </div>
@@ -1287,7 +1287,7 @@ const StepBox: React.FC<{ label: string; status: StepStatus; onRegen: () => void
               {duration && <span className="text-[10px] text-slate-400 font-mono font-medium">{duration.toFixed(1)}s</span>}
               {actionNode}
               <button onClick={onFocus} className="p-2 border hover:border-violet-950 text-slate-400 hover:text-violet-950 transition-all rounded-full"><Maximize size={14} /></button>
-              <button onClick={onRegen} className="p-2 border hover:border-violet-950 text-slate-400 hover:text-violet-950 transition-all rounded-full"><RefreshCw size={14} /></button>
+              <button onClick={onRegen} className="p-2 border hover:border-violet-950 text-slate-400 hover:text-violet-950 transition-all rounded-full"><PlayCircle size={14} /></button>
             </div>
           )}
         </div>
