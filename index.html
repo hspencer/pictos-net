@@ -37,6 +37,12 @@
       100% { background-color: var(--furious-orange); box-shadow: 0 0 0 12px rgba(99, 102, 241, 0); }
     }
     
+    #tagline{
+     display: block;
+      line-height: 100%;
+      margin-top: .6ex;
+    }
+
     .animate-spectral {
       animation: spectral-pulse 2s infinite cubic-bezier(0.4, 0, 0.2, 1);
     }
@@ -92,17 +98,7 @@
       box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
     }
   </style>
-<script type="importmap">
-{
-  "imports": {
-    "@google/genai": "https://esm.sh/@google/genai@^1.38.0",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "react": "https://esm.sh/react@^19.2.3",
-    "lucide-react": "https://esm.sh/lucide-react@^0.562.0"
-  }
-}
-</script>
+
 </head>
 <body class="bg-slate-50 text-slate-900">
   <div id="root"></div>

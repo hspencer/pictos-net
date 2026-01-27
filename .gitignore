@@ -30,3 +30,7 @@ dist-ssr
 
 # Auto-generated from submodules
 public/schemas/
+
+# AI / Local folders
+.gemini
+.claude

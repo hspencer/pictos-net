@@ -105,7 +105,7 @@ Tu salida debe adherirse *estrictamente* a este esquema.
 1.  Retorna SOLO el JSON.
 2.  Analiza la pragmática y semántica profunda, no solo la superficie.
 3.  Asegura JSON válido.`;
-  
+
   const response = await ai.models.generateContent({
     model: "gemini-3-pro-preview",
     contents: `UTTERANCE: "${utterance}"`,
@@ -143,7 +143,7 @@ You MUST generate Element IDs and the prompt logic in **${targetLang}**.
     *   Do NOT define style (handled by the Global Style Node).
 
 **Final Output:** A single valid JSON object containing \`elements\` and \`prompt\`.`;
-  
+
   const response = await ai.models.generateContent({
     model: "gemini-3-pro-preview",
     contents: `NLU Semantics: ${JSON.stringify(nlu)}`,
@@ -157,7 +157,7 @@ You MUST generate Element IDs and the prompt logic in **${targetLang}**.
 
 export const generateImage = async (elements: VisualElement[], prompt: string, row: any, config: GlobalConfig): Promise<string> => {
   const ai = getAI();
-  
+
   // Combine the specific spatial articulation prompt with the global style prompt and author
   const fullPrompt = `
     Create a pictogram image based on these instructions:
@@ -166,19 +166,23 @@ export const generateImage = async (elements: VisualElement[], prompt: string, r
     ${config.visualStylePrompt}
     
     METADATA & CONTEXT:
-    - Author/Creator: ${config.author}
+    (Internal graph processing, do not render metadata as text)
     
     COMPOSITION / CONTENT:
     ${prompt}
     
-    Important: The image should be clean, with no text, on a plain background (white or transparent if possible). High contrast.
+    CRITICAL CONSTRAINTS:
+    1. NO TEXT of any kind (no labels, no signatures, no watermarks).
+    2. PURE VISUAL REPRESENTATION only.
+    3. FLAT DESIGN ideal for vectorization (solid colors, clear distinct shapes, consistent stroke widths if applicable).
+    4. Plain white background.
   `;
 
   // Select model based on config.
   // 'pro' maps to gemini-3-pro-image-preview (NanoBanana Pro / High Quality)
   // 'flash' maps to gemini-2.5-flash-image (NanoBanana / Fast)
-  const modelName = config.imageModel === 'pro' 
-    ? 'gemini-3-pro-image-preview' 
+  const modelName = config.imageModel === 'pro'
+    ? 'gemini-3-pro-image-preview'
     : 'gemini-2.5-flash-image';
 
   const response = await ai.models.generateContent({
@@ -197,7 +201,7 @@ export const generateImage = async (elements: VisualElement[], prompt: string, r
 
   // Extract image from response
   let base64Image = "";
-  
+
   if (response.candidates && response.candidates[0].content && response.candidates[0].content.parts) {
     for (const part of response.candidates[0].content.parts) {
       if (part.inlineData) {

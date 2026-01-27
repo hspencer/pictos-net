@@ -187,5 +187,13 @@
     "visual": "Visual",
     "bitmap": "Bitmap",
     "eval": "Evaluación"
+  },
+  "svg": {
+    "generate": "Generar SVG",
+    "generating": "Procesando...",
+    "download": "Descargar SVG",
+    "library": "Biblioteca SVG",
+    "compliant": "Compatible con mf-svg-schema",
+    "unavailable": "No disponible"
   }
 }

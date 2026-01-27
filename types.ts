@@ -60,7 +60,7 @@ export interface VisualElement {
 
 // VCSCI Hexagonal Dimensions (Manual Input - Likert 1-5)
 export interface EvaluationMetrics {
-  semantics: number; 
+  semantics: number;
   syntactics: number;
   pragmatics: number;
   clarity: number;
@@ -121,6 +121,10 @@ export interface GlobalConfig {
   author: string;
   license: string;
   visualStylePrompt: string;
+  svgStyles?: {
+    f: { fill: string; stroke: string; strokeWidth: number };
+    k: { fill: string; stroke: string; strokeWidth: number };
+  };
 }
 
 export const VOCAB = {

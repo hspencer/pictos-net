@@ -1,7 +1,7 @@
 {
   "name": "pictos.net",
   "private": true,
-  "version": "2.7.0",
+  "version": "2.8.0",
   "type": "module",
   "scripts": {
     "dev": "npm run copy-schemas && vite",
@@ -9,18 +9,21 @@
     "preview": "vite preview",
     "validate-i18n": "node scripts/validateTranslations.cjs",
     "copy-schemas": "sh scripts/copy-submodule-data.sh",
-    "postinstall": "git submodule update --init --recursive && npm run copy-schemas"
+    "postinstall": "(git submodule update --init --recursive || echo '⚠️ Git submodule update failed, skipping...') && npm run copy-schemas"
   },
   "dependencies": {
     "@google/genai": "^1.38.0",
-    "react-dom": "^19.2.3",
+    "lucide-react": "^0.562.0",
     "react": "^19.2.3",
-    "lucide-react": "^0.562.0"
+    "react-dom": "^19.2.3",
+    "vectortracer": "^0.1.2"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
     "@vitejs/plugin-react": "^5.0.0",
     "typescript": "~5.8.2",
-    "vite": "^6.2.0"
+    "vite": "^6.2.0",
+    "vite-plugin-top-level-await": "^1.6.0",
+    "vite-plugin-wasm": "^3.5.0"
   }
 }
