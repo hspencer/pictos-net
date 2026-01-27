@@ -119,13 +119,10 @@ Construir datasets de pictogramas para entrenar modelos de IA o realizar estudio
 
 ## Comenzar a Usar PICTOS
 
-🌐 **Aplicación web**: [pictos.net](https://pictos.net)
-
-💻 **Para desarrolladores**: Consulta [CONTRIBUTING.md](./CONTRIBUTING.md)
-
-🔒 **Consideraciones de seguridad**: Lee [SECURITY.md](./SECURITY.md)
-
-📐 **Arquitectura técnica**: Ver [ARCHITECTURE.md](./ARCHITECTURE.md)
+- **Aplicación web**: [pictos.net](https://pictos.net)
+- **Para desarrolladores**: Consulta [CONTRIBUTING.md](./CONTRIBUTING.md)
+- **Consideraciones de seguridad**: Lee [SECURITY.md](./SECURITY.md)
+- **Arquitectura técnica**: Ver [ARCHITECTURE.md](./ARCHITECTURE.md)
 
 ---
 
@@ -187,12 +184,12 @@ Este proyecto se inspira en el trabajo de:
 
 Para preguntas, sugerencias o colaboraciones:
 
-- 📧 Abre un issue en GitHub
-- 🐛 Reporta bugs en el repositorio
-- 💡 Propone nuevas funcionalidades mediante Pull Requests
+- Abre un issue en GitHub
+- Reporta bugs en el repositorio
+- Propone nuevas funcionalidades mediante Pull Requests
 
 ---
 
-*PICTOS.NET - Transformando intenciones en imágenes, una frase a la vez.*
+*PICTOS.NET - Transformando intenciones en pictogramas, una frase a la vez.*
 
 **Versión 2.6** | Optimizado para investigación en lingüística aplicada y accesibilidad cognitiva.
