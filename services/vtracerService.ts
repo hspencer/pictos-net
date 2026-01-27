@@ -38,13 +38,13 @@ export interface VectorizerConfig {
 
 /** Default configuration optimized for pictograms */
 const DEFAULT_CONFIG: VectorizerConfig = {
-    mode: 'spline',           // Smooth curves
-    filterSpeckle: 4,         // Remove small noise
-    cornerThreshold: 60,      // Detect corners at 60° angles
-    lengthThreshold: 4.0,     // Minimum segment length
-    maxIterations: 10,        // Optimization iterations
-    spliceThreshold: 45,      // Splice angle threshold
-    pathPrecision: 3,         // 3 decimal places
+    mode: 'spline',           // Smooth curves for organic shapes
+    filterSpeckle: 8,         // Remove more noise (pictograms are clean)
+    cornerThreshold: 70,      // More aggressive corner detection
+    lengthThreshold: 6.0,     // Longer minimum segments (cleaner paths)
+    maxIterations: 15,        // More optimization for cleaner output
+    spliceThreshold: 50,      // Higher splice threshold for smoother curves
+    pathPrecision: 2,         // Less precision needed for pictograms
     debug: false,
 };
 

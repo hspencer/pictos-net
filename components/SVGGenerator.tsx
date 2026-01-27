@@ -314,10 +314,11 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog }
             const nluData = typeof row.NLU === 'object' ? row.NLU as NLUData : undefined;
             if (!nluData) throw new Error("Invalid NLU data");
 
-            onLog('info', `Estructurando SVG semántico...`);
+            onLog('info', `Estructurando SVG semántico con referencia visual...`);
             const sStart = performance.now();
             const result = await structureSVG({
                 rawSvg,
+                bitmap: row.bitmap || '', // Pass original bitmap as visual reference
                 nlu: nluData,
                 elements: row.elements || [],
                 evaluation: row.evaluation || {} as EvaluationMetrics,
@@ -326,7 +327,7 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog }
                 onProgress: (msg) => onLog('info', msg),
                 onStatus: (s) => {
                     switch (s) {
-                        case 'sending': setSubStatus('Enviando solicitud a Gemini...'); break;
+                        case 'sending': setSubStatus('Enviando imagen + SVG a Gemini...'); break;
                         case 'receiving': setSubStatus('Recibiendo estructura semántica...'); break;
                         case 'sanitizing': setSubStatus('Sanitizando y aplicando estilos...'); break;
                         default: setSubStatus(s);

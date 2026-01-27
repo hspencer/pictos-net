@@ -103,6 +103,8 @@ function sanitizeSVG(svgContent: string): string {
 export interface SVGStructureInput {
     /** Raw SVG string from vtracer */
     rawSvg: string;
+    /** Original bitmap (Base64 PNG) for visual reference */
+    bitmap: string;
     /** NLU semantic analysis */
     nlu: NLUData;
     /** Hierarchical visual elements */
@@ -298,10 +300,17 @@ function buildSystemInstruction(metadata: object, elements: VisualElement[], con
 **YOUR TASK:**
 Convert a raw vectorized SVG into a semantically structured SVG following the mf-svg-schema standard.
 
-**INPUT:**
-1. A raw SVG with unstructured <path> elements from vtracer vectorization
-2. Semantic metadata (NLU analysis, concepts, VCSCI scores)
-3. Hierarchical visual element structure
+**INPUT YOU RECEIVE:**
+1. **Visual Reference (IMAGE)**: The original bitmap pictogram - USE THIS to understand what each part represents
+2. **Geometric Base (TEXT)**: Raw SVG with unstructured <path> elements from vtracer vectorization
+3. **Semantic Context (TEXT)**: Hierarchical visual elements that MUST correspond to visual parts in the image
+4. **Metadata (TEXT)**: NLU analysis, concepts, VCSCI scores
+
+**CRITICAL VISUAL CORRELATION:**
+Look at the IMAGE and the HIERARCHICAL ELEMENTS together:
+- Each element in the hierarchy (e.g., "persona", "vaso_agua") represents a VISIBLE part in the image
+- Your job is to GROUP the SVG paths that correspond to each element
+- Use the IMAGE as the PRIMARY reference to understand what represents what
 
 **OUTPUT REQUIREMENTS:**
 You must output a COMPLETE, VALID SVG file with these exact parts in order:
@@ -345,13 +354,18 @@ ${css}
 ${JSON.stringify(elements, null, 2)}
 \`\`\`
 
-**GROUPING STRATEGY:**
-- Analyze the paths in the raw SVG
-- Match paths to concepts based on:
-  - Position (e.g., Agent is usually a person figure)
-  - Size (e.g., Patient is often larger object)
-  - Shape characteristics
-- If unsure, group logically and assign to Theme role
+**GROUPING STRATEGY (USE THE IMAGE!):**
+1. Look at the PROVIDED IMAGE to see what the pictogram shows
+2. Look at the HIERARCHICAL ELEMENTS to know what elements should exist (e.g., "persona", "vaso")
+3. For each element in the hierarchy:
+   - Identify which part of the IMAGE it represents
+   - Find the SVG paths that draw that same part
+   - Group those paths together in a <g> element with the correct concept ID
+4. Visual cues in the IMAGE:
+   - Agents (usually "persona", "niño", etc.) = human/animal figures
+   - Patients/Objects (usually nouns) = things being acted upon
+   - Context elements = background or secondary objects
+5. If an element is in the hierarchy but not clearly visible, mark it as implicit
 
 **CRITICAL RULES:**
 1. Output ONLY the complete SVG, no explanation
@@ -422,12 +436,50 @@ export async function structureSVG(input: SVGStructureInput): Promise<SVGStructu
         const lang = input.nlu.lang || input.config.lang || 'en';
         const systemInstruction = buildSystemInstruction(metadata, input.elements, input.config, lang);
 
+        if (input.onProgress) input.onProgress('[SVG FORMAT] Preparando solicitud multimodal...');
         if (input.onStatus) input.onStatus('sending');
 
-        // Call Gemini with standardized model
+        // Extract base64 data from bitmap (remove data URL prefix if present)
+        const base64Data = input.bitmap.replace(/^data:image\/\w+;base64,/, '');
+
+        // Format hierarchical elements as readable text
+        const formatElements = (els: VisualElement[], depth = 0): string => {
+            return els.map(el => {
+                const indent = '  '.repeat(depth);
+                const children = el.children ? '\n' + formatElements(el.children, depth + 1) : '';
+                return `${indent}- ${el.id}${children}`;
+            }).join('\n');
+        };
+
+        if (input.onProgress) input.onProgress('[SVG FORMAT] Enviando imagen + SVG + elementos a Gemini 3 Pro...');
+
+        // Call Gemini with MULTIMODAL input (image + text)
         const result = await ai.models.generateContentStream({
             model: "gemini-3-pro-preview",
-            contents: `Here is the raw SVG to restructure:\n\n${input.rawSvg}`,
+            contents: {
+                parts: [
+                    {
+                        inlineData: {
+                            mimeType: "image/png",
+                            data: base64Data
+                        }
+                    },
+                    {
+                        text: `**ORIGINAL PICTOGRAM IMAGE ABOVE** - This is your PRIMARY visual reference.
+
+**HIERARCHICAL ELEMENTS YOU MUST FIND IN THE IMAGE:**
+${formatElements(input.elements)}
+
+**RAW SVG GEOMETRY (paths you need to group):**
+${input.rawSvg}
+
+**INSTRUCTIONS:**
+Look at the IMAGE carefully and identify where each element appears visually.
+Then, group the corresponding SVG paths into semantic <g> groups according to the mf-svg-schema specification.
+Output ONLY the complete, restructured SVG file - no explanation.`
+                    }
+                ]
+            },
             config: {
                 systemInstruction,
             }
@@ -437,6 +489,7 @@ export async function structureSVG(input: SVGStructureInput): Promise<SVGStructu
         let lastReportSize = 0;
 
         if (input.onStatus) input.onStatus('receiving');
+        if (input.onProgress) input.onProgress('[SVG FORMAT] Gemini está analizando la imagen y estructurando el SVG...');
 
         for await (const chunk of result) {
             const chunkText = chunk.text;
@@ -444,27 +497,33 @@ export async function structureSVG(input: SVGStructureInput): Promise<SVGStructu
 
             // Report progress every ~1KB or so
             if (input.onProgress && (text.length - lastReportSize > 500)) {
-                input.onProgress(`Recibiendo datos de Gemini... (${(text.length / 1024).toFixed(1)} KB)`);
+                input.onProgress(`[SVG FORMAT] Recibiendo SVG estructurado... (${(text.length / 1024).toFixed(1)} KB)`);
                 lastReportSize = text.length;
             }
         }
 
         // Parse the response
+        if (input.onProgress) input.onProgress('[SVG FORMAT] Respuesta completa recibida, procesando...');
 
         // Sanitize to remove inline styles and force CSS usage
         if (input.onStatus) input.onStatus('sanitizing');
+        if (input.onProgress) input.onProgress('[SVG FORMAT] Limpiando respuesta y extrayendo SVG...');
         let svgContent = cleanSVGResponse(text);
 
+        if (input.onProgress) input.onProgress('[SVG FORMAT] Sanitizando estilos inline y aplicando clases CSS...');
         // Sanitize to remove inline styles and force CSS usage
         svgContent = sanitizeSVG(svgContent);
 
         if (!svgContent || !svgContent.includes('<svg')) {
+            if (input.onProgress) input.onProgress('[SVG FORMAT] ❌ Error: respuesta no contiene SVG válido');
             return {
                 svg: '',
                 success: false,
                 error: 'Gemini did not return valid SVG'
             };
         }
+
+        if (input.onProgress) input.onProgress(`[SVG FORMAT] ✓ SVG estructurado completado (${(svgContent.length / 1024).toFixed(1)} KB)`);
 
         return {
             svg: svgContent,
