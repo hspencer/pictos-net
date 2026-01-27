@@ -22,7 +22,7 @@
   },
   "home": {
     "graphArchitecture": "Graph Architecture",
-    "description": "Semantic node architecture based on NSM and cognitive accessibility. Integration of Modules (MediaFranca).",
+    "description": "Step-by-step generative system for pictograms from communicative intent to visual representation",
     "vcsciModule": "VCSCI Core Module",
     "vcsciNamespace": "mediafranca.graph.dataset",
     "importTextNode": "Import Text Node",

@@ -807,9 +807,8 @@ const App: React.FC = () => {
                 <Share2 size={14}/> Graph Architecture
               </div>
               <h2 className="text-8xl font-black tracking-tighter text-slate-900 leading-none">{config.author}</h2>
-              <p className="text-slate-400 text-xl font-medium max-w-2xl mx-auto leading-relaxed italic">
-                Arquitectura de nodos semánticos basada en NSM y accesibilidad cognitiva.
-                Integración de Módulos (MediaFranca).
+              <p className="text-slate-400 text-xl font-medium max-w-2xl mx-auto leading-relaxed">
+                {t('home.description')}
               </p>
             </div>
 

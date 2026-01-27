@@ -22,7 +22,7 @@
   },
   "home": {
     "graphArchitecture": "Arquitectura de Grafo",
-    "description": "Arquitectura de nodos semánticos basada en NSM y accesibilidad cognitiva. Integración de Módulos (MediaFranca).",
+    "description": "Sistema generativo de pictogramas paso-a-paso desde la intención comunicativa a la representación visual",
     "vcsciModule": "Módulo Core VCSCI",
     "vcsciNamespace": "mediafranca.graph.dataset",
     "importTextNode": "Importar Nodo de Texto",
