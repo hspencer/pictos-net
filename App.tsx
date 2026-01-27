@@ -1161,7 +1161,7 @@ const RowComponent: React.FC<{
           );
         })()}
         <div className="flex gap-2 transition-all">
-          <button onClick={e => { e.stopPropagation(); onCascade(); }} className="p-3 bg-slate-600 text-white shadow-lg hover:bg-slate-800 hover:scale-110 transition-all"><PlayCircle size={18} /></button>
+          <button onClick={e => { e.stopPropagation(); onCascade(); }} className="p-3 text-slate-600 hover:bg-violet-600 hover:text-white shadow-sm hover:shadow-lg hover:scale-110 transition-all rounded"><PlayCircle size={18} /></button>
         </div>
         <ChevronDown onClick={() => setIsOpen(!isOpen)} size={20} className={`text-slate-300 transition-transform duration-500 cursor-pointer ${isOpen ? 'rotate-180 text-violet-950' : ''}`} />
       </div>
