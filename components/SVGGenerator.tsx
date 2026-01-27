@@ -24,6 +24,7 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog }
     const [progress, setProgress] = useState(0);
     const [processStartTime, setProcessStartTime] = useState<number | null>(null);
     const [elapsedTime, setElapsedTime] = useState(0);
+    const [subStatus, setSubStatus] = useState<string>('');
 
     // Check if SVG already exists in library
     const existingSVG = getSVGByRowId(row.id);
@@ -139,7 +140,11 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog }
             onLog('info', `Iniciando vectorización para: ${row.UTTERANCE}`);
 
             // Step 1: Vectorize
+            // Step 1: Vectorize
             setStatus('vectorizing');
+            setSubStatus('Vectorizando bitmap (vtracer)...');
+            setProgress(0);
+            setSubStatus('Vectorizando bitmap (vtracer)...');
             setProgress(0);
 
             const vStart = performance.now();
@@ -152,7 +157,11 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog }
             onLog('success', `Vectorización completada en ${((vEnd - vStart) / 1000).toFixed(2)}s`);
 
             // Step 2: Structure with Gemini
+            // Step 2: Structure with Gemini
             setStatus('structuring');
+            setSubStatus('Preparando prompt semántico...');
+            setProgress(0); // Reset for next stage
+            setSubStatus('Preparando prompt semántico...');
             setProgress(0); // Reset for next stage
 
             const nluData = typeof row.NLU === 'object' ? row.NLU as NLUData : undefined;
@@ -167,8 +176,17 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog }
                 evaluation: row.evaluation || {} as EvaluationMetrics,
                 utterance: row.UTTERANCE,
                 config,
-                onProgress: (msg) => onLog('info', msg)
+                onProgress: (msg) => onLog('info', msg),
+                onStatus: (s) => {
+                    switch (s) {
+                        case 'sending': setSubStatus('Enviando solicitud a Gemini...'); break;
+                        case 'receiving': setSubStatus('Recibiendo estructura semántica...'); break;
+                        case 'sanitizing': setSubStatus('Sanitizando y aplicando estilos...'); break;
+                        default: setSubStatus(s);
+                    }
+                }
             });
+
             const sEnd = performance.now();
 
             if (!result.success || !result.svg) {
@@ -270,7 +288,7 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog }
                     </div>
                     <div className="flex justify-between items-center mt-2">
                         <p className="text-[10px] text-slate-400">
-                            {status === 'structuring' ? 'Applying semantic schema with Gemini...' : 'Tracing bitmap paths...'}
+                            {subStatus || (status === 'structuring' ? 'Applying semantic schema with Gemini...' : 'Tracing bitmap paths...')}
                         </p>
                         <span className="text-[10px] font-mono text-violet-600 font-bold bg-violet-50 px-1.5 py-0.5 rounded">
                             {elapsedTime.toFixed(1)}s
