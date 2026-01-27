@@ -132,8 +132,7 @@ export interface GlobalConfig {
   license: string;
   visualStylePrompt: string;
   svgStyles?: {
-    f: SVGStyleConfig;
-    k: SVGStyleConfig;
+    [className: string]: SVGStyleConfig;
   };
 }
 

@@ -51,24 +51,30 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog }
         if (!existingSVG) return;
 
         const target = e.target as Element;
-        const group = target.closest('g[role="group"]') || target.closest('.f, .k');
+        const group = target.closest('g[role="group"]') || target.closest('[class*=""]');
 
         if (group) {
             e.preventDefault();
             e.stopPropagation();
 
-            const isF = group.classList.contains('f');
-            const isK = group.classList.contains('k');
+            // Get all available classes from config
+            const availableClasses = Object.keys(config.svgStyles || { f: {}, k: {} });
 
-            if (isF) {
-                group.classList.remove('f');
-                group.classList.add('k');
-            } else if (isK) {
-                group.classList.remove('k');
-                group.classList.add('f');
-            } else {
-                group.classList.add('f');
+            // Find current class
+            let currentClassIndex = -1;
+            for (let i = 0; i < availableClasses.length; i++) {
+                if (group.classList.contains(availableClasses[i])) {
+                    currentClassIndex = i;
+                    break;
+                }
             }
+
+            // Remove current class and add next one (cycle through)
+            if (currentClassIndex >= 0) {
+                group.classList.remove(availableClasses[currentClassIndex]);
+            }
+            const nextIndex = (currentClassIndex + 1) % availableClasses.length;
+            group.classList.add(availableClasses[nextIndex]);
 
             const svgRoot = e.currentTarget.querySelector('svg');
             if (svgRoot) {
@@ -235,7 +241,7 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog }
                 <div className="flex-1 bg-white border border-slate-200 flex items-center justify-center p-4 relative mb-3 overflow-hidden group/svg-preview">
                     <div className="absolute inset-0 pattern-grid-sm opacity-5 pointer-events-none"></div>
                     <div className="absolute top-2 right-2 opacity-0 group-hover/svg-preview:opacity-100 transition-opacity bg-black/70 text-white text-[10px] px-2 py-1 rounded pointer-events-none z-10 font-medium">
-                        Click parts to toggle style (.f/.k)
+                        Click parts to cycle through styles
                     </div>
                     <div
                         dangerouslySetInnerHTML={{ __html: displaySvg }}

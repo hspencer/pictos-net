@@ -23,34 +23,26 @@ const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
  * Following mf-svg-schema specification with user-defined overrides
  */
 export const generateStylesheet = (config: GlobalConfig): string => {
-    // Defaults matching mf-svg-schema, but cleaner (no outlines by default if not needed)
-    const f = config.svgStyles?.f || { fill: '#000', stroke: 'none', strokeWidth: 0 };
-    const k = config.svgStyles?.k || { fill: '#fff', stroke: 'none', strokeWidth: 0 };
+    const styles = config.svgStyles || {
+        f: { fill: '#000', stroke: 'none', strokeWidth: 0 },
+        k: { fill: '#fff', stroke: 'none', strokeWidth: 0 }
+    };
+
+    // Generate CSS for each defined class
+    const classStyles = Object.entries(styles).map(([className, style]) => `
+.${className} {
+  fill: ${style.fill};
+  fill-opacity: ${style.opacity ?? 1};
+  stroke: ${style.stroke};
+  stroke-width: ${style.strokeWidth};
+  stroke-opacity: ${style.opacity ?? 1};
+  stroke-linecap: ${style.strokeLinecap || 'round'};
+  stroke-linejoin: ${style.strokeLinejoin || 'round'};
+}`).join('\n');
 
     return `
-/* MediaFranca SVG Schema - Dual-Class Styling System */
-.f {
-  fill: ${f.fill};
-  fill-opacity: ${f.opacity ?? 1};
-  stroke: ${f.stroke};
-  stroke-width: ${f.strokeWidth};
-  stroke-opacity: ${f.opacity ?? 1};
-  stroke-linecap: ${f.strokeLinecap || 'round'};
-  stroke-linejoin: ${f.strokeLinejoin || 'round'};
-}
-
-.k {
-  fill: ${k.fill};
-  fill-opacity: ${k.opacity ?? 1};
-  stroke: ${k.stroke};
-  stroke-width: ${k.strokeWidth};
-  stroke-opacity: ${k.opacity ?? 1};
-  stroke-linecap: ${k.strokeLinecap || 'round'};
-  stroke-linejoin: ${k.strokeLinejoin || 'round'};
-}
-
-  stroke-linejoin: round;
-}
+/* MediaFranca SVG Schema - Dynamic Class Styling System */
+${classStyles}
 
 /* --- Mini Utility Classes (Tailwind-like) --- */
 /* Colors */

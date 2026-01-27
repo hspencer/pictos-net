@@ -451,7 +451,7 @@ const SearchComponent: React.FC<{
 
 const App: React.FC = () => {
   const { t, lang, setLang } = useTranslation();
-  const { exportSVGs, importSVGs } = useSVGLibrary();
+  const { svgs, exportSVGs, importSVGs } = useSVGLibrary();
   const [rows, setRows] = useState<RowData[]>([]);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [showConsole, setShowConsole] = useState(false);
@@ -864,6 +864,24 @@ const App: React.FC = () => {
                   >
                     <Download size={14} className="text-emerald-600" /> {t('actions.export')}
                   </button>
+                  <button
+                    onClick={() => {
+                      const allSvgs = exportSVGs();
+                      const blob = new Blob([allSvgs], { type: 'application/json' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `${config.author.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_svgs_${new Date().toISOString().split('T')[0]}.json`;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                      setShowLibraryMenu(false);
+                      addLog('success', 'SVGs exportados correctamente.');
+                    }}
+                    disabled={!svgs || svgs.length === 0}
+                    className="w-full text-left px-4 py-3 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors disabled:opacity-50"
+                  >
+                    <FileDown size={14} className="text-blue-600" /> Exportar SVGs
+                  </button>
                   <div className="border-t border-slate-100 my-1"></div>
                   <button
                     onClick={clearAll}
@@ -1143,7 +1161,7 @@ const RowComponent: React.FC<{
           );
         })()}
         <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
-          <button onClick={e => { e.stopPropagation(); onCascade(); }} className="p-3 bg-violet-950 text-white shadow-lg hover:bg-black transition-all"><PlayCircle size={18} /></button>
+          <button onClick={e => { e.stopPropagation(); onCascade(); }} className="p-3 bg-slate-600 text-white shadow-lg hover:bg-slate-800 transition-all"><PlayCircle size={18} /></button>
           <button onClick={e => { e.stopPropagation(); onDelete(); }} className="p-3 text-rose-300 hover:text-rose-600 transition-colors"><Trash2 size={18} /></button>
         </div>
         <ChevronDown onClick={() => setIsOpen(!isOpen)} size={20} className={`text-slate-300 transition-transform duration-500 cursor-pointer ${isOpen ? 'rotate-180 text-violet-950' : ''}`} />
