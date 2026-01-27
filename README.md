@@ -2,7 +2,57 @@
 
 ## Pictogramas Generativos para la Accesibilidad Cognitiva
 
-**PICTOS** es una herramienta de investigación que explora la generación automática de pictogramas a partir de intenciones comunicativas expresadas en lenguaje natural. El proyecto investiga cómo transformar el significado profundo del lenguaje en representaciones visuales universales que faciliten la comunicación para personas con diversidad cognitiva.
+**PICTOS** es una herramienta de [investigación doctoral](http://herbertspencer.net/cc) que explora la generación automática de pictogramas a partir de intenciones comunicativas expresadas en lenguaje natural. El proyecto investiga cómo transformar el significado profundo del lenguaje en representaciones visuales universales que faciliten la comunicación para personas con diversidad cognitiva.
+
+
+## Cómo Funciona
+
+### Almacenamiento Local
+
+⚠️ **Importante**: Todos los pictogramas y datos se almacenan **localmente en el navegador** usando `localStorage`. Esto significa:
+
+- Los datos persisten entre sesiones en el mismo navegador
+- Si limpias los datos del navegador, **perderás todo tu trabajo**
+- Para respaldar tu trabajo, usa la función **Exportar Grafo** en el menú de Librería
+- Los archivos JSON exportados contienen toda la información, incluyendo las imágenes en Base64 y las evaluaciones. 
+
+💡 **Contribuye al proyecto**: Puedes enviar tu grafo exportado con tus comentarios y recomendaciones a [hspencer@ead.cl](mailto:hspencer@ead.cl). De esta forma ayudarás a mejorar esta herramienta de comunicación de código abierto.
+
+![código abierto](https://img.shields.io/badge/opensource--always-available-blue)
+
+### Generando Pictogramas
+
+Hay dos formas de generar un pictograma a partir de una intención comunicativa:
+
+#### 1. Modo Cascada (Automático)
+
+Presiona el botón **▶ Play** en la barra de cada utterance para ejecutar el pipeline completo automáticamente:
+
+```
+Utterance → NLU → Visual → Bitmap
+```
+
+Este modo procesa las tres fases secuencialmente sin intervención manual. Ideal para generación rápida.
+
+#### 2. Modo Paso a Paso (Control Total)
+
+Expande la barra del utterance para revelar los **3 bloques interiores**:
+
+1. **Comprender (NLU)**: Análisis semántico basado en NSM de 65 primitivos
+2. **Componer (Visual)**: Elementos jerárquicos y lógica de articulación espacial
+3. **Producir (Bitmap)**: Renderizado de la imagen final
+
+Cada bloque tiene su propio botón de regeneración, permitiéndote:
+- Inspeccionar y editar los resultados intermedios
+- Regenerar solo una fase específica
+- Experimentar con diferentes configuraciones
+
+La **evaluación VCSCI** (cuarto bloque) es siempre manual, permitiendo valorar la calidad del pictograma generado según 6 dimensiones.
+
+### Importación y Exportación
+
+- **Exportar**: Genera un archivo JSON con todos los nodos, incluyendo imágenes embebidas
+- **Importar**: Carga un archivo JSON previamente exportado (se pedirá confirmación si hay datos existentes)
 
 ---
 
@@ -61,7 +111,6 @@ El proyecto nace de una convicción: **la comunicación visual debe ser universa
 
 PICTOS utiliza modelos de lenguaje e imagen de última generación (Google Gemini 3 Pro) no como un fin en sí mismo, sino como **instrumentos para explorar la relación entre lenguaje y representación visual**. La herramienta es un laboratorio donde investigadores, lingüistas y diseñadores pueden experimentar con diferentes estrategias de visualización.
 
----
 
 ## El Vocabulario Base VCSCI
 
@@ -75,7 +124,6 @@ El proyecto incluye un módulo de investigación con **20 frases de intenciones 
 
 Este vocabulario base sirve como **benchmark** para evaluar y comparar diferentes enfoques de generación de pictogramas.
 
----
 
 ## Casos de Uso
 
@@ -94,7 +142,6 @@ Usar los criterios VCSCI para analizar y mejorar pictogramas de bibliotecas exis
 ### Desarrollo de Corpus Visuales
 Construir datasets de pictogramas para entrenar modelos de IA o realizar estudios de percepción visual.
 
----
 
 ## Principios de Diseño
 
@@ -104,7 +151,6 @@ Construir datasets de pictogramas para entrenar modelos de IA o realizar estudio
 4. **Coherencia Estilística**: Uniformidad visual en toda la biblioteca generada
 5. **Trazabilidad Completa**: Rastrear cada decisión desde el utterance hasta el píxel final
 
----
 
 ## Tecnología
 
