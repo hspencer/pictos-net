@@ -1,165 +1,198 @@
+# PICTOS.NET
 
-# PICTOS.net
+## Pictogramas Generativos para la Accesibilidad Cognitiva
 
-**PICTOS** es una herramienta de investigación diseñada para transformar enunciados de lenguaje natural en esquemas de pictogramas e imágenes finales (Bitmaps) semánticos de alta fidelidad, utilizando un motor de análisis lingüístico avanzado basado en NSM (Natural Semantic Metalanguage) y la potencia generativa de Gemini 2.5/3.0.
-
-## Configuración Inicial
-
-### 1. Instalación de Dependencias
-
-```bash
-npm install
-```
-
-### 2. Configuración de Variables de Entorno
-
-Copia el archivo de ejemplo:
-
-```bash
-cp .env.example .env
-```
-
-Obtén tu API key de Google Gemini en: <https://aistudio.google.com/app/apikey>
-
-Edita el archivo `.env` y reemplaza `your_gemini_api_key_here` con tu API key real:
-
-```env
-GEMINI_API_KEY=tu_api_key_aquí
-```
-
-**IMPORTANTE - SEGURIDAD:**
-
-- **NUNCA** subas el archivo `.env` a Git (ya está en `.gitignore`)
-- **NO COMPARTAS** tu API key públicamente
-- **ADVERTENCIA**: Esta aplicación expone la API key en el código del cliente (navegador). Para producción, considera implementar un backend proxy que maneje las llamadas a la API de Gemini de forma segura.
-
-### 3. Ejecutar el Proyecto
-
-#### Modo Desarrollo (Local)
-
-```bash
-npm run dev
-```
-
-La aplicación estará disponible en `http://localhost:3000`
-
-Este comando ejecuta Vite en modo desarrollo con:
-
-- Hot Module Replacement (HMR)
-- Acceso desde cualquier dispositivo en la red local (`0.0.0.0`)
-- Las APIs de Gemini funcionarán normalmente si tu API key está configurada
-
-#### Build para Producción
-
-```bash
-npm run build
-```
-
-Genera los archivos optimizados en el directorio `dist/`:
-
-- JavaScript minificado y bundled
-- Assets optimizados
-- **NOTA**: La API key seguirá expuesta en el código compilado (ver advertencia de seguridad arriba)
-
-#### Vista Previa del Build
-
-```bash
-npm run preview
-```
-
-Sirve la versión de producción localmente para probar el build antes de desplegar.
-
-### Despliegue en GitHub Pages
-
-El proyecto incluye un workflow de GitHub Actions (`.github/workflows/deploy.yml`) que despliega automáticamente a GitHub Pages desde la rama `local-dev`.
-
-#### Configuración inicial:
-
-1. **Habilitar GitHub Pages**:
-   - Ve a Settings → Pages en tu repositorio
-   - En "Source", selecciona "GitHub Actions"
-
-2. **Configurar el secreto GEMINI_API_KEY**:
-   - Ve a Settings → Secrets and variables → Actions
-   - Crea un nuevo "Repository secret" llamado `GEMINI_API_KEY`
-   - Pega tu API key de Google Gemini como valor
-
-3. **Desplegar**:
-   - Haz push a la rama `local-dev`
-   - El workflow se ejecutará automáticamente
-   - La aplicación estará disponible en: `https://<tu-usuario>.github.io/pictos-net/`
-
-También puedes ejecutar el workflow manualmente desde la pestaña "Actions" en GitHub.
-
-**NOTA DE SEGURIDAD**: Aunque la API key está configurada como secreto de GitHub, seguirá siendo visible en el código JavaScript compilado del navegador. Para entornos de producción públicos, considera implementar un backend proxy.
-
-### Verificación de Servicios de IA
-
-Para verificar que los servicios de Gemini funcionan correctamente en local:
-
-1. Asegúrate que tu archivo `.env` contiene una API key válida
-2. Ejecuta `npm run dev`
-3. Abre `http://localhost:3000` en tu navegador
-4. Ingresa un utterance de prueba (ej: "Quiero beber agua")
-5. El sistema debería generar:
-   - Análisis NLU (usando Gemini 3 Pro)
-   - Blueprint visual
-   - Imagen final (usando Gemini 3 Pro Image o Gemini 2.5 Flash Image)
-
-Si encuentras errores de API, verifica:
-
-- La API key está correctamente configurada en `.env`
-- La API key es válida en Google AI Studio
-- Tienes conexión a internet
-- No has excedido tu cuota de API
-
-## Consistencia Transversal
-
-La aplicación utiliza un esquema de datos unificado en todo el pipeline:
-
-- **UTTERANCE**: El texto de entrada (intención comunicativa).
-- **NLU**: El esquema semántico MediaFranca (JSON), incluyendo análisis NSM detallado basado en 65 primitivos universales.
-- **elements**: Una estructura jerárquica de componentes visuales que define la composición del pictograma.
-- **prompt**: La estrategia de articulación espacial que describe cómo se relacionan los elementos (generada en el idioma del utterance).
-- **bitmap**: La imagen final generada (Base64 PNG).
-
-## Formato de Intercambio (JSON)
-
-El proyecto se exporta en un único archivo JSON que contiene tanto la configuración como los datos completos (incluyendo las imágenes generadas).
-
-```json
-{
-  "version": "2.5",
-  "config": { ... },
-  "rows": [
-    {
-      "id": "R_001",
-      "UTTERANCE": "Quiero beber agua",
-      "NLU": { "...": "..." },
-      "elements": [
-        { "id": "perfil_humano" },
-        {
-          "id": "vaso",
-          "children": [
-            { "id": "nivel_liquido" }
-          ]
-        }
-      ],
-      "prompt": "La composición se centra en un `perfil_humano`...",
-      "bitmap": "data:image/png;base64,iVBORw0KGgoAAA..."
-    }
-  ]
-}
-```
-
-## Funcionalidades Clave
-
-- **Motor NSM Estricto**: Análisis semántico alineado con los 65 primitivos semánticos de Wierzbicka/Goddard.
-- **Generación Multi-idioma**: Detección automática del idioma del utterance para generar identificadores y prompts coherentes.
-- **Batch Processing**: Ejecución en cascada desde la intención hasta la imagen final.
-- **Workbench Editable**: Permite corregir cada paso del pipeline, marcando los pasos subsecuentes como desactualizados para garantizar consistencia.
-- **Gestión de Librería**: Menú unificado para importar/exportar proyectos completos con imágenes incrustadas.
-- **Semantic Monitor**: Seguimiento en tiempo real de las llamadas a la API de Gemini.
+**PICTOS** es una herramienta de investigación que explora la generación automática de pictogramas a partir de intenciones comunicativas expresadas en lenguaje natural. El proyecto investiga cómo transformar el significado profundo del lenguaje en representaciones visuales universales que faciliten la comunicación para personas con diversidad cognitiva.
 
 ---
-*Optimizado para investigación en lingüística aplicada y accesibilidad cognitiva.*
+
+## Filosofía del Proyecto
+
+### Del Lenguaje Natural a la Imagen
+
+Los pictogramas son más que ilustraciones: son sistemas de comunicación visual que deben capturar la **esencia semántica** de un mensaje. PICTOS propone un enfoque generativo que atraviesa tres dimensiones fundamentales:
+
+1. **Comprender**: Análisis lingüístico profundo basado en Natural Semantic Metalanguage (NSM)
+2. **Componer**: Definición de elementos visuales jerárquicos y su lógica de articulación espacial
+3. **Producir**: Renderizado final de la imagen mediante inteligencia artificial generativa
+
+Este pipeline reconoce que la comunicación visual efectiva requiere primero **comprender profundamente** qué se quiere comunicar, antes de decidir **cómo visualizarlo**.
+
+### Fundamentos Teóricos
+
+El proyecto se apoya en dos pilares conceptuales:
+
+**Natural Semantic Metalanguage (NSM)**
+Un enfoque lingüístico desarrollado por Anna Wierzbicka y Cliff Goddard que identifica 65 conceptos semánticos universales presentes en todas las lenguas humanas. Estos primitivos semánticos permiten descomponer el significado de cualquier enunciado en sus elementos más básicos, facilitando una representación visual culturalmente neutra.
+
+**Visual Communication Semiotic Construction Index (VCSCI)**
+Un marco de evaluación multidimensional que mide la calidad de los pictogramas según seis ejes:
+- **Semantics**: Precisión del significado
+- **Syntactics**: Composición visual
+- **Pragmatics**: Adecuación al contexto
+- **Clarity**: Legibilidad
+- **Universality**: Neutralidad cultural
+- **Aesthetics**: Atractivo visual
+
+### Arquitectura como Investigación
+
+PICTOS implementa una **arquitectura de grafo semántico** donde cada nodo representa un utterance (intención comunicativa) y sus transformaciones sucesivas:
+
+```
+Utterance → Análisis NSM → Blueprint Visual → Imagen PNG → Evaluación VCSCI
+```
+
+Esta arquitectura permite:
+- **Trazabilidad completa**: Desde la intención original hasta la imagen final
+- **Iteración experimental**: Regenerar cualquier paso sin perder el contexto
+- **Evaluación sistemática**: Medir la calidad de los pictogramas según criterios objetivos
+- **Exportación de datasets**: Construir corpus de pictogramas para investigación
+
+### Accesibilidad e Inclusión
+
+El proyecto nace de una convicción: **la comunicación visual debe ser universal y accesible**. Los pictogramas generados por PICTOS buscan:
+
+- Reducir barreras cognitivas en la comunicación
+- Facilitar la expresión de necesidades básicas
+- Promover la autonomía de personas con diversidad funcional
+- Contribuir a entornos más inclusivos
+
+### Tecnología al Servicio del Significado
+
+PICTOS utiliza modelos de lenguaje e imagen de última generación (Google Gemini 3 Pro) no como un fin en sí mismo, sino como **instrumentos para explorar la relación entre lenguaje y representación visual**. La herramienta es un laboratorio donde investigadores, lingüistas y diseñadores pueden experimentar con diferentes estrategias de visualización.
+
+---
+
+## El Vocabulario Base VCSCI
+
+El proyecto incluye un módulo de investigación con **20 frases de intenciones comunicativas básicas**, cuidadosamente seleccionadas para representar necesidades fundamentales en situaciones cotidianas:
+
+- "Quiero beber agua"
+- "Necesito ir al baño"
+- "Tengo dolor"
+- "Quiero comer algo"
+- [... y 16 más]
+
+Este vocabulario base sirve como **benchmark** para evaluar y comparar diferentes enfoques de generación de pictogramas.
+
+---
+
+## Casos de Uso
+
+### Investigación Lingüística
+Explorar cómo diferentes lenguas expresan conceptos universales y cómo estos se pueden visualizar de manera transcultural.
+
+### Diseño de Sistemas de Comunicación Aumentativa
+Generar rápidamente prototipos de pictogramas para sistemas AAC (Augmentative and Alternative Communication).
+
+### Educación Especial
+Crear materiales visuales personalizados adaptados a las necesidades específicas de cada estudiante.
+
+### Evaluación de Pictogramas Existentes
+Usar los criterios VCSCI para analizar y mejorar pictogramas de bibliotecas existentes (ARASAAC, Mulberry, etc.).
+
+### Desarrollo de Corpus Visuales
+Construir datasets de pictogramas para entrenar modelos de IA o realizar estudios de percepción visual.
+
+---
+
+## Principios de Diseño
+
+1. **Transparencia Semántica**: Cada paso del pipeline es visible y editable
+2. **Neutralidad Cultural**: Los pictogramas buscan ser comprensibles más allá de fronteras lingüísticas
+3. **Simplicidad Compositiva**: Elementos visuales mínimos pero expresivos
+4. **Coherencia Estilística**: Uniformidad visual en toda la biblioteca generada
+5. **Trazabilidad Completa**: Rastrear cada decisión desde el utterance hasta el píxel final
+
+---
+
+## Tecnología
+
+- **Frontend**: React + TypeScript + Vite
+- **Procesamiento Lingüístico**: Google Gemini 3 Pro (análisis NSM)
+- **Generación de Imágenes**: Gemini 2.5 Flash Image / Gemini 3 Pro Image
+- **Arquitectura**: Cliente-lado con almacenamiento local (localStorage)
+- **Internacionalización**: Soporte para inglés (UK) y español (Latinoamérica)
+- **Licencia**: MIT (código) / CC-BY-4.0 (imágenes generadas)
+
+---
+
+## Comenzar a Usar PICTOS
+
+🌐 **Aplicación web**: [pictos.net](https://pictos.net)
+
+💻 **Para desarrolladores**: Consulta [CONTRIBUTING.md](./CONTRIBUTING.md)
+
+🔒 **Consideraciones de seguridad**: Lee [SECURITY.md](./SECURITY.md)
+
+📐 **Arquitectura técnica**: Ver [ARCHITECTURE.md](./ARCHITECTURE.md)
+
+---
+
+## Citar este Proyecto
+
+Si usas PICTOS en tu investigación, considera citarlo como:
+
+```
+PICTOS.NET (2025). Pictogramas Generativos para la Accesibilidad Cognitiva.
+Sistema de generación automática basado en NSM y evaluación VCSCI.
+Disponible en: https://pictos.net
+```
+
+---
+
+## Roadmap
+
+### v2.6 (Actual)
+- ✅ Pipeline completo: Understand → Compose → Produce → Evaluate
+- ✅ Interfaz bilingüe (ES/EN)
+- ✅ Evaluación VCSCI integrada
+- ✅ Exportación con imágenes embebidas
+
+### Próximas Versiones
+- 🔄 Soporte para más idiomas (FR, PT, CA)
+- 🔄 Integración con bibliotecas de pictogramas existentes
+- 🔄 Modos de generación alternativos (SVG, animaciones)
+- 🔄 Colaboración multi-usuario en tiempo real
+- 🔄 API pública para integración con otros sistemas
+
+---
+
+## Comunidad y Contribuciones
+
+PICTOS es un proyecto abierto que invita a:
+
+- **Lingüistas** a refinar el análisis NSM
+- **Diseñadores** a mejorar la composición visual
+- **Investigadores** a validar los criterios VCSCI
+- **Desarrolladores** a extender las funcionalidades
+- **Usuarios finales** a reportar necesidades reales
+
+Las contribuciones son bienvenidas. Por favor lee [CONTRIBUTING.md](./CONTRIBUTING.md) antes de comenzar.
+
+---
+
+## Reconocimientos
+
+Este proyecto se inspira en el trabajo de:
+
+- **Anna Wierzbicka** y **Cliff Goddard** (Natural Semantic Metalanguage)
+- **ARASAAC** (Proyecto aragonés de pictogramas)
+- La comunidad de Comunicación Aumentativa y Alternativa (AAC)
+- Investigadores en accesibilidad cognitiva y diseño universal
+
+---
+
+## Contacto
+
+Para preguntas, sugerencias o colaboraciones:
+
+- 📧 Abre un issue en GitHub
+- 🐛 Reporta bugs en el repositorio
+- 💡 Propone nuevas funcionalidades mediante Pull Requests
+
+---
+
+*PICTOS.NET - Transformando intenciones en imágenes, una frase a la vez.*
+
+**Versión 2.6** | Optimizado para investigación en lingüística aplicada y accesibilidad cognitiva.
