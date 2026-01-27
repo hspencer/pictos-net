@@ -152,7 +152,14 @@ Disponible en: https://pictos.net
 
 ## Roadmap
 
-### v2.6 (Actual)
+### v2.7 (Actual)
+- ✅ Integración de esquemas de investigación como git submodules
+- ✅ Documentación completa de workflow con submodules
+- ✅ Mejoras en sistema de ayuda de evaluación VCSCI
+- ✅ Enlaces corregidos a repositorios externos
+
+### v2.6
+
 - ✅ Pipeline completo: Understand → Compose → Produce → Evaluate
 - ✅ Interfaz bilingüe (ES/EN)
 - ✅ Evaluación VCSCI integrada
@@ -199,9 +206,10 @@ Para preguntas, sugerencias o colaboraciones:
 - Abre un issue en GitHub
 - Reporta bugs en el repositorio
 - Propone nuevas funcionalidades mediante Pull Requests
+- Esta aplicación es el sitio de investigación doctoral de [Herbert Spencer](https://herbertspencer.net).
 
 ---
 
 *PICTOS.NET - Transformando intenciones en pictogramas, una frase a la vez.*
 
-**Versión 2.6** | Optimizado para investigación en lingüística aplicada y accesibilidad cognitiva.
+**Versión 2.7** | Optimizado para investigación en lingüística aplicada y accesibilidad cognitiva.

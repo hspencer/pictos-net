@@ -964,7 +964,7 @@ const App: React.FC = () => {
                 </div>
                 <p className="text-xs text-slate-500 leading-relaxed font-medium">{t('home.vcsciDescription')}</p>
                 <a
-                  href="https://github.com/hspencer/pictos-net"
+                  href="https://github.com/mediafranca/VCSCI"
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={(e) => e.stopPropagation()}
