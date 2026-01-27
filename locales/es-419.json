@@ -27,7 +27,8 @@
     "vcsciNamespace": "mediafranca.graph.dataset",
     "importTextNode": "Importar Nodo de Texto",
     "importNamespace": "raw_text_ingest",
-    "importDescription": "Carga un archivo de texto con una frase por línea para iniciar el proceso de grafado."
+    "importDescription": "Carga un archivo de texto con una frase por línea para iniciar el proceso de grafado.",
+    "loadVCSCIWarning": "Tiene {count} pictograma(s) en su biblioteca. Cargar el dataset VCSCI sobreescribirá su trabajo actual. ¿Desea continuar?"
   },
   "pipeline": {
     "understand": "Comprender",

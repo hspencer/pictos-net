@@ -27,7 +27,8 @@
     "vcsciNamespace": "mediafranca.graph.dataset",
     "importTextNode": "Import Text Node",
     "importNamespace": "raw_text_ingest",
-    "importDescription": "Load a text file with one phrase per line to begin the graphing process."
+    "importDescription": "Load a text file with one phrase per line to begin the graphing process.",
+    "loadVCSCIWarning": "You have {count} pictogram(s) in your library. Loading the VCSCI dataset will overwrite your current work. Do you want to continue?"
   },
   "pipeline": {
     "understand": "Understand",

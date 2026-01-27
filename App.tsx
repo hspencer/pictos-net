@@ -458,6 +458,15 @@ const App: React.FC = () => {
     }
   };
 
+  const loadVCSCIModule = () => {
+    if (rows.length > 0) {
+      const confirmed = window.confirm(t('home.loadVCSCIWarning', { count: rows.length }));
+      if (!confirmed) return;
+    }
+    setRows(VCSCI_MODULE.data as RowData[]);
+    setViewMode('list');
+  };
+
   const updateRow = (index: number, updates: Partial<RowData>) => {
     setRows(prev => {
       const updated = [...prev];
@@ -814,7 +823,7 @@ const App: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
-              <div onClick={() => { setRows(VCSCI_MODULE.data as RowData[]); setViewMode('list'); }} className="bg-white p-12 border border-slate-200 text-left space-y-6 shadow-xl hover:border-violet-950 transition-all cursor-pointer group hover:-translate-y-1 relative overflow-hidden">
+              <div onClick={loadVCSCIModule} className="bg-white p-12 border border-slate-200 text-left space-y-6 shadow-xl hover:border-violet-950 transition-all cursor-pointer group hover:-translate-y-1 relative overflow-hidden">
                 <div className="absolute top-0 right-0 bg-emerald-100 text-emerald-800 text-[9px] font-bold px-2 py-1 uppercase tracking-widest">{VCSCI_MODULE.version}</div>
                 <div className="text-emerald-600 group-hover:scale-110 transition-transform"><BookOpen size={40}/></div>
                 <div>
