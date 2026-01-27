@@ -1,7 +1,7 @@
 
-# PictoNet: Semantic Pictogram Architect (v2.5 Hierarchical)
+# PICTOS.net
 
-**PictoNet** es una herramienta profesional diseñada para transformar enunciados de lenguaje natural en esquemas de pictogramas e imágenes finales (Bitmaps) semánticos de alta fidelidad, utilizando un motor de análisis lingüístico avanzado basado en NSM (Natural Semantic Metalanguage) y la potencia generativa de Gemini 2.5/3.0.
+**PICTOS** es una herramienta de investigación diseñada para transformar enunciados de lenguaje natural en esquemas de pictogramas e imágenes finales (Bitmaps) semánticos de alta fidelidad, utilizando un motor de análisis lingüístico avanzado basado en NSM (Natural Semantic Metalanguage) y la potencia generativa de Gemini 2.5/3.0.
 
 ## Configuración Inicial
 
