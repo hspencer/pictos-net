@@ -4,10 +4,12 @@
   "version": "2.6.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
+    "dev": "npm run copy-schemas && vite",
+    "build": "npm run copy-schemas && vite build",
     "preview": "vite preview",
-    "validate-i18n": "node scripts/validateTranslations.cjs"
+    "validate-i18n": "node scripts/validateTranslations.cjs",
+    "copy-schemas": "sh scripts/copy-submodule-data.sh",
+    "postinstall": "git submodule update --init --recursive && npm run copy-schemas"
   },
   "dependencies": {
     "@google/genai": "^1.38.0",

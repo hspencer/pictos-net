@@ -1,0 +1,9 @@
+[submodule "schemas/nlu-schema"]
+	path = schemas/nlu-schema
+	url = https://github.com/mediafranca/nlu-schema.git
+[submodule "schemas/VCSCI"]
+	path = schemas/VCSCI
+	url = https://github.com/mediafranca/VCSCI.git
+[submodule "schemas/mf-svg-schema"]
+	path = schemas/mf-svg-schema
+	url = https://github.com/mediafranca/mf-svg-schema.git

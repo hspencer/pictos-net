@@ -115,6 +115,18 @@ Construir datasets de pictogramas para entrenar modelos de IA o realizar estudio
 - **Internacionalización**: Soporte para inglés (UK) y español (Latinoamérica)
 - **Licencia**: MIT (código) / CC-BY-4.0 (imágenes generadas)
 
+### Esquemas y Módulos Externos
+
+PICTOS integra esquemas de investigación como **git submodules**, permitiendo versionado explícito y reproducibilidad científica:
+
+- **[NLU Schema](https://github.com/mediafranca/nlu-schema)** - Esquema MediaFranca para análisis lingüístico profundo basado en NSM (Natural Semantic Metalanguage). Define la estructura para la fase "Comprender".
+
+- **[VCSCI](https://github.com/mediafranca/VCSCI)** - Visual Communication Semiotic Construction Index. Marco de evaluación multidimensional para pictogramas (6 métricas: Semantics, Syntactics, Pragmatics, Clarity, Universality, Aesthetics). Usado en la fase "Evaluar".
+
+- **[MF-SVG Schema](https://github.com/mediafranca/mf-svg-schema)** - Esquema para pictogramas vectoriales estructurados. Define la composición jerárquica de elementos visuales y su articulación espacial. Fundamento para la futura fase "Componer SVG".
+
+Cada esquema evoluciona de forma independiente, permitiendo actualizaciones controladas sin afectar la estabilidad de PICTOS.
+
 ---
 
 ## Comenzar a Usar PICTOS

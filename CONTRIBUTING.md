@@ -4,13 +4,37 @@ Esta guía contiene instrucciones técnicas para desarrolladores que deseen cont
 
 ## Configuración Inicial
 
-### 1. Instalación de Dependencias
+### 1. Clonar el Repositorio con Submodules
+
+```bash
+git clone --recurse-submodules https://github.com/hspencer/pictos-net.git
+cd pictos-net
+```
+
+Si ya clonaste el repositorio sin submodules, inicialízalos:
+
+```bash
+git submodule update --init --recursive
+```
+
+**Submodules incluidos:**
+
+- `schemas/nlu-schema` - Esquema MediaFranca para análisis NLU
+- `schemas/VCSCI` - Framework de evaluación VCSCI
+- `schemas/mf-svg-schema` - Esquema para pictogramas SVG estructurados
+
+
+### 2. Instalación de Dependencias
 
 ```bash
 npm install
 ```
 
-### 2. Configuración de Variables de Entorno
+Este comando también:
+- Inicializa submodules automáticamente (via `postinstall` hook)
+- Copia archivos necesarios de submodules a `public/schemas/`
+
+### 3. Configuración de Variables de Entorno
 
 Copia el archivo de ejemplo:
 
@@ -218,6 +242,66 @@ El proyecto se exporta en un único archivo JSON que contiene tanto la configura
   ]
 }
 ```
+
+## Trabajar con Submodules
+
+### Actualizar Submodules a la Última Versión
+
+```bash
+git submodule update --remote
+npm run copy-schemas
+```
+
+Esto actualizará todos los submodules a sus últimas versiones en sus respectivas ramas principales.
+
+### Actualizar un Submodule Específico
+
+```bash
+cd schemas/VCSCI
+git checkout main
+git pull origin main
+cd ../..
+npm run copy-schemas
+git add schemas/VCSCI
+git commit -m "chore: Update VCSCI submodule to latest version"
+```
+
+### Freezar una Versión Específica
+
+Para reproducibilidad científica, puedes freezar submodules a commits específicos:
+
+```bash
+cd schemas/VCSCI
+git checkout v1.2.3  # o un commit hash específico
+cd ../..
+npm run copy-schemas
+git add schemas/VCSCI
+git commit -m "chore: Pin VCSCI to version 1.2.3"
+```
+
+### Desarrollo Local en Submodules
+
+Si necesitas hacer cambios en un esquema mientras trabajas en PICTOS:
+
+1. Haz cambios en `schemas/[submodule]/`
+2. Commitea los cambios dentro del submodule
+3. Haz push al repo del submodule (necesitas permisos)
+4. Actualiza la referencia en PICTOS:
+
+```bash
+cd schemas/VCSCI
+git add .
+git commit -m "feat: Add new evaluation metric"
+git push origin main
+cd ../..
+git add schemas/VCSCI
+git commit -m "chore: Update VCSCI submodule"
+```
+
+### Scripts Disponibles para Submodules
+
+- `npm run copy-schemas` - Copia archivos de submodules a `public/schemas/`
+- Los scripts `dev` y `build` automáticamente ejecutan `copy-schemas`
 
 ## Internacionalización (i18n)
 

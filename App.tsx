@@ -134,7 +134,8 @@ const VCSCIHelpModal: React.FC<{
     const [error, setError] = useState(false);
 
     useEffect(() => {
-        fetch('https://mediafranca.github.io/VCSCI/data/rubric-scale-descriptions.json')
+        // Load from local submodule copy (schemas/VCSCI)
+        fetch('/schemas/VCSCI/data/rubric-scale-descriptions.json')
             .then(res => res.json())
             .then(data => {
                 setRubricData(data);
