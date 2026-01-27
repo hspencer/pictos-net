@@ -123,11 +123,118 @@ const HexagonChart: React.FC<{ metrics: EvaluationMetrics; size?: number }> = ({
 };
 
 // --- Evaluation Editor Component (Likert 1-5) ---
+// VCSCI Help Modal Component
+const VCSCIHelpModal: React.FC<{
+    dimension: string;
+    onClose: () => void;
+}> = ({ dimension, onClose }) => {
+    const { t, lang } = useTranslation();
+    const [rubricData, setRubricData] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(false);
+
+    useEffect(() => {
+        fetch('https://mediafranca.github.io/VCSCI/data/rubric-scale-descriptions.json')
+            .then(res => res.json())
+            .then(data => {
+                setRubricData(data);
+                setLoading(false);
+            })
+            .catch(() => {
+                setError(true);
+                setLoading(false);
+            });
+    }, []);
+
+    const langSuffix = lang === 'en-GB' ? '_en' : '_es';
+    const dimensionData = rubricData?.dimensions?.[dimension];
+    const scale = rubricData?.scale;
+
+    return (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 animate-in fade-in" onClick={onClose}>
+            <div className="bg-white rounded-lg shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-4" onClick={(e) => e.stopPropagation()}>
+                {/* Header */}
+                <div className="bg-violet-950 text-white p-6 flex items-center justify-between">
+                    <div>
+                        <h3 className="text-xl font-bold">{t('evaluation.helpTitle', { dimension: dimensionData?.[`name${langSuffix}`] || dimension })}</h3>
+                        <p className="text-sm text-violet-200 mt-1">{dimensionData?.[`description${langSuffix}`]}</p>
+                    </div>
+                    <button onClick={onClose} className="p-2 hover:bg-violet-900 rounded-full transition-colors">
+                        <X size={20} />
+                    </button>
+                </div>
+
+                {/* Content */}
+                <div className="p-6 overflow-y-auto max-h-[calc(80vh-120px)]">
+                    {loading && (
+                        <div className="text-center py-12 text-slate-400">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-violet-600 mx-auto mb-4"></div>
+                            {t('evaluation.loading')}
+                        </div>
+                    )}
+
+                    {error && (
+                        <div className="text-center py-12 text-rose-600">
+                            <HelpCircle size={48} className="mx-auto mb-4 opacity-50" />
+                            {t('evaluation.errorLoading')}
+                        </div>
+                    )}
+
+                    {!loading && !error && dimensionData && scale && (
+                        <div className="space-y-6">
+                            {[5, 4, 3, 2, 1].map((level) => {
+                                const levelData = dimensionData.levels?.[level];
+                                const scaleData = scale[level];
+                                if (!levelData) return null;
+
+                                return (
+                                    <div key={level} className="border-l-4 pl-4 py-2" style={{ borderColor: scaleData.color }}>
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <span className="text-2xl font-black text-slate-800">{level}</span>
+                                            <div>
+                                                <div className="text-sm font-bold uppercase tracking-wider" style={{ color: scaleData.color }}>
+                                                    {scaleData[`label${langSuffix}`]}
+                                                </div>
+                                                <div className="text-xs text-slate-500">{scaleData[`general${langSuffix}`]}</div>
+                                            </div>
+                                        </div>
+                                        <p className="text-sm text-slate-700 leading-relaxed">
+                                            {levelData[`text${langSuffix}`]}
+                                        </p>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+
+                {/* Footer */}
+                <div className="bg-slate-50 px-6 py-4 border-t flex justify-between items-center">
+                    <a
+                        href="https://mediafranca.github.io/VCSCI/examples/hexagonal-rating-with-descriptions.html"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-violet-600 hover:text-violet-800 transition-colors flex items-center gap-1"
+                    >
+                        <ExternalLink size={12} />
+                        Ver guía completa VCSCI
+                    </a>
+                    <button onClick={onClose} className="px-4 py-2 bg-violet-600 text-white rounded-md hover:bg-violet-700 transition-colors text-sm font-medium">
+                        {t('actions.cancel')}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const EvaluationEditor: React.FC<{
     metrics: EvaluationMetrics | undefined;
     onUpdate: (m: EvaluationMetrics) => void;
     compact?: boolean; // New prop for modal view
 }> = ({ metrics, onUpdate, compact = false }) => {
+    const { t } = useTranslation();
+    const [helpDimension, setHelpDimension] = useState<string | null>(null);
 
     // Default state: 3 (Neutral)
     const current = metrics || {
@@ -141,12 +248,12 @@ const EvaluationEditor: React.FC<{
     };
 
     const axes = [
-        { key: 'semantics', label: 'Semantics', desc: 'Accuracy of meaning' },
-        { key: 'syntactics', label: 'Syntactics', desc: 'Visual composition' },
-        { key: 'pragmatics', label: 'Pragmatics', desc: 'Context fitness' },
-        { key: 'clarity', label: 'Clarity', desc: 'Legibility' },
-        { key: 'universality', label: 'Universality', desc: 'Neutrality' },
-        { key: 'aesthetics', label: 'Aesthetics', desc: 'Appeal' }
+        { key: 'semantics', label: t('evaluation.semantics'), desc: t('vcsci.descriptions.semantics'), vcsciKey: 'semantic_transparency' },
+        { key: 'syntactics', label: t('evaluation.syntactics'), desc: t('vcsci.descriptions.syntactics'), vcsciKey: 'syntactics' },
+        { key: 'pragmatics', label: t('evaluation.pragmatics'), desc: t('vcsci.descriptions.pragmatics'), vcsciKey: 'pragmatics' },
+        { key: 'clarity', label: t('evaluation.clarity'), desc: t('vcsci.descriptions.clarity'), vcsciKey: 'clarity' },
+        { key: 'universality', label: t('evaluation.universality'), desc: t('vcsci.descriptions.universality'), vcsciKey: 'universality' },
+        { key: 'aesthetics', label: t('evaluation.aesthetics'), desc: t('vcsci.descriptions.aesthetics'), vcsciKey: 'aesthetics' }
     ];
 
     if (compact) {
@@ -163,7 +270,16 @@ const EvaluationEditor: React.FC<{
                      {axes.map(axis => (
                          <div key={axis.key} className="space-y-1">
                              <div className="flex justify-between items-end">
-                                 <span className="text-[10px] font-bold uppercase text-slate-600 tracking-wider">{axis.label}</span>
+                                 <div className="flex items-center gap-1">
+                                     <span className="text-[10px] font-bold uppercase text-slate-600 tracking-wider">{axis.label}</span>
+                                     <button
+                                         onClick={() => setHelpDimension(axis.vcsciKey)}
+                                         className="text-violet-400 hover:text-violet-600 transition-colors"
+                                         title={t('evaluation.helpTitle', { dimension: axis.label })}
+                                     >
+                                         <HelpCircle size={12} />
+                                     </button>
+                                 </div>
                                  <div className="flex gap-1">
                                     {[1,2,3,4,5].map(v => (
                                         <div key={v} className={`w-2 h-2 rounded-full transition-colors duration-300 ${(current as any)[axis.key] >= v ? 'bg-violet-600' : 'bg-slate-200'}`}></div>
@@ -186,14 +302,17 @@ const EvaluationEditor: React.FC<{
 
                 {/* Reasoning textarea - more space */}
                 <div className="border-t border-slate-100 pt-3 mt-3 flex-1 min-h-0 flex flex-col">
-                     <label className="text-[10px] font-medium uppercase text-slate-400 block mb-2">Reasoning</label>
+                     <label className="text-[10px] font-medium uppercase text-slate-400 block mb-2">{t('evaluation.reasoning')}</label>
                      <textarea
                          value={current.reasoning}
                          onChange={(e) => handleChange('reasoning', e.target.value)}
-                         placeholder="Optional rationale..."
+                         placeholder={t('placeholders.optionalRationale')}
                          className="w-full text-xs p-2 border bg-slate-50 focus:bg-white flex-1 resize-none rounded-sm outline-none focus:border-violet-300 transition-colors"
                      />
                 </div>
+
+                {/* Help Modal */}
+                {helpDimension && <VCSCIHelpModal dimension={helpDimension} onClose={() => setHelpDimension(null)} />}
             </div>
         );
     }
@@ -212,7 +331,16 @@ const EvaluationEditor: React.FC<{
                      {axes.map(axis => (
                          <div key={axis.key} className="space-y-2">
                              <div className="flex justify-between items-end">
-                                 <span className="text-[10px] font-bold uppercase text-slate-600 tracking-wider">{axis.label}</span>
+                                 <div className="flex items-center gap-1">
+                                     <span className="text-[10px] font-bold uppercase text-slate-600 tracking-wider">{axis.label}</span>
+                                     <button
+                                         onClick={() => setHelpDimension(axis.vcsciKey)}
+                                         className="text-violet-400 hover:text-violet-600 transition-colors"
+                                         title={t('evaluation.helpTitle', { dimension: axis.label })}
+                                     >
+                                         <HelpCircle size={14} />
+                                     </button>
+                                 </div>
                                  <div className="flex gap-1">
                                     {[1,2,3,4,5].map(v => (
                                         <div key={v} className={`w-2 h-2 rounded-full transition-colors duration-300 ${(current as any)[axis.key] >= v ? 'bg-violet-600' : 'bg-slate-200'}`}></div>
@@ -237,14 +365,17 @@ const EvaluationEditor: React.FC<{
 
             {/* Footer */}
             <div className="border-t border-slate-100 pt-3 mt-1 bg-white shrink-0">
-                 <label className="text-[10px] font-medium uppercase text-slate-400 block mb-1">Human Reasoning</label>
+                 <label className="text-[10px] font-medium uppercase text-slate-400 block mb-1">{t('evaluation.humanReasoning')}</label>
                  <textarea
                      value={current.reasoning}
                      onChange={(e) => handleChange('reasoning', e.target.value)}
-                     placeholder="Rationale for the score..."
+                     placeholder={t('placeholders.rationale')}
                      className="w-full text-xs p-2 border bg-slate-50 focus:bg-white h-24 resize-none rounded-sm outline-none focus:border-violet-300 transition-colors"
                  />
             </div>
+
+            {/* Help Modal */}
+            {helpDimension && <VCSCIHelpModal dimension={helpDimension} onClose={() => setHelpDimension(null)} />}
         </div>
     );
 };

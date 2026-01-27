@@ -68,7 +68,11 @@
     "aesthetics": "Estética",
     "reasoning": "Razonamiento",
     "humanReasoning": "Razonamiento Humano",
-    "vcsciLabel": "VCSCI"
+    "vcsciLabel": "VCSCI",
+    "helpTitle": "Guía de Evaluación: {dimension}",
+    "scaleLevel": "Nivel {level}",
+    "loading": "Cargando guía de evaluación...",
+    "errorLoading": "No se pudo cargar la guía de evaluación. Por favor verifica tu conexión."
   },
   "vcsci": {
     "descriptions": {
