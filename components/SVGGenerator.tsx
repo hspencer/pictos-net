@@ -140,12 +140,10 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog }
             onLog('info', `Iniciando vectorización para: ${row.UTTERANCE}`);
 
             // Step 1: Vectorize
-            // Step 1: Vectorize
             setStatus('vectorizing');
             setSubStatus('Vectorizando bitmap (vtracer)...');
             setProgress(0);
-            setSubStatus('Vectorizando bitmap (vtracer)...');
-            setProgress(0);
+            await new Promise(r => setTimeout(r, 600)); // UX Delay
 
             const vStart = performance.now();
             const rawSvg = await vectorizeBitmap(
@@ -157,12 +155,10 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog }
             onLog('success', `Vectorización completada en ${((vEnd - vStart) / 1000).toFixed(2)}s`);
 
             // Step 2: Structure with Gemini
-            // Step 2: Structure with Gemini
             setStatus('structuring');
             setSubStatus('Preparando prompt semántico...');
-            setProgress(0); // Reset for next stage
-            setSubStatus('Preparando prompt semántico...');
-            setProgress(0); // Reset for next stage
+            setProgress(0);
+            await new Promise(r => setTimeout(r, 600)); // UX Delay
 
             const nluData = typeof row.NLU === 'object' ? row.NLU as NLUData : undefined;
             if (!nluData) throw new Error("Invalid NLU data");
