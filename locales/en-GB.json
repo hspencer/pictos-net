@@ -1,0 +1,183 @@
+{
+  "header": {
+    "title": "PICTOS.NET",
+    "subtitle": "Generative Pictograms for Cognitive Accessibility",
+    "library": "Library",
+    "libraryTooltip": "Go to Library (Workbench)",
+    "settings": "Graph Settings",
+    "settingsTooltip": "Graph Settings",
+    "console": "Semantic Monitor",
+    "consoleTooltip": "Semantic Monitor"
+  },
+  "search": {
+    "placeholder": "search or create new",
+    "createNew": "Create new semantic node: \"{query}\""
+  },
+  "library": {
+    "graphManagement": "Graph Management",
+    "sortBy": "Sort by:",
+    "alphabetical": "Alphabetical",
+    "completeness": "Completeness",
+    "evaluation": "Evaluation"
+  },
+  "home": {
+    "graphArchitecture": "Graph Architecture",
+    "description": "Semantic node architecture based on NSM and cognitive accessibility. Integration of Modules (MediaFranca).",
+    "vcsciModule": "VCSCI Core Module",
+    "vcsciNamespace": "mediafranca.graph.dataset",
+    "importTextNode": "Import Text Node",
+    "importNamespace": "raw_text_ingest",
+    "importDescription": "Load a text file with one phrase per line to begin the graphing process."
+  },
+  "pipeline": {
+    "understand": "Understand",
+    "compose": "Compose",
+    "produce": "Produce",
+    "evaluate": "Evaluate"
+  },
+  "editor": {
+    "hierarchicalElements": "Hierarchical Elements",
+    "spatialLogic": "Spatial Articulation Logic",
+    "addRootElement": "Add Root Element",
+    "metadataClassification": "Metadata Classification",
+    "detailedAnalysis": "Detailed Linguistic Analysis",
+    "nsmExplications": "NSM Explications",
+    "logicalForm": "Logical Form",
+    "humanReasoning": "Human Reasoning",
+    "noBitmapRender": "No Bitmap Render",
+    "noBitmapGenerated": "No bitmap generated yet.",
+    "noBitmapReference": "No Bitmap Reference",
+    "fullSizeRender": "Full size render",
+    "evaluationContext": "Evaluation Context"
+  },
+  "evaluation": {
+    "vcsci": "VCSCI Evaluation",
+    "evaluate": "Evaluate Pictogram",
+    "confirm": "Confirm Evaluation",
+    "openEditor": "Open Evaluation Editor",
+    "evaluationSaved": "Evaluation saved for: {utterance}",
+    "semantics": "Semantics",
+    "syntactics": "Syntactics",
+    "pragmatics": "Pragmatics",
+    "clarity": "Clarity",
+    "universality": "Universality",
+    "aesthetics": "Aesthetics",
+    "reasoning": "Reasoning",
+    "humanReasoning": "Human Reasoning",
+    "vcsciLabel": "VCSCI"
+  },
+  "vcsci": {
+    "descriptions": {
+      "semantics": "Accuracy of meaning",
+      "syntactics": "Visual composition",
+      "pragmatics": "Context fitness",
+      "clarity": "Legibility",
+      "universality": "Neutrality",
+      "aesthetics": "Appeal"
+    },
+    "axes": {
+      "sem": "SEM",
+      "syn": "SYN",
+      "pra": "PRA",
+      "cla": "CLA",
+      "uni": "UNI",
+      "aes": "AES"
+    }
+  },
+  "config": {
+    "visualStylePrompt": "Visual Style Prompt (Node Attribute)",
+    "geoContext": "Geo-Linguistic Context",
+    "mapMode": "Map Mode",
+    "simpleMode": "Simple",
+    "language": "Language (es, en...)",
+    "regionName": "Region Name (e.g. Madrid)",
+    "latitude": "Lat",
+    "longitude": "Lng",
+    "aspectRatio": "Aspect Ratio",
+    "aspectRatios": {
+      "square": "Square (1:1)",
+      "standard": "Standard (4:3)",
+      "portrait": "Portrait (3:4)",
+      "widescreen": "Widescreen (16:9)",
+      "mobile": "Mobile (9:16)"
+    },
+    "imageModel": "Image Model",
+    "imageModels": {
+      "flash": "NanoBanana (Flash 2.5)",
+      "pro": "NanoBanana Pro (Gemini 3 Pro)"
+    },
+    "authorSignature": "Author Signature",
+    "license": "License"
+  },
+  "console": {
+    "title": "Semantic Trace Monitor",
+    "flush": "Flush"
+  },
+  "actions": {
+    "import": "Import JSON",
+    "export": "Export Graph (Full Dump)",
+    "download": "Download PNG",
+    "downloadImage": "Download Image",
+    "copy": "Copy Content",
+    "copied": "Copied!",
+    "delete": "Delete",
+    "deleteAll": "Clear All",
+    "deleteAllConfirm": "Are you sure you want to delete all nodes? This action cannot be undone.",
+    "save": "Save",
+    "cancel": "Cancel",
+    "regenerate": "Regenerate",
+    "stop": "Stop"
+  },
+  "metadata": {
+    "speechAct": "speech_act",
+    "intent": "intent"
+  },
+  "placeholders": {
+    "newSemanticUnit": "New Semantic Unit",
+    "searchOrCreate": "search or create new",
+    "optionalRationale": "Optional rationale...",
+    "rationale": "Rationale for the score...",
+    "selectOption": "Select...",
+    "languageCode": "Language (es, en...)",
+    "regionName": "Region Name (e.g. Madrid)",
+    "latitude": "Lat",
+    "longitude": "Lng"
+  },
+  "messages": {
+    "importSuccess": "Imported {count} phrases from file.",
+    "importSuccessPlural": "Imported {count} phrases from file.",
+    "importLegacy": "Imported {count} nodes (Legacy Format).",
+    "importLegacyPlural": "Imported {count} nodes (Legacy Format).",
+    "exportSuccess": "Project exported successfully (images included).",
+    "importError": "Failed to import graph. Check the format.",
+    "processingError": "Error processing phrase list.",
+    "fileFormatError": "File format not recognised",
+    "graphRestored": "Graph restored: {count} nodes.",
+    "graphRestoredPlural": "Graph restored: {count} nodes.",
+    "configRestored": "Global configuration restored.",
+    "allCleared": "All nodes and logs have been cleared.",
+    "cascadeStarted": "Starting graph propagation for: {utterance}",
+    "cascadeStopped": "Cascade stopped at {step} for {utterance}",
+    "stepComplete": "{step} complete: {duration}s for \"{utterance}\"",
+    "nluComplete": "NLU Node calculated in {duration}s",
+    "visualComplete": "Visual Topology generated in {duration}s",
+    "bitmapComplete": "Bitmap Rendered in {duration}s",
+    "processingFailed": "Processing failed for \"{utterance}\": {error}",
+    "nluFailed": "Node failure (NLU) for \"{utterance}\": {error}",
+    "visualFailed": "Node failure (Visual) for \"{utterance}\": {error}",
+    "bitmapFailed": "Node failure (Bitmap) for \"{utterance}\": {error}"
+  },
+  "status": {
+    "idle": "Idle",
+    "processing": "Processing",
+    "completed": "Completed",
+    "outdated": "Outdated",
+    "error": "Error"
+  },
+  "steps": {
+    "nlu": "NLU",
+    "visual": "Visual",
+    "bitmap": "Bitmap",
+    "eval": "Evaluation"
+  }
+}

@@ -132,7 +132,9 @@ You MUST generate Element IDs and the prompt logic in **${targetLang}**.
 
 1.  **"elements" (Visual Hierarchy):**
     *   A recursive list of visual nodes.
-    *   IDs must be \`snake_case\` nouns in **${targetLang}**.
+    *   The root element must always be \`pictograma\`, representing the entire scene.
+    *   IDs must be **simple nouns** in **${targetLang}**.
+    *   For compound names, use \`snake_case\` (e.g., \`persona_corriendo\`, \`casa_grande\`).
 
 2.  **"prompt" (Spatial Edges):**
     *   Describes the edges/relationships between visual nodes in space incorporating visual metaphors.

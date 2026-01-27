@@ -1,14 +1,16 @@
 
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
-import { 
-  Upload, Download, Trash2, Terminal, RefreshCw, ChevronDown, 
+import {
+  Upload, Download, Trash2, Terminal, RefreshCw, ChevronDown,
   PlayCircle, BookOpen, Search, FileDown, StopCircle, Sparkles, Sliders,
   X, Code, Plus, FileText, Maximize, Copy, BrainCircuit, PlusCircle, CornerDownRight, Image as ImageIcon,
-  Library, Share2, MapPin, Globe, Crosshair, Hexagon, Save, Edit3, HelpCircle, CheckCircle
+  Library, Share2, MapPin, Globe, Crosshair, Hexagon, Save, Edit3, HelpCircle, CheckCircle, Languages
 } from 'lucide-react';
 import { RowData, LogEntry, StepStatus, NLUData, GlobalConfig, VOCAB, VisualElement, EvaluationMetrics, NLUFrameRole } from './types';
 import * as Gemini from './services/geminiService';
 import { VCSCI_MODULE } from './data/canonicalData';
+import { useTranslation } from './hooks/useTranslation';
+import type { Locale } from './locales';
 
 const STORAGE_KEY = 'pictonet_v19_storage';
 const CONFIG_KEY = 'pictonet_v19_config';
@@ -254,6 +256,7 @@ const SearchComponent: React.FC<{
   isFocused: boolean;
   setIsFocused: (isFocused: boolean) => void;
 }> = ({ rows, searchValue, onSearchChange, onAddNewRow, isFocused, setIsFocused }) => {
+  const { t } = useTranslation();
   const suggestions = useMemo(() => {
     if (!searchValue) return [];
     return rows.filter(r => r.UTTERANCE.toLowerCase().includes(searchValue.toLowerCase()));
@@ -272,14 +275,14 @@ const SearchComponent: React.FC<{
     <div className="relative">
       <div className={`flex items-center bg-slate-100 px-4 py-2 border-2 transition-all ${isFocused ? 'border-violet-950 bg-white shadow-lg' : 'border-transparent'}`}>
         <Search size={18} className="text-slate-400" />
-        <input 
+        <input
           value={searchValue}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setTimeout(() => setIsFocused(false), 200)}
           onChange={(e) => onSearchChange(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Buscar nodo o crear nueva intención..."
-          className="flex-1 bg-transparent border-none focus:ring-0 text-sm font-bold ml-2"
+          placeholder={t('search.placeholder')}
+          className="flex-1 bg-transparent border-none focus:ring-0 focus:outline-none text-sm font-bold ml-2"
         />
       </div>
       {showSuggestions && (
@@ -295,12 +298,12 @@ const SearchComponent: React.FC<{
               </div>
             ))
           ) : (
-            <div 
+            <div
               className="p-4 text-sm text-violet-700 bg-violet-50 hover:bg-violet-100 cursor-pointer flex items-center gap-3 font-medium"
               onMouseDown={() => onAddNewRow(searchValue)}
             >
               <PlusCircle size={18} />
-              Crear nuevo nodo semántico: "{searchValue}"
+              {t('search.createNew', { query: searchValue })}
             </div>
           )}
         </div>
@@ -311,6 +314,7 @@ const SearchComponent: React.FC<{
 
 
 const App: React.FC = () => {
+  const { t, lang, setLang } = useTranslation();
   const [rows, setRows] = useState<RowData[]>([]);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [showConsole, setShowConsole] = useState(false);
@@ -430,8 +434,8 @@ const App: React.FC = () => {
   const addNewRow = (textValue: string = "") => {
     const newId = `R_MANUAL_${Date.now()}`;
     const newEntry: RowData = {
-      id: newId, 
-      UTTERANCE: textValue.trim() || 'Nueva Unidad Semántica', 
+      id: newId,
+      UTTERANCE: textValue.trim() || 'Nueva Unidad Semántica',
       status: 'idle', nluStatus: 'idle', visualStatus: 'idle', bitmapStatus: 'idle', evalStatus: 'idle'
     };
     setRows(prev => [newEntry, ...prev]);
@@ -439,6 +443,18 @@ const App: React.FC = () => {
     setOpenRowId(newId);
     setSearchValue('');
     setIsSearching(false);
+  };
+
+  const clearAll = () => {
+    const confirmed = window.confirm(t('actions.deleteAllConfirm'));
+    if (confirmed) {
+      setRows([]);
+      setLogs([]);
+      localStorage.removeItem(STORAGE_KEY);
+      setViewMode('home');
+      setShowLibraryMenu(false);
+      addLog('info', t('messages.allCleared'));
+    }
   };
 
   const updateRow = (index: number, updates: Partial<RowData>) => {
@@ -607,7 +623,7 @@ const App: React.FC = () => {
           <div className="bg-violet-950 p-2.5 text-white"><PipelineIcon size={24} /></div>
           <div>
             <h1 className="font-bold uppercase tracking-tight text-xl text-slate-900 leading-none">{config.author}</h1>
-            <span className="text-[9px] text-slate-400 font-mono tracking-widest uppercase">v2.5 Semantic Graph Architecture</span>
+            <span className="text-[9px] text-slate-400 font-mono tracking-widest uppercase">v2.5 {t('header.subtitle')}</span>
           </div>
         </div>
 
@@ -624,15 +640,26 @@ const App: React.FC = () => {
 
         <div className="flex gap-2 items-center">
           <input type="file" ref={importInputRef} className="hidden" accept=".json" onChange={handleImportProject} />
-          
+
+          {/* Language Switcher */}
+          <select
+            value={lang}
+            onChange={(e) => setLang(e.target.value as Locale)}
+            className="p-2.5 text-xs border border-slate-200 bg-white hover:border-violet-200 rounded-md transition-all text-slate-600 font-medium cursor-pointer shadow-sm"
+            title="UI Language"
+          >
+            <option value="en-GB">English</option>
+            <option value="es-419">Español</option>
+          </select>
+
           <div className="relative flex items-center bg-white border border-slate-200 shadow-sm rounded-md transition-all hover:border-violet-200 group">
-             <button 
-                onClick={() => setViewMode('list')} 
-                className="p-2.5 hover:bg-slate-50 text-slate-600 border-r border-slate-100 flex items-center gap-2" 
-                title="Ir a la Librería (Workbench)"
+             <button
+                onClick={() => setViewMode('list')}
+                className="p-2.5 hover:bg-slate-50 text-slate-600 border-r border-slate-100 flex items-center gap-2"
+                title={t('header.libraryTooltip')}
              >
                 <Library size={18}/>
-                <span className="text-xs font-medium text-slate-500 hidden md:inline">Librería</span>
+                <span className="text-xs font-medium text-slate-500 hidden md:inline">{t('header.library')}</span>
              </button>
              <button 
                 onClick={() => setShowLibraryMenu(!showLibraryMenu)} 
@@ -646,20 +673,28 @@ const App: React.FC = () => {
                     <div className="fixed inset-0 z-40" onClick={() => setShowLibraryMenu(false)}></div>
                     <div className="absolute top-full right-0 mt-2 w-56 bg-white border border-slate-200 shadow-xl z-50 rounded-sm animate-in fade-in slide-in-from-top-2">
                         <div className="p-2 border-b border-slate-100 text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                            Gestión de Grafo
+                            {t('library.graphManagement')}
                         </div>
-                        <button 
-                            onClick={() => { importInputRef.current?.click(); setShowLibraryMenu(false); }} 
+                        <button
+                            onClick={() => { importInputRef.current?.click(); setShowLibraryMenu(false); }}
                             className="w-full text-left px-4 py-3 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors"
                         >
-                            <Upload size={14} className="text-violet-950"/> Importar JSON
+                            <Upload size={14} className="text-violet-950"/> {t('actions.import')}
                         </button>
-                        <button 
-                            onClick={() => { exportProject(); setShowLibraryMenu(false); }} 
+                        <button
+                            onClick={() => { exportProject(); setShowLibraryMenu(false); }}
                             disabled={rows.length === 0}
                             className="w-full text-left px-4 py-3 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors disabled:opacity-50"
                         >
-                            <Download size={14} className="text-emerald-600"/> Exportar Grafo (Full Dump)
+                            <Download size={14} className="text-emerald-600"/> {t('actions.export')}
+                        </button>
+                        <div className="border-t border-slate-100 my-1"></div>
+                        <button
+                            onClick={clearAll}
+                            disabled={rows.length === 0}
+                            className="w-full text-left px-4 py-3 text-xs text-rose-600 hover:bg-rose-50 flex items-center gap-3 transition-colors disabled:opacity-50 disabled:text-slate-400"
+                        >
+                            <Trash2 size={14} className="text-rose-600"/> {t('actions.deleteAll')}
                         </button>
                     </div>
                 </>
@@ -668,8 +703,8 @@ const App: React.FC = () => {
 
           <div className="w-px h-8 bg-slate-200 mx-2"></div>
 
-          <button onClick={() => setShowConfig(!showConfig)} className={`p-2.5 hover:bg-slate-50 text-slate-400 border border-transparent hover:border-slate-200 rounded-md transition-all ${showConfig ? 'bg-slate-100 text-violet-950' : ''}`} title="Ajustes de Grafo"><Sliders size={18}/></button>
-          <button onClick={() => setShowConsole(!showConsole)} className="p-2.5 hover:bg-slate-50 text-slate-400 border border-transparent hover:border-slate-200 rounded-md transition-all" title="Monitor Semántico"><Terminal size={18}/></button>
+          <button onClick={() => setShowConfig(!showConfig)} className={`p-2.5 hover:bg-slate-50 text-slate-400 border border-transparent hover:border-slate-200 rounded-md transition-all ${showConfig ? 'bg-slate-100 text-violet-950' : ''}`} title={t('header.settingsTooltip')}><Sliders size={18}/></button>
+          <button onClick={() => setShowConsole(!showConsole)} className="p-2.5 hover:bg-slate-50 text-slate-400 border border-transparent hover:border-slate-200 rounded-md transition-all" title={t('header.consoleTooltip')}><Terminal size={18}/></button>
         </div>
       </header>
 
@@ -744,24 +779,24 @@ const App: React.FC = () => {
       <main className="flex-1 p-8 max-w-7xl mx-auto w-full">
         {viewMode === 'list' && rows.length > 0 && (
           <div className="mb-6 flex justify-end gap-2">
-            <span className="text-[10px] font-medium uppercase text-slate-400 tracking-wider self-center mr-2">Ordenar por:</span>
+            <span className="text-[10px] font-medium uppercase text-slate-400 tracking-wider self-center mr-2">{t('library.sortBy')}</span>
             <button
               onClick={() => setSortBy('alphabetical')}
               className={`px-3 py-1.5 text-[10px] font-medium uppercase tracking-wider border transition-all ${sortBy === 'alphabetical' ? 'bg-violet-950 text-white border-violet-950' : 'bg-white text-slate-600 border-slate-200 hover:border-violet-300'}`}
             >
-              Alfabético
+              {t('library.alphabetical')}
             </button>
             <button
               onClick={() => setSortBy('completeness')}
               className={`px-3 py-1.5 text-[10px] font-medium uppercase tracking-wider border transition-all ${sortBy === 'completeness' ? 'bg-violet-950 text-white border-violet-950' : 'bg-white text-slate-600 border-slate-200 hover:border-violet-300'}`}
             >
-              Completitud
+              {t('library.completeness')}
             </button>
             <button
               onClick={() => setSortBy('evaluation')}
               className={`px-3 py-1.5 text-[10px] font-medium uppercase tracking-wider border transition-all ${sortBy === 'evaluation' ? 'bg-violet-950 text-white border-violet-950' : 'bg-white text-slate-600 border-slate-200 hover:border-violet-300'}`}
             >
-              Evaluación
+              {t('library.evaluation')}
             </button>
           </div>
         )}
@@ -1134,11 +1169,12 @@ const SmartNLUEditor: React.FC<{ data: any; onUpdate: (v: any) => void }> = ({ d
 };
 
 const ElementsEditor: React.FC<{ elements: VisualElement[]; onUpdate: (v: VisualElement[]) => void; }> = ({ elements, onUpdate }) => {
-    
+  const [editingValues, setEditingValues] = useState<{ [key: string]: string }>({});
+
   const addElement = (parentId: string | null = null) => {
     const newId = `new_element_${Date.now()}`;
     const newElement: VisualElement = { id: newId };
-    
+
     if (parentId === null) {
       onUpdate([...elements, newElement]);
     } else {
@@ -1186,14 +1222,36 @@ const ElementsEditor: React.FC<{ elements: VisualElement[]; onUpdate: (v: Visual
     onUpdate(update(elements));
   };
 
+  const handleInputChange = (elementId: string, newValue: string) => {
+    setEditingValues(prev => ({ ...prev, [elementId]: newValue }));
+  };
+
+  const handleInputBlur = (elementId: string) => {
+    const newValue = editingValues[elementId];
+    if (newValue !== undefined && newValue !== elementId) {
+      updateElementId(elementId, newValue);
+    }
+    setEditingValues(prev => {
+      const { [elementId]: _, ...rest } = prev;
+      return rest;
+    });
+  };
+
+  const handleInputKeyDown = (e: React.KeyboardEvent, elementId: string) => {
+    if (e.key === 'Enter') {
+      (e.target as HTMLInputElement).blur();
+    }
+  };
 
   const renderElement = (element: VisualElement, level = 0) => (
     <div key={element.id} style={{ marginLeft: `${level * 20}px` }} className="group">
       <div className="flex items-center gap-2 py-1">
-        <input 
-          type="text" 
-          value={element.id} 
-          onChange={(e) => updateElementId(element.id, e.target.value)}
+        <input
+          type="text"
+          value={editingValues[element.id] ?? element.id}
+          onChange={(e) => handleInputChange(element.id, e.target.value)}
+          onBlur={() => handleInputBlur(element.id)}
+          onKeyDown={(e) => handleInputKeyDown(e, element.id)}
           className="text-sm font-mono flex-1 bg-transparent outline-none focus:bg-white focus:ring-1 focus:ring-violet-300 px-1"
         />
         <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">

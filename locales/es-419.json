@@ -1,0 +1,183 @@
+{
+  "header": {
+    "title": "PICTOS.NET",
+    "subtitle": "Pictogramas Generativos para la Accesibilidad Cognitiva",
+    "library": "Librería",
+    "libraryTooltip": "Ir a la Librería (Workbench)",
+    "settings": "Ajustes de Grafo",
+    "settingsTooltip": "Ajustes de Grafo",
+    "console": "Monitor Semántico",
+    "consoleTooltip": "Monitor Semántico"
+  },
+  "search": {
+    "placeholder": "buscar o crear nuevo",
+    "createNew": "Crear nuevo nodo semántico: \"{query}\""
+  },
+  "library": {
+    "graphManagement": "Gestión de Grafo",
+    "sortBy": "Ordenar por:",
+    "alphabetical": "Alfabético",
+    "completeness": "Completitud",
+    "evaluation": "Evaluación"
+  },
+  "home": {
+    "graphArchitecture": "Arquitectura de Grafo",
+    "description": "Arquitectura de nodos semánticos basada en NSM y accesibilidad cognitiva. Integración de Módulos (MediaFranca).",
+    "vcsciModule": "Módulo Core VCSCI",
+    "vcsciNamespace": "mediafranca.graph.dataset",
+    "importTextNode": "Importar Nodo de Texto",
+    "importNamespace": "raw_text_ingest",
+    "importDescription": "Carga un archivo de texto con una frase por línea para iniciar el proceso de grafado."
+  },
+  "pipeline": {
+    "understand": "Comprender",
+    "compose": "Componer",
+    "produce": "Producir",
+    "evaluate": "Evaluar"
+  },
+  "editor": {
+    "hierarchicalElements": "Elementos Jerárquicos",
+    "spatialLogic": "Lógica de Articulación Espacial",
+    "addRootElement": "Agregar Elemento Raíz",
+    "metadataClassification": "Clasificación de Metadatos",
+    "detailedAnalysis": "Análisis Lingüístico Detallado",
+    "nsmExplications": "Explicaciones NSM",
+    "logicalForm": "Forma Lógica",
+    "humanReasoning": "Razonamiento Humano",
+    "noBitmapRender": "Sin Renderizado de Bitmap",
+    "noBitmapGenerated": "Aún no se ha generado bitmap.",
+    "noBitmapReference": "Sin Referencia de Bitmap",
+    "fullSizeRender": "Renderizado tamaño completo",
+    "evaluationContext": "Contexto de Evaluación"
+  },
+  "evaluation": {
+    "vcsci": "Evaluación VCSCI",
+    "evaluate": "Evaluar Pictograma",
+    "confirm": "Confirmar Evaluación",
+    "openEditor": "Abrir Editor de Evaluación",
+    "evaluationSaved": "Evaluación guardada para: {utterance}",
+    "semantics": "Semántica",
+    "syntactics": "Sintáctica",
+    "pragmatics": "Pragmática",
+    "clarity": "Claridad",
+    "universality": "Universalidad",
+    "aesthetics": "Estética",
+    "reasoning": "Razonamiento",
+    "humanReasoning": "Razonamiento Humano",
+    "vcsciLabel": "VCSCI"
+  },
+  "vcsci": {
+    "descriptions": {
+      "semantics": "Precisión del significado",
+      "syntactics": "Composición visual",
+      "pragmatics": "Adecuación al contexto",
+      "clarity": "Legibilidad",
+      "universality": "Neutralidad",
+      "aesthetics": "Atractivo"
+    },
+    "axes": {
+      "sem": "SEM",
+      "syn": "SIN",
+      "pra": "PRA",
+      "cla": "CLA",
+      "uni": "UNI",
+      "aes": "EST"
+    }
+  },
+  "config": {
+    "visualStylePrompt": "Prompt de Estilo Visual (Atributo de Nodo)",
+    "geoContext": "Contexto Geo-Lingüístico",
+    "mapMode": "Modo Mapa",
+    "simpleMode": "Simple",
+    "language": "Idioma (es, en...)",
+    "regionName": "Nombre de Región (ej. Madrid)",
+    "latitude": "Lat",
+    "longitude": "Lng",
+    "aspectRatio": "Relación de Aspecto",
+    "aspectRatios": {
+      "square": "Cuadrado (1:1)",
+      "standard": "Estándar (4:3)",
+      "portrait": "Vertical (3:4)",
+      "widescreen": "Panorámico (16:9)",
+      "mobile": "Móvil (9:16)"
+    },
+    "imageModel": "Modelo de Imagen",
+    "imageModels": {
+      "flash": "NanoBanana (Flash 2.5)",
+      "pro": "NanoBanana Pro (Gemini 3 Pro)"
+    },
+    "authorSignature": "Firma del Autor",
+    "license": "Licencia"
+  },
+  "console": {
+    "title": "Monitor de Trazabilidad Semántica",
+    "flush": "Limpiar"
+  },
+  "actions": {
+    "import": "Importar JSON",
+    "export": "Exportar Grafo (Full Dump)",
+    "download": "Descargar PNG",
+    "downloadImage": "Descargar Imagen",
+    "copy": "Copiar Contenido",
+    "copied": "¡Copiado!",
+    "delete": "Eliminar",
+    "deleteAll": "Borrar Todo",
+    "deleteAllConfirm": "¿Está seguro que desea borrar todos los nodos? Esta acción no se puede deshacer.",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "regenerate": "Regenerar",
+    "stop": "Detener"
+  },
+  "metadata": {
+    "speechAct": "acto_de_habla",
+    "intent": "intención"
+  },
+  "placeholders": {
+    "newSemanticUnit": "Nueva Unidad Semántica",
+    "searchOrCreate": "buscar o crear nuevo",
+    "optionalRationale": "Razonamiento opcional...",
+    "rationale": "Razonamiento para el puntaje...",
+    "selectOption": "Seleccionar...",
+    "languageCode": "Idioma (es, en...)",
+    "regionName": "Nombre de Región (ej. Madrid)",
+    "latitude": "Lat",
+    "longitude": "Lng"
+  },
+  "messages": {
+    "importSuccess": "Importadas {count} frases desde el archivo.",
+    "importSuccessPlural": "Importadas {count} frases desde el archivo.",
+    "importLegacy": "Importados {count} nodos (Formato Legacy).",
+    "importLegacyPlural": "Importados {count} nodos (Formato Legacy).",
+    "exportSuccess": "Proyecto exportado correctamente (imágenes incluidas).",
+    "importError": "Fallo al importar grafo. Verifique el formato.",
+    "processingError": "Error al procesar el listado de frases.",
+    "fileFormatError": "Formato de archivo no reconocido",
+    "graphRestored": "Grafo restaurado: {count} nodos.",
+    "graphRestoredPlural": "Grafo restaurado: {count} nodos.",
+    "configRestored": "Configuración global restaurada.",
+    "allCleared": "Todos los nodos y logs han sido borrados.",
+    "cascadeStarted": "Iniciando propagación en grafo para: {utterance}",
+    "cascadeStopped": "Cascada detenida en {step} para {utterance}",
+    "stepComplete": "{step} completado: {duration}s para \"{utterance}\"",
+    "nluComplete": "NLU Node calculado en {duration}s",
+    "visualComplete": "Visual Topology generada en {duration}s",
+    "bitmapComplete": "Bitmap Renderizado en {duration}s",
+    "processingFailed": "Fallo de procesamiento para \"{utterance}\": {error}",
+    "nluFailed": "Fallo de nodo (NLU) para \"{utterance}\": {error}",
+    "visualFailed": "Fallo de nodo (Visual) para \"{utterance}\": {error}",
+    "bitmapFailed": "Fallo de nodo (Bitmap) para \"{utterance}\": {error}"
+  },
+  "status": {
+    "idle": "Inactivo",
+    "processing": "Procesando",
+    "completed": "Completado",
+    "outdated": "Desactualizado",
+    "error": "Error"
+  },
+  "steps": {
+    "nlu": "NLU",
+    "visual": "Visual",
+    "bitmap": "Bitmap",
+    "eval": "Evaluación"
+  }
+}

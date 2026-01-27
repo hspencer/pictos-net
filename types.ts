@@ -109,7 +109,8 @@ export interface LogEntry {
 }
 
 export interface GlobalConfig {
-  lang: string;
+  lang: string; // Language for NLU processing (e.g., 'es', 'en')
+  uiLang?: 'en-GB' | 'es-419'; // UI language (independent from NLU language)
   geoContext?: {
     lat: string;
     lng: string;
