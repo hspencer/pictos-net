@@ -59,13 +59,14 @@ export interface VisualElement {
 }
 
 // VCSCI Hexagonal Dimensions (Manual Input - Likert 1-5)
+// Aligned with official VCSCI schema (mediafranca/VCSCI)
 export interface EvaluationMetrics {
-  semantics: number;
-  syntactics: number;
-  pragmatics: number;
   clarity: number;
-  universality: number;
-  aesthetics: number;
+  recognizability: number;
+  semantic_transparency: number;
+  pragmatic_fit: number;
+  cultural_adequacy: number;
+  cognitive_accessibility: number;
   reasoning: string;
 }
 

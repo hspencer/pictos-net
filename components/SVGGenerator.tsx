@@ -229,12 +229,12 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog }
     useEffect(() => {
         if (row.evaluation) {
             const avg = (
-                row.evaluation.semantics +
-                row.evaluation.syntactics +
-                row.evaluation.pragmatics +
                 row.evaluation.clarity +
-                row.evaluation.universality +
-                row.evaluation.aesthetics
+                row.evaluation.recognizability +
+                row.evaluation.semantic_transparency +
+                row.evaluation.pragmatic_fit +
+                row.evaluation.cultural_adequacy +
+                row.evaluation.cognitive_accessibility
             ) / 6;
 
             console.log('[SVGGenerator] Evaluation Updated:', {
@@ -350,8 +350,8 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog }
                 createdAt: new Date().toISOString(),
                 sourceRowId: row.id,
                 vcsciScore: row.evaluation ?
-                    (row.evaluation.semantics + row.evaluation.syntactics + row.evaluation.pragmatics +
-                        row.evaluation.clarity + row.evaluation.universality + row.evaluation.aesthetics) / 6
+                    (row.evaluation.clarity + row.evaluation.recognizability + row.evaluation.semantic_transparency +
+                        row.evaluation.pragmatic_fit + row.evaluation.cultural_adequacy + row.evaluation.cognitive_accessibility) / 6
                     : 0,
                 lang: nluData.lang
             });

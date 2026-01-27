@@ -461,15 +461,17 @@ App (Main Container)
 
 #### EvaluationMetrics (VCSCI evaluation)
 
+Aligned with official VCSCI schema (mediafranca/VCSCI)
+
 ```typescript
 {
-  semantics: number;             // 1-5 Likert scale
-  syntactics: number;
-  pragmatics: number;
-  clarity: number;
-  universality: number;
-  aesthetics: number;
-  reasoning: string;             // Human explanation
+  clarity: number;                      // 1-5 Likert scale
+  recognizability: number;              // 1-5 Likert scale
+  semantic_transparency: number;        // 1-5 Likert scale
+  pragmatic_fit: number;                // 1-5 Likert scale
+  cultural_adequacy: number;            // 1-5 Likert scale
+  cognitive_accessibility: number;      // 1-5 Likert scale
+  reasoning: string;                    // Human explanation
 }
 ```
 

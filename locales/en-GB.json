@@ -75,12 +75,12 @@
     "confirm": "Confirm Evaluation",
     "openEditor": "Open Evaluation Editor",
     "evaluationSaved": "Evaluation saved for: {utterance}",
-    "semantics": "Semantics",
-    "syntactics": "Syntactics",
-    "pragmatics": "Pragmatics",
     "clarity": "Clarity",
-    "universality": "Universality",
-    "aesthetics": "Aesthetics",
+    "recognizability": "Recognizability",
+    "semantic_transparency": "Semantic Transparency",
+    "pragmatic_fit": "Pragmatic Fit",
+    "cultural_adequacy": "Cultural Adequacy",
+    "cognitive_accessibility": "Cognitive Accessibility",
     "reasoning": "Reasoning",
     "humanReasoning": "Human Reasoning",
     "vcsciLabel": "VCSCI",
@@ -91,20 +91,20 @@
   },
   "vcsci": {
     "descriptions": {
-      "semantics": "Accuracy of meaning",
-      "syntactics": "Visual composition",
-      "pragmatics": "Context fitness",
-      "clarity": "Legibility",
-      "universality": "Neutrality",
-      "aesthetics": "Appeal"
+      "clarity": "The degree to which the pictogram is visually clear, legible and free from visual ambiguity",
+      "recognizability": "The ease with which a viewer can identify what the pictogram represents",
+      "semantic_transparency": "The degree to which the pictogram accurately conveys the specific meaning of the phrase",
+      "pragmatic_fit": "The usefulness and appropriateness of the pictogram in real-world AAC contexts",
+      "cultural_adequacy": "The appropriateness and relevance of the pictogram for the cultural and linguistic context",
+      "cognitive_accessibility": "The accessibility and usability of the pictogram for users with cognitive differences"
     },
     "axes": {
-      "sem": "SEM",
-      "syn": "SYN",
-      "pra": "PRA",
       "cla": "CLA",
-      "uni": "UNI",
-      "aes": "AES"
+      "rec": "REC",
+      "sem": "SEM",
+      "pra": "PRA",
+      "cul": "CUL",
+      "cog": "COG"
     }
   },
   "config": {

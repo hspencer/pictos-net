@@ -49,9 +49,10 @@ const HexagonChart: React.FC<{ metrics: EvaluationMetrics; size?: number }> = ({
   const center = size / 2;
   const radius = size * 0.40;
 
-  // Order: Semantics, Syntactics, Pragmatics, Clarity, Universality, Aesthetics
-  const axes = ['semantics', 'syntactics', 'pragmatics', 'clarity', 'universality', 'aesthetics'];
-  const labels = ['SEM', 'SYN', 'PRA', 'CLA', 'UNI', 'AES'];
+  // Aligned with official VCSCI schema (mediafranca/VCSCI)
+  // Order: Clarity, Recognizability, Semantic Transparency, Pragmatic Fit, Cultural Adequacy, Cognitive Accessibility
+  const axes = ['clarity', 'recognizability', 'semantic_transparency', 'pragmatic_fit', 'cultural_adequacy', 'cognitive_accessibility'];
+  const labels = ['CLA', 'REC', 'SEM', 'PRA', 'CUL', 'COG'];
 
   const getPoint = (value: number, index: number) => {
     // Value is 1-5. 
@@ -242,8 +243,12 @@ const EvaluationEditor: React.FC<{
 
   // Default state: 3 (Neutral)
   const current = metrics || {
-    semantics: 3, syntactics: 3, pragmatics: 3,
-    clarity: 3, universality: 3, aesthetics: 3,
+    clarity: 3,
+    recognizability: 3,
+    semantic_transparency: 3,
+    pragmatic_fit: 3,
+    cultural_adequacy: 3,
+    cognitive_accessibility: 3,
     reasoning: ''
   };
 
@@ -251,13 +256,14 @@ const EvaluationEditor: React.FC<{
     onUpdate({ ...current, [key]: value });
   };
 
+  // Aligned with official VCSCI schema (mediafranca/VCSCI)
   const axes = [
-    { key: 'semantics', label: t('evaluation.semantics'), desc: t('vcsci.descriptions.semantics'), vcsciKey: 'semantic_transparency' },
-    { key: 'syntactics', label: t('evaluation.syntactics'), desc: t('vcsci.descriptions.syntactics'), vcsciKey: 'recognizability' },
-    { key: 'pragmatics', label: t('evaluation.pragmatics'), desc: t('vcsci.descriptions.pragmatics'), vcsciKey: 'pragmatic_fit' },
     { key: 'clarity', label: t('evaluation.clarity'), desc: t('vcsci.descriptions.clarity'), vcsciKey: 'clarity' },
-    { key: 'universality', label: t('evaluation.universality'), desc: t('vcsci.descriptions.universality'), vcsciKey: 'cultural_adequacy' },
-    { key: 'aesthetics', label: t('evaluation.aesthetics'), desc: t('vcsci.descriptions.aesthetics'), vcsciKey: 'cognitive_accessibility' }
+    { key: 'recognizability', label: t('evaluation.recognizability'), desc: t('vcsci.descriptions.recognizability'), vcsciKey: 'recognizability' },
+    { key: 'semantic_transparency', label: t('evaluation.semantic_transparency'), desc: t('vcsci.descriptions.semantic_transparency'), vcsciKey: 'semantic_transparency' },
+    { key: 'pragmatic_fit', label: t('evaluation.pragmatic_fit'), desc: t('vcsci.descriptions.pragmatic_fit'), vcsciKey: 'pragmatic_fit' },
+    { key: 'cultural_adequacy', label: t('evaluation.cultural_adequacy'), desc: t('vcsci.descriptions.cultural_adequacy'), vcsciKey: 'cultural_adequacy' },
+    { key: 'cognitive_accessibility', label: t('evaluation.cognitive_accessibility'), desc: t('vcsci.descriptions.cognitive_accessibility'), vcsciKey: 'cognitive_accessibility' }
   ];
 
   if (compact) {
@@ -484,6 +490,28 @@ const App: React.FC = () => {
   const importInputRef = useRef<HTMLInputElement>(null);
   const stopFlags = useRef<Record<string, boolean>>({});
 
+  // Sanitize row data to prevent corrupted JSON from breaking the app
+  const sanitizeRow = (row: any): RowData => {
+    return {
+      id: row.id || `R_${Date.now()}`,
+      UTTERANCE: typeof row.UTTERANCE === 'string' ? row.UTTERANCE : '',
+      NLU: row.NLU,
+      elements: Array.isArray(row.elements) ? row.elements : undefined,
+      prompt: typeof row.prompt === 'string' ? row.prompt : undefined,
+      bitmap: typeof row.bitmap === 'string' ? row.bitmap : undefined,
+      evaluation: row.evaluation && typeof row.evaluation === 'object' ? row.evaluation : undefined,
+      status: ['idle', 'processing', 'completed', 'error'].includes(row.status) ? row.status : 'idle',
+      nluStatus: ['idle', 'processing', 'completed', 'error', 'outdated'].includes(row.nluStatus) ? row.nluStatus : 'idle',
+      visualStatus: ['idle', 'processing', 'completed', 'error', 'outdated'].includes(row.visualStatus) ? row.visualStatus : 'idle',
+      bitmapStatus: ['idle', 'processing', 'completed', 'error', 'outdated'].includes(row.bitmapStatus) ? row.bitmapStatus : 'idle',
+      evalStatus: ['idle', 'processing', 'completed', 'error', 'outdated'].includes(row.evalStatus) ? row.evalStatus : 'idle',
+      nluDuration: typeof row.nluDuration === 'number' ? row.nluDuration : undefined,
+      visualDuration: typeof row.visualDuration === 'number' ? row.visualDuration : undefined,
+      bitmapDuration: typeof row.bitmapDuration === 'number' ? row.bitmapDuration : undefined,
+      evalDuration: typeof row.evalDuration === 'number' ? row.evalDuration : undefined,
+    };
+  };
+
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     const savedConfig = localStorage.getItem(CONFIG_KEY);
@@ -491,8 +519,9 @@ const App: React.FC = () => {
       try {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          setRows(parsed);
-          if (parsed.length > 0) setViewMode('list');
+          const sanitized = parsed.map(sanitizeRow);
+          setRows(sanitized);
+          if (sanitized.length > 0) setViewMode('list');
         }
       } catch (e) {
         console.error("Failed to load rows", e);
@@ -569,11 +598,13 @@ const App: React.FC = () => {
         const content = event.target?.result as string;
         const parsed = JSON.parse(content);
         if (Array.isArray(parsed)) {
-          setRows(parsed);
-          addLog('success', `Importados ${parsed.length} nodos (Formato Legacy).`);
+          const sanitized = parsed.map(sanitizeRow);
+          setRows(sanitized);
+          addLog('success', `Importados ${sanitized.length} nodos (Formato Legacy).`);
         }
         else if (parsed.rows && Array.isArray(parsed.rows)) {
-          setRows(parsed.rows);
+          const sanitized = parsed.rows.map(sanitizeRow);
+          setRows(sanitized);
           if (parsed.config) {
             const newConfig = { ...parsed.config };
             if (!newConfig.aspectRatio) newConfig.aspectRatio = '1:1';
@@ -585,7 +616,7 @@ const App: React.FC = () => {
             const count = importSVGs(parsed.svgs);
             if (count > 0) addLog('success', `Biblioteca SVG restaurada: ${count} pictogramas.`);
           }
-          addLog('success', `Grafo restaurado: ${parsed.rows.length} nodos.`);
+          addLog('success', `Grafo restaurado: ${sanitized.length} nodos.`);
         } else {
           throw new Error("Formato de archivo no reconocido");
         }
@@ -666,7 +697,12 @@ const App: React.FC = () => {
       if (step === 'nlu') {
         result = await Gemini.generateNLU(row.UTTERANCE, addLog);
       } else if (step === 'visual') {
-        const nluObj = typeof row.NLU === 'string' ? JSON.parse(row.NLU) : row.NLU;
+        let nluObj;
+        try {
+          nluObj = typeof row.NLU === 'string' ? JSON.parse(row.NLU) : row.NLU;
+        } catch (parseError) {
+          throw new Error(`Failed to parse NLU data: ${parseError}`);
+        }
         result = await Gemini.generateVisualBlueprint(nluObj as NLUData, config, addLog);
       } else if (step === 'bitmap') {
         result = await Gemini.generateImage(row.elements || [], row.prompt || "", row, config, addLog);
@@ -1441,6 +1477,9 @@ const SmartNLUEditor: React.FC<{ data: any; onUpdate: (v: any) => void }> = ({ d
 };
 
 const ElementsEditor: React.FC<{ elements: VisualElement[]; onUpdate: (v: VisualElement[]) => void; }> = ({ elements, onUpdate }) => {
+  // Defensive: ensure elements is always an array
+  const safeElements = Array.isArray(elements) ? elements : [];
+
   const [editingValues, setEditingValues] = useState<{ [key: string]: string }>({});
 
   const addElement = (parentId: string | null = null) => {
@@ -1448,7 +1487,7 @@ const ElementsEditor: React.FC<{ elements: VisualElement[]; onUpdate: (v: Visual
     const newElement: VisualElement = { id: newId };
 
     if (parentId === null) {
-      onUpdate([...elements, newElement]);
+      onUpdate([...safeElements, newElement]);
     } else {
       const update = (items: VisualElement[]): VisualElement[] => {
         return items.map(item => {
@@ -1461,7 +1500,7 @@ const ElementsEditor: React.FC<{ elements: VisualElement[]; onUpdate: (v: Visual
           return item;
         });
       };
-      onUpdate(update(elements));
+      onUpdate(update(safeElements));
     }
   };
 
@@ -1476,7 +1515,7 @@ const ElementsEditor: React.FC<{ elements: VisualElement[]; onUpdate: (v: Visual
           return item;
         });
     };
-    onUpdate(filter(elements));
+    onUpdate(filter(safeElements));
   };
 
   const updateElementId = (oldId: string, newId: string) => {
@@ -1491,7 +1530,7 @@ const ElementsEditor: React.FC<{ elements: VisualElement[]; onUpdate: (v: Visual
         return item;
       });
     };
-    onUpdate(update(elements));
+    onUpdate(update(safeElements));
   };
 
   const handleInputChange = (elementId: string, newValue: string) => {
@@ -1537,7 +1576,7 @@ const ElementsEditor: React.FC<{ elements: VisualElement[]; onUpdate: (v: Visual
 
   return (
     <div className="border p-4 min-h-[120px] bg-white shadow-inner flex flex-col gap-1">
-      {elements.map(el => renderElement(el))}
+      {safeElements.map(el => renderElement(el))}
       <button onClick={() => addElement(null)} className="mt-2 pt-2 border-t border-slate-100 text-left text-xs font-bold text-violet-600 hover:text-violet-900 transition-colors w-full flex items-center gap-2">
         <Plus size={14} /> Add Root Element
       </button>
