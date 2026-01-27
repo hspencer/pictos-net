@@ -892,11 +892,12 @@ const App: React.FC = () => {
 };
 
 const RowComponent: React.FC<{
-    row: RowData; isOpen: boolean; setIsOpen: (v: boolean) => void; 
+    row: RowData; isOpen: boolean; setIsOpen: (v: boolean) => void;
     onUpdate: (u: any) => void; onProcess: (s: any) => Promise<boolean>;
     onStop: () => void; onCascade: () => void; onDelete: () => void;
     onFocus: (step: 'nlu' | 'visual' | 'bitmap' | 'eval') => void;
 }> = ({ row, isOpen, setIsOpen, onUpdate, onProcess, onStop, onCascade, onDelete, onFocus }) => {
+    const { t } = useTranslation();
     return (
       <div className={`border transition-all duration-300 ${isOpen ? 'ring-8 ring-slate-100 border-violet-950 bg-white' : 'hover:border-slate-300 bg-white shadow-sm'}`}>
         <div className="p-6 flex items-center gap-8 group">
@@ -905,9 +906,9 @@ const RowComponent: React.FC<{
             className="flex-1 w-full bg-transparent border-none outline-none focus:ring-0 utterance-title text-slate-900 uppercase font-light truncate"
           />
           <div className="flex gap-2 cursor-pointer" onClick={() => setIsOpen(!isOpen)}>
-            <Badge label="COMPRENDER" status={row.nluStatus} />
-            <Badge label="COMPONER" status={row.visualStatus} />
-            <Badge label="PRODUCIR" status={row.bitmapStatus} />
+            <Badge label={t('pipeline.understand').toUpperCase()} status={row.nluStatus} />
+            <Badge label={t('pipeline.compose').toUpperCase()} status={row.visualStatus} />
+            <Badge label={t('pipeline.produce').toUpperCase()} status={row.bitmapStatus} />
           </div>
           {(() => {
             const evalScore = getEvaluationScore(row.evaluation);
@@ -942,10 +943,10 @@ const RowComponent: React.FC<{
   
         {isOpen && (
           <div className="p-8 border-t bg-slate-50/30 grid grid-cols-1 lg:grid-cols-3 gap-10 animate-in slide-in-from-top-2">
-            <StepBox label="Comprender" status={row.nluStatus} onRegen={() => onProcess('nlu')} onStop={onStop} onFocus={() => onFocus('nlu')} duration={row.nluDuration}>
+            <StepBox label={t('pipeline.understand')} status={row.nluStatus} onRegen={() => onProcess('nlu')} onStop={onStop} onFocus={() => onFocus('nlu')} duration={row.nluDuration}>
               <SmartNLUEditor data={row.NLU} onUpdate={val => onUpdate({ NLU: val, visualStatus: 'outdated', bitmapStatus: 'outdated', evalStatus: 'outdated' })} />
             </StepBox>
-            <StepBox label="Componer" status={row.visualStatus} onRegen={() => onProcess('visual')} onStop={onStop} onFocus={() => onFocus('visual')} duration={row.visualDuration}>
+            <StepBox label={t('pipeline.compose')} status={row.visualStatus} onRegen={() => onProcess('visual')} onStop={onStop} onFocus={() => onFocus('visual')} duration={row.visualDuration}>
                 <div className="flex flex-col h-full">
                     <div className="flex-1 flex flex-col gap-6 overflow-y-auto">
                         <div>
@@ -963,7 +964,7 @@ const RowComponent: React.FC<{
                     </div>
                 </div>
             </StepBox>
-            <StepBox label="Producir" status={row.bitmapStatus} onRegen={() => onProcess('bitmap')} onStop={onStop} onFocus={() => onFocus('bitmap')} duration={row.bitmapDuration}
+            <StepBox label={t('pipeline.produce')} status={row.bitmapStatus} onRegen={() => onProcess('bitmap')} onStop={onStop} onFocus={() => onFocus('bitmap')} duration={row.bitmapDuration}
               actionNode={row.bitmap && <button onClick={(e) => { e.stopPropagation(); const a = document.createElement('a'); a.href = row.bitmap!; a.download = `${row.UTTERANCE.replace(/\s+/g, '_').toLowerCase()}.png`; a.click(); }} className="p-2 border hover:border-violet-950 text-slate-400 hover:text-violet-950 transition-all rounded-full flex items-center justify-center bg-white shadow-sm" title="Download Image"><FileDown size={14}/></button>}
             >
               <div className="flex flex-col h-full gap-4">
@@ -1299,8 +1300,9 @@ const FocusViewModal: React.FC<{
     onClose: () => void;
     onUpdate: (updates: Partial<RowData>) => void;
   }> = ({ mode, row, onClose, onUpdate }) => {
-    const [copyStatus, setCopyStatus] = useState('Copiar Contenido');
-    
+    const { t } = useTranslation();
+    const [copyStatus, setCopyStatus] = useState(t('actions.copy'));
+
     const handleCopy = () => {
       let contentToCopy: string = '';
       if (mode === 'nlu') {
@@ -1312,16 +1314,21 @@ const FocusViewModal: React.FC<{
       } else if (mode === 'eval') {
         contentToCopy = JSON.stringify(row.evaluation, null, 2);
       }
-  
+
       if (contentToCopy) {
         navigator.clipboard.writeText(contentToCopy).then(() => {
-          setCopyStatus('¡Copiado!');
-          setTimeout(() => setCopyStatus('Copiar Contenido'), 2000);
+          setCopyStatus(t('actions.copied'));
+          setTimeout(() => setCopyStatus(t('actions.copy')), 2000);
         });
       }
     };
 
-    const titleMap = { nlu: 'Comprender', visual: 'Componer', bitmap: 'Producir', eval: 'Evaluación VCSCI' };
+    const titleMap = {
+      nlu: t('pipeline.understand'),
+      visual: t('pipeline.compose'),
+      bitmap: t('pipeline.produce'),
+      eval: t('evaluation.vcsci')
+    };
   
     const renderContent = () => {
       switch (mode) {
