@@ -13,6 +13,21 @@
     "placeholder": "search or create new",
     "createNew": "Create new semantic node: \"{query}\""
   },
+  "styleEditor": {
+    "title": "Styles of {lang}",
+    "sectionForeground": "Foreground (.f)",
+    "sectionKey": "Key / Reference (.k)",
+    "fill": "Fill",
+    "stroke": "Stroke",
+    "width": "Width",
+    "opacity": "Opacity",
+    "presets": "Presets",
+    "presetSolid": "Solid",
+    "presetOutline": "Outline",
+    "presetContrast": "High Contrast",
+    "cssEditor": "CSS Editor",
+    "close": "Close"
+  },
   "library": {
     "graphManagement": "Graph Management",
     "sortBy": "Sort by:",

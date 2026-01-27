@@ -108,6 +108,16 @@ export interface LogEntry {
   message: string;
 }
 
+export interface SVGStyleConfig {
+  fill: string;
+  stroke: string;
+  strokeWidth: number;
+  opacity?: number;
+  strokeLinecap?: 'butt' | 'round' | 'square';
+  strokeLinejoin?: 'miter' | 'round' | 'bevel';
+  [key: string]: any; // Allow custom properties
+}
+
 export interface GlobalConfig {
   lang: string; // Language for NLU processing (e.g., 'es', 'en')
   uiLang?: 'en-GB' | 'es-419'; // UI language (independent from NLU language)
@@ -122,8 +132,8 @@ export interface GlobalConfig {
   license: string;
   visualStylePrompt: string;
   svgStyles?: {
-    f: { fill: string; stroke: string; strokeWidth: number };
-    k: { fill: string; stroke: string; strokeWidth: number };
+    f: SVGStyleConfig;
+    k: SVGStyleConfig;
   };
 }
 

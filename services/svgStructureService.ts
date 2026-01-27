@@ -31,18 +31,22 @@ export const generateStylesheet = (config: GlobalConfig): string => {
 /* MediaFranca SVG Schema - Dual-Class Styling System */
 .f {
   fill: ${f.fill};
+  fill-opacity: ${f.opacity ?? 1};
   stroke: ${f.stroke};
   stroke-width: ${f.strokeWidth};
-  stroke-linecap: round;
-  stroke-linejoin: round;
+  stroke-opacity: ${f.opacity ?? 1};
+  stroke-linecap: ${f.strokeLinecap || 'round'};
+  stroke-linejoin: ${f.strokeLinejoin || 'round'};
 }
 
 .k {
   fill: ${k.fill};
+  fill-opacity: ${k.opacity ?? 1};
   stroke: ${k.stroke};
   stroke-width: ${k.strokeWidth};
-  stroke-linecap: round;
-  stroke-linejoin: round;
+  stroke-opacity: ${k.opacity ?? 1};
+  stroke-linecap: ${k.strokeLinecap || 'round'};
+  stroke-linejoin: ${k.strokeLinejoin || 'round'};
 }
 
   stroke-linejoin: round;

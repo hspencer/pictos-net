@@ -13,6 +13,21 @@
     "placeholder": "buscar o crear nuevo",
     "createNew": "Crear nuevo nodo semántico: \"{query}\""
   },
+  "styleEditor": {
+    "title": "Estilos de {lang}",
+    "sectionForeground": "Primer Plano (.f)",
+    "sectionKey": "Referencia / Fondo (.k)",
+    "fill": "Relleno",
+    "stroke": "Trazo",
+    "width": "Grosor",
+    "opacity": "Opacidad",
+    "presets": "Preajustes",
+    "presetSolid": "Sólido",
+    "presetOutline": "Contorno",
+    "presetContrast": "Alto Contraste",
+    "cssEditor": "Editor CSS",
+    "close": "Cerrar"
+  },
   "library": {
     "graphManagement": "Gestión de Grafo",
     "sortBy": "Ordenar por:",
