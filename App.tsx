@@ -498,12 +498,12 @@ const App: React.FC = () => {
       if (stopFlags.current[row.id]) return false;
 
       const duration = (Date.now() - startTime) / 1000;
-      updateRow(index, { 
-        [statusKey]: 'completed', 
+      updateRow(index, {
+        [statusKey]: 'completed',
         [durationKey]: duration,
         ...(step === 'nlu' ? { NLU: result, visualStatus: 'outdated', bitmapStatus: 'outdated', evalStatus: 'outdated' } : {}),
         ...(step === 'visual' ? { elements: result.elements, prompt: result.prompt, bitmapStatus: 'outdated', evalStatus: 'outdated' } : {}),
-        ...(step === 'bitmap' ? { bitmap: result, status: 'completed', evalStatus: 'idle' } : {}) // Reset eval to idle so user can input
+        ...(step === 'bitmap' ? { bitmap: result, status: 'completed', evalStatus: 'idle', evaluation: undefined } : {}) // Reset eval and clear previous evaluation data
       });
       addLog('success', `${step.toUpperCase()} completo: ${duration.toFixed(1)}s para "${row.UTTERANCE}"`);
       return true;
