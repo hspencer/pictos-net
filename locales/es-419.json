@@ -23,12 +23,15 @@
   "home": {
     "graphArchitecture": "Arquitectura de Grafo",
     "description": "Sistema generativo de pictogramas paso-a-paso desde la intención comunicativa a la representación visual",
-    "vcsciModule": "Módulo Core VCSCI",
+    "vcsciModule": "Cargar Vocabulario Base",
     "vcsciNamespace": "mediafranca.graph.dataset",
-    "importTextNode": "Importar Nodo de Texto",
-    "importNamespace": "raw_text_ingest",
-    "importDescription": "Carga un archivo de texto con una frase por línea para iniciar el proceso de grafado.",
-    "loadVCSCIWarning": "Tiene {count} pictograma(s) en su biblioteca. Cargar el dataset VCSCI sobreescribirá su trabajo actual. ¿Desea continuar?"
+    "vcsciDescription": "20 frases de intenciones comunicativas básicas del módulo de investigación VCSCI.",
+    "vcsciRepository": "Ver repositorio",
+    "importTextNode": "Sube Tus Propias Frases",
+    "importNamespace": "vocabulario_personalizado",
+    "importDescription": "Define tu propio vocabulario a partir de frases personalizadas. Sube un archivo .txt con una frase por línea.",
+    "loadVCSCIWarning": "Tiene {count} pictograma(s) en su biblioteca. Cargar el dataset VCSCI sobreescribirá su trabajo actual. ¿Desea continuar?",
+    "aboutProject": "Acerca de este proyecto"
   },
   "pipeline": {
     "understand": "Comprender",

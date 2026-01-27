@@ -4,7 +4,7 @@ import {
   Upload, Download, Trash2, Terminal, RefreshCw, ChevronDown,
   PlayCircle, BookOpen, Search, FileDown, StopCircle, Sparkles, Sliders,
   X, Code, Plus, FileText, Maximize, Copy, BrainCircuit, PlusCircle, CornerDownRight, Image as ImageIcon,
-  Library, Share2, MapPin, Globe, Crosshair, Hexagon, Save, Edit3, HelpCircle, CheckCircle, Languages
+  Library, Share2, MapPin, Globe, Crosshair, Hexagon, Save, Edit3, HelpCircle, CheckCircle, Languages, ExternalLink
 } from 'lucide-react';
 import { RowData, LogEntry, StepStatus, NLUData, GlobalConfig, VOCAB, VisualElement, EvaluationMetrics, NLUFrameRole } from './types';
 import * as Gemini from './services/geminiService';
@@ -827,21 +827,43 @@ const App: React.FC = () => {
                 <div className="absolute top-0 right-0 bg-emerald-100 text-emerald-800 text-[9px] font-bold px-2 py-1 uppercase tracking-widest">{VCSCI_MODULE.version}</div>
                 <div className="text-emerald-600 group-hover:scale-110 transition-transform"><BookOpen size={40}/></div>
                 <div>
-                    <h3 className="font-bold text-xl uppercase tracking-wider text-slate-900">VCSCI Core Module</h3>
-                    <div className="text-[10px] text-slate-400 font-mono mt-1">{VCSCI_MODULE.namespace}</div>
+                    <h3 className="font-bold text-xl uppercase tracking-wider text-slate-900">{t('home.vcsciModule')}</h3>
+                    <div className="text-[10px] text-slate-400 font-mono mt-1">{t('home.vcsciNamespace')}</div>
                 </div>
-                <p className="text-xs text-slate-500 leading-relaxed font-medium">{VCSCI_MODULE.description}</p>
+                <p className="text-xs text-slate-500 leading-relaxed font-medium">{t('home.vcsciDescription')}</p>
+                <a
+                  href="https://github.com/hspencer/pictos-net"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="inline-flex items-center gap-1 text-[10px] text-emerald-600 hover:text-emerald-800 font-medium uppercase tracking-wider transition-colors"
+                >
+                  <ExternalLink size={12}/>
+                  {t('home.vcsciRepository')}
+                </a>
               </div>
 
               <div onClick={() => fileInputRef.current?.click()} className="bg-violet-950 p-12 text-left space-y-6 shadow-xl hover:bg-black transition-all cursor-pointer group hover:-translate-y-1">
                 <div className="text-white group-hover:scale-110 transition-transform"><FileText size={40}/></div>
                 <div>
-                    <h3 className="font-bold text-xl uppercase tracking-wider text-white">Import Text Node</h3>
-                    <div className="text-[10px] text-violet-400 font-mono mt-1">raw_text_ingest</div>
+                    <h3 className="font-bold text-xl uppercase tracking-wider text-white">{t('home.importTextNode')}</h3>
+                    <div className="text-[10px] text-violet-400 font-mono mt-1">{t('home.importNamespace')}</div>
                 </div>
-                <p className="text-xs text-violet-300 leading-relaxed font-medium">Carga un archivo de texto con una frase por línea para iniciar el proceso de grafado.</p>
+                <p className="text-xs text-violet-300 leading-relaxed font-medium">{t('home.importDescription')}</p>
                 <input ref={fileInputRef} type="file" accept=".txt" className="hidden" onChange={e => e.target.files?.[0]?.text().then(processPhrases)}/>
               </div>
+            </div>
+
+            <div className="mt-8 text-center">
+              <a
+                href="https://github.com/hspencer/pictos-net#readme"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-slate-600 transition-colors font-medium"
+              >
+                <ExternalLink size={14}/>
+                {t('home.aboutProject')}
+              </a>
             </div>
           </div>
         ) : (

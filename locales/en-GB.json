@@ -23,12 +23,15 @@
   "home": {
     "graphArchitecture": "Graph Architecture",
     "description": "Step-by-step generative system for pictograms from communicative intent to visual representation",
-    "vcsciModule": "VCSCI Core Module",
+    "vcsciModule": "Load Base Vocabulary",
     "vcsciNamespace": "mediafranca.graph.dataset",
-    "importTextNode": "Import Text Node",
-    "importNamespace": "raw_text_ingest",
-    "importDescription": "Load a text file with one phrase per line to begin the graphing process.",
-    "loadVCSCIWarning": "You have {count} pictogram(s) in your library. Loading the VCSCI dataset will overwrite your current work. Do you want to continue?"
+    "vcsciDescription": "20 basic communicative intent phrases from the VCSCI research module.",
+    "vcsciRepository": "View repository",
+    "importTextNode": "Upload Your Own Phrases",
+    "importNamespace": "custom_vocabulary",
+    "importDescription": "Define your own vocabulary from custom phrases. Upload a .txt file with one phrase per line.",
+    "loadVCSCIWarning": "You have {count} pictogram(s) in your library. Loading the VCSCI dataset will overwrite your current work. Do you want to continue?",
+    "aboutProject": "About this project"
   },
   "pipeline": {
     "understand": "Understand",
