@@ -10,6 +10,18 @@ import { GlobalConfig } from '../types';
 
 import { generateStylesheet } from '../services/svgStructureService';
 
+// Helper function to sanitize filename for downloads
+const sanitizeFilename = (text: string, maxLength: number = 30): string => {
+  return text
+    .normalize('NFD') // Decompose accented characters
+    .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
+    .replace(/[^a-z0-9]/gi, '_') // Replace non-alphanumeric with underscore
+    .replace(/_+/g, '_') // Collapse multiple underscores
+    .replace(/^_|_$/g, '') // Remove leading/trailing underscores
+    .substring(0, maxLength)
+    .toLowerCase();
+};
+
 interface SVGGeneratorProps {
     row: RowData;
     config: GlobalConfig;
@@ -161,7 +173,7 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `${row.UTTERANCE.replace(/\s+/g, '_').substring(0, 30)}_raw.svg`;
+        a.download = `${sanitizeFilename(row.UTTERANCE)}_raw.svg`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);

@@ -13,6 +13,18 @@ import type { SVGPictogram, SVGLibraryState } from '../types/svg';
 /** localStorage key for SVG library */
 const SVG_LIBRARY_KEY = 'pictonet_svg_lib';
 
+/** Helper function to sanitize filename for downloads */
+const sanitizeFilename = (text: string, maxLength: number = 30): string => {
+  return text
+    .normalize('NFD') // Decompose accented characters
+    .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
+    .replace(/[^a-z0-9]/gi, '_') // Replace non-alphanumeric with underscore
+    .replace(/_+/g, '_') // Collapse multiple underscores
+    .replace(/^_|_$/g, '') // Remove leading/trailing underscores
+    .substring(0, maxLength)
+    .toLowerCase();
+};
+
 /**
  * Custom hook for managing the SVG pictogram library
  * 
@@ -151,7 +163,7 @@ export function useSVGLibrary() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = filename || `${svg.utterance.replace(/\s+/g, '_').substring(0, 30)}.svg`;
+        a.download = filename || `${sanitizeFilename(svg.utterance)}.svg`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);

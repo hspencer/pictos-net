@@ -31,6 +31,18 @@ const ensureElementsArray = (elements: any): VisualElement[] => {
   return [];
 };
 
+// Helper function to sanitize filename for downloads
+const sanitizeFilename = (text: string, maxLength: number = 30): string => {
+  return text
+    .normalize('NFD') // Decompose accented characters
+    .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
+    .replace(/[^a-z0-9]/gi, '_') // Replace non-alphanumeric with underscore
+    .replace(/_+/g, '_') // Collapse multiple underscores
+    .replace(/^_|_$/g, '') // Remove leading/trailing underscores
+    .substring(0, maxLength)
+    .toLowerCase();
+};
+
 const LogoIcon = ({ size = 32 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 45.9 45.9" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path fill="#3c0877" d="M23.5,2.8c-8.6,0-15.6,7-15.6,15.6v19.7c0,2.9,2.3,5.2,5.2,5.2s5.2-2.3,5.2-5.2v-6c1.6.6,3.4.9,5.2.9,8.6,0,15.6-6,15.6-14.6s-7-15.6-15.6-15.6ZM23.5,25c-7,0-10-7-10-7,0,0,3-7,10-7s10,7,10,7c0,0-3,7-10,7Z"/>
@@ -1451,7 +1463,7 @@ const RowComponent: React.FC<{
                         const url = URL.createObjectURL(blob);
                         const a = document.createElement('a');
                         a.href = url;
-                        a.download = `${row.UTTERANCE.replace(/\s+/g, '_').substring(0, 30)}_raw.svg`;
+                        a.download = `${sanitizeFilename(row.UTTERANCE)}_raw.svg`;
                         document.body.appendChild(a);
                         a.click();
                         document.body.removeChild(a);
@@ -1472,7 +1484,7 @@ const RowComponent: React.FC<{
                         const url = URL.createObjectURL(blob);
                         const a = document.createElement('a');
                         a.href = url;
-                        a.download = `${row.UTTERANCE.replace(/\s+/g, '_').substring(0, 30)}.svg`;
+                        a.download = `${sanitizeFilename(row.UTTERANCE)}.svg`;
                         document.body.appendChild(a);
                         a.click();
                         document.body.removeChild(a);
