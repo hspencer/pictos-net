@@ -80,125 +80,77 @@ export async function fetchICAPModule(): Promise<GraphModule> {
 }
 
 /**
- * Legacy fallback: Static ICAP-20 module (for offline usage)
+ * Fallback: Static ICAP-50 base corpus (for offline usage)
  * This is kept as a fallback if the external endpoint is unavailable
+ * Source: schemas/ICAP/frases.json v2.0.0
  */
 export const ICAP_MODULE_FALLBACK: GraphModule = {
-  id: "icap-core",
+  id: "icap-50-base",
   namespace: "mediafranca.graph.dataset",
-  version: "1.0.0",
-  description: "Vocabulary of Core Semantic Communicative Intentions (20 functional nodes - FALLBACK)",
+  version: "2.0.0",
+  description: "Corpus Base ICAP-50 para evaluación de pictogramas en CAA (50 frases base - FALLBACK)",
   data: [
-    // 1. PETICIONES FISIOLÓGICAS Y BÁSICAS
-    {
-      "id": "ICAP_01",
-      "UTTERANCE": "Quiero beber agua",
-      "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
-    },
-    {
-      "id": "ICAP_02",
-      "UTTERANCE": "Quiero comer algo",
-      "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
-    },
-    {
-      "id": "ICAP_03",
-      "UTTERANCE": "Necesito ir al baño",
-      "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
-    },
-    {
-      "id": "ICAP_04",
-      "UTTERANCE": "Quiero descansar (dormir)",
-      "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
-    },
+    // SOLICITAR (6 frases)
+    { "id": "SOL-01", "UTTERANCE": "Quiero ir al baño", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "SOL-02", "UTTERANCE": "Quiero comer pizza", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "SOL-03", "UTTERANCE": "Necesito tomar mi medicina", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "SOL-04", "UTTERANCE": "Tengo sed, quiero beber agua", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "SOL-05", "UTTERANCE": "Quiero jugar en el patio", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "SOL-06", "UTTERANCE": "Ayúdame con la tarea", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
 
-    // 2. REGULACIÓN DE LA ACCIÓN (CONTROL)
-    {
-      "id": "ICAP_05",
-      "UTTERANCE": "Ayúdame, por favor",
-      "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
-    },
-    {
-      "id": "ICAP_06",
-      "UTTERANCE": "Para (detente ahora)",
-      "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
-    },
-    {
-      "id": "ICAP_07",
-      "UTTERANCE": "Quiero más",
-      "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
-    },
-    {
-      "id": "ICAP_08",
-      "UTTERANCE": "Ya he terminado (acabado)",
-      "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
-    },
+    // RECHAZAR (5 frases)
+    { "id": "REC-01", "UTTERANCE": "No quiero tomar la sopa", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "REC-02", "UTTERANCE": "No quiero usar la chaqueta", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "REC-03", "UTTERANCE": "No ahora", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "REC-04", "UTTERANCE": "No necesito ayuda", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "REC-05", "UTTERANCE": "Basta ya", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
 
-    // 3. EXPRESIÓN DE PREFERENCIA Y RECHAZO
-    {
-      "id": "ICAP_09",
-      "UTTERANCE": "Me gusta esto",
-      "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
-    },
-    {
-      "id": "ICAP_10",
-      "UTTERANCE": "No me gusta esto",
-      "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
-    },
-    {
-      "id": "ICAP_11",
-      "UTTERANCE": "No quiero (rechazo)",
-      "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
-    },
+    // DIRIGIR (6 frases)
+    { "id": "DIR-01", "UTTERANCE": "Ven aquí", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "DIR-02", "UTTERANCE": "Mira esto", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "DIR-03", "UTTERANCE": "Dame la mano", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "DIR-04", "UTTERANCE": "Pon el libro en la mesa", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "DIR-05", "UTTERANCE": "Vamos a jugar", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "DIR-06", "UTTERANCE": "No corras", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
 
-    // 4. ESTADOS FÍSICOS Y EMOCIONALES
-    {
-      "id": "ICAP_12",
-      "UTTERANCE": "Me duele (tengo dolor)",
-      "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
-    },
-    {
-      "id": "ICAP_13",
-      "UTTERANCE": "Estoy feliz",
-      "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
-    },
-    {
-      "id": "ICAP_14",
-      "UTTERANCE": "Estoy triste",
-      "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
-    },
+    // ACEPTAR (6 frases)
+    { "id": "ACE-01", "UTTERANCE": "Sí, quiero eso", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "ACE-02", "UTTERANCE": "Está bien", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "ACE-03", "UTTERANCE": "De acuerdo", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "ACE-04", "UTTERANCE": "Me gusta eso", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "ACE-05", "UTTERANCE": "Sí, por favor", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "ACE-06", "UTTERANCE": "Genial", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
 
-    // 5. OBTENCIÓN DE INFORMACIÓN (INTERROGATIVOS)
-    {
-      "id": "ICAP_15",
-      "UTTERANCE": "¿Qué es eso?",
-      "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
-    },
-    {
-      "id": "ICAP_16",
-      "UTTERANCE": "¿Dónde está?",
-      "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
-    },
+    // INTERACCIÓN SOCIAL (6 frases)
+    { "id": "SOC-01", "UTTERANCE": "Hola", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "SOC-02", "UTTERANCE": "Adiós", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "SOC-03", "UTTERANCE": "Por favor", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "SOC-04", "UTTERANCE": "¿Quieres jugar?", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "SOC-05", "UTTERANCE": "Lo siento", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "SOC-06", "UTTERANCE": "Bien hecho", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
 
-    // 6. INTERACCIÓN SOCIAL
-    {
-      "id": "ICAP_17",
-      "UTTERANCE": "Hola (saludo)",
-      "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
-    },
-    {
-      "id": "ICAP_18",
-      "UTTERANCE": "Adiós (despedida)",
-      "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
-    },
-    {
-      "id": "ICAP_19",
-      "UTTERANCE": "Gracias",
-      "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
-    },
-    {
-      "id": "ICAP_20",
-      "UTTERANCE": "Vamos a jugar",
-      "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
-    }
+    // EMOCIÓN (5 frases)
+    { "id": "EMO-01", "UTTERANCE": "Te quiero", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "EMO-02", "UTTERANCE": "Estoy feliz", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "EMO-03", "UTTERANCE": "Estoy triste", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "EMO-04", "UTTERANCE": "Tengo miedo", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "EMO-05", "UTTERANCE": "Me duele la barriga", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+
+    // COMENTAR (6 frases)
+    { "id": "COM-01", "UTTERANCE": "Está lloviendo", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "COM-02", "UTTERANCE": "Hace frío", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "COM-03", "UTTERANCE": "Es hora de comer", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "COM-04", "UTTERANCE": "Tengo hambre", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "COM-05", "UTTERANCE": "El perro es grande", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "COM-06", "UTTERANCE": "Está roto", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+
+    // PREGUNTAR (7 frases)
+    { "id": "PRE-01", "UTTERANCE": "¿Dónde está el baño?", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "PRE-02", "UTTERANCE": "¿Qué es esto?", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "PRE-03", "UTTERANCE": "¿Quién es ella?", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "PRE-04", "UTTERANCE": "¿Cuándo vamos al parque?", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "PRE-05", "UTTERANCE": "¿Quién viene?", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "PRE-06", "UTTERANCE": "¿Dónde está mamá?", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "PRE-07", "UTTERANCE": "¿Qué vamos a comer?", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" }
   ]
 };
