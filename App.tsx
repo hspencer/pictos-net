@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { RowData, LogEntry, StepStatus, NLUData, GlobalConfig, VOCAB, VisualElement, EvaluationMetrics, NLUFrameRole } from './types';
 import * as Gemini from './services/geminiService';
-import { fetchICAPModule, ICAP_MODULE_FALLBACK } from './data/canonicalData';
+import { ICAP_MODULE_FALLBACK } from './data/canonicalData';
 import { useTranslation } from './hooks/useTranslation';
 import type { Locale } from './locales';
 import { SVGGenerator } from './components/SVGGenerator';
@@ -695,15 +695,24 @@ const App: React.FC = () => {
     }
 
     try {
-      addLog('info', 'Cargando frases ICAP desde repositorio remoto...');
-      const module = await fetchICAPModule();
-      addLog('success', `Módulo ICAP ${module.version} cargado: ${module.data.length} frases`);
-      setRows(module.data as RowData[]);
+      addLog('info', 'Cargando dataset de ejemplo con pictogramas completos...');
+      const response = await fetch('/example-dataset.json');
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+      const data = await response.json();
+      addLog('success', `Dataset v${data.version} cargado: ${data.rows.length} pictogramas con evaluaciones`);
+
+      // Load config if available
+      if (data.config) {
+        setConfig(prev => ({ ...prev, ...data.config }));
+      }
+
+      setRows(data.rows as RowData[]);
       setViewMode('list');
     } catch (error) {
-      addLog('error', 'Error al cargar módulo ICAP remoto, usando fallback local');
-      console.error('ICAP fetch error:', error);
-      // Fallback to local static module
+      addLog('error', 'Error al cargar dataset de ejemplo, usando frases ICAP básicas');
+      console.error('Example dataset load error:', error);
+      // Fallback to basic ICAP phrases
       setRows(ICAP_MODULE_FALLBACK.data as RowData[]);
       setViewMode('list');
     }
@@ -902,7 +911,7 @@ const App: React.FC = () => {
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <header className="h-20 bg-white border-b border-slate-200 sticky top-0 z-50 flex items-center px-8 justify-between shadow-sm">
         <div className="flex items-center gap-4 cursor-pointer" onClick={() => setViewMode('home')}>
-          <div className="p-1.5"><LogoIcon size={40} /></div>
+          <div className="p-1.5"><LogoIcon size={44} /></div>
           <div>
             <h1 className="font-bold uppercase tracking-tight text-xl text-slate-900 leading-none">{config.author}</h1>
             <span id="tagline" className="text-[9px] text-slate-400 font-mono tracking-widest uppercase">v{APP_VERSION} {t('header.subtitle')}</span>

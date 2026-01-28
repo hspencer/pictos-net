@@ -38,14 +38,14 @@
   "home": {
     "graphArchitecture": "Graph Architecture",
     "description": "Step-by-step generative system for pictograms from communicative intent to visual representation",
-    "icapModule": "Load Base Vocabulary",
+    "icapModule": "Load Example Dataset",
     "icapNamespace": "mediafranca.graph.dataset",
-    "icapDescription": "50 communicative intent phrases from the ICAP-50 research corpus (8 categories: Request, Reject, Direct, Accept, Social, Emotion, Comment, Question).",
+    "icapDescription": "50 complete pictograms from the ICAP-50 corpus with NLU analysis, visual elements, rendered images, and cognitive evaluations (8 categories: Request, Reject, Direct, Accept, Social, Emotion, Comment, Question).",
     "icapRepository": "View repository",
     "importTextNode": "Upload Your Own Phrases",
     "importNamespace": "custom_vocabulary",
     "importDescription": "Define your own vocabulary from custom phrases. Upload a .txt file with one phrase per line.",
-    "loadICAPWarning": "You have {count} pictogram(s) in your library. Loading the ICAP dataset will overwrite your current work. Do you want to continue?",
+    "loadICAPWarning": "You have {count} pictogram(s) in your library. Loading the example dataset will overwrite your current work. Do you want to continue?",
     "aboutProject": "About this project"
   },
   "pipeline": {

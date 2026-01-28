@@ -38,14 +38,14 @@
   "home": {
     "graphArchitecture": "Arquitectura de Grafo",
     "description": "Sistema generativo de pictogramas paso-a-paso desde la intención comunicativa a la representación visual",
-    "icapModule": "Cargar Vocabulario Base",
+    "icapModule": "Cargar Dataset de Ejemplo",
     "icapNamespace": "mediafranca.graph.dataset",
-    "icapDescription": "50 frases de intenciones comunicativas del corpus de investigación ICAP-50 (8 categorías: Solicitar, Rechazar, Dirigir, Aceptar, Social, Emoción, Comentar, Preguntar).",
+    "icapDescription": "50 pictogramas completos del corpus ICAP-50 con análisis NLU, elementos visuales, imágenes renderizadas y evaluaciones cognitivas (8 categorías: Solicitar, Rechazar, Dirigir, Aceptar, Social, Emoción, Comentar, Preguntar).",
     "icapRepository": "Ver repositorio",
     "importTextNode": "Sube Tus Propias Frases",
     "importNamespace": "vocabulario_personalizado",
     "importDescription": "Define tu propio vocabulario a partir de frases personalizadas. Sube un archivo .txt con una frase por línea.",
-    "loadICAPWarning": "Tiene {count} pictograma(s) en su biblioteca. Cargar el dataset ICAP sobreescribirá su trabajo actual. ¿Desea continuar?",
+    "loadICAPWarning": "Tiene {count} pictograma(s) en su biblioteca. Cargar el dataset de ejemplo sobreescribirá su trabajo actual. ¿Desea continuar?",
     "aboutProject": "Acerca de este proyecto"
   },
   "pipeline": {
