@@ -20,7 +20,7 @@ git submodule update --init --recursive
 **Submodules incluidos:**
 
 - `schemas/nlu-schema` - Esquema MediaFranca para análisis NLU
-- `schemas/VCSCI` - Framework de evaluación VCSCI
+- `schemas/ICAP` - Corpus de frases canónicas y framework de evaluación
 - `schemas/mf-svg-schema` - Esquema para pictogramas SVG estructurados
 
 
@@ -160,7 +160,7 @@ pictos-net/
 │   ├── services/
 │   │   └── geminiService.ts # Integración con Gemini API
 │   ├── data/
-│   │   └── canonicalData.ts # Dataset VCSCI (20 utterances)
+│   │   └── canonicalData.ts # Dataset ICAP (50 utterances base)
 │   ├── hooks/
 │   │   └── useTranslation.ts # Hook personalizado i18n
 │   ├── utils/
@@ -184,7 +184,7 @@ El sistema implementa un pipeline de 4 fases:
 1. **Understand (NLU)**: Análisis lingüístico profundo basado en Natural Semantic Metalanguage (NSM)
 2. **Compose (Visual)**: Generación de elementos jerárquicos y lógica de articulación espacial
 3. **Produce (Bitmap)**: Renderizado de imagen PNG usando Gemini Image Generation
-4. **Evaluate (VCSCI)**: Evaluación del pictograma según 6 métricas de calidad
+4. **Evaluate**: Evaluación del pictograma según 6 métricas de calidad cognitiva
 
 ### Consistencia Transversal
 
@@ -195,7 +195,7 @@ La aplicación utiliza un esquema de datos unificado:
 - **elements**: Una estructura jerárquica de componentes visuales que define la composición del pictograma
 - **prompt**: La estrategia de articulación espacial que describe cómo se relacionan los elementos (generada en el idioma del utterance)
 - **bitmap**: La imagen final generada (Base64 PNG)
-- **evaluation**: Métricas VCSCI (Semantics, Syntactics, Pragmatics, Clarity, Universality, Aesthetics)
+- **evaluation**: Métricas de evaluación (clarity, recognizability, semantic_transparency, pragmatic_fit, cultural_adequacy, cognitive_accessibility)
 
 ## Formato de Intercambio (JSON)
 
@@ -230,12 +230,12 @@ El proyecto se exporta en un único archivo JSON que contiene tanto la configura
       "prompt": "La composición se centra en un `perfil_humano`...",
       "bitmap": "data:image/png;base64,iVBORw0KGgoAAA...",
       "evaluation": {
-        "semantics": 4,
-        "syntactics": 5,
-        "pragmatics": 4,
         "clarity": 5,
-        "universality": 3,
-        "aesthetics": 4,
+        "recognizability": 4,
+        "semantic_transparency": 4,
+        "pragmatic_fit": 4,
+        "cultural_adequacy": 3,
+        "cognitive_accessibility": 5,
         "humanReasoning": "..."
       }
     }
@@ -257,13 +257,13 @@ Esto actualizará todos los submodules a sus últimas versiones en sus respectiv
 ### Actualizar un Submodule Específico
 
 ```bash
-cd schemas/VCSCI
+cd schemas/ICAP
 git checkout main
 git pull origin main
 cd ../..
 npm run copy-schemas
-git add schemas/VCSCI
-git commit -m "chore: Update VCSCI submodule to latest version"
+git add schemas/ICAP
+git commit -m "chore: Update ICAP submodule to latest version"
 ```
 
 ### Freezar una Versión Específica
@@ -271,12 +271,12 @@ git commit -m "chore: Update VCSCI submodule to latest version"
 Para reproducibilidad científica, puedes freezar submodules a commits específicos:
 
 ```bash
-cd schemas/VCSCI
+cd schemas/ICAP
 git checkout v1.2.3  # o un commit hash específico
 cd ../..
 npm run copy-schemas
-git add schemas/VCSCI
-git commit -m "chore: Pin VCSCI to version 1.2.3"
+git add schemas/ICAP
+git commit -m "chore: Pin ICAP to version 2.0.0"
 ```
 
 ### Desarrollo Local en Submodules
@@ -289,13 +289,13 @@ Si necesitas hacer cambios en un esquema mientras trabajas en PICTOS:
 4. Actualiza la referencia en PICTOS:
 
 ```bash
-cd schemas/VCSCI
+cd schemas/ICAP
 git add .
 git commit -m "feat: Add new evaluation metric"
 git push origin main
 cd ../..
-git add schemas/VCSCI
-git commit -m "chore: Update VCSCI submodule"
+git add schemas/ICAP
+git commit -m "chore: Update ICAP submodule"
 ```
 
 ### Scripts Disponibles para Submodules
