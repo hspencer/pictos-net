@@ -4,7 +4,7 @@ import {
   Upload, Download, Trash2, Terminal, RefreshCw, ChevronDown,
   PlayCircle, BookOpen, Search, FileDown, StopCircle, Sparkles, Sliders,
   X, Code, Plus, FileText, Maximize, Copy, BrainCircuit, PlusCircle, CornerDownRight, Image as ImageIcon,
-  Library, Share2, MapPin, Globe, Crosshair, Hexagon, Save, Edit3, HelpCircle, CheckCircle, Languages, ExternalLink, Palette
+  Library, ScreenShare, MapPin, Globe, Crosshair, Hexagon, Save, Edit3, HelpCircle, CheckCircle, Languages, ExternalLink, Palette
 } from 'lucide-react';
 import { RowData, LogEntry, StepStatus, NLUData, GlobalConfig, VOCAB, VisualElement, EvaluationMetrics, NLUFrameRole } from './types';
 import * as Gemini from './services/geminiService';
@@ -44,9 +44,12 @@ const sanitizeFilename = (text: string, maxLength: number = 30): string => {
 };
 
 const LogoIcon = ({ size = 32 }: { size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 45.9 45.9" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path fill="#3c0877" d="M23.5,2.8c-8.6,0-15.6,7-15.6,15.6v19.7c0,2.9,2.3,5.2,5.2,5.2s5.2-2.3,5.2-5.2v-6c1.6.6,3.4.9,5.2.9,8.6,0,15.6-6,15.6-14.6s-7-15.6-15.6-15.6ZM23.5,25c-7,0-10-7-10-7,0,0,3-7,10-7s10,7,10,7c0,0-3,7-10,7Z"/>
-    <circle fill="#3c0877" cx="23.5" cy="18" r="3"/>
+  <svg width={size} height={size} viewBox="0 0 45.9 45.9" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <style>{`.st0 { fill: #3c0877; }`}</style>
+    </defs>
+    <path className="st0" d="M23.5,2.8c-8.6,0-15.6,7-15.6,15.6v19.7c0,2.9,2.3,5.2,5.2,5.2s5.2-2.3,5.2-5.2v-6c1.6.6,3.4.9,5.2.9,8.6,0,15.6-6,15.6-14.6s-7-15.6-15.6-15.6ZM23.5,25c-7,0-10-7-10-7,0,0,3-7,10-7s10,7,10,7c0,0-3,7-10,7Z"/>
+    <circle className="st0" cx="23.5" cy="18" r="3"/>
   </svg>
 );
 
@@ -1111,7 +1114,7 @@ const App: React.FC = () => {
           <div className="py-20 text-center space-y-16 animate-in fade-in zoom-in-95 duration-700">
             <div className="space-y-4">
               <div className="inline-flex gap-4 bg-violet-950 text-white px-6 py-2 text-[10px] font-medium uppercase tracking-[0.4em] shadow-lg">
-                <Share2 size={14} /> Graph Architecture
+                <ScreenShare size={14} /> better on large screens
               </div>
               <h2 className="text-8xl font-black tracking-tighter text-slate-900 leading-none">{config.author}</h2>
               <p className="text-slate-400 text-xl font-medium max-w-2xl mx-auto leading-relaxed">
