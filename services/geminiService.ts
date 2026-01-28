@@ -163,21 +163,38 @@ You MUST generate Element IDs and the prompt logic in **${targetLang}**.
 
   onLog?.('info', `[VISUAL] Respuesta recibida, parseando blueprint...`);
   const result = JSON.parse(cleanJSONResponse(response.text));
-  onLog?.('success', `[VISUAL] Blueprint completado. Elementos: ${result.elements?.length || 0}, Prompt: ${result.prompt?.substring(0, 50) || 'N/A'}...`);
+
+  // Validate that elements is an array
+  if (!Array.isArray(result.elements)) {
+    onLog?.('error', `[VISUAL] Error: 'elements' no es un array. Tipo recibido: ${typeof result.elements}. Retornando array vacío.`);
+    result.elements = [];
+  }
+
+  onLog?.('success', `[VISUAL] Blueprint completado. Elementos: ${result.elements.length}, Prompt: ${result.prompt?.substring(0, 50) || 'N/A'}...`);
   return result;
 };
 
 export const generateImage = async (elements: VisualElement[], prompt: string, row: any, config: GlobalConfig, onLog?: (type: 'info' | 'error' | 'success', msg: string) => void): Promise<string> => {
   const ai = getAI();
 
+  // Validate that elements is actually an array
+  if (!Array.isArray(elements)) {
+    const errorMsg = `[BITMAP] Error: 'elements' debe ser un array, recibido: ${typeof elements}`;
+    onLog?.('error', errorMsg);
+    throw new Error(errorMsg);
+  }
+
   onLog?.('info', `[BITMAP] Iniciando generación de imagen...`);
   onLog?.('info', `[BITMAP] Elementos a renderizar: ${elements.length}`);
 
   // Helper function to format elements hierarchy as readable text
   const formatElements = (els: VisualElement[], depth = 0): string => {
+    if (!Array.isArray(els)) {
+      return '  (error: not an array)';
+    }
     return els.map(el => {
       const indent = '  '.repeat(depth);
-      const children = el.children ? '\n' + formatElements(el.children, depth + 1) : '';
+      const children = el.children && Array.isArray(el.children) ? '\n' + formatElements(el.children, depth + 1) : '';
       return `${indent}- ${el.id}${children}`;
     }).join('\n');
   };

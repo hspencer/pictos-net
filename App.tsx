@@ -22,6 +22,15 @@ const STORAGE_KEY = 'pictonet_v19_storage';
 const CONFIG_KEY = 'pictonet_v19_config';
 const APP_VERSION = '2.9.0';
 
+// Helper function to ensure elements is always a valid array
+const ensureElementsArray = (elements: any): VisualElement[] => {
+  if (Array.isArray(elements)) {
+    return elements;
+  }
+  console.warn('[VALIDATION] Invalid elements type, returning empty array:', typeof elements, elements);
+  return [];
+};
+
 const LogoIcon = ({ size = 32 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 45.9 45.9" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path fill="#3c0877" d="M23.5,2.8c-8.6,0-15.6,7-15.6,15.6v19.7c0,2.9,2.3,5.2,5.2,5.2s5.2-2.3,5.2-5.2v-6c1.6.6,3.4.9,5.2.9,8.6,0,15.6-6,15.6-14.6s-7-15.6-15.6-15.6ZM23.5,25c-7,0-10-7-10-7,0,0,3-7,10-7s10,7,10,7c0,0-3,7-10,7Z"/>
@@ -506,6 +515,8 @@ const App: React.FC = () => {
       elements: Array.isArray(row.elements) ? row.elements : undefined,
       prompt: typeof row.prompt === 'string' ? row.prompt : undefined,
       bitmap: typeof row.bitmap === 'string' ? row.bitmap : undefined,
+      rawSvg: typeof row.rawSvg === 'string' ? row.rawSvg : undefined,
+      structuredSvg: typeof row.structuredSvg === 'string' ? row.structuredSvg : undefined,
       evaluation: row.evaluation && typeof row.evaluation === 'object' ? row.evaluation : undefined,
       status: ['idle', 'processing', 'completed', 'error'].includes(row.status) ? row.status : 'idle',
       nluStatus: ['idle', 'processing', 'completed', 'error', 'outdated'].includes(row.nluStatus) ? row.nluStatus : 'idle',
@@ -724,7 +735,7 @@ const App: React.FC = () => {
         }
         result = await Gemini.generateVisualBlueprint(nluObj as NLUData, config, addLog);
       } else if (step === 'bitmap') {
-        result = await Gemini.generateImage(row.elements || [], row.prompt || "", row, config, addLog);
+        result = await Gemini.generateImage(ensureElementsArray(row.elements), row.prompt || "", row, config, addLog);
       }
 
       if (stopFlags.current[row.id]) {
@@ -795,7 +806,7 @@ const App: React.FC = () => {
       addLog('info', `[CASCADA] Paso 3/3: PRODUCIR - Renderizado de imagen`);
       updateRow(index, { visualStatus: 'completed', visualDuration: finalUpdates.visualDuration, elements: visualResult.elements, prompt: visualResult.prompt, bitmapStatus: 'processing' });
       const bitmapStartTime = Date.now();
-      const bitmapResult = await Gemini.generateImage(visualResult.elements!, visualResult.prompt!, row, config, addLog);
+      const bitmapResult = await Gemini.generateImage(ensureElementsArray(visualResult.elements), visualResult.prompt || "", row, config, addLog);
       if (stopFlags.current[row.id]) {
         addLog('info', `❌ [CASCADA] Detenida por usuario en paso PRODUCIR`);
         updateRow(index, { bitmapStatus: 'idle' });
