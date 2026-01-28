@@ -38,14 +38,14 @@
   "home": {
     "graphArchitecture": "Graph Architecture",
     "description": "Step-by-step generative system for pictograms from communicative intent to visual representation",
-    "vcsciModule": "Load Base Vocabulary",
-    "vcsciNamespace": "mediafranca.graph.dataset",
-    "vcsciDescription": "20 basic communicative intent phrases from the VCSCI research module.",
-    "vcsciRepository": "View repository",
+    "icapModule": "Load Base Vocabulary",
+    "icapNamespace": "mediafranca.graph.dataset",
+    "icapDescription": "50 communicative intent phrases from the ICAP-50 research corpus (8 categories: Request, Reject, Direct, Accept, Social, Emotion, Comment, Question).",
+    "icapRepository": "View repository",
     "importTextNode": "Upload Your Own Phrases",
     "importNamespace": "custom_vocabulary",
     "importDescription": "Define your own vocabulary from custom phrases. Upload a .txt file with one phrase per line.",
-    "loadVCSCIWarning": "You have {count} pictogram(s) in your library. Loading the VCSCI dataset will overwrite your current work. Do you want to continue?",
+    "loadICAPWarning": "You have {count} pictogram(s) in your library. Loading the ICAP dataset will overwrite your current work. Do you want to continue?",
     "aboutProject": "About this project"
   },
   "pipeline": {
@@ -70,7 +70,7 @@
     "evaluationContext": "Evaluation Context"
   },
   "evaluation": {
-    "vcsci": "VCSCI Evaluation",
+    "icap": "ICAP Evaluation",
     "evaluate": "Evaluate Pictogram",
     "confirm": "Confirm Evaluation",
     "openEditor": "Open Evaluation Editor",
@@ -83,13 +83,13 @@
     "cognitive_accessibility": "Cognitive Accessibility",
     "reasoning": "Reasoning",
     "humanReasoning": "Human Reasoning",
-    "vcsciLabel": "VCSCI",
+    "icapLabel": "ICAP",
     "helpTitle": "Evaluation Guide: {dimension}",
     "scaleLevel": "Level {level}",
     "loading": "Loading evaluation guide...",
     "errorLoading": "Could not load evaluation guide. Please check your connection."
   },
-  "vcsci": {
+  "icap": {
     "descriptions": {
       "clarity": "The degree to which the pictogram is visually clear, legible and free from visual ambiguity",
       "recognizability": "The ease with which a viewer can identify what the pictogram represents",

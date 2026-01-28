@@ -11,14 +11,14 @@ Este proyecto avanza sobre [PICTOS.cl](https://pictos.cl) desarrollado por el [N
 
 ### Almacenamiento Local
 
-⚠️ **Importante**: Todos los pictogramas y datos se almacenan **localmente en el navegador** usando `localStorage`. Esto significa:
+**Importante**: Todos los pictogramas y datos se almacenan **localmente en el navegador** usando `localStorage`. Esto significa:
 
 - Los datos persisten entre sesiones en el mismo navegador
 - Si limpias los datos del navegador, **perderás todo tu trabajo**
 - Para respaldar tu trabajo, usa la función **Exportar Grafo** en el menú de Librería
 - Los archivos JSON exportados contienen toda la información, incluyendo las imágenes en Base64 y las evaluaciones.
 
-💡 **Contribuye al proyecto**: Puedes enviar tu grafo exportado con tus comentarios y recomendaciones a [hspencer@ead.cl](mailto:hspencer@ead.cl). De esta forma ayudarás a mejorar esta herramienta de comunicación de código abierto.
+**Contribuye al proyecto**: Puedes enviar tu grafo exportado con tus comentarios y recomendaciones a [hspencer@ead.cl](mailto:hspencer@ead.cl). De esta forma ayudarás a mejorar esta herramienta de comunicación de código abierto.
 
 ![código abierto](https://img.shields.io/badge/opensource--always-available-blue)
 
@@ -30,21 +30,21 @@ PICTOS implementa un sistema de **almacenamiento dual** que mantiene tanto versi
 
 - Almacenados como parte del grafo principal en `RowData.bitmap`
 - Formato: Base64 data URLs (PNG)
-- Incluyen: NLU, elementos visuales, prompts, evaluación VCSCI
+- Incluyen: NLU, elementos visuales, prompts, evaluación ICAP
 - Exportables como JSON con toda la trazabilidad del pipeline
 
 ##### SVGs (Biblioteca Separada)
 
 - Almacenados en una biblioteca independiente (`SVGLibrary`)
 - Principio **Single Source of Truth (SSoT)**: cada SVG es autosuficiente
-- Incluyen metadatos embebidos: NSM, conceptos semánticos, VCSCI, accesibilidad
+- Incluyen metadatos embebidos: NSM, conceptos semánticos, ICAP, accesibilidad
 - Referencia al RowData original mediante `sourceRowId` (relación 1:1)
 - Cumplen con el estándar [mf-svg-schema](https://github.com/mediafranca/mf-svg-schema)
 
 Esta arquitectura permite:
 
 - Mantener bitmaps para iteración rápida del pipeline generativo
-- Generar SVGs solo para pictogramas de alta calidad (VCSCI ≥ 4.0)
+- Generar SVGs solo para pictogramas de alta calidad (ICAP ≥ 4.0)
 - Exportar SVGs como artefactos independientes con toda su semántica embebida
 - Interoperar con otras herramientas que consuman mf-svg-schema
 
@@ -75,11 +75,11 @@ Cada bloque tiene su propio botón de regeneración, permitiéndote:
 - Regenerar solo una fase específica
 - Experimentar con diferentes configuraciones
 
-La **evaluación VCSCI** (cuarto bloque) es siempre manual, permitiendo valorar la calidad del pictograma generado según 6 dimensiones.
+La **evaluación ICAP** (cuarto bloque) es siempre manual, permitiendo valorar la calidad del pictograma generado según 6 dimensiones.
 
 ### Generación de Pictogramas Vectoriales (SVG)
 
-Una vez completadas las fases principales y la evaluación VCSCI, los pictogramas con calificación **≥ 4.0** pueden convertirse a formato vectorial estructurado:
+Una vez completadas las fases principales y la evaluación ICAP, los pictogramas con calificación **≥ 4.0** pueden convertirse a formato vectorial estructurado:
 
 #### Proceso de Vectorización en Dos Etapas
 
@@ -90,7 +90,7 @@ Una vez completadas las fases principales y la evaluación VCSCI, los pictograma
 
 2. **Format (Estructurar)**: Transforma el SVG crudo en un SVG semántico usando Gemini Pro
    - Agrupa elementos según roles semánticos (Agent, Patient, Theme, Action)
-   - Embebe metadatos completos: NSM primes, conceptos, accesibilidad, VCSCI
+   - Embebe metadatos completos: NSM primes, conceptos, accesibilidad, ICAP
    - Aplica el esquema [mf-svg-schema](https://github.com/mediafranca/mf-svg-schema) para máxima interoperabilidad
    - Genera estilos CSS configurables y clases reutilizables
 
@@ -109,7 +109,7 @@ Los SVGs generados son **autocontenidos** e incluyen toda la información semán
 - Los SVGs descargados son **autocontenidos** e incluyen:
   - Metadatos semánticos (NSM, conceptos, roles)
   - Información de accesibilidad (ARIA labels, descriptions)
-  - Datos de evaluación VCSCI
+  - Datos de evaluación ICAP
   - Información de proveniencia (generador, fecha, licencia)
   - Estilos CSS embebidos y configurables
 
@@ -133,7 +133,7 @@ El proyecto se apoya en dos pilares conceptuales:
 **Natural Semantic Metalanguage (NSM)**
 Un enfoque lingüístico desarrollado por Anna Wierzbicka y Cliff Goddard que identifica 65 conceptos semánticos universales presentes en todas las lenguas humanas. Estos primitivos semánticos permiten descomponer el significado de cualquier enunciado en sus elementos más básicos, facilitando una representación visual culturalmente neutra.
 
-**Visual Communication Semiotic Construction Index (VCSCI)**
+**Visual Communication Semiotic Construction Index (ICAP)**
 Un marco de evaluación multidimensional que mide la calidad de los pictogramas según seis ejes:
 - **Semantics**: Precisión del significado
 - **Syntactics**: Composición visual
@@ -147,9 +147,9 @@ Un marco de evaluación multidimensional que mide la calidad de los pictogramas 
 PICTOS implementa una **arquitectura de grafo semántico** donde cada nodo representa un utterance (intención comunicativa) y sus transformaciones sucesivas:
 
 ```
-Utterance → Análisis NSM → Blueprint Visual → Imagen PNG → Evaluación VCSCI
+Utterance → Análisis NSM → Blueprint Visual → Imagen PNG → Evaluación ICAP
                                                       ↓
-                                          [Si VCSCI ≥ 4.0]
+                                          [Si ICAP ≥ 4.0]
                                                       ↓
                                     Vectorización (vtracer) → SVG crudo
                                                       ↓
@@ -179,7 +179,7 @@ El proyecto nace de una convicción: **la comunicación visual debe ser universa
 PICTOS utiliza modelos de lenguaje e imagen de última generación (Google Gemini 3 Pro) no como un fin en sí mismo, sino como **instrumentos para explorar la relación entre lenguaje y representación visual**. La herramienta es un laboratorio donde investigadores, lingüistas y diseñadores pueden experimentar con diferentes estrategias de visualización.
 
 
-## El Vocabulario Base VCSCI
+## El Vocabulario Base ICAP
 
 El proyecto incluye un módulo de investigación con **20 frases de intenciones comunicativas básicas**, cuidadosamente seleccionadas para representar necesidades fundamentales en situaciones cotidianas:
 
@@ -208,7 +208,7 @@ Crear materiales visuales personalizados adaptados a las necesidades específica
 
 ### Evaluación de Pictogramas Existentes
 
-Usar los criterios VCSCI para analizar y mejorar pictogramas de bibliotecas existentes (ARASAAC, Mulberry, etc.). Comparar pictogramas generados automáticamente con estándares establecidos.
+Usar los criterios ICAP para analizar y mejorar pictogramas de bibliotecas existentes (ARASAAC, Mulberry, etc.). Comparar pictogramas generados automáticamente con estándares establecidos.
 
 ### Desarrollo de Corpus Visuales
 
@@ -246,7 +246,7 @@ PICTOS integra esquemas de investigación como **git submodules**, permitiendo v
 
 - **[NLU Schema](https://github.com/mediafranca/nlu-schema)** - Esquema MediaFranca para análisis lingüístico profundo basado en NSM (Natural Semantic Metalanguage). Define la estructura para la fase "Comprender".
 
-- **[VCSCI](https://github.com/mediafranca/VCSCI)** - Visual Communication Semiotic Construction Index. Marco de evaluación multidimensional para pictogramas (6 métricas: Semantics, Syntactics, Pragmatics, Clarity, Universality, Aesthetics). Usado en la fase "Evaluar".
+- **[ICAP](https://github.com/mediafranca/ICAP)** - Visual Communication Semiotic Construction Index. Marco de evaluación multidimensional para pictogramas (6 métricas: Semantics, Syntactics, Pragmatics, Clarity, Universality, Aesthetics). Usado en la fase "Evaluar".
 
 - **[MF-SVG Schema](https://github.com/mediafranca/mf-svg-schema)** - Esquema para pictogramas vectoriales estructurados. Define la composición jerárquica de elementos visuales y su articulación espacial. Fundamento para la futura fase "Componer SVG".
 
@@ -267,7 +267,7 @@ Si usas PICTOS en tu investigación, considera citarlo como:
 
 ```
 PICTOS.NET (2025). Pictogramas Generativos para la Accesibilidad Cognitiva.
-Sistema de generación automática basado en NSM y evaluación VCSCI.
+Sistema de generación automática basado en NSM y evaluación ICAP.
 Disponible en: https://pictos.net
 ```
 
@@ -277,39 +277,42 @@ Disponible en: https://pictos.net
 
 ### v2.8 (Actual - SVG Generation)
 
-- ✅ Generación de pictogramas vectoriales (SVG)
-- ✅ Pipeline de vectorización en dos etapas: Trace + Format
-- ✅ Integración con vtracer (WASM) para conversión bitmap→SVG
-- ✅ Estructuración semántica con Gemini Pro según mf-svg-schema
-- ✅ Biblioteca SVG independiente con almacenamiento SSoT
-- ✅ Sistema de estilos CSS configurable para SVGs
-- ✅ Metadatos embebidos: NSM, conceptos, VCSCI, accesibilidad
-- ✅ Exportación e importación de SVGs individuales
-- ✅ Filtro de elegibilidad VCSCI ≥ 4.0 para generación SVG
+- Generación de pictogramas vectoriales (SVG)
+- Pipeline de vectorización en dos etapas: Trace + Format
+- Integración con vtracer (WASM) para conversión bitmap→SVG
+- Estructuración semántica con Gemini Pro según mf-svg-schema
+- Biblioteca SVG independiente con almacenamiento SSoT
+- Sistema de estilos CSS configurable para SVGs
+- Metadatos embebidos: NSM, conceptos, ICAP, accesibilidad
+- Exportación e importación de SVGs individuales
+- Filtro de elegibilidad ICAP ≥ 4.0 para generación SVG
 
 ### v2.7
 
-- ✅ Integración de esquemas de investigación como git submodules
-- ✅ Documentación completa de workflow con submodules
-- ✅ Mejoras en sistema de ayuda de evaluación VCSCI
-- ✅ Enlaces corregidos a repositorios externos
+- Integración de esquemas de investigación como git submodules
+- Documentación completa de workflow con submodules
+- Mejoras en sistema de ayuda de evaluación ICAP
+- Enlaces corregidos a repositorios externos
 
 ### v2.6
 
-- ✅ Pipeline completo: Understand → Compose → Produce → Evaluate
-- ✅ Interfaz bilingüe (ES/EN)
-- ✅ Evaluación VCSCI integrada
-- ✅ Exportación con imágenes embebidas
+- Pipeline completo: Understand → Compose → Produce → Evaluate
+- Interfaz bilingüe (ES/EN)
+- Evaluación ICAP integrada
+- Exportación con imágenes embebidas
 
 ### Próximas Versiones
 
-- 🔄 Soporte para más idiomas (FR, PT, CA)
-- 🔄 Integración con bibliotecas de pictogramas existentes (ARASAAC, Mulberry)
-- 🔄 Editor visual de SVG con manipulación directa de grupos semánticos
-- 🔄 Exportación masiva de SVGs como dataset
-- 🔄 Animaciones SVG basadas en roles semánticos
-- 🔄 Colaboración multi-usuario en tiempo real
-- 🔄 API pública para integración con otros sistemas
+- Control fino de estilos a partir de corpus
+- Control fino de interpretación semántica
+- Control de layout
+- Comprender cómo almacenar las metáforas o "blends" visuales de acuerdo a cada contexto
+- Implementar una partida rápida a partir de referentes personalziados
+- Editor visual de SVG con manipulación directa de grupos semánticos
+- Exportación masiva de SVGs como dataset
+- Animaciones SVG basadas en roles semánticos
+- Colaboración multi-usuario en tiempo real
+- API pública para integración con otros sistemas
 
 ---
 
@@ -319,7 +322,7 @@ PICTOS es un proyecto abierto que invita a:
 
 - **Lingüistas** a refinar el análisis NSM
 - **Diseñadores** a mejorar la composición visual
-- **Investigadores** a validar los criterios VCSCI
+- **Investigadores** a validar los criterios ICAP
 - **Desarrolladores** a extender las funcionalidades
 - **Usuarios finales** a reportar necesidades reales
 
@@ -343,7 +346,7 @@ Para preguntas, sugerencias o colaboraciones:
 - Abre un issue en GitHub
 - Reporta bugs en el repositorio
 - Propone nuevas funcionalidades mediante Pull Requests
-- Esta aplicación es el sitio de investigación doctoral de [Herbert Spencer](https://herbertspencer.net).
+- Esta aplicación es el sitio de investigación doctoral de [Herbert Spencer](https://herbertspencer.net). Me puedes escribir directamente.
 
 ---
 

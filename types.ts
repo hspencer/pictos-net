@@ -58,8 +58,8 @@ export interface VisualElement {
   children?: VisualElement[];
 }
 
-// VCSCI Hexagonal Dimensions (Manual Input - Likert 1-5)
-// Aligned with official VCSCI schema (mediafranca/VCSCI)
+// ICAP Hexagonal Dimensions (Manual Input - Likert 1-5)
+// Aligned with official ICAP schema (mediafranca/ICAP)
 export interface EvaluationMetrics {
   clarity: number;
   recognizability: number;
@@ -84,6 +84,8 @@ export interface RowData {
 
   // Phase 3: "Producir" (Produce) - Bitmap Generation + Evaluation
   bitmap?: string; // Base64 data URL
+  rawSvg?: string; // Vectorized SVG from vtracer (raw)
+  structuredSvg?: string; // mf-svg-schema compliant SVG (Gemini-processed)
   evaluation?: EvaluationMetrics; // Manual Evaluation (part of Producir phase)
 
   // Global Pipeline Status

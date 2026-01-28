@@ -14,9 +14,10 @@ interface SVGGeneratorProps {
     row: RowData;
     config: GlobalConfig;
     onLog: (type: 'info' | 'error' | 'success', message: string) => void;
+    onUpdate: (updates: Partial<RowData>) => void;
 }
 
-export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog }) => {
+export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, onUpdate }) => {
     const { t } = useTranslation();
     const { addSVG, getSVGByRowId, downloadSVG } = useSVGLibrary();
     const [status, setStatus] = useState<'idle' | 'vectorizing' | 'traced' | 'structuring' | 'completed' | 'error'>('idle');
@@ -25,7 +26,7 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog }
     const [processStartTime, setProcessStartTime] = useState<number | null>(null);
     const [elapsedTime, setElapsedTime] = useState(0);
     const [subStatus, setSubStatus] = useState<string>('');
-    const [rawSvg, setRawSvg] = useState<string | null>(null); // Store raw vtracer output
+    const [rawSvg, setRawSvg] = useState<string | null>(row.rawSvg || null); // Load from row or null
 
     // Check if SVG already exists in library
     const existingSVG = getSVGByRowId(row.id);
@@ -255,6 +256,14 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog }
         }
     }, [existingSVG, row.id]);
 
+    // Sync rawSvg state when row changes
+    useEffect(() => {
+        if (row.rawSvg && !rawSvg) {
+            setRawSvg(row.rawSvg);
+            setStatus('traced');
+        }
+    }, [row.id, row.rawSvg]);
+
     const handleTrace = async () => {
         if (!eligibility.eligible || !row.bitmap) return;
 
@@ -281,8 +290,9 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog }
             const vEnd = performance.now();
             onLog('success', `Vectorización completada en ${((vEnd - vStart) / 1000).toFixed(2)}s`);
 
-            // Store raw SVG and show it
+            // Store raw SVG in local state and persist to row
             setRawSvg(tracedSvg);
+            onUpdate({ rawSvg: tracedSvg });
             setStatus('traced');
             setProcessStartTime(null);
             setElapsedTime(0);
@@ -342,22 +352,25 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog }
             }
             onLog('success', `Estructuración completada en ${((sEnd - sStart) / 1000).toFixed(2)}s`);
 
-            // Step 3: Save to library
+            // Step 3: Save to library and persist to row
             addSVG({
                 id: row.id, // Use row ID as SVG ID to maintain 1:1 relationship
                 utterance: row.UTTERANCE,
                 svg: result.svg,
                 createdAt: new Date().toISOString(),
                 sourceRowId: row.id,
-                vcsciScore: row.evaluation ?
+                icapScore: row.evaluation ?
                     (row.evaluation.clarity + row.evaluation.recognizability + row.evaluation.semantic_transparency +
                         row.evaluation.pragmatic_fit + row.evaluation.cultural_adequacy + row.evaluation.cognitive_accessibility) / 6
                     : 0,
                 lang: nluData.lang
             });
 
+            // Persist structured SVG to row
+            onUpdate({ structuredSvg: result.svg });
+
             setStatus('completed');
-            setRawSvg(null); // Clear raw SVG
+            setRawSvg(null); // Clear local raw SVG state
             const totalTime = ((performance.now() - startTime) / 1000).toFixed(2);
             onLog('success', `Proceso SVG finalizado. Tiempo total: ${totalTime}s`);
 

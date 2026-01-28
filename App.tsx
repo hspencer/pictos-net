@@ -8,29 +8,32 @@ import {
 } from 'lucide-react';
 import { RowData, LogEntry, StepStatus, NLUData, GlobalConfig, VOCAB, VisualElement, EvaluationMetrics, NLUFrameRole } from './types';
 import * as Gemini from './services/geminiService';
-import { VCSCI_MODULE } from './data/canonicalData';
+import { fetchICAPModule, ICAP_MODULE_FALLBACK } from './data/canonicalData';
 import { useTranslation } from './hooks/useTranslation';
 import type { Locale } from './locales';
 import { SVGGenerator } from './components/SVGGenerator';
+import { SVGThumbnail } from './components/SVGThumbnail';
 import useSVGLibrary from './hooks/useSVGLibrary';
 import { StyleEditor } from './components/PictoForge/StyleEditor';
+import { structureSVG } from './services/svgStructureService';
+import { vectorizeBitmap } from './services/vtracerService';
 
 const STORAGE_KEY = 'pictonet_v19_storage';
 const CONFIG_KEY = 'pictonet_v19_config';
-const APP_VERSION = '2.8.1';
+const APP_VERSION = '2.9.0';
 
-const PipelineIcon = ({ size = 24 }: { size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z" />
-    <circle cx="12" cy="12" r="3" />
+const LogoIcon = ({ size = 32 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 45.9 45.9" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path fill="#3c0877" d="M23.5,2.8c-8.6,0-15.6,7-15.6,15.6v19.7c0,2.9,2.3,5.2,5.2,5.2s5.2-2.3,5.2-5.2v-6c1.6.6,3.4.9,5.2.9,8.6,0,15.6-6,15.6-14.6s-7-15.6-15.6-15.6ZM23.5,25c-7,0-10-7-10-7,0,0,3-7,10-7s10,7,10,7c0,0-3,7-10,7Z"/>
+    <circle fill="#3c0877" cx="23.5" cy="18" r="3"/>
   </svg>
 );
 
 // Helper function to get evaluation score total and color
 const getEvaluationScore = (metrics: EvaluationMetrics | undefined): { total: number; average: number; color: string } => {
   if (!metrics) return { total: 0, average: 0, color: '#64748b' };
-  const { semantics, syntactics, pragmatics, clarity, universality, aesthetics } = metrics;
-  const total = semantics + syntactics + pragmatics + clarity + universality + aesthetics;
+  const { clarity, recognizability, semantic_transparency, pragmatic_fit, cultural_adequacy, cognitive_accessibility } = metrics;
+  const total = clarity + recognizability + semantic_transparency + pragmatic_fit + cultural_adequacy + cognitive_accessibility;
   const average = total / 6;
 
   // Color mapping based on average score (1-5 scale)
@@ -49,7 +52,7 @@ const HexagonChart: React.FC<{ metrics: EvaluationMetrics; size?: number }> = ({
   const center = size / 2;
   const radius = size * 0.40;
 
-  // Aligned with official VCSCI schema (mediafranca/VCSCI)
+  // Aligned with official ICAP schema (mediafranca/ICAP)
   // Order: Clarity, Recognizability, Semantic Transparency, Pragmatic Fit, Cultural Adequacy, Cognitive Accessibility
   const axes = ['clarity', 'recognizability', 'semantic_transparency', 'pragmatic_fit', 'cultural_adequacy', 'cognitive_accessibility'];
   const labels = ['CLA', 'REC', 'SEM', 'PRA', 'CUL', 'COG'];
@@ -118,7 +121,7 @@ const HexagonChart: React.FC<{ metrics: EvaluationMetrics; size?: number }> = ({
       </svg>
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
         <div className="text-center">
-          <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">VCSCI</div>
+          <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">ICAP</div>
           <div className="text-2xl font-bold text-violet-950 leading-none">{average}</div>
         </div>
       </div>
@@ -127,8 +130,8 @@ const HexagonChart: React.FC<{ metrics: EvaluationMetrics; size?: number }> = ({
 };
 
 // --- Evaluation Editor Component (Likert 1-5) ---
-// VCSCI Help Modal Component
-const VCSCIHelpModal: React.FC<{
+// ICAP Help Modal Component
+const ICAPHelpModal: React.FC<{
   dimension: string;
   onClose: () => void;
 }> = ({ dimension, onClose }) => {
@@ -138,14 +141,18 @@ const VCSCIHelpModal: React.FC<{
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    // Load from local submodule copy (schemas/VCSCI)
-    fetch('/schemas/VCSCI/data/rubric-scale-descriptions.json')
-      .then(res => res.json())
+    // Load from remote ICAP repository (GitHub Pages)
+    fetch('https://mediafranca.github.io/ICAP/data/rubric-scale-descriptions.json')
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to fetch');
+        return res.json();
+      })
       .then(data => {
         setRubricData(data);
         setLoading(false);
       })
-      .catch(() => {
+      .catch((err) => {
+        console.error('Error loading ICAP rubric:', err);
         setError(true);
         setLoading(false);
       });
@@ -216,13 +223,13 @@ const VCSCIHelpModal: React.FC<{
         {/* Footer */}
         <div className="bg-slate-50 px-6 py-4 border-t flex justify-between items-center">
           <a
-            href="https://mediafranca.github.io/VCSCI/examples/hexagonal-rating-with-descriptions.html"
+            href="https://mediafranca.github.io/ICAP/examples/hexagonal-rating-with-descriptions.html"
             target="_blank"
             rel="noopener noreferrer"
             className="text-xs text-violet-600 hover:text-violet-800 transition-colors flex items-center gap-1"
           >
             <ExternalLink size={12} />
-            Ver guía completa VCSCI
+            Ver guía completa ICAP
           </a>
           <button onClick={onClose} className="px-4 py-2 bg-violet-600 text-white rounded-md hover:bg-violet-700 transition-colors text-sm font-medium">
             {t('actions.cancel')}
@@ -256,14 +263,14 @@ const EvaluationEditor: React.FC<{
     onUpdate({ ...current, [key]: value });
   };
 
-  // Aligned with official VCSCI schema (mediafranca/VCSCI)
+  // Aligned with official ICAP schema (mediafranca/ICAP)
   const axes = [
-    { key: 'clarity', label: t('evaluation.clarity'), desc: t('vcsci.descriptions.clarity'), vcsciKey: 'clarity' },
-    { key: 'recognizability', label: t('evaluation.recognizability'), desc: t('vcsci.descriptions.recognizability'), vcsciKey: 'recognizability' },
-    { key: 'semantic_transparency', label: t('evaluation.semantic_transparency'), desc: t('vcsci.descriptions.semantic_transparency'), vcsciKey: 'semantic_transparency' },
-    { key: 'pragmatic_fit', label: t('evaluation.pragmatic_fit'), desc: t('vcsci.descriptions.pragmatic_fit'), vcsciKey: 'pragmatic_fit' },
-    { key: 'cultural_adequacy', label: t('evaluation.cultural_adequacy'), desc: t('vcsci.descriptions.cultural_adequacy'), vcsciKey: 'cultural_adequacy' },
-    { key: 'cognitive_accessibility', label: t('evaluation.cognitive_accessibility'), desc: t('vcsci.descriptions.cognitive_accessibility'), vcsciKey: 'cognitive_accessibility' }
+    { key: 'clarity', label: t('evaluation.clarity'), desc: t('icap.descriptions.clarity'), icapKey: 'clarity' },
+    { key: 'recognizability', label: t('evaluation.recognizability'), desc: t('icap.descriptions.recognizability'), icapKey: 'recognizability' },
+    { key: 'semantic_transparency', label: t('evaluation.semantic_transparency'), desc: t('icap.descriptions.semantic_transparency'), icapKey: 'semantic_transparency' },
+    { key: 'pragmatic_fit', label: t('evaluation.pragmatic_fit'), desc: t('icap.descriptions.pragmatic_fit'), icapKey: 'pragmatic_fit' },
+    { key: 'cultural_adequacy', label: t('evaluation.cultural_adequacy'), desc: t('icap.descriptions.cultural_adequacy'), icapKey: 'cultural_adequacy' },
+    { key: 'cognitive_accessibility', label: t('evaluation.cognitive_accessibility'), desc: t('icap.descriptions.cognitive_accessibility'), icapKey: 'cognitive_accessibility' }
   ];
 
   if (compact) {
@@ -283,7 +290,7 @@ const EvaluationEditor: React.FC<{
                 <div className="flex items-center gap-1">
                   <span className="text-[10px] font-bold uppercase text-slate-600 tracking-wider">{axis.label}</span>
                   <button
-                    onClick={() => setHelpDimension(axis.vcsciKey)}
+                    onClick={() => setHelpDimension(axis.icapKey)}
                     className="text-violet-400 hover:text-violet-600 transition-colors"
                     title={t('evaluation.helpTitle', { dimension: axis.label })}
                   >
@@ -322,7 +329,7 @@ const EvaluationEditor: React.FC<{
         </div>
 
         {/* Help Modal */}
-        {helpDimension && <VCSCIHelpModal dimension={helpDimension} onClose={() => setHelpDimension(null)} />}
+        {helpDimension && <ICAPHelpModal dimension={helpDimension} onClose={() => setHelpDimension(null)} />}
       </div>
     );
   }
@@ -344,7 +351,7 @@ const EvaluationEditor: React.FC<{
                 <div className="flex items-center gap-1">
                   <span className="text-[10px] font-bold uppercase text-slate-600 tracking-wider">{axis.label}</span>
                   <button
-                    onClick={() => setHelpDimension(axis.vcsciKey)}
+                    onClick={() => setHelpDimension(axis.icapKey)}
                     className="text-violet-400 hover:text-violet-600 transition-colors"
                     title={t('evaluation.helpTitle', { dimension: axis.label })}
                   >
@@ -385,7 +392,7 @@ const EvaluationEditor: React.FC<{
       </div>
 
       {/* Help Modal */}
-      {helpDimension && <VCSCIHelpModal dimension={helpDimension} onClose={() => setHelpDimension(null)} />}
+      {helpDimension && <ICAPHelpModal dimension={helpDimension} onClose={() => setHelpDimension(null)} />}
     </div>
   );
 };
@@ -655,13 +662,25 @@ const App: React.FC = () => {
     }
   };
 
-  const loadVCSCIModule = () => {
+  const loadICAPModule = async () => {
     if (rows.length > 0) {
-      const confirmed = window.confirm(t('home.loadVCSCIWarning', { count: rows.length }));
+      const confirmed = window.confirm(t('home.loadICAPWarning', { count: rows.length }));
       if (!confirmed) return;
     }
-    setRows(VCSCI_MODULE.data as RowData[]);
-    setViewMode('list');
+
+    try {
+      addLog('info', 'Cargando frases ICAP desde repositorio remoto...');
+      const module = await fetchICAPModule();
+      addLog('success', `Módulo ICAP ${module.version} cargado: ${module.data.length} frases`);
+      setRows(module.data as RowData[]);
+      setViewMode('list');
+    } catch (error) {
+      addLog('error', 'Error al cargar módulo ICAP remoto, usando fallback local');
+      console.error('ICAP fetch error:', error);
+      // Fallback to local static module
+      setRows(ICAP_MODULE_FALLBACK.data as RowData[]);
+      setViewMode('list');
+    }
   };
 
   const updateRow = (index: number, updates: Partial<RowData>) => {
@@ -797,7 +816,7 @@ const App: React.FC = () => {
 
       const totalTime = (finalUpdates.nluDuration || 0) + (finalUpdates.visualDuration || 0) + (finalUpdates.bitmapDuration || 0);
       addLog('success', `✓ [CASCADA] Pipeline completo en ${totalTime.toFixed(1)}s total para "${row.UTTERANCE}"`);
-      addLog('info', `→ Pictograma listo para evaluación VCSCI`);
+      addLog('info', `→ Pictograma listo para evaluación ICAP`);
 
     } catch (err: any) {
       let stepFailed: 'nlu' | 'visual' | 'bitmap' = 'nlu';
@@ -821,8 +840,8 @@ const App: React.FC = () => {
 
   const getRowEvaluationTotal = (row: RowData): number => {
     if (!row.evaluation) return 0;
-    const { semantics, syntactics, pragmatics, clarity, universality, aesthetics } = row.evaluation;
-    return semantics + syntactics + pragmatics + clarity + universality + aesthetics;
+    const { clarity, recognizability, semantic_transparency, pragmatic_fit, cultural_adequacy, cognitive_accessibility } = row.evaluation;
+    return clarity + recognizability + semantic_transparency + pragmatic_fit + cultural_adequacy + cognitive_accessibility;
   };
 
   const filteredRows = useMemo(() => {
@@ -857,7 +876,7 @@ const App: React.FC = () => {
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <header className="h-20 bg-white border-b border-slate-200 sticky top-0 z-50 flex items-center px-8 justify-between shadow-sm">
         <div className="flex items-center gap-4 cursor-pointer" onClick={() => setViewMode('home')}>
-          <div className="bg-violet-950 p-2.5 text-white"><PipelineIcon size={24} /></div>
+          <div className="p-1.5"><LogoIcon size={40} /></div>
           <div>
             <h1 className="font-bold uppercase tracking-tight text-xl text-slate-900 leading-none">{config.author}</h1>
             <span id="tagline" className="text-[9px] text-slate-400 font-mono tracking-widest uppercase">v{APP_VERSION} {t('header.subtitle')}</span>
@@ -1078,23 +1097,23 @@ const App: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
-              <div onClick={loadVCSCIModule} className="bg-white p-12 border border-slate-200 text-left space-y-6 shadow-xl hover:border-violet-950 transition-all cursor-pointer group hover:-translate-y-1 relative overflow-hidden">
-                <div className="absolute top-0 right-0 bg-emerald-100 text-emerald-800 text-[9px] font-bold px-2 py-1 uppercase tracking-widest">{VCSCI_MODULE.version}</div>
+              <div onClick={loadICAPModule} className="bg-white p-12 border border-slate-200 text-left space-y-6 shadow-xl hover:border-violet-950 transition-all cursor-pointer group hover:-translate-y-1 relative overflow-hidden">
+                <div className="absolute top-0 right-0 bg-emerald-100 text-emerald-800 text-[9px] font-bold px-2 py-1 uppercase tracking-widest">ICAP-50</div>
                 <div className="text-emerald-600 group-hover:scale-110 transition-transform"><BookOpen size={40} /></div>
                 <div>
-                  <h3 className="font-bold text-xl uppercase tracking-wider text-slate-900">{t('home.vcsciModule')}</h3>
-                  <div className="text-[10px] text-slate-400 font-mono mt-1">{t('home.vcsciNamespace')}</div>
+                  <h3 className="font-bold text-xl uppercase tracking-wider text-slate-900">{t('home.icapModule')}</h3>
+                  <div className="text-[10px] text-slate-400 font-mono mt-1">{t('home.icapNamespace')}</div>
                 </div>
-                <p className="text-xs text-slate-500 leading-relaxed font-medium">{t('home.vcsciDescription')}</p>
+                <p className="text-xs text-slate-500 leading-relaxed font-medium">{t('home.icapDescription')}</p>
                 <a
-                  href="https://github.com/mediafranca/VCSCI"
+                  href="https://github.com/mediafranca/ICAP"
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={(e) => e.stopPropagation()}
                   className="inline-flex items-center gap-1 text-[10px] text-emerald-600 hover:text-emerald-800 font-medium uppercase tracking-wider transition-colors"
                 >
                   <ExternalLink size={12} />
-                  {t('home.vcsciRepository')}
+                  {t('home.icapRepository')}
                 </a>
               </div>
 
@@ -1136,6 +1155,8 @@ const App: React.FC = () => {
                   onCascade={() => processCascade(globalIndex)}
                   onDelete={() => setRows(prev => prev.filter(r => r.id !== row.id))}
                   onFocus={step => setFocusMode({ step, rowId: row.id })}
+                  onLog={addLog}
+                  config={config}
                 />
               );
             })}
@@ -1186,8 +1207,115 @@ const RowComponent: React.FC<{
   onUpdate: (u: any) => void; onProcess: (s: any) => Promise<boolean>;
   onStop: () => void; onCascade: () => void; onDelete: () => void;
   onFocus: (step: 'nlu' | 'visual' | 'bitmap' | 'eval') => void;
-}> = ({ row, isOpen, setIsOpen, onUpdate, onProcess, onStop, onCascade, onDelete, onFocus }) => {
+  onLog: (type: 'info' | 'error' | 'success', message: string) => void;
+  config: GlobalConfig;
+}> = ({ row, isOpen, setIsOpen, onUpdate, onProcess, onStop, onCascade, onDelete, onFocus, onLog, config }) => {
   const { t } = useTranslation();
+  const { addSVG } = useSVGLibrary();
+  const [svgProcessingStatus, setSvgProcessingStatus] = React.useState<string>('');
+  const [isProcessingSvg, setIsProcessingSvg] = React.useState(false);
+
+  const handleRetraceSVG = async () => {
+    if (!row.bitmap) return;
+
+    setIsProcessingSvg(true);
+    setSvgProcessingStatus('Vectorizando bitmap...');
+
+    try {
+      onLog('info', `Re-trazando SVG desde bitmap para: ${row.UTTERANCE}`);
+
+      const tracedSvg = await vectorizeBitmap(
+        row.bitmap.replace(/^data:image\/\w+;base64,/, ""),
+        {},
+        (progress) => {
+          setSvgProcessingStatus(`Vectorizando: ${progress}%`);
+        }
+      );
+
+      // Update raw SVG
+      onUpdate({ rawSvg: tracedSvg });
+
+      onLog('success', `SVG re-trazado correctamente`);
+      setSvgProcessingStatus('');
+      setIsProcessingSvg(false);
+
+    } catch (err) {
+      console.error(err);
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      onLog('error', `Error al re-trazar SVG: ${msg}`);
+      setSvgProcessingStatus('');
+      setIsProcessingSvg(false);
+    }
+  };
+
+  const handleProcessRawSVG = async () => {
+    if (!row.rawSvg || !row.NLU || !row.bitmap) return;
+
+    setIsProcessingSvg(true);
+    setSvgProcessingStatus('Preparando prompt semántico...');
+
+    try {
+      await new Promise(r => setTimeout(r, 600)); // UX delay
+
+      const nluData = typeof row.NLU === 'object' ? row.NLU as NLUData : undefined;
+      if (!nluData) throw new Error("Invalid NLU data");
+
+      onLog('info', `Estructurando SVG para: ${row.UTTERANCE}`);
+      setSvgProcessingStatus('Enviando a Gemini Pro...');
+
+      const result = await structureSVG({
+        rawSvg: row.rawSvg,
+        bitmap: row.bitmap,
+        nlu: nluData,
+        elements: row.elements || [],
+        evaluation: row.evaluation || {} as EvaluationMetrics,
+        utterance: row.UTTERANCE,
+        config,
+        onProgress: (msg) => onLog('info', msg),
+        onStatus: (s) => {
+          switch (s) {
+            case 'sending': setSvgProcessingStatus('Enviando imagen + SVG...'); break;
+            case 'receiving': setSvgProcessingStatus('Recibiendo estructura...'); break;
+            case 'sanitizing': setSvgProcessingStatus('Aplicando estilos...'); break;
+            default: setSvgProcessingStatus(s);
+          }
+        }
+      });
+
+      if (!result.success || !result.svg) {
+        throw new Error(result.error || "Failed to structure SVG");
+      }
+
+      // Save to library
+      addSVG({
+        id: row.id,
+        utterance: row.UTTERANCE,
+        svg: result.svg,
+        createdAt: new Date().toISOString(),
+        sourceRowId: row.id,
+        icapScore: row.evaluation ?
+          (row.evaluation.clarity + row.evaluation.recognizability + row.evaluation.semantic_transparency +
+            row.evaluation.pragmatic_fit + row.evaluation.cultural_adequacy + row.evaluation.cognitive_accessibility) / 6
+          : 0,
+        lang: nluData.lang
+      });
+
+      // Persist to row
+      onUpdate({ structuredSvg: result.svg });
+
+      onLog('success', `SVG estructurado correctamente`);
+      setSvgProcessingStatus('');
+      setIsProcessingSvg(false);
+
+    } catch (err) {
+      console.error(err);
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      onLog('error', `Error al procesar SVG: ${msg}`);
+      setSvgProcessingStatus('');
+      setIsProcessingSvg(false);
+    }
+  };
+
   return (
     <div className={`border transition-all duration-300 ${isOpen ? 'ring-8 ring-slate-100 border-violet-950 bg-white' : 'hover:border-slate-300 bg-white shadow-sm'}`}>
       <div className="p-6 flex items-center gap-8 group">
@@ -1247,11 +1375,11 @@ const RowComponent: React.FC<{
             <div className="flex flex-col h-full">
               <div className="flex-1 flex flex-col gap-6 overflow-y-auto">
                 <div>
-                  <label className="text-[10px] font-medium uppercase text-slate-400 block mb-2 tracking-widest">Hierarchical Elements</label>
+                  <label className="text-[10px] font-medium uppercase text-slate-400 block mb-2 tracking-widest">{t('editor.hierarchicalElements')}</label>
                   <ElementsEditor elements={row.elements || []} onUpdate={val => onUpdate({ elements: val, bitmapStatus: 'outdated', evalStatus: 'outdated' })} />
                 </div>
                 <div className="flex-1 mt-6 border-t pt-6 border-slate-200 flex flex-col">
-                  <label className="text-[10px] font-medium uppercase text-slate-400 block mb-3 tracking-widest">Spatial Articulation Logic</label>
+                  <label className="text-[10px] font-medium uppercase text-slate-400 block mb-3 tracking-widest">{t('editor.spatialLogic')}</label>
                   <textarea
                     value={row.prompt || ""}
                     onChange={e => onUpdate({ prompt: e.target.value, bitmapStatus: 'outdated', evalStatus: 'outdated' })}
@@ -1280,7 +1408,7 @@ const RowComponent: React.FC<{
                     {row.bitmap ? (
                       <img src={row.bitmap} alt="Generated Pictogram" className="w-full h-full object-contain transition-transform duration-500 group-hover/preview:scale-110" />
                     ) : (
-                      <div className="text-[10px] text-slate-400 uppercase font-medium">No Bitmap Render</div>
+                      <div className="text-[10px] text-slate-400 uppercase font-medium">{t('editor.noBitmapRender')}</div>
                     )}
                     {hasBorder && (
                       <div
@@ -1294,11 +1422,62 @@ const RowComponent: React.FC<{
                 );
               })()}
 
+              {/* SVG Thumbnails Section */}
+              {(row.rawSvg || row.structuredSvg) && (
+                <div className="flex gap-4 items-center justify-center pt-4 border-t border-slate-200">
+                  <label className="text-[10px] font-medium uppercase text-slate-400 tracking-widest mr-2">SVG:</label>
+
+                  {row.rawSvg && (
+                    <SVGThumbnail
+                      svg={row.rawSvg}
+                      type="raw"
+                      utterance={row.UTTERANCE}
+                      isProcessing={isProcessingSvg}
+                      processingStatus={svgProcessingStatus}
+                      aspectRatio={config.aspectRatio}
+                      onDownload={() => {
+                        const blob = new Blob([row.rawSvg!], { type: 'image/svg+xml' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `${row.UTTERANCE.replace(/\s+/g, '_').substring(0, 30)}_raw.svg`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                      }}
+                      onRetrace={handleRetraceSVG}
+                      onProcess={handleProcessRawSVG}
+                    />
+                  )}
+
+                  {row.structuredSvg && (
+                    <SVGThumbnail
+                      svg={row.structuredSvg}
+                      type="structured"
+                      utterance={row.UTTERANCE}
+                      onDownload={() => {
+                        const blob = new Blob([row.structuredSvg!], { type: 'image/svg+xml' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `${row.UTTERANCE.replace(/\s+/g, '_').substring(0, 30)}.svg`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                      }}
+                      onRetrace={handleRetraceSVG}
+                    />
+                  )}
+                </div>
+              )}
+
               {/* Evaluation Section - Integrated within Producir */}
               {row.bitmap && (
                 <div className="mt-4 pt-4 border-t border-slate-200">
                   <div className="flex justify-between items-center mb-3">
-                    <label className="text-[10px] font-medium uppercase text-slate-400 tracking-widest">Evaluación VCSCI</label>
+                    <label className="text-[10px] font-medium uppercase text-slate-400 tracking-widest">Evaluación ICAP</label>
                     <button
                       onClick={() => onFocus('eval')}
                       className="p-1.5 border hover:border-violet-950 text-slate-400 hover:text-violet-950 transition-all rounded-full flex items-center justify-center"
@@ -1370,6 +1549,7 @@ const StepBox: React.FC<{ label: string; status: StepStatus; onRegen: () => void
 };
 
 const SmartNLUEditor: React.FC<{ data: any; onUpdate: (v: any) => void }> = ({ data, onUpdate }) => {
+  const { t } = useTranslation();
   const nlu = useMemo<Partial<NLUData>>(() => {
     if (typeof data === 'string') {
       try { return JSON.parse(data); } catch (e) { return {}; }
@@ -1411,7 +1591,7 @@ const SmartNLUEditor: React.FC<{ data: any; onUpdate: (v: any) => void }> = ({ d
   return (
     <div className="space-y-4">
       <details className="border bg-white p-3 shadow-sm text-[10px]" open>
-        <summary className="nlu-key cursor-pointer uppercase">Metadata Classification</summary>
+        <summary className="nlu-key cursor-pointer uppercase">{t('editor.metadataClassification')}</summary>
         <div className="mt-3 space-y-2 pt-3 border-t">
           <div className="grid grid-cols-3 gap-2 items-center">
             <label className="font-mono text-slate-500 truncate col-span-1">speech_act</label>
@@ -1456,14 +1636,14 @@ const SmartNLUEditor: React.FC<{ data: any; onUpdate: (v: any) => void }> = ({ d
       ))}
 
       <details className="border bg-white p-3 shadow-sm text-[10px]">
-        <summary className="nlu-key cursor-pointer">DETAILED LINGUISTIC ANALYSIS</summary>
+        <summary className="nlu-key cursor-pointer">{t('editor.detailedAnalysis').toUpperCase()}</summary>
         <div className="mt-3 space-y-4 pt-3 border-t">
           <div>
-            <h4 className="nlu-key mb-1">NSM EXPLICATIONS</h4>
+            <h4 className="nlu-key mb-1">{t('editor.nsmExplications').toUpperCase()}</h4>
             {renderEditableDict(nlu.nsm_explications, 'nsm_explications')}
           </div>
           <div>
-            <h4 className="nlu-key mb-1">LOGICAL FORM</h4>
+            <h4 className="nlu-key mb-1">{t('editor.logicalForm').toUpperCase()}</h4>
             {renderEditableDict(nlu.logical_form as unknown as Record<string, string>, 'logical_form')}
           </div>
           <div>
@@ -1477,6 +1657,7 @@ const SmartNLUEditor: React.FC<{ data: any; onUpdate: (v: any) => void }> = ({ d
 };
 
 const ElementsEditor: React.FC<{ elements: VisualElement[]; onUpdate: (v: VisualElement[]) => void; }> = ({ elements, onUpdate }) => {
+  const { t } = useTranslation();
   // Defensive: ensure elements is always an array
   const safeElements = Array.isArray(elements) ? elements : [];
 
@@ -1578,7 +1759,7 @@ const ElementsEditor: React.FC<{ elements: VisualElement[]; onUpdate: (v: Visual
     <div className="border p-4 min-h-[120px] bg-white shadow-inner flex flex-col gap-1">
       {safeElements.map(el => renderElement(el))}
       <button onClick={() => addElement(null)} className="mt-2 pt-2 border-t border-slate-100 text-left text-xs font-bold text-violet-600 hover:text-violet-900 transition-colors w-full flex items-center gap-2">
-        <Plus size={14} /> Add Root Element
+        <Plus size={14} /> {t('editor.addRootElement')}
       </button>
     </div>
   );
@@ -1630,7 +1811,7 @@ const FocusViewModal: React.FC<{
     nlu: t('pipeline.understand'),
     visual: t('pipeline.compose'),
     bitmap: t('pipeline.produce'),
-    eval: t('evaluation.vcsci')
+    eval: t('evaluation.icap')
   };
 
   const renderContent = () => {
@@ -1639,11 +1820,11 @@ const FocusViewModal: React.FC<{
       case 'visual': return (
         <div className="flex flex-col h-full gap-6">
           <div>
-            <label className="text-[10px] font-medium uppercase text-slate-400 block mb-2 tracking-widest">Hierarchical Elements</label>
+            <label className="text-[10px] font-medium uppercase text-slate-400 block mb-2 tracking-widest">{t('editor.hierarchicalElements')}</label>
             <ElementsEditor elements={row.elements || []} onUpdate={val => onUpdate({ elements: val, bitmapStatus: 'outdated', evalStatus: 'outdated' })} />
           </div>
           <div className="flex-1 mt-6 border-t pt-6 border-slate-200">
-            <label className="text-[10px] font-medium uppercase text-slate-400 block mb-3 tracking-widest">Spatial Articulation Logic</label>
+            <label className="text-[10px] font-medium uppercase text-slate-400 block mb-3 tracking-widest">{t('editor.spatialLogic')}</label>
             <textarea
               value={row.prompt || ""} onChange={e => onUpdate({ prompt: e.target.value, bitmapStatus: 'outdated', evalStatus: 'outdated' })}
               className="w-full h-full border-none p-0 text-lg font-light text-slate-700 outline-none focus:ring-0 bg-transparent resize-none leading-relaxed"
@@ -1672,7 +1853,7 @@ const FocusViewModal: React.FC<{
                 {row.bitmap ? (
                   <img src={row.bitmap} alt="Evaluation Context" className="max-w-full max-h-full object-contain shadow-lg" />
                 ) : (
-                  <div className="text-slate-300 font-mono text-xs">No Bitmap Reference</div>
+                  <div className="text-slate-300 font-mono text-xs">{t('editor.noBitmapReference')}</div>
                 )}
               </div>
 
@@ -1680,7 +1861,7 @@ const FocusViewModal: React.FC<{
               <div className="h-1/2 p-6 bg-slate-50">
                 <h3 className="text-[10px] font-bold uppercase text-slate-400 mb-3 tracking-widest">SVG Output (SSoT)</h3>
                 <div className="h-[calc(100%-24px)]">
-                  <SVGGenerator row={row} config={config} onLog={onLog} />
+                  <SVGGenerator row={row} config={config} onLog={onLog} onUpdate={onUpdate} />
                 </div>
               </div>
             </div>

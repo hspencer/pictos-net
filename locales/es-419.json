@@ -38,14 +38,14 @@
   "home": {
     "graphArchitecture": "Arquitectura de Grafo",
     "description": "Sistema generativo de pictogramas paso-a-paso desde la intención comunicativa a la representación visual",
-    "vcsciModule": "Cargar Vocabulario Base",
-    "vcsciNamespace": "mediafranca.graph.dataset",
-    "vcsciDescription": "20 frases de intenciones comunicativas básicas del módulo de investigación VCSCI.",
-    "vcsciRepository": "Ver repositorio",
+    "icapModule": "Cargar Vocabulario Base",
+    "icapNamespace": "mediafranca.graph.dataset",
+    "icapDescription": "50 frases de intenciones comunicativas del corpus de investigación ICAP-50 (8 categorías: Solicitar, Rechazar, Dirigir, Aceptar, Social, Emoción, Comentar, Preguntar).",
+    "icapRepository": "Ver repositorio",
     "importTextNode": "Sube Tus Propias Frases",
     "importNamespace": "vocabulario_personalizado",
     "importDescription": "Define tu propio vocabulario a partir de frases personalizadas. Sube un archivo .txt con una frase por línea.",
-    "loadVCSCIWarning": "Tiene {count} pictograma(s) en su biblioteca. Cargar el dataset VCSCI sobreescribirá su trabajo actual. ¿Desea continuar?",
+    "loadICAPWarning": "Tiene {count} pictograma(s) en su biblioteca. Cargar el dataset ICAP sobreescribirá su trabajo actual. ¿Desea continuar?",
     "aboutProject": "Acerca de este proyecto"
   },
   "pipeline": {
@@ -70,7 +70,7 @@
     "evaluationContext": "Contexto de Evaluación"
   },
   "evaluation": {
-    "vcsci": "Evaluación VCSCI",
+    "icap": "Evaluación ICAP",
     "evaluate": "Evaluar Pictograma",
     "confirm": "Confirmar Evaluación",
     "openEditor": "Abrir Editor de Evaluación",
@@ -83,13 +83,13 @@
     "cognitive_accessibility": "Accesibilidad Cognitiva",
     "reasoning": "Razonamiento",
     "humanReasoning": "Razonamiento Humano",
-    "vcsciLabel": "VCSCI",
+    "icapLabel": "ICAP",
     "helpTitle": "Guía de Evaluación: {dimension}",
     "scaleLevel": "Nivel {level}",
     "loading": "Cargando guía de evaluación...",
     "errorLoading": "No se pudo cargar la guía de evaluación. Por favor verifica tu conexión."
   },
-  "vcsci": {
+  "icap": {
     "descriptions": {
       "clarity": "El grado en que el pictograma es visualmente claro, legible y libre de ambigüedad visual",
       "recognizability": "La facilidad con la que un observador puede identificar lo que representa el pictograma",

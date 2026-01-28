@@ -26,7 +26,7 @@ const SVG_LIBRARY_KEY = 'pictonet_svg_lib';
  *   utterance: 'Quiero agua',
  *   svg: '<svg>...</svg>',
  *   sourceRowId: 'row-123',
- *   vcsciScore: 4.5,
+ *   icapScore: 4.5,
  *   createdAt: new Date().toISOString()
  * });
  * 

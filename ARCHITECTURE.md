@@ -70,7 +70,7 @@ pictos-net/
 │   ├── SVGGenerator.tsx             # SVG generation UI component
 │   └── PictoForge/                  # SVG editing components
 ├── data/
-│   └── canonicalData.ts             # VCSCI core semantic module
+│   └── canonicalData.ts             # ICAP core semantic module
 └── .git/                            # Version control
 ```
 
@@ -118,7 +118,7 @@ pictos-net/
 ```
 Utterance → NLU → Visual Topology → Bitmap → Evaluation
                                         ↓
-                                [VCSCI ≥ 4.0]
+                                [ICAP ≥ 4.0]
                                         ↓
                         Trace (vtracer) → Raw SVG
                                         ↓
@@ -156,7 +156,7 @@ Utterance → NLU → Visual Topology → Bitmap → Evaluation
 #### Stage 4: Evaluation (Manual)
 
 - **Input**: Generated bitmap
-- **Method**: VCSCI metrics (Vocabulary of Core Semantic Communicative Intentions)
+- **Method**: ICAP metrics (Vocabulary of Core Semantic Communicative Intentions)
 - **Output**: Hexagonal evaluation across 6 dimensions (Likert 1-5 scale)
   - **Semantics**: Accuracy of meaning
   - **Syntactics**: Visual composition quality
@@ -172,7 +172,7 @@ Utterance → NLU → Visual Topology → Bitmap → Evaluation
 - Bitmap must exist
 - NLU data must be complete
 - Visual elements must be defined
-- VCSCI average score ≥ 4.0
+- ICAP average score ≥ 4.0
 
 ##### Step 5a: Trace (Vectorization)
 
@@ -191,7 +191,7 @@ Utterance → NLU → Visual Topology → Bitmap → Evaluation
 - **Model**: Gemini 3 Pro
 - **Process**: Transform raw SVG to mf-svg-schema compliant structure
   - Group paths by semantic roles (Agent, Patient, Theme, Action)
-  - Embed metadata: NSM primes, concepts, VCSCI scores
+  - Embed metadata: NSM primes, concepts, ICAP scores
   - Add accessibility attributes (ARIA labels, descriptions)
   - Generate CSS classes and styling system
   - Include provenance data (generator, timestamp, license)
@@ -292,7 +292,7 @@ App (Main Container)
 │
 ├── Main Content
 │   ├── Home View
-│   │   ├── Module Loading (VCSCI core)
+│   │   ├── Module Loading (ICAP core)
 │   │   └── Text Import (batch processing)
 │   │
 │   └── List View
@@ -459,9 +459,9 @@ App (Main Container)
 }
 ```
 
-#### EvaluationMetrics (VCSCI evaluation)
+#### EvaluationMetrics (ICAP evaluation)
 
-Aligned with official VCSCI schema (mediafranca/VCSCI)
+Aligned with official ICAP schema (mediafranca/ICAP)
 
 ```typescript
 {
@@ -484,7 +484,7 @@ Aligned with official VCSCI schema (mediafranca/VCSCI)
   svg: string;                   // Complete mf-svg-schema compliant SVG
   createdAt: string;             // ISO timestamp
   sourceRowId: string;           // Reference to original RowData
-  vcsciScore: number;            // VCSCI average at generation time
+  icapScore: number;            // ICAP average at generation time
   lang?: string;                 // Language of utterance
 }
 ```
@@ -533,16 +533,27 @@ Based on Wierzbicka/Goddard Natural Semantic Metalanguage:
 - **Intensifier**: VERY, MORE
 - **Similarity**: LIKE
 
-### 7.3 VCSCI Core Module
+### 7.3 ICAP-50 Corpus Module
 
-20 core semantic communicative intentions (canonicalData.ts):
+The ICAP-50 corpus contains 50 communicative intent phrases loaded dynamically from the external ICAP repository:
 
-1. **Physiological Needs**: Water, food, bathroom, sleep
-2. **Action Control**: Help, stop, more, finished
-3. **Preferences**: Like/dislike, rejection
-4. **Emotional States**: Pain, happy, sad
-5. **Information Seeking**: What, where questions
-6. **Social Interaction**: Hello, goodbye, thanks, play
+**Source**: `https://mediafranca.github.io/ICAP/frases.json`
+
+**8 Communication Categories** (canonicalData.ts):
+
+1. **Solicitar (Request)**: 6 phrases - Basic needs and requests
+2. **Rechazar (Reject)**: 5 phrases - Refusal and rejection
+3. **Dirigir (Direct)**: 6 phrases - Commands and directions
+4. **Aceptar (Accept)**: 6 phrases - Agreement and acceptance
+5. **Interacción Social (Social)**: 6 phrases - Greetings and social protocols
+6. **Emoción (Emotion)**: 5 phrases - Emotional states
+7. **Comentar (Comment)**: 6 phrases - Observations and commentary
+8. **Preguntar (Question)**: 7 phrases - Information seeking
+
+**Implementation Details**:
+- Primary: Fetched from external endpoint on module load
+- Fallback: Static 20-phrase module for offline usage
+- Format: Each phrase includes ID, category, Spanish text, NSM primitives, semantic roles, and domain classification
 
 ---
 
@@ -604,13 +615,13 @@ Based on Wierzbicka/Goddard Natural Semantic Metalanguage:
 - `rawSvg`: Vectorized SVG from vtracer
 - `nlu`: NLU semantic analysis
 - `elements`: Visual element hierarchy
-- `evaluation`: VCSCI metrics
+- `evaluation`: ICAP metrics
 - `utterance`: Original text
 - `config`: Global configuration with styling
 
 **Processing**:
 
-- Build metadata JSON (NSM, concepts, accessibility, provenance, VCSCI)
+- Build metadata JSON (NSM, concepts, accessibility, provenance, ICAP)
 - Generate dynamic CSS stylesheet from config
 - Create system instruction for Gemini with mf-svg-schema spec
 - Stream response from Gemini 3 Pro
@@ -634,7 +645,7 @@ Based on Wierzbicka/Goddard Natural Semantic Metalanguage:
 - Bitmap must exist
 - NLU must be complete (not string)
 - Visual elements must exist
-- VCSCI average score ≥ 4.0
+- ICAP average score ≥ 4.0
 
 ### 8.4 Service Functions
 
@@ -837,7 +848,7 @@ PICTOS v2.8 implements a **dual storage pattern** that separates bitmap and vect
 #### SVG Library Storage (Quality-Gated Artifacts)
 
 - Contains: Structured SVGs following mf-svg-schema
-- Eligibility: VCSCI ≥ 4.0 only (quality threshold)
+- Eligibility: ICAP ≥ 4.0 only (quality threshold)
 - Principle: Single Source of Truth (SSoT) - each SVG is self-contained
 - Format: JSON array in localStorage (`pictos_svg_library`)
 - Export: Individual SVG files with embedded metadata
@@ -847,7 +858,7 @@ PICTOS v2.8 implements a **dual storage pattern** that separates bitmap and vect
 
 1. **Performance**: Bitmaps for quick iteration; SVGs only for production-ready pictograms
 2. **Independence**: SVGs are portable artifacts that work outside PICTOS
-3. **Semantics**: Full metadata embedded in SVG (NSM, VCSCI, accessibility)
+3. **Semantics**: Full metadata embedded in SVG (NSM, ICAP, accessibility)
 4. **Interoperability**: mf-svg-schema compliance enables external tool integration
 5. **Storage Efficiency**: Generate SVGs selectively rather than storing both formats for all items
 
@@ -871,7 +882,7 @@ Recent commits:
 
 - `ae3a740`: Visual style prompt improvement
 - `de75c2d`: NLUFrameRole type additions
-- `9b29e08`: VCSCI evaluation metrics and UI
+- `9b29e08`: ICAP evaluation metrics and UI
 - `f6ceb92`: NLU primitives refinement
 - `30c4574`: Initial project structure
 
@@ -884,7 +895,7 @@ Recent commits:
 1. **NLP**: Gemini-powered NLU analysis using NSM primitives
 2. **Visual Design**: Hierarchical element composition with spatial articulation
 3. **Image Generation**: Multi-model synthesis (flash/pro)
-4. **User Evaluation**: Manual VCSCI metrics for quality assessment
+4. **User Evaluation**: Manual ICAP metrics for quality assessment
 5. **Accessibility Focus**: Designed for AAC and cognitive accessibility
 
 The architecture emphasizes **semantic consistency** across a 4-stage pipeline, **user control** through an editable workbench, and **research capability** through detailed logging and metrics.

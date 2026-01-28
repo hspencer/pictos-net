@@ -1,10 +1,10 @@
 /**
  * SVG Structure Service - Gemini-powered SVG Restructuring
- * 
- * Takes a raw SVG from vtracer and structures it according to 
- * the mf-svg-schema specification, adding semantic roles, 
- * accessibility metadata, and VCSCI validation data.
- * 
+ *
+ * Takes a raw SVG from vtracer and structures it according to
+ * the mf-svg-schema specification, adding semantic roles,
+ * accessibility metadata, and ICAP validation data.
+ *
  * @module services/svgStructureService
  */
 
@@ -109,7 +109,7 @@ export interface SVGStructureInput {
     nlu: NLUData;
     /** Hierarchical visual elements */
     elements: VisualElement[];
-    /** VCSCI evaluation metrics */
+    /** ICAP evaluation metrics */
     evaluation: EvaluationMetrics;
     /** Original utterance */
     utterance: string;
@@ -245,11 +245,11 @@ function flattenElements(elements: VisualElement[]): VisualElement[] {
 }
 
 /**
- * Calculate VCSCI average score
+ * Calculate ICAP average score
  */
-function calculateVCSCIAverage(eval_: EvaluationMetrics): number {
-    const { semantics, syntactics, pragmatics, clarity, universality, aesthetics } = eval_;
-    return (semantics + syntactics + pragmatics + clarity + universality + aesthetics) / 6;
+function calculateICAPAverage(eval_: EvaluationMetrics): number {
+    const { clarity, recognizability, semantic_transparency, pragmatic_fit, cultural_adequacy, cognitive_accessibility } = eval_;
+    return (clarity + recognizability + semantic_transparency + pragmatic_fit + cultural_adequacy + cognitive_accessibility) / 6;
 }
 
 /**
@@ -258,7 +258,7 @@ function calculateVCSCIAverage(eval_: EvaluationMetrics): number {
 function buildMetadataJSON(input: SVGStructureInput): object {
     const primes = extractNSMPrimes(input.nlu);
     const concepts = buildConceptsArray(input.elements, input.nlu);
-    const vcsciAvg = calculateVCSCIAverage(input.evaluation);
+    const icapAvg = calculateICAPAverage(input.evaluation);
 
     return {
         version: "1.0.0",
@@ -280,12 +280,12 @@ function buildMetadataJSON(input: SVGStructureInput): object {
             sourceDataset: "MediaFranca-PictoNet",
             licence: input.config.license || "CC BY 4.0"
         },
-        vcsci: {
+        icap: {
             validated: true,
             validatedAt: new Date().toISOString(),
             validator: input.config.author || "PictoNet",
             clarityScore: Math.round(input.evaluation.clarity),
-            comments: input.evaluation.reasoning || `VCSCI average: ${vcsciAvg.toFixed(2)}`
+            comments: input.evaluation.reasoning || `ICAP average: ${icapAvg.toFixed(2)}`
         }
     };
 }
@@ -304,7 +304,7 @@ Convert a raw vectorized SVG into a semantically structured SVG following the mf
 1. **Visual Reference (IMAGE)**: The original bitmap pictogram - USE THIS to understand what each part represents
 2. **Geometric Base (TEXT)**: Raw SVG with unstructured <path> elements from vtracer vectorization
 3. **Semantic Context (TEXT)**: Hierarchical visual elements that MUST correspond to visual parts in the image
-4. **Metadata (TEXT)**: NLU analysis, concepts, VCSCI scores
+4. **Metadata (TEXT)**: NLU analysis, concepts, ICAP scores
 
 **CRITICAL VISUAL CORRELATION:**
 Look at the IMAGE and the HIERARCHICAL ELEMENTS together:
@@ -541,7 +541,7 @@ Output ONLY the complete, restructured SVG file - no explanation.`
 
 /**
  * Check if a row has sufficient data for SVG generation
- * Requires: bitmap (for vectorization), NLU, elements, evaluation with VCSCI > 4.3
+ * Requires: bitmap (for vectorization), NLU, elements, evaluation with ICAP >= 4.0
  */
 export function canGenerateSVG(row: {
     bitmap?: string;
@@ -563,16 +563,16 @@ export function canGenerateSVG(row: {
     }
 
     if (!row.evaluation) {
-        return { eligible: false, reason: 'VCSCI evaluation required' };
+        return { eligible: false, reason: 'ICAP evaluation required' };
     }
 
-    const { semantics, syntactics, pragmatics, clarity, universality, aesthetics } = row.evaluation;
-    const average = (semantics + syntactics + pragmatics + clarity + universality + aesthetics) / 6;
+    const { clarity, recognizability, semantic_transparency, pragmatic_fit, cultural_adequacy, cognitive_accessibility } = row.evaluation;
+    const average = (clarity + recognizability + semantic_transparency + pragmatic_fit + cultural_adequacy + cognitive_accessibility) / 6;
 
     if (average < 4.0) {
         return {
             eligible: false,
-            reason: `VCSCI average (${average.toFixed(2)}) must be >= 4.0`
+            reason: `ICAP average (${average.toFixed(2)}) must be >= 4.0`
         };
     }
 

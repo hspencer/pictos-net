@@ -27,8 +27,8 @@ export interface SVGPictogram {
     /** Reference to the original RowData ID */
     sourceRowId: string;
 
-    /** VCSCI average score at generation time */
-    vcsciScore: number;
+    /** ICAP average score at generation time */
+    icapScore: number;
 
     /** Language of the utterance */
     lang?: string;

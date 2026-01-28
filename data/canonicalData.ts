@@ -2,8 +2,9 @@
 import { RowData } from "../types";
 
 // Module Definition: Vocabulary of Core Semantic Communicative Intentions
-// Namespace: mediafranca/vcsci-core
+// Namespace: mediafranca/icap-core
 // Type: Semantic Graph Node (Dataset)
+// Source: https://mediafranca.github.io/ICAP/frases.json
 
 export interface GraphModule {
   id: string;
@@ -13,120 +14,189 @@ export interface GraphModule {
   data: Partial<RowData>[];
 }
 
-export const VCSCI_MODULE: GraphModule = {
-  id: "vcsci-core",
+/**
+ * ICAP Phrase structure from external JSON
+ */
+interface ICAPPhrase {
+  id: string;
+  category: string;
+  phrase_es: string;
+  nsm_primitives: string[];
+  semantic_role: string;
+  domain: string;
+}
+
+/**
+ * ICAP Corpus structure from external JSON
+ */
+interface ICAPCorpus {
+  project: string;
+  corpus_name: string;
+  version: string;
+  description: string;
+  phrases: ICAPPhrase[];
+}
+
+/**
+ * ICAP endpoint URL (GitHub Pages)
+ */
+const ICAP_ENDPOINT = 'https://mediafranca.github.io/ICAP/frases.json';
+
+/**
+ * Fetch ICAP phrases from external endpoint
+ * Returns the full ICAP-50 corpus (50 phrases across 8 categories)
+ */
+export async function fetchICAPModule(): Promise<GraphModule> {
+  try {
+    const response = await fetch(ICAP_ENDPOINT);
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch ICAP module: ${response.status}`);
+    }
+
+    const corpus: ICAPCorpus = await response.json();
+
+    // Transform ICAP phrases to RowData format
+    const data: Partial<RowData>[] = corpus.phrases.map((phrase) => ({
+      id: phrase.id,
+      UTTERANCE: phrase.phrase_es,
+      status: 'idle',
+      nluStatus: 'idle',
+      visualStatus: 'idle',
+      bitmapStatus: 'idle'
+    }));
+
+    return {
+      id: "icap-50",
+      namespace: "mediafranca.graph.dataset",
+      version: corpus.version,
+      description: corpus.description,
+      data
+    };
+  } catch (error) {
+    console.error('Error fetching ICAP module:', error);
+    throw error;
+  }
+}
+
+/**
+ * Legacy fallback: Static ICAP-20 module (for offline usage)
+ * This is kept as a fallback if the external endpoint is unavailable
+ */
+export const ICAP_MODULE_FALLBACK: GraphModule = {
+  id: "icap-core",
   namespace: "mediafranca.graph.dataset",
   version: "1.0.0",
-  description: "Vocabulary of Core Semantic Communicative Intentions (20 functional nodes)",
+  description: "Vocabulary of Core Semantic Communicative Intentions (20 functional nodes - FALLBACK)",
   data: [
     // 1. PETICIONES FISIOLÓGICAS Y BÁSICAS
     {
-      "id": "VCSCI_01",
+      "id": "ICAP_01",
       "UTTERANCE": "Quiero beber agua",
       "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
     },
     {
-      "id": "VCSCI_02",
+      "id": "ICAP_02",
       "UTTERANCE": "Quiero comer algo",
       "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
     },
     {
-      "id": "VCSCI_03",
+      "id": "ICAP_03",
       "UTTERANCE": "Necesito ir al baño",
       "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
     },
     {
-      "id": "VCSCI_04",
+      "id": "ICAP_04",
       "UTTERANCE": "Quiero descansar (dormir)",
       "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
     },
 
     // 2. REGULACIÓN DE LA ACCIÓN (CONTROL)
     {
-      "id": "VCSCI_05",
+      "id": "ICAP_05",
       "UTTERANCE": "Ayúdame, por favor",
       "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
     },
     {
-      "id": "VCSCI_06",
+      "id": "ICAP_06",
       "UTTERANCE": "Para (detente ahora)",
       "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
     },
     {
-      "id": "VCSCI_07",
+      "id": "ICAP_07",
       "UTTERANCE": "Quiero más",
       "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
     },
     {
-      "id": "VCSCI_08",
+      "id": "ICAP_08",
       "UTTERANCE": "Ya he terminado (acabado)",
       "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
     },
 
     // 3. EXPRESIÓN DE PREFERENCIA Y RECHAZO
     {
-      "id": "VCSCI_09",
+      "id": "ICAP_09",
       "UTTERANCE": "Me gusta esto",
       "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
     },
     {
-      "id": "VCSCI_10",
+      "id": "ICAP_10",
       "UTTERANCE": "No me gusta esto",
       "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
     },
     {
-      "id": "VCSCI_11",
+      "id": "ICAP_11",
       "UTTERANCE": "No quiero (rechazo)",
       "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
     },
 
     // 4. ESTADOS FÍSICOS Y EMOCIONALES
     {
-      "id": "VCSCI_12",
+      "id": "ICAP_12",
       "UTTERANCE": "Me duele (tengo dolor)",
       "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
     },
     {
-      "id": "VCSCI_13",
+      "id": "ICAP_13",
       "UTTERANCE": "Estoy feliz",
       "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
     },
     {
-      "id": "VCSCI_14",
+      "id": "ICAP_14",
       "UTTERANCE": "Estoy triste",
       "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
     },
 
     // 5. OBTENCIÓN DE INFORMACIÓN (INTERROGATIVOS)
     {
-      "id": "VCSCI_15",
+      "id": "ICAP_15",
       "UTTERANCE": "¿Qué es eso?",
       "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
     },
     {
-      "id": "VCSCI_16",
+      "id": "ICAP_16",
       "UTTERANCE": "¿Dónde está?",
       "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
     },
 
     // 6. INTERACCIÓN SOCIAL
     {
-      "id": "VCSCI_17",
+      "id": "ICAP_17",
       "UTTERANCE": "Hola (saludo)",
       "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
     },
     {
-      "id": "VCSCI_18",
+      "id": "ICAP_18",
       "UTTERANCE": "Adiós (despedida)",
       "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
     },
     {
-      "id": "VCSCI_19",
+      "id": "ICAP_19",
       "UTTERANCE": "Gracias",
       "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
     },
     {
-      "id": "VCSCI_20",
+      "id": "ICAP_20",
       "UTTERANCE": "Vamos a jugar",
       "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle"
     }
