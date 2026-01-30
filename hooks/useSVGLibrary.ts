@@ -76,13 +76,25 @@ export function useSVGLibrary() {
         }
     }, []);
 
-    // Persist to localStorage whenever svgs change
+    // Persist to localStorage whenever svgs change (excluding bitmaps to save space)
     useEffect(() => {
         if (!state.isLoading) {
             try {
-                localStorage.setItem(SVG_LIBRARY_KEY, JSON.stringify(state.svgs));
+                // Strip bitmaps from SVGs before saving (they're too large for localStorage)
+                // Bitmaps are only saved in manual exports
+                const svgsWithoutBitmaps = state.svgs.map(svg => ({
+                    ...svg,
+                    bitmap: undefined, // Remove bitmap to save space
+                }));
+
+                localStorage.setItem(SVG_LIBRARY_KEY, JSON.stringify(svgsWithoutBitmaps));
             } catch (error) {
-                console.error('Failed to save SVG library:', error);
+                if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+                    console.error('localStorage quota exceeded - SVG library too large');
+                    // Don't show alert here, let the main App.tsx handle user notification
+                } else {
+                    console.error('Failed to save SVG library:', error);
+                }
             }
         }
     }, [state.svgs, state.isLoading]);

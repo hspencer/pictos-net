@@ -129,8 +129,12 @@
       "flash": "NanoBanana (Flash 2.5)",
       "pro": "NanoBanana Pro (Gemini 3 Pro)"
     },
-    "authorSignature": "Firma del Autor",
-    "license": "Licencia"
+    "spaceName": "Nombre del Espacio",
+    "spaceNameTooltip": "Identifica tu librería o colección de pictogramas. Este nombre aparecerá como título en la página principal.",
+    "license": "Licencia",
+    "geoSearch": "Buscar ciudad...",
+    "geoSearching": "Buscando...",
+    "geoNoResults": "No se encontraron resultados"
   },
   "console": {
     "title": "Monitor de Trazabilidad Semántica",
@@ -143,12 +147,18 @@
     "downloadImage": "Descargar Imagen",
     "copy": "Copiar Contenido",
     "copied": "¡Copiado!",
+    "copyRow": "Copiar Fila",
+    "copyRowSuccess": "Fila \"{utterance}\" copiada al portapapeles",
+    "copyRowError": "Error al copiar: {error}",
     "delete": "Eliminar",
+    "deleteRow": "Eliminar Fila",
+    "deleteRowConfirm": "¿Eliminar \"{utterance}\"?",
     "deleteAll": "Borrar Todo",
     "deleteAllConfirm": "¿Está seguro que desea borrar todos los nodos? Esta acción no se puede deshacer.",
     "save": "Guardar",
     "cancel": "Cancelar",
     "regenerate": "Regenerar",
+    "regeneratePrompt": "Regenerar Prompt Espacial",
     "stop": "Detener"
   },
   "metadata": {
@@ -182,6 +192,8 @@
     "cascadeStarted": "Iniciando propagación en grafo para: {utterance}",
     "cascadeStopped": "Cascada detenida en {step} para {utterance}",
     "stepComplete": "{step} completado: {duration}s para \"{utterance}\"",
+    "storageQuotaExceeded": "⚠️ Almacenamiento lleno. Exporte su trabajo y borre pictogramas antiguos. Las imágenes no se guardarán automáticamente.",
+    "storageSaveFailed": "⚠️ Error al guardar. Exporte su trabajo manualmente para evitar pérdida de datos.",
     "nluComplete": "NLU Node calculado en {duration}s",
     "visualComplete": "Visual Topology generada en {duration}s",
     "bitmapComplete": "Bitmap Renderizado en {duration}s",

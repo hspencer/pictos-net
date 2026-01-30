@@ -174,6 +174,73 @@ You MUST generate Element IDs and the prompt logic in **${targetLang}**.
   return result;
 };
 
+export const generateSpatialPrompt = async (nlu: NLUData, elements: VisualElement[], config: GlobalConfig, onLog?: (type: 'info' | 'error' | 'success', msg: string) => void): Promise<string> => {
+  const ai = getAI();
+  const targetLang = nlu.lang || config.lang || 'en';
+
+  onLog?.('info', `[PROMPT] Generando prompt de articulación espacial (idioma: ${targetLang})...`);
+
+  // Helper function to format elements hierarchy as readable text
+  const formatElements = (els: VisualElement[], depth = 0): string => {
+    if (!Array.isArray(els)) {
+      return '  (error: not an array)';
+    }
+    return els.map(el => {
+      const indent = '  '.repeat(depth);
+      const children = el.children && Array.isArray(el.children) ? '\n' + formatElements(el.children, depth + 1) : '';
+      return `${indent}- ${el.id}${children}`;
+    }).join('\n');
+  };
+
+  const systemInstruction = `You are the "Spatial Articulation Node" in the PictoNet graph.
+Your function is to generate a descriptive prompt that explains how visual elements should be spatially arranged and composed.
+
+**Language Context:**
+The "utterance" language is: **${targetLang}**.
+You MUST generate the prompt in **${targetLang}**.
+
+**Input:**
+- Semantic context (NLU analysis)
+- Hierarchical visual elements structure
+
+**Task:**
+Generate a detailed spatial composition description that explains:
+1. How elements are positioned relative to each other
+2. Size relationships between elements
+3. Visual metaphors and symbolic representations
+4. Compositional guidelines for the pictogram
+
+**Output:**
+A single descriptive text (NOT JSON) in **${targetLang}** that describes the spatial articulation.
+Focus exclusively on TOPOLOGY and COMPOSITION (relative position, size relations, connections).
+Do NOT define style (that's handled elsewhere).`;
+
+  const elementsText = formatElements(elements);
+  const nluText = JSON.stringify(nlu, null, 2);
+
+  onLog?.('info', `[PROMPT] Enviando contexto (NLU + ${elements.length} elementos) a Gemini 3 Pro...`);
+  const response = await ai.models.generateContent({
+    model: "gemini-3-pro-preview",
+    contents: `
+NLU SEMANTIC CONTEXT:
+${nluText}
+
+VISUAL ELEMENTS HIERARCHY:
+${elementsText}
+
+Generate a spatial composition prompt that describes how these elements should be arranged to represent the communicative intent.`,
+    config: {
+      systemInstruction,
+    }
+  });
+
+  onLog?.('info', `[PROMPT] Respuesta recibida, extrayendo prompt...`);
+  const prompt = response.text.trim();
+
+  onLog?.('success', `[PROMPT] Prompt espacial generado: ${prompt.substring(0, 80)}...`);
+  return prompt;
+};
+
 export const generateImage = async (elements: VisualElement[], prompt: string, row: any, config: GlobalConfig, onLog?: (type: 'info' | 'error' | 'success', msg: string) => void): Promise<string> => {
   const ai = getAI();
 

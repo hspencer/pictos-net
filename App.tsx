@@ -2,9 +2,9 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import {
   Upload, Download, Trash2, Terminal, RefreshCw, ChevronDown,
-  PlayCircle, BookOpen, Search, FileDown, StopCircle, Sparkles, Sliders,
+  Play, BookOpen, Search, FileDown, StopCircle, Sliders,
   X, Code, Plus, FileText, Maximize, Copy, BrainCircuit, PlusCircle, CornerDownRight, Image as ImageIcon,
-  Library, ScreenShare, MapPin, Globe, Crosshair, Hexagon, Save, Edit3, HelpCircle, CheckCircle, Languages, ExternalLink, Palette
+  Library, ScreenShare, Globe, Hexagon, HelpCircle, CheckCircle, ExternalLink, Palette
 } from 'lucide-react';
 import { RowData, LogEntry, StepStatus, NLUData, GlobalConfig, VOCAB, VisualElement, EvaluationMetrics, NLUFrameRole } from './types';
 import * as Gemini from './services/geminiService';
@@ -17,6 +17,7 @@ import useSVGLibrary from './hooks/useSVGLibrary';
 import { StyleEditor } from './components/PictoForge/StyleEditor';
 import { structureSVG } from './services/svgStructureService';
 import { vectorizeBitmap } from './services/vtracerService';
+import { GeoAutocomplete } from './components/GeoAutocomplete';
 
 const STORAGE_KEY = 'pictonet_v19_storage';
 const CONFIG_KEY = 'pictonet_v19_config';
@@ -513,7 +514,6 @@ const App: React.FC = () => {
     }
   });
   const [focusMode, setFocusMode] = useState<{ step: 'nlu' | 'visual' | 'bitmap' | 'eval', rowId: string } | null>(null);
-  const [showMapInputs, setShowMapInputs] = useState(false);
   const [showStyleEditor, setShowStyleEditor] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
 
@@ -570,10 +570,35 @@ const App: React.FC = () => {
     setIsInitialized(true);
   }, []);
 
+  // Auto-save to localStorage with error handling
   useEffect(() => {
-    if (isInitialized) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(rows));
+    if (!isInitialized) return;
+
+    try {
+      // Strip bitmaps from rows before saving (they're too large for localStorage)
+      // Bitmaps are only saved in manual exports
+      const rowsWithoutBitmaps = rows.map((row: RowData) => ({
+        ...row,
+        bitmap: undefined, // Remove bitmap to save space
+      }));
+
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(rowsWithoutBitmaps));
       localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+        console.error('localStorage quota exceeded');
+        addLog('error', t('messages.storageQuotaExceeded'));
+
+        // Try to save at least the config
+        try {
+          localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+        } catch (e) {
+          console.error('Failed to save even config:', e);
+        }
+      } else {
+        console.error('Failed to save to localStorage:', error);
+        addLog('error', t('messages.storageSaveFailed'));
+      }
     }
   }, [rows, config, isInitialized]);
 
@@ -602,12 +627,32 @@ const App: React.FC = () => {
   };
 
   const exportProject = () => {
+    // Transform rows: convert "processing" status to "idle" or "completed"
+    const sanitizedRows = rows.map((row: RowData) => {
+      if (row.status !== 'processing') {
+        return row; // Keep other statuses as-is
+      }
+
+      // Check if row has meaningful data to determine if it should be 'completed' or 'idle'
+      const hasNLU = row.NLU && (typeof row.NLU === 'string' ? row.NLU.trim() !== '' : Object.keys(row.NLU).length > 0);
+      const hasVisual = (row.elements && row.elements.length > 0) || (row.prompt && row.prompt.trim() !== '');
+      const hasBitmap = row.bitmap && row.bitmap.trim() !== '';
+      const hasEvaluation = row.evaluation && Object.keys(row.evaluation).length > 0;
+
+      const hasAnyData = hasNLU || hasVisual || hasBitmap || hasEvaluation;
+
+      return {
+        ...row,
+        status: hasAnyData ? 'completed' as const : 'idle' as const
+      };
+    });
+
     const dataToExport = {
       version: APP_VERSION,
       type: 'pictonet_graph_dump',
       timestamp: new Date().toISOString(),
       config,
-      rows,
+      rows: sanitizedRows,
       svgs: exportSVGs()
     };
     const blob = new Blob([JSON.stringify(dataToExport, null, 2)], { type: 'application/json' });
@@ -725,6 +770,52 @@ const App: React.FC = () => {
       updated[index] = { ...updated[index], ...updates };
       return updated;
     });
+  };
+
+  const regeneratePrompt = async (index: number): Promise<boolean> => {
+    const row = rows[index];
+    if (!row || !row.NLU || !row.elements) {
+      addLog('error', 'Se requiere NLU y elementos para regenerar el prompt');
+      return false;
+    }
+
+    stopFlags.current[row.id] = false;
+    updateRow(index, { visualStatus: 'processing' });
+    const startTime = Date.now();
+
+    try {
+      let nluObj;
+      try {
+        nluObj = typeof row.NLU === 'string' ? JSON.parse(row.NLU) : row.NLU;
+      } catch (parseError) {
+        throw new Error(`Failed to parse NLU data: ${parseError}`);
+      }
+
+      addLog('info', `[PROMPT] Regenerando prompt espacial a partir de elementos modificados...`);
+      const newPrompt = await Gemini.generateSpatialPrompt(nluObj as NLUData, ensureElementsArray(row.elements), config, addLog);
+
+      if (stopFlags.current[row.id]) {
+        addLog('info', `🛑 Regeneración de prompt detenida por usuario`);
+        updateRow(index, { visualStatus: 'completed' });
+        return false;
+      }
+
+      const duration = (Date.now() - startTime) / 1000;
+      updateRow(index, {
+        prompt: newPrompt,
+        visualStatus: 'completed',
+        visualDuration: duration,
+        bitmapStatus: 'outdated',
+        evalStatus: 'outdated'
+      });
+      addLog('success', `Prompt regenerado en ${duration.toFixed(1)}s: "${newPrompt.substring(0, 50)}..."`);
+      return true;
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "Unknown error";
+      addLog('error', `Error al regenerar prompt: ${msg}`);
+      updateRow(index, { visualStatus: 'completed' });
+      return false;
+    }
   };
 
   const processStep = async (index: number, step: 'nlu' | 'visual' | 'bitmap' | 'eval'): Promise<boolean> => {
@@ -1026,35 +1117,24 @@ const App: React.FC = () => {
             </div>
 
             <div className="md:col-span-1 relative group">
-              <label className="text-[10px] font-medium uppercase text-slate-400 block mb-2 flex justify-between">
-                <span>Geo-Linguistic Context</span>
-                <button onClick={() => setShowMapInputs(!showMapInputs)} className="text-violet-600 hover:text-violet-900 flex items-center gap-1">
-                  <MapPin size={10} /> {showMapInputs ? 'Simple' : 'Map Mode'}
-                </button>
+              <label className="text-[10px] font-medium uppercase text-slate-400 block mb-2">
+                Geo-Linguistic Context
               </label>
-              <div className={`border p-3 bg-slate-50 focus-within:bg-white focus-within:ring-1 focus-within:ring-violet-200 transition-colors flex flex-col gap-2 ${showMapInputs ? 'h-32' : ''}`}>
-                <div className="flex items-center gap-2">
-                  <Globe size={14} className="text-slate-400" />
-                  <input type="text" placeholder="Language (es, en...)" value={config.lang} onChange={e => setConfig({ ...config, lang: e.target.value })} className="w-full text-xs bg-transparent border-none outline-none font-medium" />
-                </div>
-                {showMapInputs && (
-                  <div className="animate-in fade-in slide-in-from-top-1 pt-2 border-t border-slate-200 flex flex-col gap-2">
-                    <div className="flex items-center gap-2">
-                      <MapPin size={14} className="text-rose-400" />
-                      <input type="text" placeholder="Region Name (e.g. Madrid)" value={config.geoContext?.region || ''} onChange={e => setConfig({ ...config, geoContext: { ...config.geoContext, region: e.target.value } as any })} className="w-full text-[10px] bg-transparent border-none outline-none" />
-                    </div>
-                    <div className="flex gap-2">
-                      <div className="flex items-center gap-1 bg-white border rounded px-1">
-                        <Crosshair size={10} className="text-slate-400" />
-                        <input type="text" placeholder="Lat" value={config.geoContext?.lat || ''} onChange={e => setConfig({ ...config, geoContext: { ...config.geoContext, lat: e.target.value } as any })} className="w-full text-[9px] bg-transparent outline-none" />
-                      </div>
-                      <div className="flex items-center gap-1 bg-white border rounded px-1">
-                        <Crosshair size={10} className="text-slate-400" />
-                        <input type="text" placeholder="Lng" value={config.geoContext?.lng || ''} onChange={e => setConfig({ ...config, geoContext: { ...config.geoContext, lng: e.target.value } as any })} className="w-full text-[9px] bg-transparent outline-none" />
-                      </div>
-                    </div>
+              <div className="flex flex-col gap-2">
+                <div className="border p-3 bg-slate-50 focus-within:bg-white focus-within:ring-1 focus-within:ring-violet-200 transition-colors">
+                  <div className="flex items-center gap-2">
+                    <Globe size={14} className="text-slate-400" />
+                    <input type="text" placeholder="Language (es, en...)" value={config.lang} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, lang: e.target.value })} className="w-full text-xs bg-transparent border-none outline-none font-medium" />
                   </div>
-                )}
+                </div>
+                <GeoAutocomplete
+                  value={{
+                    lat: config.geoContext?.lat || '',
+                    lng: config.geoContext?.lng || '',
+                    region: config.geoContext?.region || ''
+                  }}
+                  onChange={(geoContext: { lat: string; lng: string; region: string }) => setConfig({ ...config, geoContext })}
+                />
               </div>
             </div>
 
@@ -1088,8 +1168,16 @@ const App: React.FC = () => {
             </div>
 
             <div className="md:col-span-1">
-              <label className="text-[10px] font-medium uppercase text-slate-400 block mb-2">Author Signature</label>
-              <input type="text" value={config.author} onChange={e => setConfig({ ...config, author: e.target.value })} className="w-full text-xs border p-3 bg-slate-50 focus:bg-white transition-colors h-[42px]" />
+              <label className="text-[10px] font-medium uppercase text-slate-400 block mb-2 flex items-center gap-1">
+                {t('config.spaceName')}
+                <div className="group/tooltip relative">
+                  <HelpCircle size={10} className="text-slate-300 hover:text-violet-600 cursor-help" />
+                  <div className="invisible group-hover/tooltip:visible absolute left-0 bottom-full mb-2 w-64 bg-slate-900 text-white text-[10px] p-2 rounded shadow-lg z-50 leading-relaxed">
+                    {t('config.spaceNameTooltip')}
+                  </div>
+                </div>
+              </label>
+              <input type="text" value={config.author} onChange={e => setConfig({ ...config, author: e.target.value })} className="w-full text-xs border p-3 bg-slate-50 focus:bg-white transition-colors h-[42px]" placeholder="My Pictogram Library" />
             </div>
           </div>
         </div>
@@ -1183,6 +1271,7 @@ const App: React.FC = () => {
                 <RowComponent
                   key={row.id} row={row} isOpen={openRowId === row.id} setIsOpen={v => setOpenRowId(v ? row.id : null)}
                   onUpdate={u => updateRow(globalIndex, u)} onProcess={s => processStep(globalIndex, s)}
+                  onRegeneratePrompt={() => regeneratePrompt(globalIndex)}
                   onStop={() => {
                     stopFlags.current[row.id] = true;
                     addLog('info', `🛑 Solicitud de detención para: "${row.UTTERANCE}"`);
@@ -1240,15 +1329,18 @@ const App: React.FC = () => {
 const RowComponent: React.FC<{
   row: RowData; isOpen: boolean; setIsOpen: (v: boolean) => void;
   onUpdate: (u: any) => void; onProcess: (s: any) => Promise<boolean>;
+  onRegeneratePrompt: () => void;
   onStop: () => void; onCascade: () => void; onDelete: () => void;
   onFocus: (step: 'nlu' | 'visual' | 'bitmap' | 'eval') => void;
   onLog: (type: 'info' | 'error' | 'success', message: string) => void;
   config: GlobalConfig;
-}> = ({ row, isOpen, setIsOpen, onUpdate, onProcess, onStop, onCascade, onDelete, onFocus, onLog, config }) => {
+}> = ({ row, isOpen, setIsOpen, onUpdate, onProcess, onRegeneratePrompt, onStop, onCascade, onDelete, onFocus, onLog, config }) => {
   const { t } = useTranslation();
   const { addSVG } = useSVGLibrary();
   const [svgProcessingStatus, setSvgProcessingStatus] = React.useState<string>('');
   const [isProcessingSvg, setIsProcessingSvg] = React.useState(false);
+  const [elementsManuallyEdited, setElementsManuallyEdited] = React.useState(false);
+  const [promptManuallyEdited, setPromptManuallyEdited] = React.useState(false);
 
   const handleRetraceSVG = async () => {
     if (!row.bitmap) return;
@@ -1394,7 +1486,7 @@ const RowComponent: React.FC<{
             </button>
           ) : (
             <button onClick={e => { e.stopPropagation(); onCascade(); }} className="p-2 border border-slate-200 hover:border-violet-950 text-slate-400 hover:text-violet-950 transition-all rounded-full bg-white shadow-sm" title="Ejecutar pipeline completo">
-              <PlayCircle size={18} />
+              <Play size={18} />
             </button>
           )}
         </div>
@@ -1402,24 +1494,71 @@ const RowComponent: React.FC<{
       </div>
 
       {isOpen && (
-        <div className="p-8 border-t bg-slate-50/30 grid grid-cols-1 lg:grid-cols-3 gap-10 animate-in slide-in-from-top-2">
+        <>
+          <div className="p-8 border-t bg-slate-50/30 grid grid-cols-1 lg:grid-cols-3 gap-10 animate-in slide-in-from-top-2">
           <StepBox label={t('pipeline.understand')} status={row.nluStatus} onRegen={() => onProcess('nlu')} onStop={onStop} onFocus={() => onFocus('nlu')} duration={row.nluDuration}>
             <SmartNLUEditor data={row.NLU} onUpdate={val => onUpdate({ NLU: val, visualStatus: 'outdated', bitmapStatus: 'outdated', evalStatus: 'outdated' })} />
           </StepBox>
-          <StepBox label={t('pipeline.compose')} status={row.visualStatus} onRegen={() => onProcess('visual')} onStop={onStop} onFocus={() => onFocus('visual')} duration={row.visualDuration}>
+          <StepBox
+            label={t('pipeline.compose')}
+            status={row.visualStatus}
+            onRegen={() => {
+              onProcess('visual');
+              setElementsManuallyEdited(false);
+              setPromptManuallyEdited(false);
+            }}
+            onStop={onStop}
+            onFocus={() => onFocus('visual')}
+            duration={row.visualDuration}
+          >
             <div className="flex flex-col h-full">
               <div className="flex-1 flex flex-col gap-6 overflow-y-auto">
                 <div>
                   <label className="text-[10px] font-medium uppercase text-slate-400 block mb-2 tracking-widest">{t('editor.hierarchicalElements')}</label>
-                  <ElementsEditor elements={row.elements || []} onUpdate={val => onUpdate({ elements: val, bitmapStatus: 'outdated', evalStatus: 'outdated' })} />
+                  <ElementsEditor elements={row.elements || []} onUpdate={val => {
+                    onUpdate({ elements: val, bitmapStatus: 'outdated', evalStatus: 'outdated' });
+                    setElementsManuallyEdited(true);
+                  }} />
+                  {elementsManuallyEdited && row.NLU && row.elements && row.elements.length > 0 && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onRegeneratePrompt();
+                        setElementsManuallyEdited(false);
+                        setPromptManuallyEdited(false);
+                      }}
+                      className="mt-3 w-full py-2 px-3 bg-white border border-slate-200 hover:border-violet-950 text-slate-400 hover:text-violet-950 transition-all flex items-center justify-center gap-2 text-[10px] font-medium uppercase tracking-widest shadow-sm animate-in fade-in slide-in-from-top-2 duration-300"
+                      title={t('actions.regeneratePrompt')}
+                    >
+                      <Play size={12} />
+                      {t('actions.regeneratePrompt')}
+                    </button>
+                  )}
                 </div>
                 <div className="flex-1 mt-6 border-t pt-6 border-slate-200 flex flex-col">
                   <label className="text-[10px] font-medium uppercase text-slate-400 block mb-3 tracking-widest">{t('editor.spatialLogic')}</label>
                   <textarea
                     value={row.prompt || ""}
-                    onChange={e => onUpdate({ prompt: e.target.value, bitmapStatus: 'outdated', evalStatus: 'outdated' })}
+                    onChange={e => {
+                      onUpdate({ prompt: e.target.value, bitmapStatus: 'outdated', evalStatus: 'outdated' });
+                      setPromptManuallyEdited(true);
+                    }}
                     className="w-full flex-1 min-h-[100px] border-none p-0 text-lg font-light text-slate-700 outline-none focus:ring-0 bg-transparent resize-none leading-relaxed"
                   />
+                  {promptManuallyEdited && row.prompt && row.elements && row.elements.length > 0 && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onProcess('bitmap');
+                        setPromptManuallyEdited(false);
+                      }}
+                      className="mt-3 w-full py-2 px-3 bg-white border border-slate-200 hover:border-violet-950 text-slate-400 hover:text-violet-950 transition-all flex items-center justify-center gap-2 text-[10px] font-medium uppercase tracking-widest shadow-sm animate-in fade-in slide-in-from-top-2 duration-300"
+                      title={t('pipeline.produce')}
+                    >
+                      <Play size={12} />
+                      {t('pipeline.produce')}
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -1540,6 +1679,39 @@ const RowComponent: React.FC<{
             </div>
           </StepBox>
         </div>
+
+        {/* Row Actions: Copy and Delete */}
+        <div className="px-8 pb-6 bg-slate-50/30 border-t border-slate-200 flex justify-end gap-2">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              navigator.clipboard.writeText(JSON.stringify(row, null, 2))
+                .then(() => {
+                  onLog('success', t('actions.copyRowSuccess', { utterance: row.UTTERANCE }));
+                })
+                .catch((err) => {
+                  onLog('error', t('actions.copyRowError', { error: err.message }));
+                });
+            }}
+            className="p-2 border border-slate-200 hover:border-violet-950 text-slate-400 hover:text-violet-950 transition-all bg-white shadow-sm"
+            title={t('actions.copyRow')}
+          >
+            <Copy size={14} />
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (window.confirm(t('actions.deleteRowConfirm', { utterance: row.UTTERANCE }))) {
+                onDelete();
+              }
+            }}
+            className="p-2 border border-slate-200 hover:border-rose-600 text-slate-400 hover:text-rose-600 transition-all bg-white shadow-sm"
+            title={t('actions.deleteRow')}
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
+      </>
       )}
     </div>
   );
@@ -1573,7 +1745,7 @@ const StepBox: React.FC<{ label: string; status: StepStatus; onRegen: () => void
               {duration && <span className="text-[10px] text-slate-400 font-mono font-medium">{duration.toFixed(1)}s</span>}
               {actionNode}
               <button onClick={onFocus} className="p-2 border hover:border-violet-950 text-slate-400 hover:text-violet-950 transition-all rounded-full"><Maximize size={14} /></button>
-              <button onClick={onRegen} className="p-2 border hover:border-violet-950 text-slate-400 hover:text-violet-950 transition-all rounded-full"><PlayCircle size={14} /></button>
+              <button onClick={onRegen} className="p-2 border hover:border-violet-950 text-slate-400 hover:text-violet-950 transition-all rounded-full"><Play size={14} /></button>
             </div>
           )}
         </div>

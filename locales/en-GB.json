@@ -129,8 +129,12 @@
       "flash": "NanoBanana (Flash 2.5)",
       "pro": "NanoBanana Pro (Gemini 3 Pro)"
     },
-    "authorSignature": "Author Signature",
-    "license": "License"
+    "spaceName": "Space Name",
+    "spaceNameTooltip": "Identify your pictogram library or collection. This name will appear as the title on the home page.",
+    "license": "License",
+    "geoSearch": "Search city...",
+    "geoSearching": "Searching...",
+    "geoNoResults": "No results found"
   },
   "console": {
     "title": "Semantic Trace Monitor",
@@ -143,12 +147,18 @@
     "downloadImage": "Download Image",
     "copy": "Copy Content",
     "copied": "Copied!",
+    "copyRow": "Copy Row",
+    "copyRowSuccess": "Row \"{utterance}\" copied to clipboard",
+    "copyRowError": "Copy error: {error}",
     "delete": "Delete",
+    "deleteRow": "Delete Row",
+    "deleteRowConfirm": "Delete \"{utterance}\"?",
     "deleteAll": "Clear All",
     "deleteAllConfirm": "Are you sure you want to delete all nodes? This action cannot be undone.",
     "save": "Save",
     "cancel": "Cancel",
     "regenerate": "Regenerate",
+    "regeneratePrompt": "Regenerate Spatial Prompt",
     "stop": "Stop"
   },
   "metadata": {
@@ -188,7 +198,9 @@
     "processingFailed": "Processing failed for \"{utterance}\": {error}",
     "nluFailed": "Node failure (NLU) for \"{utterance}\": {error}",
     "visualFailed": "Node failure (Visual) for \"{utterance}\": {error}",
-    "bitmapFailed": "Node failure (Bitmap) for \"{utterance}\": {error}"
+    "bitmapFailed": "Node failure (Bitmap) for \"{utterance}\": {error}",
+    "storageQuotaExceeded": "⚠️ Storage full. Export your work and delete old pictograms. Images will not be saved automatically.",
+    "storageSaveFailed": "⚠️ Save failed. Export your work manually to prevent data loss."
   },
   "status": {
     "idle": "Idle",
