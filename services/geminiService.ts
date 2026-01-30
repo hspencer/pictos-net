@@ -147,6 +147,7 @@ You MUST generate Element IDs and the prompt logic in **${targetLang}**.
 2.  **"prompt" (Spatial Edges):**
     *   Describes the edges/relationships between visual nodes in space incorporating visual metaphors.
     *   Write in **${targetLang}**.
+    *   **IMPORTANT:** When referencing elements in the prompt, always wrap their IDs in single quotes (e.g., 'pictograma', 'persona', 'casa').
     *   **Focus exclusively on TOPOLOGY and COMPOSITION** (relative position, size relations, connections).
     *   Do NOT define style (handled by the Global Style Node).
 
@@ -209,6 +210,8 @@ Generate a detailed spatial composition description that explains:
 2. Size relationships between elements
 3. Visual metaphors and symbolic representations
 4. Compositional guidelines for the pictogram
+
+**IMPORTANT:** When referencing elements in the prompt, always wrap their IDs in single quotes (e.g., 'pictograma', 'persona', 'casa').
 
 **Output:**
 A single descriptive text (NOT JSON) in **${targetLang}** that describes the spatial articulation.

@@ -4,8 +4,11 @@ import {
   Upload, Download, Trash2, Terminal, RefreshCw, ChevronDown,
   Play, BookOpen, Search, FileDown, StopCircle, Sliders,
   X, Code, Plus, FileText, Maximize, Copy, BrainCircuit, PlusCircle, CornerDownRight, Image as ImageIcon,
-  Library, ScreenShare, Globe, Hexagon, HelpCircle, CheckCircle, ExternalLink, Palette
+  Library, ScreenShare, Globe, Hexagon, HelpCircle, CheckCircle, ExternalLink, Palette, GripVertical
 } from 'lucide-react';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { RowData, LogEntry, StepStatus, NLUData, GlobalConfig, VOCAB, VisualElement, EvaluationMetrics, NLUFrameRole } from './types';
 import * as Gemini from './services/geminiService';
 import { ICAP_MODULE_FALLBACK } from './data/canonicalData';
@@ -21,7 +24,7 @@ import { GeoAutocomplete } from './components/GeoAutocomplete';
 
 const STORAGE_KEY = 'pictonet_v19_storage';
 const CONFIG_KEY = 'pictonet_v19_config';
-const APP_VERSION = '2.9.0';
+const APP_VERSION = '3.0.0';
 
 // Helper function to ensure elements is always a valid array
 const ensureElementsArray = (elements: any): VisualElement[] => {
@@ -47,7 +50,7 @@ const sanitizeFilename = (text: string, maxLength: number = 30): string => {
 const LogoIcon = ({ size = 32 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 45.9 45.9" xmlns="http://www.w3.org/2000/svg">
     <defs>
-      <style>{`.st0 { fill: #3c0877; }`}</style>
+      <style>{`.st0 { fill: #40069e; }`}</style>
     </defs>
     <circle className="st0" cx="23.9" cy="17.8" r="3.1"/>
     <path className="st0" d="M23.6,4c-9.4,0-17.1,6.3-17.1,14.1s0,0,0,0c0,0,0,0,0,0v19.7c0,2.1,1.7,3.9,3.9,3.9h1.6c2.1,0,3.9-1.7,3.9-3.9v-7.3c2.3,1,4.9,1.5,7.7,1.5,9.4,0,17.1-6.3,17.1-14.1S33,4,23.6,4ZM23.9,24.5c-6.4,0-9.2-6.4-9.2-6.4,0,0,2.8-6.4,9.2-6.4s9.2,6.4,9.2,6.4c0,0-2.8,6.4-9.2,6.4Z"/>
@@ -1000,7 +1003,7 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
-      <header className="h-20 bg-white border-b border-slate-200 sticky top-0 z-50 flex items-center px-8 justify-between shadow-sm">
+      <header id="toolbar" className="h-20 bg-white border-b border-slate-200 sticky top-0 z-50 flex items-center px-8 justify-between shadow-sm">
         <div className="flex items-center gap-4 cursor-pointer" onClick={() => setViewMode('home')}>
           <div className="p-1.5"><LogoIcon size={44} /></div>
           <div>
@@ -1109,7 +1112,7 @@ const App: React.FC = () => {
       </header>
 
       {showConfig && (
-        <div className="fixed top-20 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-b shadow-2xl p-8 animate-in slide-in-from-top duration-200">
+        <div id="globalSettings" className="fixed top-20 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-b shadow-2xl p-8 animate-in slide-in-from-top duration-200">
           <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-6">
             <div className="md:col-span-4">
               <label className="text-[10px] font-medium uppercase text-slate-400 block mb-2">Visual Style Prompt (Node Attribute)</label>
@@ -1183,7 +1186,7 @@ const App: React.FC = () => {
         </div>
       )}
 
-      <main className="flex-1 p-8 max-w-7xl mx-auto w-full">
+      <main id="mainContent" className="flex-1 p-8 max-w-7xl mx-auto w-full">
         {viewMode === 'list' && rows.length > 0 && (
           <div className="mb-6 flex justify-end gap-2">
             <span className="text-[10px] font-medium uppercase text-slate-400 tracking-wider self-center mr-2">{t('library.sortBy')}</span>
@@ -1289,7 +1292,7 @@ const App: React.FC = () => {
       </main>
 
       {showConsole && (
-        <div className="fixed bottom-0 inset-x-0 h-64 bg-slate-950 text-slate-400 mono text-[10px] p-6 z-50 border-t border-slate-800 overflow-auto shadow-2xl animate-in slide-in-from-bottom duration-300">
+        <div id="console" className="fixed bottom-0 inset-x-0 h-64 bg-slate-950 text-slate-400 mono text-[10px] p-6 z-50 border-t border-slate-800 overflow-auto shadow-2xl animate-in slide-in-from-bottom duration-300">
           <div className="flex justify-between items-center mb-4 pb-2 border-b border-slate-900 font-medium tracking-widest uppercase">
             <span className="flex items-center gap-3"><Terminal size={14} /> Semantic Trace Monitor</span>
             <button onClick={() => setLogs([])} className="hover:text-white transition-colors">Flush</button>
@@ -1341,6 +1344,7 @@ const RowComponent: React.FC<{
   const [isProcessingSvg, setIsProcessingSvg] = React.useState(false);
   const [elementsManuallyEdited, setElementsManuallyEdited] = React.useState(false);
   const [promptManuallyEdited, setPromptManuallyEdited] = React.useState(false);
+  const [isPromptEditing, setIsPromptEditing] = React.useState(false);
 
   const handleRetraceSVG = async () => {
     if (!row.bitmap) return;
@@ -1444,7 +1448,7 @@ const RowComponent: React.FC<{
   };
 
   return (
-    <div className={`border transition-all duration-300 ${isOpen ? 'ring-8 ring-slate-100 border-violet-950 bg-white' : 'hover:border-slate-300 bg-white shadow-sm'}`}>
+    <div id={`pictogramRow-${row.id}`} className={`border transition-all duration-300 ${isOpen ? 'ring-8 ring-slate-100 border-violet-950 bg-white' : 'hover:border-slate-300 bg-white shadow-sm'}`}>
       <div className="p-6 flex items-center gap-8 group">
         <input
           type="text" value={row.UTTERANCE} onChange={e => onUpdate({ UTTERANCE: e.target.value, nluStatus: 'outdated', visualStatus: 'outdated', bitmapStatus: 'outdated', evalStatus: 'outdated' })}
@@ -1496,10 +1500,11 @@ const RowComponent: React.FC<{
       {isOpen && (
         <>
           <div className="p-8 border-t bg-slate-50/30 grid grid-cols-1 lg:grid-cols-3 gap-10 animate-in slide-in-from-top-2">
-          <StepBox label={t('pipeline.understand')} status={row.nluStatus} onRegen={() => onProcess('nlu')} onStop={onStop} onFocus={() => onFocus('nlu')} duration={row.nluDuration}>
+          <StepBox id="block-nlu" label={t('pipeline.understand')} status={row.nluStatus} onRegen={() => onProcess('nlu')} onStop={onStop} onFocus={() => onFocus('nlu')} duration={row.nluDuration}>
             <SmartNLUEditor data={row.NLU} onUpdate={val => onUpdate({ NLU: val, visualStatus: 'outdated', bitmapStatus: 'outdated', evalStatus: 'outdated' })} />
           </StepBox>
           <StepBox
+            id="block-compose"
             label={t('pipeline.compose')}
             status={row.visualStatus}
             onRegen={() => {
@@ -1535,16 +1540,31 @@ const RowComponent: React.FC<{
                     </button>
                   )}
                 </div>
-                <div className="flex-1 mt-6 border-t pt-6 border-slate-200 flex flex-col">
-                  <label className="text-[10px] font-medium uppercase text-slate-400 block mb-3 tracking-widest">{t('editor.spatialLogic')}</label>
-                  <textarea
-                    value={row.prompt || ""}
-                    onChange={e => {
-                      onUpdate({ prompt: e.target.value, bitmapStatus: 'outdated', evalStatus: 'outdated' });
-                      setPromptManuallyEdited(true);
-                    }}
-                    className="w-full flex-1 min-h-[100px] border-none p-0 text-lg font-light text-slate-700 outline-none focus:ring-0 bg-transparent resize-none leading-relaxed"
-                  />
+                <div className="flex-1 mt-6 border-t pt-6 border-slate-200 flex flex-col gap-3">
+                  <label className="text-[10px] font-medium uppercase text-slate-400 block tracking-widest">{t('editor.spatialLogic')}</label>
+                  {isPromptEditing ? (
+                    <textarea
+                      value={row.prompt || ""}
+                      onChange={e => {
+                        onUpdate({ prompt: e.target.value, bitmapStatus: 'outdated', evalStatus: 'outdated' });
+                        setPromptManuallyEdited(true);
+                      }}
+                      onBlur={() => setIsPromptEditing(false)}
+                      autoFocus
+                      className="w-full min-h-[100px] border-none p-0 text-sm font-light text-slate-700 outline-none focus:ring-0 bg-transparent resize-none leading-relaxed"
+                    />
+                  ) : (
+                    <div
+                      onClick={() => setIsPromptEditing(true)}
+                      className="w-full min-h-[100px] cursor-text text-sm font-light text-slate-700 leading-relaxed"
+                    >
+                      {row.prompt && row.elements && row.elements.length > 0 ? (
+                        <PromptRenderer prompt={row.prompt} elements={row.elements} />
+                      ) : (
+                        <div className="text-slate-400">{row.prompt || ""}</div>
+                      )}
+                    </div>
+                  )}
                   {promptManuallyEdited && row.prompt && row.elements && row.elements.length > 0 && (
                     <button
                       onClick={(e) => {
@@ -1563,7 +1583,7 @@ const RowComponent: React.FC<{
               </div>
             </div>
           </StepBox>
-          <StepBox label={t('pipeline.produce')} status={row.bitmapStatus} onRegen={() => onProcess('bitmap')} onStop={onStop} onFocus={() => onFocus('bitmap')} duration={row.bitmapDuration}
+          <StepBox id="block-produce" label={t('pipeline.produce')} status={row.bitmapStatus} onRegen={() => onProcess('bitmap')} onStop={onStop} onFocus={() => onFocus('bitmap')} duration={row.bitmapDuration}
             actionNode={row.bitmap && <button onClick={(e) => { e.stopPropagation(); const a = document.createElement('a'); a.href = row.bitmap!; a.download = `${row.UTTERANCE.replace(/\s+/g, '_').toLowerCase()}.png`; a.click(); }} className="p-2 border hover:border-violet-950 text-slate-400 hover:text-violet-950 transition-all rounded-full flex items-center justify-center bg-white shadow-sm" title="Download Image"><FileDown size={14} /></button>}
           >
             <div className="flex flex-col h-full gap-4">
@@ -1681,7 +1701,7 @@ const RowComponent: React.FC<{
         </div>
 
         {/* Row Actions: Copy and Delete */}
-        <div className="px-8 pb-6 bg-slate-50/30 border-t border-slate-200 flex justify-end gap-2">
+        <div className="px-8 pb-6 bg-slate-50/30 flex justify-end gap-2">
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -1717,7 +1737,7 @@ const RowComponent: React.FC<{
   );
 };
 
-const StepBox: React.FC<{ label: string; status: StepStatus; onRegen: () => void; onStop: () => void; onFocus: () => void; duration?: number; children: React.ReactNode; actionNode?: React.ReactNode; }> = ({ label, status, onRegen, onStop, onFocus, duration, children, actionNode }) => {
+const StepBox: React.FC<{ id?: string; label: string; status: StepStatus; onRegen: () => void; onStop: () => void; onFocus: () => void; duration?: number; children: React.ReactNode; actionNode?: React.ReactNode; }> = ({ id, label, status, onRegen, onStop, onFocus, duration, children, actionNode }) => {
   const [elapsed, setElapsed] = useState(0);
   useEffect(() => {
     let interval: number;
@@ -1731,7 +1751,7 @@ const StepBox: React.FC<{ label: string; status: StepStatus; onRegen: () => void
   const bg = status === 'processing' ? 'bg-orange-50/50' : status === 'completed' ? 'bg-white' : status === 'outdated' ? 'bg-amber-50/50' : 'bg-slate-50/50';
 
   return (
-    <div className={`flex flex-col gap-4 min-h-[500px] border p-6 transition-all shadow-sm ${bg}`}>
+    <div id={id} className={`flex flex-col gap-4 min-h-[500px] border p-6 transition-all shadow-sm ${bg}`}>
       <div className="flex items-center justify-between border-b pb-4 border-slate-100">
         <h3 className="text-[11px] font-medium uppercase tracking-wider text-slate-900">{label}</h3>
         <div className="flex items-center gap-3">
@@ -1863,15 +1883,74 @@ const SmartNLUEditor: React.FC<{ data: any; onUpdate: (v: any) => void }> = ({ d
   );
 };
 
+const PromptRenderer: React.FC<{ prompt: string; elements: VisualElement[] }> = ({ prompt, elements }) => {
+  if (!prompt) return null;
+
+  // Collect all element IDs recursively
+  const getAllElementIds = (items: VisualElement[]): string[] => {
+    return items.flatMap(item => [
+      item.id,
+      ...(item.children ? getAllElementIds(item.children) : [])
+    ]);
+  };
+
+  const elementIds = getAllElementIds(elements);
+
+  // Parse prompt and replace 'element_id' with pills
+  const renderPromptWithPills = () => {
+    // Match single-quoted strings that are element IDs
+    const regex = /'([^']+)'/g;
+    const parts: React.ReactNode[] = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = regex.exec(prompt)) !== null) {
+      const beforeText = prompt.substring(lastIndex, match.index);
+      const quotedText = match[1];
+
+      // Add text before the match
+      if (beforeText) {
+        parts.push(beforeText);
+      }
+
+      // Check if quoted text is an element ID
+      if (elementIds.includes(quotedText)) {
+        parts.push(
+          <span key={match.index} className="element-pill">
+            {quotedText}
+          </span>
+        );
+      } else {
+        // Not an element, keep the quotes
+        parts.push(`'${quotedText}'`);
+      }
+
+      lastIndex = regex.lastIndex;
+    }
+
+    // Add remaining text
+    if (lastIndex < prompt.length) {
+      parts.push(prompt.substring(lastIndex));
+    }
+
+    return parts;
+  };
+
+  return (
+    <div className="prompt-text text-sm text-slate-600 leading-relaxed p-3 bg-slate-50 rounded border border-slate-200">
+      {renderPromptWithPills()}
+    </div>
+  );
+};
+
 const ElementsEditor: React.FC<{ elements: VisualElement[]; onUpdate: (v: VisualElement[]) => void; }> = ({ elements, onUpdate }) => {
   const { t } = useTranslation();
-  // Defensive: ensure elements is always an array
   const safeElements = Array.isArray(elements) ? elements : [];
-
-  const [editingValues, setEditingValues] = useState<{ [key: string]: string }>({});
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingValue, setEditingValue] = useState<string>('');
 
   const addElement = (parentId: string | null = null) => {
-    const newId = `new_element_${Date.now()}`;
+    const newId = `elemento`;
     const newElement: VisualElement = { id: newId };
 
     if (parentId === null) {
@@ -1890,6 +1969,11 @@ const ElementsEditor: React.FC<{ elements: VisualElement[]; onUpdate: (v: Visual
       };
       onUpdate(update(safeElements));
     }
+    // Auto-select new element for editing
+    setTimeout(() => {
+      setEditingId(newId);
+      setEditingValue(newId);
+    }, 50);
   };
 
   const removeElement = (idToRemove: string) => {
@@ -1907,10 +1991,14 @@ const ElementsEditor: React.FC<{ elements: VisualElement[]; onUpdate: (v: Visual
   };
 
   const updateElementId = (oldId: string, newId: string) => {
+    if (!newId.trim() || newId === oldId) {
+      setEditingId(null);
+      return;
+    }
     const update = (items: VisualElement[]): VisualElement[] => {
       return items.map(item => {
         if (item.id === oldId) {
-          return { ...item, id: newId };
+          return { ...item, id: newId.trim() };
         }
         if (item.children) {
           return { ...item, children: update(item.children) };
@@ -1919,53 +2007,88 @@ const ElementsEditor: React.FC<{ elements: VisualElement[]; onUpdate: (v: Visual
       });
     };
     onUpdate(update(safeElements));
+    setEditingId(null);
   };
 
-  const handleInputChange = (elementId: string, newValue: string) => {
-    setEditingValues(prev => ({ ...prev, [elementId]: newValue }));
+  const handlePillClick = (element: VisualElement) => {
+    setEditingId(element.id);
+    setEditingValue(element.id);
   };
 
-  const handleInputBlur = (elementId: string) => {
-    const newValue = editingValues[elementId];
-    if (newValue !== undefined && newValue !== elementId) {
-      updateElementId(elementId, newValue);
-    }
-    setEditingValues(prev => {
-      const { [elementId]: _, ...rest } = prev;
-      return rest;
-    });
-  };
-
-  const handleInputKeyDown = (e: React.KeyboardEvent, elementId: string) => {
+  const handleKeyDown = (e: React.KeyboardEvent, elementId: string) => {
     if (e.key === 'Enter') {
-      (e.target as HTMLInputElement).blur();
+      e.preventDefault();
+      updateElementId(elementId, editingValue);
+    } else if (e.key === 'Escape') {
+      setEditingId(null);
     }
   };
 
-  const renderElement = (element: VisualElement, level = 0) => (
-    <div key={element.id} style={{ marginLeft: `${level * 20}px` }} className="group">
-      <div className="flex items-center gap-2 py-1">
-        <input
-          type="text"
-          value={editingValues[element.id] ?? element.id}
-          onChange={(e) => handleInputChange(element.id, e.target.value)}
-          onBlur={() => handleInputBlur(element.id)}
-          onKeyDown={(e) => handleInputKeyDown(e, element.id)}
-          className="text-sm font-mono flex-1 bg-transparent outline-none focus:bg-white focus:ring-1 focus:ring-violet-300 px-1"
-        />
-        <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-          <button onClick={() => addElement(element.id)} className="p-1 hover:bg-slate-200 text-slate-400 rounded"><CornerDownRight size={12} /></button>
-          <button onClick={() => removeElement(element.id)} className="p-1 hover:bg-rose-100 text-rose-400 rounded"><X size={12} /></button>
+  const renderElement = (element: VisualElement, level = 0, isLast = false) => {
+    const isEditing = editingId === element.id;
+    const isRoot = level === 0;
+
+    return (
+      <div key={element.id} className={`element-item ${isRoot ? 'element-root' : ''}`}>
+        {!isRoot && <div className="element-dot" />}
+
+        <div className="flex items-center gap-2">
+          {isEditing ? (
+            <div className="element-pill element-editing">
+              <input
+                type="text"
+                value={editingValue}
+                onChange={(e) => setEditingValue(e.target.value)}
+                onBlur={() => updateElementId(element.id, editingValue)}
+                onKeyDown={(e) => handleKeyDown(e, element.id)}
+                autoFocus
+                className="element-pill-input"
+              />
+            </div>
+          ) : (
+            <div className="element-pill" onClick={() => handlePillClick(element)}>
+              {element.id}
+            </div>
+          )}
+
+          <div className="element-actions">
+            <button
+              onClick={() => addElement(element.id)}
+              className="element-action-btn"
+              title="Agregar hijo"
+            >
+              <CornerDownRight size={12} />
+            </button>
+            <button
+              onClick={() => removeElement(element.id)}
+              className="element-action-btn delete"
+              title="Eliminar"
+            >
+              <X size={12} />
+            </button>
+          </div>
         </div>
+
+        {element.children && element.children.length > 0 && (
+          <div>
+            {element.children.map((child, idx) =>
+              renderElement(child, level + 1, idx === element.children!.length - 1)
+            )}
+          </div>
+        )}
       </div>
-      {element.children && element.children.map(child => renderElement(child, level + 1))}
-    </div>
-  );
+    );
+  };
 
   return (
-    <div className="border p-4 min-h-[120px] bg-white shadow-inner flex flex-col gap-1">
-      {safeElements.map(el => renderElement(el))}
-      <button onClick={() => addElement(null)} className="mt-2 pt-2 border-t border-slate-100 text-left text-xs font-bold text-violet-600 hover:text-violet-900 transition-colors w-full flex items-center gap-2">
+    <div className="border p-4 min-h-[120px] bg-white shadow-inner">
+      <div className="element-tree">
+        {safeElements.map((el, idx) => renderElement(el, 0, idx === safeElements.length - 1))}
+      </div>
+      <button
+        onClick={() => addElement(null)}
+        className="mt-4 pt-3 border-t border-slate-200 text-left text-[10px] font-bold text-violet-600 hover:text-violet-900 transition-colors w-full flex items-center gap-2 uppercase tracking-wider"
+      >
         <Plus size={14} /> {t('editor.addRootElement')}
       </button>
     </div>
@@ -1993,6 +2116,7 @@ const FocusViewModal: React.FC<{
 }> = ({ mode, row, onClose, onUpdate, config, onLog }) => {
   const { t } = useTranslation();
   const [copyStatus, setCopyStatus] = useState(t('actions.copy'));
+  const [isPromptEditing, setIsPromptEditing] = useState(false);
 
   const handleCopy = () => {
     let contentToCopy: string = '';
@@ -2032,10 +2156,26 @@ const FocusViewModal: React.FC<{
           </div>
           <div className="flex-1 mt-6 border-t pt-6 border-slate-200">
             <label className="text-[10px] font-medium uppercase text-slate-400 block mb-3 tracking-widest">{t('editor.spatialLogic')}</label>
-            <textarea
-              value={row.prompt || ""} onChange={e => onUpdate({ prompt: e.target.value, bitmapStatus: 'outdated', evalStatus: 'outdated' })}
-              className="w-full h-full border-none p-0 text-lg font-light text-slate-700 outline-none focus:ring-0 bg-transparent resize-none leading-relaxed"
-            />
+            {isPromptEditing ? (
+              <textarea
+                value={row.prompt || ""}
+                onChange={e => onUpdate({ prompt: e.target.value, bitmapStatus: 'outdated', evalStatus: 'outdated' })}
+                onBlur={() => setIsPromptEditing(false)}
+                autoFocus
+                className="w-full h-full border-none p-0 text-lg font-light text-slate-700 outline-none focus:ring-0 bg-transparent resize-none leading-relaxed"
+              />
+            ) : (
+              <div
+                onClick={() => setIsPromptEditing(true)}
+                className="w-full h-full cursor-text text-lg font-light text-slate-700 leading-relaxed"
+              >
+                {row.prompt && row.elements && row.elements.length > 0 ? (
+                  <PromptRenderer prompt={row.prompt} elements={row.elements} />
+                ) : (
+                  <div className="text-slate-400">{row.prompt || ""}</div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       );

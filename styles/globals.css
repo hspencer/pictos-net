@@ -1,0 +1,151 @@
+/* PictoNet Global Styles */
+
+/* Focus Modal Layout */
+.focus-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: var(--z-modal-backdrop);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.focus-modal-content {
+  width: 90%;
+  max-width: 1400px;
+  height: 85vh;
+  background-color: white;
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-2xl);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Badge Status Styles */
+.badge {
+  display: inline-block;
+  padding: 0.125rem 0.625rem;
+  font-size: 8px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  border: var(--border-width);
+  transition: all var(--transition-fast);
+}
+
+.badge-idle {
+  background-color: var(--color-slate-50);
+  border-color: var(--color-slate-200);
+  color: var(--color-slate-400);
+}
+
+.badge-processing {
+  background-color: #fff7ed; /* orange-50 */
+  border-color: #fed7aa; /* orange-200 */
+  color: var(--color-warning);
+  animation: pulse 2s infinite;
+}
+
+.badge-completed {
+  background-color: var(--color-success-light);
+  border-color: #a7f3d0; /* emerald-200 */
+  color: var(--color-success-dark);
+}
+
+.badge-outdated {
+  background-color: var(--color-slate-100);
+  border-color: var(--color-slate-300);
+  color: var(--color-slate-500);
+}
+
+.badge-error {
+  background-color: var(--color-error-light);
+  border-color: #fecaca; /* red-200 */
+  color: var(--color-error-dark);
+}
+
+/* Utterance Title Style */
+.utterance-title {
+  font-size: 1rem;
+  line-height: 1.5rem;
+  letter-spacing: 0.025em;
+}
+
+/* Console/Terminal Styles */
+#console {
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+#console .log-entry {
+  padding: 0.25rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+#console .log-info {
+  color: #60a5fa; /* blue-400 */
+}
+
+#console .log-success {
+  color: #34d399; /* emerald-400 */
+}
+
+#console .log-error {
+  color: #f87171; /* red-400 */
+}
+
+/* Toolbar Styles */
+#toolbar {
+  height: 5rem; /* 80px */
+  position: sticky;
+  top: 0;
+  z-index: var(--z-dropdown);
+}
+
+/* Global Settings Panel */
+#globalSettings {
+  position: fixed;
+  top: 5rem; /* matches toolbar height */
+  left: 0;
+  right: 0;
+  z-index: var(--z-modal-backdrop);
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+}
+
+/* Main Content Area */
+#mainContent {
+  min-height: calc(100vh - 5rem);
+  padding: 2rem;
+}
+
+/* Pattern Grid Background */
+.pattern-grid-sm {
+  background-image:
+    linear-gradient(var(--color-slate-200) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-slate-200) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Utility Classes */
+.transition-all {
+  transition-property: all;
+  transition-timing-function: var(--transition-timing);
+  transition-duration: var(--transition-fast);
+}
+
+.transition-colors {
+  transition-property: color, background-color, border-color;
+  transition-timing-function: var(--transition-timing);
+  transition-duration: var(--transition-fast);
+}
+
+.transition-transform {
+  transition-property: transform;
+  transition-timing-function: var(--transition-timing);
+  transition-duration: var(--transition-base);
+}

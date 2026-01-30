@@ -1,0 +1,192 @@
+/* Element Tree Styles */
+
+.element-tree {
+  position: relative;
+  padding-left: 0;
+}
+
+.element-item {
+  position: relative;
+  padding-left: 28px;
+  margin: 4px 0;
+}
+
+/* Threading visual - vertical line */
+.element-item::before {
+  content: '';
+  position: absolute;
+  left: 8px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: linear-gradient(to bottom, #e2e8f0 0%, #e2e8f0 50%, transparent 50%);
+  background-size: 2px 8px;
+}
+
+/* Last child - shorter line */
+.element-item:last-child::before {
+  background: linear-gradient(to bottom, #e2e8f0 0%, #e2e8f0 20px, transparent 20px);
+}
+
+/* Horizontal connector line */
+.element-item::after {
+  content: '';
+  position: absolute;
+  left: 8px;
+  top: 16px;
+  width: 12px;
+  height: 1px;
+  background: #e2e8f0;
+}
+
+/* Dot at connection point */
+.element-item .element-dot {
+  position: absolute;
+  left: 4px;
+  top: 12px;
+  width: 8px;
+  height: 8px;
+  background: white;
+  border: 2px solid #cbd5e1;
+  border-radius: 50%;
+  z-index: 1;
+}
+
+/* Root level items (no threading) */
+.element-item.element-root::before,
+.element-item.element-root::after {
+  display: none;
+}
+
+.element-item.element-root .element-dot {
+  display: none;
+}
+
+/* Element pill style */
+.element-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace;
+  font-size: 12px;
+  font-weight: 500;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.element-pill:hover {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-color: #7c3aed;
+  color: #5b21b6;
+  box-shadow: 0 2px 4px rgba(124, 58, 237, 0.1);
+  transform: translateY(-1px);
+}
+
+.element-pill:active {
+  transform: translateY(0);
+}
+
+.element-pill.element-editing {
+  background: white;
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+}
+
+.element-pill input {
+  background: transparent;
+  border: none;
+  outline: none;
+  font: inherit;
+  color: inherit;
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  min-width: 60px;
+}
+
+/* Element pill in prompt text */
+.prompt-text .element-pill {
+  margin: 0 2px;
+  padding: 2px 8px;
+  font-size: 11px;
+  background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
+  border-color: #c4b5fd;
+  color: #6d28d9;
+  cursor: default;
+}
+
+.prompt-text .element-pill:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+/* Drag and drop states */
+.element-item.dragging {
+  opacity: 0.5;
+  cursor: grabbing;
+}
+
+.element-item.drag-over {
+  background: rgba(124, 58, 237, 0.05);
+  border-radius: 4px;
+}
+
+.element-item .drag-handle {
+  display: none;
+  cursor: grab;
+  color: #cbd5e1;
+  transition: color 0.2s;
+}
+
+.element-item:hover .drag-handle {
+  display: inline-flex;
+}
+
+.element-item .drag-handle:hover {
+  color: #7c3aed;
+}
+
+.element-item .drag-handle:active {
+  cursor: grabbing;
+}
+
+/* Action buttons */
+.element-actions {
+  display: inline-flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.element-item:hover .element-actions {
+  opacity: 1;
+}
+
+.element-action-btn {
+  padding: 3px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.element-action-btn:hover {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.element-action-btn.delete:hover {
+  background: #fee2e2;
+  color: #dc2626;
+}
