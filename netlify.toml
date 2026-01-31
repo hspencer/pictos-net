@@ -10,3 +10,6 @@
 
 [build.environment]
   NODE_VERSION = "18"
+  # Permitir GEMINI_API_KEY en el cliente (necesario para llamadas desde navegador)
+  # GITHUB_TOKEN permanece seguro en funciones serverless
+  SECRETS_SCAN_OMIT_KEYS = "GEMINI_API_KEY"
