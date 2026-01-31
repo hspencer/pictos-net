@@ -121,13 +121,15 @@ Los SVGs generados son **autocontenidos** e incluyen toda la información semán
 
 ### Del Lenguaje Natural a la Imagen
 
-Los pictogramas son más que ilustraciones: son sistemas de comunicación visual que deben capturar la **esencia semántica** de un mensaje. PICTOS propone un enfoque generativo que atraviesa tres dimensiones fundamentales:
+Los pictogramas son más que ilustraciones: son sistemas de comunicación visual que deben capturar la **esencia semántica** de un mensaje como un *acto del habla* para comprender la **intención comunicativa**. 
+
+PICTOS propone un enfoque generativo que atraviesa tres dimensiones fundamentales:
 
 1. **Comprender**: Análisis lingüístico profundo basado en Natural Semantic Metalanguage (NSM)
 2. **Componer**: Definición de elementos visuales jerárquicos y su lógica de articulación espacial
 3. **Producir**: Renderizado final de la imagen mediante inteligencia artificial generativa
 
-Este pipeline reconoce que la comunicación visual efectiva requiere primero **comprender profundamente** qué se quiere comunicar, antes de decidir **cómo visualizarlo**.
+Este *pipeline de razonamiento* reconoce que la comunicación visual efectiva requiere primero **comprender profundamente** qué se quiere comunicar, antes de decidir **cómo visualizarlo**.
 
 ### Fundamentos Teóricos
 
