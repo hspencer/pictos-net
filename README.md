@@ -9,6 +9,8 @@ Este proyecto avanza sobre [PICTOS.cl](https://pictos.cl) desarrollado por el [N
 
 ## Cómo Funciona PICTOS.NET
 
+[![Netlify Status](https://api.netlify.com/api/v1/badges/24f068d3-f368-4526-a503-2f09af1def0b/deploy-status)](https://app.netlify.com/projects/pictos/deploys)
+
 ### Almacenamiento Local
 
 **Importante**: Todos los pictogramas y datos se almacenan **localmente en el navegador** usando `localStorage`. Esto significa:
