@@ -5,16 +5,16 @@
 echo "📦 Copying submodule data to public directory..."
 
 # Create directories
-mkdir -p public/schemas/VCSCI/data
+mkdir -p public/schemas/ICAP/data
 mkdir -p public/schemas/nlu-schema
 mkdir -p public/schemas/mf-svg-schema
 
-# Copy VCSCI data
-if [ -f "schemas/VCSCI/data/rubric-scale-descriptions.json" ]; then
-    cp schemas/VCSCI/data/rubric-scale-descriptions.json public/schemas/VCSCI/data/
-    echo "✅ VCSCI rubric descriptions copied"
+# Copy ICAP data (evaluation rubric)
+if [ -f "schemas/ICAP/data/rubric-scale-descriptions.json" ]; then
+    cp schemas/ICAP/data/rubric-scale-descriptions.json public/schemas/ICAP/data/
+    echo "✅ ICAP rubric descriptions copied"
 else
-    echo "⚠️  VCSCI rubric file not found. Run: git submodule update --init --recursive"
+    echo "⚠️  ICAP rubric file not found. Run: git submodule update --init --recursive"
 fi
 
 # Copy NLU schema (if needed in the future)
