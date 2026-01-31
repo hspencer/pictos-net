@@ -9,13 +9,12 @@ mkdir -p public/schemas/ICAP/data
 mkdir -p public/schemas/nlu-schema
 mkdir -p public/schemas/mf-svg-schema
 
-# Copy ICAP data (evaluation rubric)
+# Copy ICAP data (evaluation rubric) - optional, app works without it
 if [ -f "schemas/ICAP/data/rubric-scale-descriptions.json" ]; then
     cp schemas/ICAP/data/rubric-scale-descriptions.json public/schemas/ICAP/data/
     echo "✅ ICAP rubric descriptions copied"
-else
-    echo "⚠️  ICAP rubric file not found. Run: git submodule update --init --recursive"
 fi
+# Note: ICAP rubric is optional - app works without it
 
 # Copy NLU schema (if needed in the future)
 # cp schemas/nlu-schema/schema.json public/schemas/nlu-schema/
