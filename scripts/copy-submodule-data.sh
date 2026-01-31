@@ -23,10 +23,9 @@ fi
 # Copy SVG schema (when implemented)
 # cp schemas/mf-svg-schema/schema.json public/schemas/mf-svg-schema/
 
-# Copy example libraries
-if [ -d "libraries" ]; then
-    cp libraries/*.json public/libraries/ 2>/dev/null || true
-    echo "✅ Example libraries copied"
+# Generate libraries index
+if [ -d "public/libraries" ]; then
+    node scripts/generate-libraries-index.cjs
 fi
 
 echo "✅ Submodule data copy complete"

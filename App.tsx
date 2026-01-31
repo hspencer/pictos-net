@@ -654,44 +654,22 @@ const App: React.FC = () => {
     saveData();
   }, [rows, config, isInitialized]);
 
-  // Load available libraries dynamically from /libraries folder
+  // Load available libraries from index.json
   useEffect(() => {
     const loadLibraries = async () => {
       try {
-        // Fetch the libraries directory listing
-        const response = await fetch('/libraries/');
-        if (!response.ok) throw new Error('Could not fetch libraries');
+        const response = await fetch('/libraries/index.json');
+        if (!response.ok) {
+          console.warn('No libraries index found');
+          setAvailableLibraries([]);
+          return;
+        }
 
-        const html = await response.text();
-        // Extract .json filenames from directory listing
-        const jsonFiles = [...html.matchAll(/href="([^"]+\.json)"/g)].map(m => m[1]);
-
-        // Load metadata from each library file
-        const libraries: LibraryMetadata[] = await Promise.all(
-          jsonFiles.map(async (filename) => {
-            try {
-              const res = await fetch(`/libraries/${filename}`);
-              const data = await res.json();
-
-              return {
-                filename,
-                name: data.config?.author || filename.replace('.json', ''),
-                location: data.config?.geoContext?.region || 'Unknown',
-                language: data.config?.lang || 'es',
-                items: data.rows?.length || 0,
-                description: data.type || 'PictoNet library'
-              };
-            } catch (err) {
-              console.error(`Failed to load library ${filename}:`, err);
-              return null;
-            }
-          })
-        );
-
-        setAvailableLibraries(libraries.filter(Boolean) as LibraryMetadata[]);
+        const index = await response.json();
+        setAvailableLibraries(index.libraries || []);
+        console.log(`📚 Loaded ${index.libraries.length} libraries from index`);
       } catch (error) {
-        console.error('Failed to load libraries:', error);
-        // Fallback: if directory listing fails, we can still work without libraries
+        console.error('Failed to load libraries index:', error);
         setAvailableLibraries([]);
       }
     };
