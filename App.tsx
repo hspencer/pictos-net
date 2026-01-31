@@ -27,32 +27,14 @@ const STORAGE_KEY = 'pictonet_v19_storage';
 const CONFIG_KEY = 'pictonet_v19_config';
 const APP_VERSION = '3.0.0';
 
-// Available example libraries in /libraries folder
 interface LibraryMetadata {
   filename: string;
   name: string;
   location: string;
   language: string;
-  items?: number;
+  items: number;
   description?: string;
 }
-
-const EXAMPLE_LIBRARIES: LibraryMetadata[] = [
-  {
-    filename: 'pictos_net_graph_2026-01-30.json',
-    name: 'PictoNet Example Dataset',
-    location: 'Auckland, NZ',
-    language: 'es',
-    description: 'Complete dataset with evaluations'
-  },
-  {
-    filename: 'aut_graph_2026-01-31.json',
-    name: 'AUT Pilot Study',
-    location: 'Auckland, NZ',
-    language: 'en',
-    description: 'Autism communication pilot'
-  }
-];
 
 // Helper function to ensure elements is always a valid array
 const ensureElementsArray = (elements: any): VisualElement[] => {
@@ -547,6 +529,7 @@ const App: React.FC = () => {
   const [focusMode, setFocusMode] = useState<{ step: 'nlu' | 'visual' | 'bitmap' | 'eval', rowId: string } | null>(null);
   const [showStyleEditor, setShowStyleEditor] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [availableLibraries, setAvailableLibraries] = useState<LibraryMetadata[]>([]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
@@ -670,6 +653,51 @@ const App: React.FC = () => {
 
     saveData();
   }, [rows, config, isInitialized]);
+
+  // Load available libraries dynamically from /libraries folder
+  useEffect(() => {
+    const loadLibraries = async () => {
+      try {
+        // Fetch the libraries directory listing
+        const response = await fetch('/libraries/');
+        if (!response.ok) throw new Error('Could not fetch libraries');
+
+        const html = await response.text();
+        // Extract .json filenames from directory listing
+        const jsonFiles = [...html.matchAll(/href="([^"]+\.json)"/g)].map(m => m[1]);
+
+        // Load metadata from each library file
+        const libraries: LibraryMetadata[] = await Promise.all(
+          jsonFiles.map(async (filename) => {
+            try {
+              const res = await fetch(`/libraries/${filename}`);
+              const data = await res.json();
+
+              return {
+                filename,
+                name: data.config?.author || filename.replace('.json', ''),
+                location: data.config?.geoContext?.region || 'Unknown',
+                language: data.config?.lang || 'es',
+                items: data.rows?.length || 0,
+                description: data.type || 'PictoNet library'
+              };
+            } catch (err) {
+              console.error(`Failed to load library ${filename}:`, err);
+              return null;
+            }
+          })
+        );
+
+        setAvailableLibraries(libraries.filter(Boolean) as LibraryMetadata[]);
+      } catch (error) {
+        console.error('Failed to load libraries:', error);
+        // Fallback: if directory listing fails, we can still work without libraries
+        setAvailableLibraries([]);
+      }
+    };
+
+    loadLibraries();
+  }, []);
 
   const addLog = (type: 'info' | 'error' | 'success', message: string) => {
     setLogs(prev => [...prev, { id: Math.random().toString(36).substr(2, 9), timestamp: new Date().toLocaleTimeString(), type, message }]);
@@ -1439,17 +1467,18 @@ const App: React.FC = () => {
               </div>
             </div>
 
-            {/* Example Libraries Section */}
-            <div className="max-w-2xl mx-auto space-y-6">
-              <div className="text-center space-y-2">
-                <h3 className="text-2xl font-bold tracking-tight text-slate-900">{t('home.exampleLibraries')}</h3>
-                <p className="text-sm text-slate-500">{t('home.exampleLibrariesDescription')}</p>
-              </div>
+            {/* Example Libraries Section - Only show if libraries are available */}
+            {availableLibraries.length > 0 && (
+              <div className="max-w-2xl mx-auto space-y-6">
+                <div className="text-center space-y-2">
+                  <h3 className="text-2xl font-bold tracking-tight text-slate-900">{t('home.exampleLibraries')}</h3>
+                  <p className="text-sm text-slate-500">{t('home.exampleLibrariesDescription')}</p>
+                </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {EXAMPLE_LIBRARIES.map((library) => (
-                  <div
-                    key={library.filename}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {availableLibraries.map((library: LibraryMetadata) => (
+                    <div
+                      key={library.filename}
                     onClick={() => loadLibrary(library.filename)}
                     className="bg-slate-50 border border-slate-200 p-6 text-left space-y-3 hover:border-violet-600 hover:bg-white transition-all cursor-pointer group"
                   >
@@ -1484,9 +1513,10 @@ const App: React.FC = () => {
                       )}
                     </div>
                   </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="mt-8 text-center">
               <a
