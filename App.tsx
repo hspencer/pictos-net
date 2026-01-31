@@ -2,9 +2,9 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import {
   Upload, Download, Trash2, Terminal, RefreshCw, ChevronDown,
-  Play, BookOpen, Search, FileDown, StopCircle, Sliders,
+  Play, BookOpen, Search, FileDown, Square, Sliders,
   X, Code, Plus, FileText, Maximize, Copy, BrainCircuit, PlusCircle, CornerDownRight, Image as ImageIcon,
-  Library, ScreenShare, Globe, Hexagon, HelpCircle, CheckCircle, ExternalLink, Palette, GripVertical
+  Library, ScreenShare, Globe, Hexagon, HelpCircle, CheckCircle, ExternalLink, Palette, GripVertical, ImageUp
 } from 'lucide-react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
@@ -809,7 +809,9 @@ const App: React.FC = () => {
         visualStatus: 'completed',
         visualDuration: duration,
         bitmapStatus: 'outdated',
-        evalStatus: 'outdated'
+        evalStatus: 'outdated',
+        evaluation: undefined,
+        shared: false
       });
       addLog('success', `Prompt regenerado en ${duration.toFixed(1)}s: "${newPrompt.substring(0, 50)}..."`);
       return true;
@@ -971,6 +973,87 @@ const App: React.FC = () => {
     if (!row.evaluation) return 0;
     const { clarity, recognizability, semantic_transparency, pragmatic_fit, cultural_adequacy, cognitive_accessibility } = row.evaluation;
     return clarity + recognizability + semantic_transparency + pragmatic_fit + cultural_adequacy + cognitive_accessibility;
+  };
+
+  const sharePictogram = async (index: number): Promise<boolean> => {
+    const row = rows[index];
+
+    if (!row || !row.evaluation) {
+      addLog('error', 'Se requiere evaluación para compartir el pictograma');
+      return false;
+    }
+
+    const avgScore = (
+      row.evaluation.clarity +
+      row.evaluation.recognizability +
+      row.evaluation.semantic_transparency +
+      row.evaluation.pragmatic_fit +
+      row.evaluation.cultural_adequacy +
+      row.evaluation.cognitive_accessibility
+    ) / 6;
+
+    if (avgScore < 4.0) {
+      addLog('error', 'El pictograma debe tener una evaluación promedio ≥ 4.0 para compartir');
+      return false;
+    }
+
+    if (row.shared) {
+      addLog('info', 'Este pictograma ya fue compartido con PICTOS');
+      return false;
+    }
+
+    try {
+      addLog('info', `Compartiendo "${row.UTTERANCE}" con PICTOS...`);
+
+      const githubToken = process.env.GITHUB_TOKEN;
+      if (!githubToken) {
+        addLog('error', 'Token de GitHub no configurado. Define GITHUB_TOKEN en las variables de entorno.');
+        return false;
+      }
+
+      const response = await fetch('https://api.github.com/repos/mediafranca/pictogram-collector/dispatches', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/vnd.github.v3+json',
+          'Authorization': `Bearer ${githubToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          event_type: 'append-row',
+          client_payload: {
+            id: row.id,
+            UTTERANCE: row.UTTERANCE,
+            status: row.status,
+            NLU: row.NLU,
+            elements: row.elements,
+            prompt: row.prompt,
+            bitmap: row.bitmap,
+            evaluation: row.evaluation,
+            nluStatus: row.nluStatus,
+            visualStatus: row.visualStatus,
+            bitmapStatus: row.bitmapStatus,
+            evalStatus: row.evalStatus,
+            source: 'pictos.net',
+            author: config.author,
+            timestamp: new Date().toISOString()
+          }
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        addLog('error', `Error al compartir: ${response.status} - ${errorText}`);
+        return false;
+      }
+
+      updateRow(index, { shared: true });
+      addLog('success', `✓ Pictograma "${row.UTTERANCE}" compartido exitosamente con PICTOS`);
+      return true;
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Error desconocido';
+      addLog('error', `Error al compartir pictograma: ${msg}`);
+      return false;
+    }
   };
 
   const filteredRows = useMemo(() => {
@@ -1282,6 +1365,7 @@ const App: React.FC = () => {
                   onCascade={() => processCascade(globalIndex)}
                   onDelete={() => setRows(prev => prev.filter(r => r.id !== row.id))}
                   onFocus={step => setFocusMode({ step, rowId: row.id })}
+                  onShare={() => sharePictogram(globalIndex)}
                   onLog={addLog}
                   config={config}
                 />
@@ -1313,6 +1397,7 @@ const App: React.FC = () => {
           row={focusedRowData}
           onClose={() => setFocusMode(null)}
           onUpdate={updates => updateRow(rows.findIndex(r => r.id === focusMode.rowId), updates)}
+          onShare={() => sharePictogram(rows.findIndex(r => r.id === focusMode.rowId))}
           config={config}
           onLog={addLog}
         />
@@ -1335,9 +1420,10 @@ const RowComponent: React.FC<{
   onRegeneratePrompt: () => void;
   onStop: () => void; onCascade: () => void; onDelete: () => void;
   onFocus: (step: 'nlu' | 'visual' | 'bitmap' | 'eval') => void;
+  onShare: () => void;
   onLog: (type: 'info' | 'error' | 'success', message: string) => void;
   config: GlobalConfig;
-}> = ({ row, isOpen, setIsOpen, onUpdate, onProcess, onRegeneratePrompt, onStop, onCascade, onDelete, onFocus, onLog, config }) => {
+}> = ({ row, isOpen, setIsOpen, onUpdate, onProcess, onRegeneratePrompt, onStop, onCascade, onDelete, onFocus, onShare, onLog, config }) => {
   const { t } = useTranslation();
   const { addSVG } = useSVGLibrary();
   const [svgProcessingStatus, setSvgProcessingStatus] = React.useState<string>('');
@@ -1486,7 +1572,7 @@ const RowComponent: React.FC<{
         <div className="flex gap-2 transition-all">
           {row.status === 'processing' ? (
             <button onClick={e => { e.stopPropagation(); onStop(); }} className="p-2 bg-orange-600 text-white hover:bg-orange-700 transition-all rounded-full shadow-sm animate-pulse" title="Detener proceso">
-              <StopCircle size={18} />
+              <Square size={18} />
             </button>
           ) : (
             <button onClick={e => { e.stopPropagation(); onCascade(); }} className="p-2 border border-slate-200 hover:border-violet-950 text-slate-400 hover:text-violet-950 transition-all rounded-full bg-white shadow-sm" title="Ejecutar pipeline completo">
@@ -1518,10 +1604,10 @@ const RowComponent: React.FC<{
           >
             <div className="flex flex-col h-full">
               <div className="flex-1 flex flex-col gap-6 overflow-y-auto">
-                <div>
+                <div id="hierarchical-elements">
                   <label className="text-[10px] font-medium uppercase text-slate-400 block mb-2 tracking-widest">{t('editor.hierarchicalElements')}</label>
                   <ElementsEditor elements={row.elements || []} onUpdate={val => {
-                    onUpdate({ elements: val, bitmapStatus: 'outdated', evalStatus: 'outdated' });
+                    onUpdate({ elements: val, bitmapStatus: 'outdated', evalStatus: 'outdated', evaluation: undefined, shared: false });
                     setElementsManuallyEdited(true);
                   }} />
                   {elementsManuallyEdited && row.NLU && row.elements && row.elements.length > 0 && (
@@ -1540,13 +1626,13 @@ const RowComponent: React.FC<{
                     </button>
                   )}
                 </div>
-                <div className="flex-1 mt-6 border-t pt-6 border-slate-200 flex flex-col gap-3">
+                <div id="spatial-prompt" className="flex-1 mt-6 border-t pt-6 border-slate-200 flex flex-col gap-3">
                   <label className="text-[10px] font-medium uppercase text-slate-400 block tracking-widest">{t('editor.spatialLogic')}</label>
                   {isPromptEditing ? (
                     <textarea
                       value={row.prompt || ""}
                       onChange={e => {
-                        onUpdate({ prompt: e.target.value, bitmapStatus: 'outdated', evalStatus: 'outdated' });
+                        onUpdate({ prompt: e.target.value, bitmapStatus: 'outdated', evalStatus: 'outdated', evaluation: undefined, shared: false });
                         setPromptManuallyEdited(true);
                       }}
                       onBlur={() => setIsPromptEditing(false)}
@@ -1672,13 +1758,47 @@ const RowComponent: React.FC<{
                 <div className="mt-4 pt-4 border-t border-slate-200">
                   <div className="flex justify-between items-center mb-3">
                     <label className="text-[10px] font-medium uppercase text-slate-400 tracking-widest">Evaluación ICAP</label>
-                    <button
-                      onClick={() => onFocus('eval')}
-                      className="p-1.5 border hover:border-violet-950 text-slate-400 hover:text-violet-950 transition-all rounded-full flex items-center justify-center"
-                      title="Abrir Editor de Evaluación"
-                    >
-                      <Hexagon size={14} />
-                    </button>
+                    <div className="flex gap-2 items-center">
+                      {(() => {
+                        if (!row.evaluation) return null;
+                        const avgScore = (
+                          row.evaluation.clarity +
+                          row.evaluation.recognizability +
+                          row.evaluation.semantic_transparency +
+                          row.evaluation.pragmatic_fit +
+                          row.evaluation.cultural_adequacy +
+                          row.evaluation.cognitive_accessibility
+                        ) / 6;
+                        if (avgScore >= 4.0 && !row.shared) {
+                          return (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onShare();
+                              }}
+                              className="p-1.5 border hover:border-violet-950 text-slate-400 hover:text-violet-950 transition-all rounded-full flex items-center justify-center"
+                              title="Compartir con PICTOS"
+                            >
+                              <ImageUp size={14} />
+                            </button>
+                          );
+                        } else if (row.shared) {
+                          return (
+                            <span className="text-emerald-600" title="Compartido con PICTOS">
+                              <CheckCircle size={14} />
+                            </span>
+                          );
+                        }
+                        return null;
+                      })()}
+                      <button
+                        onClick={() => onFocus('eval')}
+                        className="p-1.5 border hover:border-violet-950 text-slate-400 hover:text-violet-950 transition-all rounded-full flex items-center justify-center"
+                        title="Abrir Editor de Evaluación"
+                      >
+                        <Hexagon size={14} />
+                      </button>
+                    </div>
                   </div>
                   {row.evaluation ? (
                     <div className="flex items-center justify-center">
@@ -1758,7 +1878,7 @@ const StepBox: React.FC<{ id?: string; label: string; status: StepStatus; onRege
           {status === 'processing' ? (
             <div className="flex items-center gap-3">
               <span className="text-[11px] font-mono font-medium text-orange-600 animate-pulse">{elapsed}s</span>
-              <button onClick={onStop} className="p-2 bg-orange-600 text-white animate-spectral rounded-full"><StopCircle size={14} /></button>
+              <button onClick={onStop} className="p-2 bg-orange-600 text-white animate-spectral rounded-full"><Square size={14} /></button>
             </div>
           ) : (
             <div className="flex items-center gap-3">
@@ -2111,9 +2231,10 @@ const FocusViewModal: React.FC<{
   row: RowData;
   onClose: () => void;
   onUpdate: (updates: Partial<RowData>) => void;
+  onShare: () => void;
   config: GlobalConfig;
   onLog: (type: 'info' | 'error' | 'success', message: string) => void;
-}> = ({ mode, row, onClose, onUpdate, config, onLog }) => {
+}> = ({ mode, row, onClose, onUpdate, onShare, config, onLog }) => {
   const { t } = useTranslation();
   const [copyStatus, setCopyStatus] = useState(t('actions.copy'));
   const [isPromptEditing, setIsPromptEditing] = useState(false);
@@ -2152,14 +2273,14 @@ const FocusViewModal: React.FC<{
         <div className="flex flex-col h-full gap-6">
           <div>
             <label className="text-[10px] font-medium uppercase text-slate-400 block mb-2 tracking-widest">{t('editor.hierarchicalElements')}</label>
-            <ElementsEditor elements={row.elements || []} onUpdate={val => onUpdate({ elements: val, bitmapStatus: 'outdated', evalStatus: 'outdated' })} />
+            <ElementsEditor elements={row.elements || []} onUpdate={val => onUpdate({ elements: val, bitmapStatus: 'outdated', evalStatus: 'outdated', evaluation: undefined, shared: false })} />
           </div>
           <div className="flex-1 mt-6 border-t pt-6 border-slate-200">
             <label className="text-[10px] font-medium uppercase text-slate-400 block mb-3 tracking-widest">{t('editor.spatialLogic')}</label>
             {isPromptEditing ? (
               <textarea
                 value={row.prompt || ""}
-                onChange={e => onUpdate({ prompt: e.target.value, bitmapStatus: 'outdated', evalStatus: 'outdated' })}
+                onChange={e => onUpdate({ prompt: e.target.value, bitmapStatus: 'outdated', evalStatus: 'outdated', evaluation: undefined, shared: false })}
                 onBlur={() => setIsPromptEditing(false)}
                 autoFocus
                 className="w-full h-full border-none p-0 text-lg font-light text-slate-700 outline-none focus:ring-0 bg-transparent resize-none leading-relaxed"
@@ -2204,10 +2325,43 @@ const FocusViewModal: React.FC<{
                 )}
               </div>
 
-              {/* Bottom half: SVG Generator */}
-              <div className="h-1/2 p-6 bg-slate-50">
-                <h3 className="text-[10px] font-bold uppercase text-slate-400 mb-3 tracking-widest">SVG Output (SSoT)</h3>
-                <div className="h-[calc(100%-24px)]">
+              {/* Bottom half: SVG Generator + Share */}
+              <div className="h-1/2 p-6 bg-slate-50 flex flex-col">
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="text-[10px] font-bold uppercase text-slate-400 tracking-widest">SVG Output (SSoT)</h3>
+                  {(() => {
+                    if (!row.evaluation) return null;
+                    const avgScore = (
+                      row.evaluation.clarity +
+                      row.evaluation.recognizability +
+                      row.evaluation.semantic_transparency +
+                      row.evaluation.pragmatic_fit +
+                      row.evaluation.cultural_adequacy +
+                      row.evaluation.cognitive_accessibility
+                    ) / 6;
+                    if (avgScore >= 4.0 && !row.shared) {
+                      return (
+                        <button
+                          onClick={onShare}
+                          className="flex items-center gap-2 px-3 py-1.5 bg-violet-950 text-white text-[10px] font-medium uppercase tracking-widest hover:bg-black transition-all shadow-sm"
+                          title="Compartir con PICTOS"
+                        >
+                          <ImageUp size={12} />
+                          Compartir
+                        </button>
+                      );
+                    } else if (row.shared) {
+                      return (
+                        <span className="text-[10px] text-emerald-600 font-medium uppercase tracking-widest flex items-center gap-1">
+                          <CheckCircle size={12} />
+                          Compartido
+                        </span>
+                      );
+                    }
+                    return null;
+                  })()}
+                </div>
+                <div className="flex-1 overflow-hidden">
                   <SVGGenerator row={row} config={config} onLog={onLog} onUpdate={onUpdate} />
                 </div>
               </div>

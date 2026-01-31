@@ -18,14 +18,13 @@
   left: 8px;
   top: 0;
   bottom: 0;
-  width: 1px;
-  background: linear-gradient(to bottom, #e2e8f0 0%, #e2e8f0 50%, transparent 50%);
-  background-size: 2px 8px;
+  width: 2px;
+  background: #cbd5e1;
 }
 
 /* Last child - shorter line */
 .element-item:last-child::before {
-  background: linear-gradient(to bottom, #e2e8f0 0%, #e2e8f0 20px, transparent 20px);
+  height: 20px;
 }
 
 /* Horizontal connector line */
@@ -35,8 +34,8 @@
   left: 8px;
   top: 16px;
   width: 12px;
-  height: 1px;
-  background: #e2e8f0;
+  height: 2px;
+  background: #cbd5e1;
 }
 
 /* Dot at connection point */

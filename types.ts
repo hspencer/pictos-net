@@ -87,6 +87,7 @@ export interface RowData {
   rawSvg?: string; // Vectorized SVG from vtracer (raw)
   structuredSvg?: string; // mf-svg-schema compliant SVG (Gemini-processed)
   evaluation?: EvaluationMetrics; // Manual Evaluation (part of Producir phase)
+  shared?: boolean; // Whether this pictogram has been shared with PICTOS
 
   // Global Pipeline Status
   status: 'idle' | 'processing' | 'completed' | 'error';
