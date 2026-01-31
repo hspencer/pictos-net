@@ -351,5 +351,31 @@ export const generateImage = async (elements: VisualElement[], prompt: string, r
     throw new Error("No image generated.");
   }
 
-  return base64Image;
+  // Resize to 800x800 immediately to reduce memory usage and improve performance
+  onLog?.('info', `[BITMAP] Redimensionando a 800x800...`);
+  const resizedImage = await resizeImage(base64Image, 800);
+  onLog?.('success', `[BITMAP] Imagen redimensionada a 800x800`);
+
+  return resizedImage;
+};
+
+// Helper function to resize bitmap to target size
+const resizeImage = (dataUrl: string, targetSize: number): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = targetSize;
+      canvas.height = targetSize;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        reject(new Error('Could not get canvas context'));
+        return;
+      }
+      ctx.drawImage(img, 0, 0, targetSize, targetSize);
+      resolve(canvas.toDataURL('image/png'));
+    };
+    img.onerror = () => reject(new Error('Failed to load image'));
+    img.src = dataUrl;
+  });
 };

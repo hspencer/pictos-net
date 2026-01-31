@@ -1022,28 +1022,6 @@ const App: React.FC = () => {
     return clarity + recognizability + semantic_transparency + pragmatic_fit + cultural_adequacy + cognitive_accessibility;
   };
 
-  // Utility function to resize bitmap to 800x800 for sharing
-  // This reduces payload size from ~297KB to ~140KB
-  const resizeBitmapForSharing = async (dataUrl: string, targetSize: number = 800): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = targetSize;
-        canvas.height = targetSize;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          reject(new Error('Could not get canvas context'));
-          return;
-        }
-        ctx.drawImage(img, 0, 0, targetSize, targetSize);
-        resolve(canvas.toDataURL('image/png'));
-      };
-      img.onerror = () => reject(new Error('Failed to load image'));
-      img.src = dataUrl;
-    });
-  };
-
   const sharePictogram = async (index: number): Promise<boolean> => {
     const row = rows[index];
     console.log('[SHARE] Iniciando proceso de compartir pictograma', { index, utterance: row?.UTTERANCE });
@@ -1080,15 +1058,6 @@ const App: React.FC = () => {
       console.log('[SHARE] Preparando datos para enviar a PICTOS');
       addLog('info', t('share.sharing', { utterance: row.UTTERANCE }));
 
-      // Resize bitmap to 800x800 to reduce payload size (transparent to user)
-      console.log('[SHARE] Redimensionando bitmap a 800x800...');
-      const resizedBitmap = await resizeBitmapForSharing(row.bitmap, 800);
-      console.log('[SHARE] Bitmap redimensionado', {
-        originalSize: row.bitmap.length,
-        resizedSize: resizedBitmap.length,
-        reduction: `${Math.round((1 - resizedBitmap.length / row.bitmap.length) * 100)}%`
-      });
-
       const payload = {
         id: row.id,
         UTTERANCE: row.UTTERANCE,
@@ -1096,7 +1065,7 @@ const App: React.FC = () => {
         NLU: row.NLU,
         elements: row.elements,
         prompt: row.prompt,
-        bitmap: resizedBitmap, // Use resized bitmap for sharing
+        bitmap: row.bitmap, // Bitmap already resized to 800x800 at generation time
         evaluation: row.evaluation,
         nluStatus: row.nluStatus,
         visualStatus: row.visualStatus,
