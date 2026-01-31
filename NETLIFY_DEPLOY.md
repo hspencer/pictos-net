@@ -99,3 +99,56 @@ Esto levantará el servidor en http://localhost:8888 con las funciones disponibl
 
 - Verifica que `netlify.toml` esté en la raíz del proyecto
 - Verifica que el comando de build sea correcto: `npm run build`
+
+## Configuración en Namecheap para Netlify
+### Paso 1: Obtener la URL de Netlify
+Primero, necesitas saber tu URL temporal de Netlify:
+
+- Ve a tu sitio en Netlify
+- Copia la URL que te dio (algo como: amazing-site-abc123.netlify.app)
+
+### Paso 2: Configurar DNS en Namecheap
+
+En Namecheap → Domain List → Manage → Advanced DNS:
+
+ELIMINA estos 3 registros actuales:
+
+❌ A Record @ → 185.199.108.153
+❌ CNAME @ → hspencer.github.io
+❌ CNAME www → hspencer.github.io
+AGREGA estos nuevos registros:
+
+Type	Host	Value	TTL
+CNAME Record	@	tu-sitio.netlify.app	Automatic
+CNAME Record	www	tu-sitio.netlify.app	Automatic
+⚠️ Importante: Reemplaza tu-sitio.netlify.app con tu URL real de Netlify.
+
+Ejemplo Visual:
+
+┌─────────────┬──────┬─────────────────────────────┬───────────┐
+│ Type        │ Host │ Value                       │ TTL       │
+├─────────────┼──────┼─────────────────────────────┼───────────┤
+│ CNAME       │ @    │ amazing-site-abc123.netlify.app │ Automatic │
+│ CNAME       │ www  │ amazing-site-abc123.netlify.app │ Automatic │
+└─────────────┴──────┴─────────────────────────────┴───────────┘
+### Paso 3: Configurar en Netlify
+
+- Netlify → Site settings → Domain management
+- Click "Add custom domain"
+- Ingresa: pictos.net
+- Click "Verify"
+- Netlify detectará que ya configuraste el DNS
+- Espera a que Netlify provisione el certificado SSL (5-10 minutos)
+
+### Paso 4: Verificación
+
+Después de 10-30 minutos:
+
+# Verifica que apunte a Netlify
+dig pictos.net CNAME +short
+# Debería mostrar: tu-sitio.netlify.app
+O visita: https://pictos.net
+
+⏱️ Tiempo de Propagación
+Namecheap → Netlify: 5-30 minutos (usualmente rápido)
+Durante ese tiempo, puede mostrar error SSL o "Site not found" - es normal
