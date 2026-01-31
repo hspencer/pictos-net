@@ -34,3 +34,4 @@ public/schemas/
 # AI / Local folders
 .gemini
 .claude
+public/libraries/

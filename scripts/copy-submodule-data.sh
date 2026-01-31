@@ -8,6 +8,7 @@ echo "📦 Copying submodule data to public directory..."
 mkdir -p public/schemas/ICAP/data
 mkdir -p public/schemas/nlu-schema
 mkdir -p public/schemas/mf-svg-schema
+mkdir -p public/libraries
 
 # Copy ICAP data (evaluation rubric) - optional, app works without it
 if [ -f "schemas/ICAP/data/rubric-scale-descriptions.json" ]; then
@@ -21,5 +22,11 @@ fi
 
 # Copy SVG schema (when implemented)
 # cp schemas/mf-svg-schema/schema.json public/schemas/mf-svg-schema/
+
+# Copy example libraries
+if [ -d "libraries" ]; then
+    cp libraries/*.json public/libraries/ 2>/dev/null || true
+    echo "✅ Example libraries copied"
+fi
 
 echo "✅ Submodule data copy complete"

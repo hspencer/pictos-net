@@ -38,15 +38,19 @@
   "home": {
     "graphArchitecture": "Graph Architecture",
     "description": "Step-by-step generative system for pictograms from communicative intent to visual representation",
-    "icapModule": "Load Example Dataset",
-    "icapNamespace": "mediafranca.graph.dataset",
-    "icapDescription": "50 complete pictograms from the ICAP-50 corpus with NLU analysis, visual elements, rendered images, and cognitive evaluations (8 categories: Request, Reject, Direct, Accept, Social, Emotion, Comment, Question).",
-    "icapRepository": "View repository",
+    "icapModule": "ICAP-50 Phrase List",
+    "icapNamespace": "mediafranca.icap.corpus",
+    "icapDescription": "The ICAP-50 corpus represents a set of 50 fundamental communicative phrases for AAC (Augmentative and Alternative Communication), organized into 8 pragmatic categories: Request, Reject, Direct, Accept, Social, Emotion, Comment, and Question. This corpus is the methodological foundation for evaluating the effectiveness of pictographic systems in real communication contexts.",
+    "icapRepository": "View ICAP repository",
     "importTextNode": "Upload Your Own Phrases",
     "importNamespace": "custom_vocabulary",
     "importDescription": "Define your own vocabulary from custom phrases. Upload a .txt file with one phrase per line.",
-    "loadICAPWarning": "You have {count} pictogram(s) in your library. Loading the example dataset will overwrite your current work. Do you want to continue?",
-    "aboutProject": "About this project"
+    "loadICAPWarning": "You have {count} pictogram(s) in your library. Loading the ICAP list will overwrite your current work. Do you want to continue?",
+    "aboutProject": "About this project",
+    "exampleLibraries": "Example Libraries",
+    "exampleLibrariesDescription": "Curated collections of pictograms with complete evaluations",
+    "loadLibrary": "Load library",
+    "items": "items"
   },
   "pipeline": {
     "understand": "Understand",

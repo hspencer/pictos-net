@@ -11,7 +11,7 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSo
 import { CSS } from '@dnd-kit/utilities';
 import { RowData, LogEntry, StepStatus, NLUData, GlobalConfig, VOCAB, VisualElement, EvaluationMetrics, NLUFrameRole } from './types';
 import * as Gemini from './services/geminiService';
-import { ICAP_MODULE_FALLBACK } from './data/canonicalData';
+import { ICAP_MODULE_FALLBACK, fetchICAPModule } from './data/canonicalData';
 import { useTranslation } from './hooks/useTranslation';
 import type { Locale } from './locales';
 import { SVGGenerator } from './components/SVGGenerator';
@@ -26,6 +26,33 @@ import * as IndexedDBService from './services/indexedDBService';
 const STORAGE_KEY = 'pictonet_v19_storage';
 const CONFIG_KEY = 'pictonet_v19_config';
 const APP_VERSION = '3.0.0';
+
+// Available example libraries in /libraries folder
+interface LibraryMetadata {
+  filename: string;
+  name: string;
+  location: string;
+  language: string;
+  items?: number;
+  description?: string;
+}
+
+const EXAMPLE_LIBRARIES: LibraryMetadata[] = [
+  {
+    filename: 'pictos_net_graph_2026-01-30.json',
+    name: 'PictoNet Example Dataset',
+    location: 'Auckland, NZ',
+    language: 'es',
+    description: 'Complete dataset with evaluations'
+  },
+  {
+    filename: 'aut_graph_2026-01-31.json',
+    name: 'AUT Pilot Study',
+    location: 'Auckland, NZ',
+    language: 'en',
+    description: 'Autism communication pilot'
+  }
+];
 
 // Helper function to ensure elements is always a valid array
 const ensureElementsArray = (elements: any): VisualElement[] => {
@@ -790,12 +817,34 @@ const App: React.FC = () => {
     }
 
     try {
-      addLog('info', 'Cargando dataset de ejemplo con pictogramas completos...');
-      const response = await fetch('/example-dataset.json');
+      addLog('info', 'Cargando corpus ICAP-50 desde repositorio oficial...');
+      const module = await fetchICAPModule();
+      addLog('success', `Corpus ICAP-50 v${module.version} cargado: ${module.data.length} frases base`);
+      setRows(module.data as RowData[]);
+      setViewMode('list');
+    } catch (error) {
+      addLog('error', 'Error al cargar corpus ICAP, usando corpus base local');
+      console.error('ICAP fetch error:', error);
+      // Fallback to basic ICAP phrases
+      setRows(ICAP_MODULE_FALLBACK.data as RowData[]);
+      setViewMode('list');
+    }
+  };
+
+  // Load library from libraries folder
+  const loadLibrary = async (filename: string) => {
+    if (rows.length > 0) {
+      const confirmed = window.confirm(t('home.loadICAPWarning', { count: rows.length }));
+      if (!confirmed) return;
+    }
+
+    try {
+      addLog('info', `Cargando biblioteca: ${filename}...`);
+      const response = await fetch(`/libraries/${filename}`);
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
       const data = await response.json();
-      addLog('success', `Dataset v${data.version} cargado: ${data.rows.length} pictogramas con evaluaciones`);
+      addLog('success', `Biblioteca cargada: ${data.rows?.length || 0} pictogramas`);
 
       // Load config if available
       if (data.config) {
@@ -805,11 +854,9 @@ const App: React.FC = () => {
       setRows(data.rows as RowData[]);
       setViewMode('list');
     } catch (error) {
-      addLog('error', 'Error al cargar dataset de ejemplo, usando frases ICAP básicas');
-      console.error('Example dataset load error:', error);
-      // Fallback to basic ICAP phrases
-      setRows(ICAP_MODULE_FALLBACK.data as RowData[]);
-      setViewMode('list');
+      const msg = error instanceof Error ? error.message : 'Unknown error';
+      addLog('error', `Error al cargar biblioteca: ${msg}`);
+      console.error('Library load error:', error);
     }
   };
 
@@ -1389,6 +1436,55 @@ const App: React.FC = () => {
                 </div>
                 <p className="text-xs text-violet-300 leading-relaxed font-medium">{t('home.importDescription')}</p>
                 <input ref={fileInputRef} type="file" accept=".txt" className="hidden" onChange={e => e.target.files?.[0]?.text().then(processPhrases)} />
+              </div>
+            </div>
+
+            {/* Example Libraries Section */}
+            <div className="max-w-2xl mx-auto space-y-6">
+              <div className="text-center space-y-2">
+                <h3 className="text-2xl font-bold tracking-tight text-slate-900">{t('home.exampleLibraries')}</h3>
+                <p className="text-sm text-slate-500">{t('home.exampleLibrariesDescription')}</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {EXAMPLE_LIBRARIES.map((library) => (
+                  <div
+                    key={library.filename}
+                    onClick={() => loadLibrary(library.filename)}
+                    className="bg-slate-50 border border-slate-200 p-6 text-left space-y-3 hover:border-violet-600 hover:bg-white transition-all cursor-pointer group"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="text-violet-600 group-hover:scale-110 transition-transform">
+                        <Library size={24} />
+                      </div>
+                      <div className="flex gap-1">
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 bg-slate-100 px-2 py-0.5">
+                          {library.language}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h4 className="font-bold text-sm uppercase tracking-wide text-slate-900">{library.name}</h4>
+                      <div className="text-[10px] text-slate-400 font-mono mt-0.5">{library.location}</div>
+                    </div>
+
+                    {library.description && (
+                      <p className="text-xs text-slate-500 leading-relaxed">{library.description}</p>
+                    )}
+
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-200">
+                      <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">
+                        {t('home.loadLibrary')}
+                      </span>
+                      {library.items && (
+                        <span className="text-[10px] text-violet-600 font-bold">
+                          {library.items} {t('home.items')}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
 
