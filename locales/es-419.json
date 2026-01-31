@@ -222,5 +222,18 @@
     "library": "Biblioteca SVG",
     "compliant": "Compatible con mf-svg-schema",
     "unavailable": "No disponible"
+  },
+  "share": {
+    "shareWithPictos": "Compartir con PICTOS",
+    "requiresEvaluation": "Se requiere evaluación para compartir el pictograma",
+    "lowScore": "El pictograma debe tener una evaluación promedio ≥ 4.0 para compartir",
+    "requiresHighScore": "Requiere evaluación ≥ 4.0",
+    "alreadyShared": "Este pictograma ya fue compartido con PICTOS",
+    "sharing": "Compartiendo \"{utterance}\" con PICTOS...",
+    "noToken": "Token de GitHub no configurado. Define GITHUB_TOKEN en las variables de entorno.",
+    "error": "Error al compartir: {status} - {error}",
+    "success": "✓ Pictograma \"{utterance}\" compartido exitosamente con PICTOS",
+    "exception": "Error al compartir pictograma: {error}",
+    "thanksMessage": "Gracias por compartir tu pictograma con PICTOS. Este pictograma será visible por toda la comunidad."
   }
 }
