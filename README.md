@@ -13,12 +13,13 @@ Este proyecto avanza sobre [PICTOS.cl](https://pictos.cl) desarrollado por el [N
 
 ### Almacenamiento Local
 
-**Importante**: Todos los pictogramas y datos se almacenan **localmente en el navegador** usando `localStorage`. Esto significa:
+**Importante**: Todos los pictogramas y datos se almacenan **localmente en el navegador** usando `localStorage` (metadatos) e `IndexedDB` (imágenes bitmap). Esto significa:
 
 - Los datos persisten entre sesiones en el mismo navegador
 - Si limpias los datos del navegador, **perderás todo tu trabajo**
 - Para respaldar tu trabajo, usa la función **Exportar Grafo** en el menú de Librería
-- Los archivos JSON exportados contienen toda la información, incluyendo las imágenes en Base64 y las evaluaciones.
+- Los archivos JSON exportados contienen toda la información, incluyendo las imágenes en Base64 y las evaluaciones
+- Las imágenes bitmap se almacenan en IndexedDB para optimizar el rendimiento (pueden ser archivos grandes)
 
 **Contribuye al proyecto**: Puedes enviar tu grafo exportado con tus comentarios y recomendaciones a [hspencer@ead.cl](mailto:hspencer@ead.cl). De esta forma ayudarás a mejorar esta herramienta de comunicación de código abierto.
 
@@ -232,13 +233,17 @@ Exportar pictogramas vectoriales con metadatos completos para integración en ap
 
 ## Tecnología
 
-- **Frontend**: React + TypeScript + Vite
+- **Frontend**: React 19 + TypeScript 5.8 + Vite 6
+- **Styling**: Tailwind CSS 3.4 (PostCSS)
 - **Procesamiento Lingüístico**: Google Gemini 3 Pro (análisis NSM)
 - **Generación de Imágenes**: Gemini 2.5 Flash Image / Gemini 3 Pro Image
 - **Vectorización**: VTracer WASM (bitmap → SVG)
 - **Estructuración SVG**: Gemini 3 Pro (aplicación de mf-svg-schema)
-- **Arquitectura**: Cliente-lado con almacenamiento local (localStorage)
-- **Almacenamiento Dual**: Bitmaps (RowData) + SVGs (Biblioteca independiente)
+- **Arquitectura**: Cliente-lado con almacenamiento híbrido
+  - `localStorage`: Metadatos, configuración y datos del grafo
+  - `IndexedDB`: Imágenes bitmap (optimización para archivos grandes)
+- **Almacenamiento Dual**: Bitmaps (RowData + IndexedDB) + SVGs (Biblioteca independiente)
+- **Backend**: Netlify Functions (compartir pictogramas a GitHub)
 - **Internacionalización**: Soporte para inglés (UK) y español (Latinoamérica)
 - **Licencia**: MIT (código) / CC-BY-4.0 (imágenes generadas)
 

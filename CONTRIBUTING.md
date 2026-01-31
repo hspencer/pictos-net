@@ -100,6 +100,14 @@ npm run validate-i18n
 
 Verifica que los archivos de traducción en `/locales/` tengan las mismas claves.
 
+#### Generar Índice de Bibliotecas
+
+```bash
+node scripts/generate-libraries-index.cjs
+```
+
+Regenera el archivo `public/libraries/index.json` escaneando todos los archivos JSON en `public/libraries/`. Este comando se ejecuta automáticamente durante el build, pero puedes ejecutarlo manualmente si agregas o modificas bibliotecas de ejemplo.
+
 ## Despliegue en GitHub Pages
 
 El proyecto incluye un workflow de GitHub Actions (`.github/workflows/deploy.yml`) que despliega automáticamente a GitHub Pages desde la rama `local-dev`.
