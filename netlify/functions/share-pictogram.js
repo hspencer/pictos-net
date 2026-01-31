@@ -41,8 +41,19 @@ exports.handler = async (event) => {
       };
     }
 
+    // Construir payload para GitHub
+    const githubPayload = {
+      event_type: 'append-row',
+      client_payload: payload
+    };
+
+    console.log('[SHARE-FUNCTION] Payload para GitHub:', JSON.stringify({
+      event_type: githubPayload.event_type,
+      client_payload_keys: Object.keys(githubPayload.client_payload),
+      payload_size: JSON.stringify(githubPayload).length
+    }));
+
     // Enviar dispatch a GitHub
-    console.log('[SHARE-FUNCTION] Enviando a GitHub API...');
     const response = await fetch('https://api.github.com/repos/mediafranca/pictogram-collector/dispatches', {
       method: 'POST',
       headers: {
@@ -51,17 +62,19 @@ exports.handler = async (event) => {
         'Content-Type': 'application/json',
         'User-Agent': 'PictoNet-Netlify-Function'
       },
-      body: JSON.stringify({
-        event_type: 'append-row',
-        client_payload: payload
-      })
+      body: JSON.stringify(githubPayload)
     });
 
     console.log('[SHARE-FUNCTION] Respuesta GitHub:', response.status, response.statusText);
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('[SHARE-FUNCTION] Error desde GitHub:', errorText);
+      console.error('[SHARE-FUNCTION] Error desde GitHub:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText,
+        headers: Object.fromEntries(response.headers.entries())
+      });
       return {
         statusCode: response.status,
         headers,

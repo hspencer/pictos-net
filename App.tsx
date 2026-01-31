@@ -4,7 +4,7 @@ import {
   Upload, Download, Trash2, Terminal, RefreshCw, ChevronDown,
   Play, BookOpen, Search, FileDown, Square, Sliders,
   X, Code, Plus, FileText, Maximize, Copy, BrainCircuit, PlusCircle, CornerDownRight, Image as ImageIcon,
-  Library, ScreenShare, Globe, Hexagon, HelpCircle, CheckCircle, ExternalLink, Palette, GripVertical, Share2
+  Library, ScreenShare, Globe, Hexagon, HelpCircle, CheckCircle, ExternalLink, Palette, GripVertical, ImageUp
 } from 'lucide-react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
@@ -1848,11 +1848,11 @@ const RowComponent: React.FC<{
                             className={`p-1.5 border transition-all rounded-full flex items-center justify-center ${
                               isShared
                                 ? 'border-emerald-500 text-emerald-600 bg-emerald-50 cursor-default'
-                                : 'border-emerald-500 text-white bg-emerald-500 hover:bg-emerald-600 hover:border-emerald-600'
+                                : 'border-emerald-500 text-emerald-600 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-600'
                             }`}
                             title={isShared ? t('share.alreadyShared') : t('share.shareWithPictos')}
                           >
-                            {isShared ? <CheckCircle size={14} /> : <Share2 size={14} />}
+                            {isShared ? <CheckCircle size={14} /> : <ImageUp size={14} />}
                           </button>
                         );
                       })()}
@@ -2417,11 +2417,11 @@ const FocusViewModal: React.FC<{
                         className={`p-2 transition-all shadow-sm ${
                           isShared
                             ? 'bg-emerald-50 text-emerald-600 border border-emerald-200 cursor-default'
-                            : 'bg-emerald-500 text-white hover:bg-emerald-600 border border-emerald-600'
+                            : 'bg-slate-50 text-emerald-600 border border-emerald-500 hover:bg-emerald-50 hover:border-emerald-600'
                         }`}
                         title={isShared ? t('share.alreadyShared') : t('share.shareWithPictos')}
                       >
-                        {isShared ? <CheckCircle size={14} /> : <Share2 size={14} />}
+                        {isShared ? <CheckCircle size={14} /> : <ImageUp size={14} />}
                       </button>
                     );
                   })()}
