@@ -3,7 +3,7 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches:
-      - local-dev  # Deploy from local-dev branch
+      - main  # Deploy from local-dev branch
   workflow_dispatch:  # Allow manual trigger
 
 permissions:
