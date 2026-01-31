@@ -4,7 +4,7 @@ import {
   Upload, Download, Trash2, Terminal, RefreshCw, ChevronDown,
   Play, BookOpen, Search, FileDown, Square, Sliders,
   X, Code, Plus, FileText, Maximize, Copy, BrainCircuit, PlusCircle, CornerDownRight, Image as ImageIcon,
-  Library, ScreenShare, Globe, Hexagon, HelpCircle, CheckCircle, ExternalLink, Palette, GripVertical, ImageUp
+  Library, ScreenShare, Globe, Hexagon, HelpCircle, CheckCircle, ExternalLink, Palette, GripVertical, Share2
 } from 'lucide-react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
@@ -21,6 +21,7 @@ import { StyleEditor } from './components/PictoForge/StyleEditor';
 import { structureSVG } from './services/svgStructureService';
 import { vectorizeBitmap } from './services/vtracerService';
 import { GeoAutocomplete } from './components/GeoAutocomplete';
+import * as IndexedDBService from './services/indexedDBService';
 
 const STORAGE_KEY = 'pictonet_v19_storage';
 const CONFIG_KEY = 'pictonet_v19_config';
@@ -549,60 +550,98 @@ const App: React.FC = () => {
   };
 
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    const savedConfig = localStorage.getItem(CONFIG_KEY);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          const sanitized = parsed.map(sanitizeRow);
-          setRows(sanitized);
-          if (sanitized.length > 0) setViewMode('list');
+    const loadData = async () => {
+      // Load rows from localStorage
+      const saved = localStorage.getItem(STORAGE_KEY);
+      const savedConfig = localStorage.getItem(CONFIG_KEY);
+
+      let loadedRows: RowData[] = [];
+
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) {
+            loadedRows = parsed.map(sanitizeRow);
+          }
+        } catch (e) {
+          console.error("Failed to load rows", e);
         }
-      } catch (e) {
-        console.error("Failed to load rows", e);
       }
-    }
-    if (savedConfig) {
-      try {
-        setConfig(JSON.parse(savedConfig));
-      } catch (e) {
-        console.error("Failed to load config", e);
+
+      // Load bitmaps from IndexedDB and merge with rows
+      if (loadedRows.length > 0) {
+        try {
+          const bitmapsMap = await IndexedDBService.getAllBitmaps();
+          loadedRows = loadedRows.map(row => ({
+            ...row,
+            bitmap: bitmapsMap.get(row.id) || row.bitmap
+          }));
+        } catch (err) {
+          console.error('Failed to load bitmaps from IndexedDB:', err);
+        }
+
+        setRows(loadedRows);
+        setViewMode('list');
       }
-    }
-    setIsInitialized(true);
+
+      if (savedConfig) {
+        try {
+          setConfig(JSON.parse(savedConfig));
+        } catch (e) {
+          console.error("Failed to load config", e);
+        }
+      }
+
+      setIsInitialized(true);
+    };
+
+    loadData();
   }, []);
 
   // Auto-save to localStorage with error handling
   useEffect(() => {
     if (!isInitialized) return;
 
-    try {
-      // Strip bitmaps from rows before saving (they're too large for localStorage)
-      // Bitmaps are only saved in manual exports
-      const rowsWithoutBitmaps = rows.map((row: RowData) => ({
-        ...row,
-        bitmap: undefined, // Remove bitmap to save space
-      }));
+    const saveData = async () => {
+      try {
+        // Save bitmaps to IndexedDB first (they're too large for localStorage)
+        const bitmapSavePromises = rows
+          .filter((row: RowData) => row.bitmap)
+          .map((row: RowData) => IndexedDBService.saveBitmap(row.id, row.bitmap!));
 
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(rowsWithoutBitmaps));
-      localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
-    } catch (error) {
-      if (error instanceof DOMException && error.name === 'QuotaExceededError') {
-        console.error('localStorage quota exceeded');
-        addLog('error', t('messages.storageQuotaExceeded'));
+        await Promise.all(bitmapSavePromises).catch(err => {
+          console.error('Failed to save bitmaps to IndexedDB:', err);
+        });
 
-        // Try to save at least the config
-        try {
-          localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
-        } catch (e) {
-          console.error('Failed to save even config:', e);
+        // Strip bitmaps from rows before saving to localStorage
+        const rowsWithoutBitmaps = rows.map((row: RowData) => ({
+          ...row,
+          bitmap: undefined, // Remove bitmap to save space (stored in IndexedDB)
+          rawSvg: undefined, // Also remove SVGs to save space
+          structuredSvg: undefined
+        }));
+
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(rowsWithoutBitmaps));
+        localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+      } catch (error) {
+        if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+          console.error('localStorage quota exceeded');
+          addLog('error', t('messages.storageQuotaExceeded'));
+
+          // Try to save at least the config
+          try {
+            localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+          } catch (e) {
+            console.error('Failed to save even config:', e);
+          }
+        } else {
+          console.error('Failed to save to localStorage:', error);
+          addLog('error', t('messages.storageSaveFailed'));
         }
-      } else {
-        console.error('Failed to save to localStorage:', error);
-        addLog('error', t('messages.storageSaveFailed'));
       }
-    }
+    };
+
+    saveData();
   }, [rows, config, isInitialized]);
 
   const addLog = (type: 'info' | 'error' | 'success', message: string) => {
@@ -724,12 +763,20 @@ const App: React.FC = () => {
     setIsSearching(false);
   };
 
-  const clearAll = () => {
+  const clearAll = async () => {
     const confirmed = window.confirm(t('actions.deleteAllConfirm'));
     if (confirmed) {
       setRows([]);
       setLogs([]);
       localStorage.removeItem(STORAGE_KEY);
+
+      // Clear IndexedDB bitmaps
+      try {
+        await IndexedDBService.clearAllBitmaps();
+      } catch (err) {
+        console.error('Failed to clear IndexedDB:', err);
+      }
+
       setViewMode('home');
       setShowLibraryMenu(false);
       addLog('info', t('messages.allCleared'));
@@ -977,9 +1024,11 @@ const App: React.FC = () => {
 
   const sharePictogram = async (index: number): Promise<boolean> => {
     const row = rows[index];
+    console.log('[SHARE] Iniciando proceso de compartir pictograma', { index, utterance: row?.UTTERANCE });
 
     if (!row || !row.evaluation) {
-      addLog('error', 'Se requiere evaluación para compartir el pictograma');
+      console.log('[SHARE] Error: No hay fila o evaluación', { hasRow: !!row, hasEvaluation: !!row?.evaluation });
+      addLog('error', t('share.requiresEvaluation'));
       return false;
     }
 
@@ -991,67 +1040,73 @@ const App: React.FC = () => {
       row.evaluation.cultural_adequacy +
       row.evaluation.cognitive_accessibility
     ) / 6;
+    console.log('[SHARE] Evaluación promedio calculada', { avgScore, required: 4.0 });
 
     if (avgScore < 4.0) {
-      addLog('error', 'El pictograma debe tener una evaluación promedio ≥ 4.0 para compartir');
+      console.log('[SHARE] Error: Evaluación insuficiente', { avgScore });
+      addLog('error', t('share.lowScore'));
       return false;
     }
 
     if (row.shared) {
-      addLog('info', 'Este pictograma ya fue compartido con PICTOS');
+      console.log('[SHARE] El pictograma ya fue compartido previamente');
+      addLog('info', t('share.alreadyShared'));
       return false;
     }
 
     try {
-      addLog('info', `Compartiendo "${row.UTTERANCE}" con PICTOS...`);
+      console.log('[SHARE] Preparando datos para enviar a PICTOS');
+      addLog('info', t('share.sharing', { utterance: row.UTTERANCE }));
 
-      const githubToken = process.env.GITHUB_TOKEN;
-      if (!githubToken) {
-        addLog('error', 'Token de GitHub no configurado. Define GITHUB_TOKEN en las variables de entorno.');
-        return false;
-      }
+      const payload = {
+        id: row.id,
+        UTTERANCE: row.UTTERANCE,
+        status: row.status,
+        NLU: row.NLU,
+        elements: row.elements,
+        prompt: row.prompt,
+        bitmap: row.bitmap,
+        evaluation: row.evaluation,
+        nluStatus: row.nluStatus,
+        visualStatus: row.visualStatus,
+        bitmapStatus: row.bitmapStatus,
+        evalStatus: row.evalStatus,
+        source: 'pictos.net',
+        author: config.author,
+        timestamp: new Date().toISOString()
+      };
+      console.log('[SHARE] Enviando a función serverless', { payloadSize: JSON.stringify(payload).length });
 
-      const response = await fetch('https://api.github.com/repos/mediafranca/pictogram-collector/dispatches', {
+      // Llamar a la función de Netlify (protege el GITHUB_TOKEN)
+      const response = await fetch('/.netlify/functions/share-pictogram', {
         method: 'POST',
         headers: {
-          'Accept': 'application/vnd.github.v3+json',
-          'Authorization': `Bearer ${githubToken}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          event_type: 'append-row',
-          client_payload: {
-            id: row.id,
-            UTTERANCE: row.UTTERANCE,
-            status: row.status,
-            NLU: row.NLU,
-            elements: row.elements,
-            prompt: row.prompt,
-            bitmap: row.bitmap,
-            evaluation: row.evaluation,
-            nluStatus: row.nluStatus,
-            visualStatus: row.visualStatus,
-            bitmapStatus: row.bitmapStatus,
-            evalStatus: row.evalStatus,
-            source: 'pictos.net',
-            author: config.author,
-            timestamp: new Date().toISOString()
-          }
-        })
+        body: JSON.stringify(payload)
       });
+
+      console.log('[SHARE] Respuesta recibida', { status: response.status, statusText: response.statusText });
 
       if (!response.ok) {
         const errorText = await response.text();
-        addLog('error', `Error al compartir: ${response.status} - ${errorText}`);
+        console.error('[SHARE] Error en respuesta', { status: response.status, error: errorText });
+        addLog('error', t('share.error', { status: response.status, error: errorText }));
         return false;
       }
 
+      console.log('[SHARE] ✓ Pictograma compartido exitosamente');
       updateRow(index, { shared: true });
-      addLog('success', `✓ Pictograma "${row.UTTERANCE}" compartido exitosamente con PICTOS`);
+      addLog('success', t('share.success', { utterance: row.UTTERANCE }));
+
+      // Mostrar mensaje de agradecimiento al usuario
+      alert(t('share.thanksMessage'));
+
       return true;
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Error desconocido';
-      addLog('error', `Error al compartir pictograma: ${msg}`);
+      console.error('[SHARE] Excepción capturada', { error: msg });
+      addLog('error', t('share.exception', { error: msg }));
       return false;
     }
   };
@@ -1363,7 +1418,14 @@ const App: React.FC = () => {
                     addLog('info', `🛑 Solicitud de detención para: "${row.UTTERANCE}"`);
                   }}
                   onCascade={() => processCascade(globalIndex)}
-                  onDelete={() => setRows(prev => prev.filter(r => r.id !== row.id))}
+                  onDelete={() => {
+                    // Delete bitmap from IndexedDB
+                    IndexedDBService.deleteBitmap(row.id).catch(err => {
+                      console.error('Failed to delete bitmap from IndexedDB:', err);
+                    });
+                    // Remove row from state
+                    setRows(prev => prev.filter(r => r.id !== row.id));
+                  }}
                   onFocus={step => setFocusMode({ step, rowId: row.id })}
                   onShare={() => sharePictogram(globalIndex)}
                   onLog={addLog}
@@ -1769,27 +1831,30 @@ const RowComponent: React.FC<{
                           row.evaluation.cultural_adequacy +
                           row.evaluation.cognitive_accessibility
                         ) / 6;
-                        if (avgScore >= 4.0 && !row.shared) {
-                          return (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onShare();
-                              }}
-                              className="p-1.5 border hover:border-violet-950 text-slate-400 hover:text-violet-950 transition-all rounded-full flex items-center justify-center"
-                              title="Compartir con PICTOS"
-                            >
-                              <ImageUp size={14} />
-                            </button>
-                          );
-                        } else if (row.shared) {
-                          return (
-                            <span className="text-emerald-600" title="Compartido con PICTOS">
-                              <CheckCircle size={14} />
-                            </span>
-                          );
-                        }
-                        return null;
+
+                        const canShare = avgScore >= 4.0 && !row.shared;
+                        const isShared = row.shared;
+
+                        // Solo mostrar botón si puede compartir o ya está compartido
+                        if (!canShare && !isShared) return null;
+
+                        return (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (!isShared) onShare();
+                            }}
+                            disabled={isShared}
+                            className={`p-1.5 border transition-all rounded-full flex items-center justify-center ${
+                              isShared
+                                ? 'border-emerald-500 text-emerald-600 bg-emerald-50 cursor-default'
+                                : 'border-emerald-500 text-white bg-emerald-500 hover:bg-emerald-600 hover:border-emerald-600'
+                            }`}
+                            title={isShared ? t('share.alreadyShared') : t('share.shareWithPictos')}
+                          >
+                            {isShared ? <CheckCircle size={14} /> : <Share2 size={14} />}
+                          </button>
+                        );
                       })()}
                       <button
                         onClick={() => onFocus('eval')}
@@ -2339,26 +2404,26 @@ const FocusViewModal: React.FC<{
                       row.evaluation.cultural_adequacy +
                       row.evaluation.cognitive_accessibility
                     ) / 6;
-                    if (avgScore >= 4.0 && !row.shared) {
-                      return (
-                        <button
-                          onClick={onShare}
-                          className="flex items-center gap-2 px-3 py-1.5 bg-violet-950 text-white text-[10px] font-medium uppercase tracking-widest hover:bg-black transition-all shadow-sm"
-                          title="Compartir con PICTOS"
-                        >
-                          <ImageUp size={12} />
-                          Compartir
-                        </button>
-                      );
-                    } else if (row.shared) {
-                      return (
-                        <span className="text-[10px] text-emerald-600 font-medium uppercase tracking-widest flex items-center gap-1">
-                          <CheckCircle size={12} />
-                          Compartido
-                        </span>
-                      );
-                    }
-                    return null;
+
+                    const canShare = avgScore >= 4.0 && !row.shared;
+                    const isShared = row.shared;
+
+                    if (!canShare && !isShared) return null;
+
+                    return (
+                      <button
+                        onClick={onShare}
+                        disabled={isShared}
+                        className={`p-2 transition-all shadow-sm ${
+                          isShared
+                            ? 'bg-emerald-50 text-emerald-600 border border-emerald-200 cursor-default'
+                            : 'bg-emerald-500 text-white hover:bg-emerald-600 border border-emerald-600'
+                        }`}
+                        title={isShared ? t('share.alreadyShared') : t('share.shareWithPictos')}
+                      >
+                        {isShared ? <CheckCircle size={14} /> : <Share2 size={14} />}
+                      </button>
+                    );
                   })()}
                 </div>
                 <div className="flex-1 overflow-hidden">
