@@ -658,18 +658,20 @@ const App: React.FC = () => {
   useEffect(() => {
     const loadLibraries = async () => {
       try {
+        console.log('[LIBRARIES] Fetching index from /libraries/index.json...');
         const response = await fetch('/libraries/index.json');
         if (!response.ok) {
-          console.warn('No libraries index found');
+          console.warn('[LIBRARIES] Index not found, status:', response.status);
           setAvailableLibraries([]);
           return;
         }
 
         const index = await response.json();
+        console.log('[LIBRARIES] Index loaded:', index);
         setAvailableLibraries(index.libraries || []);
-        console.log(`📚 Loaded ${index.libraries.length} libraries from index`);
+        console.log(`[LIBRARIES] ✅ ${index.libraries.length} libraries ready to display`);
       } catch (error) {
-        console.error('Failed to load libraries index:', error);
+        console.error('[LIBRARIES] Failed to load index:', error);
         setAvailableLibraries([]);
       }
     };

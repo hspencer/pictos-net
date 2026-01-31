@@ -40,7 +40,7 @@
     "description": "Sistema generativo de pictogramas paso-a-paso desde la intención comunicativa a la representación visual",
     "icapModule": "Listado de 50 frases ICAP",
     "icapNamespace": "mediafranca.icap.corpus",
-    "icapDescription": "El corpus ICAP-50 representa un conjunto de 50 frases comunicativas fundamentales para la CAA (Comunicación Aumentativa y Alternativa), organizadas en 8 categorías pragmáticas: Solicitar, Rechazar, Dirigir, Aceptar, Social, Emoción, Comentar y Preguntar. Este corpus es la base metodológica para evaluar la efectividad de sistemas pictográficos en contextos reales de comunicación.",
+    "icapDescription": "El corpus ICAP-50 es un conjunto de 50 frases organizadas en 8 categorías pragmáticas: Solicitar, Rechazar, Dirigir, Aceptar, Social, Emoción, Comentar y Preguntar.",
     "icapRepository": "Ver repositorio ICAP",
     "importTextNode": "Sube Tus Propias Frases",
     "importNamespace": "vocabulario_personalizado",
