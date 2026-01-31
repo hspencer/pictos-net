@@ -360,6 +360,7 @@ export const generateImage = async (elements: VisualElement[], prompt: string, r
 };
 
 // Helper function to resize bitmap to target size
+// Uses JPEG format with quality 0.85 for better compression than PNG
 const resizeImage = (dataUrl: string, targetSize: number): Promise<string> => {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -372,8 +373,12 @@ const resizeImage = (dataUrl: string, targetSize: number): Promise<string> => {
         reject(new Error('Could not get canvas context'));
         return;
       }
+      // Fill white background (JPEG doesn't support transparency)
+      ctx.fillStyle = 'white';
+      ctx.fillRect(0, 0, targetSize, targetSize);
       ctx.drawImage(img, 0, 0, targetSize, targetSize);
-      resolve(canvas.toDataURL('image/png'));
+      // Use JPEG with quality 0.85 for better compression (smaller file size)
+      resolve(canvas.toDataURL('image/jpeg', 0.85));
     };
     img.onerror = () => reject(new Error('Failed to load image'));
     img.src = dataUrl;
