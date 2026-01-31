@@ -8,6 +8,21 @@
   to = "/index.html"
   status = 200
 
+[[headers]]
+  for = "/assets/*.js"
+  [headers.values]
+    Content-Type = "application/javascript; charset=utf-8"
+
+[[headers]]
+  for = "/assets/*.wasm"
+  [headers.values]
+    Content-Type = "application/wasm"
+
+[[headers]]
+  for = "/*.svg"
+  [headers.values]
+    Content-Type = "image/svg+xml"
+
 [build.environment]
   NODE_VERSION = "18"
   # Permitir ambas keys en el scanner (GEMINI_API_KEY se usa en cliente, GITHUB_TOKEN solo en función)
