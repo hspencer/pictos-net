@@ -54,7 +54,7 @@ exports.handler = async (event) => {
     }));
 
     // Enviar dispatch a GitHub
-    const response = await fetch('https://api.github.com/repos/mediafranca/pictogram-collector/dispatches', {
+    const response = await fetch('https://api.github.com/repos/hspencer/pictogram-collector/dispatches', {
       method: 'POST',
       headers: {
         'Accept': 'application/vnd.github.v3+json',
