@@ -11,7 +11,7 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSo
 import { CSS } from '@dnd-kit/utilities';
 import { RowData, LogEntry, StepStatus, NLUData, GlobalConfig, VOCAB, VisualElement, EvaluationMetrics, NLUFrameRole } from './types';
 import * as Gemini from './services/geminiService';
-import { ICAP_MODULE_FALLBACK } from './data/canonicalData';
+import { ICAP_MODULE_FALLBACK, fetchICAPModule } from './data/canonicalData';
 import { useTranslation } from './hooks/useTranslation';
 import type { Locale } from './locales';
 import { SVGGenerator } from './components/SVGGenerator';
@@ -21,10 +21,20 @@ import { StyleEditor } from './components/PictoForge/StyleEditor';
 import { structureSVG } from './services/svgStructureService';
 import { vectorizeBitmap } from './services/vtracerService';
 import { GeoAutocomplete } from './components/GeoAutocomplete';
+import * as IndexedDBService from './services/indexedDBService';
 
 const STORAGE_KEY = 'pictonet_v19_storage';
 const CONFIG_KEY = 'pictonet_v19_config';
-const APP_VERSION = '3.0.0';
+const APP_VERSION = '1.0.0';
+
+interface LibraryMetadata {
+  filename: string;
+  name: string;
+  location: string;
+  language: string;
+  items: number;
+  description?: string;
+}
 
 // Helper function to ensure elements is always a valid array
 const ensureElementsArray = (elements: any): VisualElement[] => {
@@ -519,6 +529,20 @@ const App: React.FC = () => {
   const [focusMode, setFocusMode] = useState<{ step: 'nlu' | 'visual' | 'bitmap' | 'eval', rowId: string } | null>(null);
   const [showStyleEditor, setShowStyleEditor] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [availableLibraries, setAvailableLibraries] = useState<LibraryMetadata[]>([]);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {}
+  });
+  const [isLoadingLibrary, setIsLoadingLibrary] = useState(false);
+  const [loadingLibraryName, setLoadingLibraryName] = useState('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
@@ -549,61 +573,124 @@ const App: React.FC = () => {
   };
 
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    const savedConfig = localStorage.getItem(CONFIG_KEY);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          const sanitized = parsed.map(sanitizeRow);
-          setRows(sanitized);
-          if (sanitized.length > 0) setViewMode('list');
+    const loadData = async () => {
+      // Load rows from localStorage
+      const saved = localStorage.getItem(STORAGE_KEY);
+      const savedConfig = localStorage.getItem(CONFIG_KEY);
+
+      let loadedRows: RowData[] = [];
+
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) {
+            loadedRows = parsed.map(sanitizeRow);
+          }
+        } catch (e) {
+          console.error("Failed to load rows", e);
         }
-      } catch (e) {
-        console.error("Failed to load rows", e);
       }
-    }
-    if (savedConfig) {
-      try {
-        setConfig(JSON.parse(savedConfig));
-      } catch (e) {
-        console.error("Failed to load config", e);
+
+      // Load bitmaps from IndexedDB and merge with rows
+      if (loadedRows.length > 0) {
+        try {
+          const bitmapsMap = await IndexedDBService.getAllBitmaps();
+          loadedRows = loadedRows.map(row => ({
+            ...row,
+            bitmap: bitmapsMap.get(row.id) || row.bitmap
+          }));
+        } catch (err) {
+          console.error('Failed to load bitmaps from IndexedDB:', err);
+        }
+
+        setRows(loadedRows);
+        setViewMode('list');
       }
-    }
-    setIsInitialized(true);
+
+      if (savedConfig) {
+        try {
+          setConfig(JSON.parse(savedConfig));
+        } catch (e) {
+          console.error("Failed to load config", e);
+        }
+      }
+
+      setIsInitialized(true);
+    };
+
+    loadData();
   }, []);
 
   // Auto-save to localStorage with error handling
   useEffect(() => {
     if (!isInitialized) return;
 
-    try {
-      // Strip bitmaps from rows before saving (they're too large for localStorage)
-      // Bitmaps are only saved in manual exports
-      const rowsWithoutBitmaps = rows.map((row: RowData) => ({
-        ...row,
-        bitmap: undefined, // Remove bitmap to save space
-      }));
+    const saveData = async () => {
+      try {
+        // Save bitmaps to IndexedDB first (they're too large for localStorage)
+        const bitmapSavePromises = rows
+          .filter((row: RowData) => row.bitmap)
+          .map((row: RowData) => IndexedDBService.saveBitmap(row.id, row.bitmap!));
 
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(rowsWithoutBitmaps));
-      localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
-    } catch (error) {
-      if (error instanceof DOMException && error.name === 'QuotaExceededError') {
-        console.error('localStorage quota exceeded');
-        addLog('error', t('messages.storageQuotaExceeded'));
+        await Promise.all(bitmapSavePromises).catch(err => {
+          console.error('Failed to save bitmaps to IndexedDB:', err);
+        });
 
-        // Try to save at least the config
-        try {
-          localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
-        } catch (e) {
-          console.error('Failed to save even config:', e);
+        // Strip bitmaps from rows before saving to localStorage
+        const rowsWithoutBitmaps = rows.map((row: RowData) => ({
+          ...row,
+          bitmap: undefined, // Remove bitmap to save space (stored in IndexedDB)
+          rawSvg: undefined, // Also remove SVGs to save space
+          structuredSvg: undefined
+        }));
+
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(rowsWithoutBitmaps));
+        localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+      } catch (error) {
+        if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+          console.error('localStorage quota exceeded');
+          addLog('error', t('messages.storageQuotaExceeded'));
+
+          // Try to save at least the config
+          try {
+            localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+          } catch (e) {
+            console.error('Failed to save even config:', e);
+          }
+        } else {
+          console.error('Failed to save to localStorage:', error);
+          addLog('error', t('messages.storageSaveFailed'));
         }
-      } else {
-        console.error('Failed to save to localStorage:', error);
-        addLog('error', t('messages.storageSaveFailed'));
       }
-    }
+    };
+
+    saveData();
   }, [rows, config, isInitialized]);
+
+  // Load available libraries from index.json
+  useEffect(() => {
+    const loadLibraries = async () => {
+      try {
+        console.log('[LIBRARIES] Fetching index from /libraries/index.json...');
+        const response = await fetch('/libraries/index.json');
+        if (!response.ok) {
+          console.warn('[LIBRARIES] Index not found, status:', response.status);
+          setAvailableLibraries([]);
+          return;
+        }
+
+        const index = await response.json();
+        console.log('[LIBRARIES] Index loaded:', index);
+        setAvailableLibraries(index.libraries || []);
+        console.log(`[LIBRARIES] ✅ ${index.libraries.length} libraries ready to display`);
+      } catch (error) {
+        console.error('[LIBRARIES] Failed to load index:', error);
+        setAvailableLibraries([]);
+      }
+    };
+
+    loadLibraries();
+  }, []);
 
   const addLog = (type: 'info' | 'error' | 'success', message: string) => {
     setLogs(prev => [...prev, { id: Math.random().toString(36).substr(2, 9), timestamp: new Date().toLocaleTimeString(), type, message }]);
@@ -725,44 +812,109 @@ const App: React.FC = () => {
   };
 
   const clearAll = () => {
-    const confirmed = window.confirm(t('actions.deleteAllConfirm'));
-    if (confirmed) {
-      setRows([]);
-      setLogs([]);
-      localStorage.removeItem(STORAGE_KEY);
-      setViewMode('home');
-      setShowLibraryMenu(false);
-      addLog('info', t('messages.allCleared'));
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: t('actions.deleteAll'),
+      message: t('actions.deleteAllConfirm'),
+      onConfirm: async () => {
+        setRows([]);
+        setLogs([]);
+        localStorage.removeItem(STORAGE_KEY);
+
+        // Clear IndexedDB bitmaps
+        try {
+          await IndexedDBService.clearAllBitmaps();
+        } catch (err) {
+          console.error('Failed to clear IndexedDB:', err);
+        }
+
+        setViewMode('home');
+        setShowLibraryMenu(false);
+        addLog('info', t('messages.allCleared'));
+        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+      }
+    });
   };
 
   const loadICAPModule = async () => {
-    if (rows.length > 0) {
-      const confirmed = window.confirm(t('home.loadICAPWarning', { count: rows.length }));
-      if (!confirmed) return;
-    }
-
-    try {
-      addLog('info', 'Cargando dataset de ejemplo con pictogramas completos...');
-      const response = await fetch('/example-dataset.json');
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-
-      const data = await response.json();
-      addLog('success', `Dataset v${data.version} cargado: ${data.rows.length} pictogramas con evaluaciones`);
-
-      // Load config if available
-      if (data.config) {
-        setConfig(prev => ({ ...prev, ...data.config }));
+    const executeLoad = async () => {
+      setIsLoadingLibrary(true);
+      setLoadingLibraryName('ICAP-50');
+      try {
+        addLog('info', 'Cargando corpus ICAP-50 desde repositorio oficial...');
+        const module = await fetchICAPModule();
+        addLog('success', `Corpus ICAP-50 v${module.version} cargado: ${module.data.length} frases base`);
+        setRows(module.data as RowData[]);
+        setViewMode('list');
+      } catch (error) {
+        addLog('error', 'Error al cargar corpus ICAP, usando corpus base local');
+        console.error('ICAP fetch error:', error);
+        // Fallback to basic ICAP phrases
+        setRows(ICAP_MODULE_FALLBACK.data as RowData[]);
+        setViewMode('list');
+      } finally {
+        setIsLoadingLibrary(false);
+        setLoadingLibraryName('');
+        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
       }
+    };
 
-      setRows(data.rows as RowData[]);
-      setViewMode('list');
-    } catch (error) {
-      addLog('error', 'Error al cargar dataset de ejemplo, usando frases ICAP básicas');
-      console.error('Example dataset load error:', error);
-      // Fallback to basic ICAP phrases
-      setRows(ICAP_MODULE_FALLBACK.data as RowData[]);
-      setViewMode('list');
+    if (rows.length > 0) {
+      setConfirmDialog({
+        isOpen: true,
+        title: 'ICAP-50',
+        message: t('home.loadICAPWarning', { count: rows.length }),
+        onConfirm: executeLoad
+      });
+    } else {
+      await executeLoad();
+    }
+  };
+
+  // Load library from libraries folder
+  const loadLibrary = async (filename: string) => {
+    // Get library metadata for better display name
+    const libraryMeta = availableLibraries.find(lib => lib.filename === filename);
+    const displayName = libraryMeta?.name || filename;
+
+    const executeLoad = async () => {
+      setIsLoadingLibrary(true);
+      setLoadingLibraryName(displayName);
+      try {
+        addLog('info', `Cargando biblioteca: ${displayName}...`);
+        const response = await fetch(`/libraries/${filename}`);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+        const data = await response.json();
+        addLog('success', `Biblioteca cargada: ${data.rows?.length || 0} pictogramas`);
+
+        // Load config if available
+        if (data.config) {
+          setConfig(prev => ({ ...prev, ...data.config }));
+        }
+
+        setRows(data.rows as RowData[]);
+        setViewMode('list');
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : 'Unknown error';
+        addLog('error', `Error al cargar biblioteca: ${msg}`);
+        console.error('Library load error:', error);
+      } finally {
+        setIsLoadingLibrary(false);
+        setLoadingLibraryName('');
+        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+      }
+    };
+
+    if (rows.length > 0) {
+      setConfirmDialog({
+        isOpen: true,
+        title: t('home.loadLibrary'),
+        message: t('home.loadICAPWarning', { count: rows.length }),
+        onConfirm: executeLoad
+      });
+    } else {
+      await executeLoad();
     }
   };
 
@@ -977,9 +1129,11 @@ const App: React.FC = () => {
 
   const sharePictogram = async (index: number): Promise<boolean> => {
     const row = rows[index];
+    console.log('[SHARE] Iniciando proceso de compartir pictograma', { index, utterance: row?.UTTERANCE });
 
     if (!row || !row.evaluation) {
-      addLog('error', 'Se requiere evaluación para compartir el pictograma');
+      console.log('[SHARE] Error: No hay fila o evaluación', { hasRow: !!row, hasEvaluation: !!row?.evaluation });
+      addLog('error', t('share.requiresEvaluation'));
       return false;
     }
 
@@ -991,67 +1145,73 @@ const App: React.FC = () => {
       row.evaluation.cultural_adequacy +
       row.evaluation.cognitive_accessibility
     ) / 6;
+    console.log('[SHARE] Evaluación promedio calculada', { avgScore, required: 4.0 });
 
     if (avgScore < 4.0) {
-      addLog('error', 'El pictograma debe tener una evaluación promedio ≥ 4.0 para compartir');
+      console.log('[SHARE] Error: Evaluación insuficiente', { avgScore });
+      addLog('error', t('share.lowScore'));
       return false;
     }
 
     if (row.shared) {
-      addLog('info', 'Este pictograma ya fue compartido con PICTOS');
+      console.log('[SHARE] El pictograma ya fue compartido previamente');
+      addLog('info', t('share.alreadyShared'));
       return false;
     }
 
     try {
-      addLog('info', `Compartiendo "${row.UTTERANCE}" con PICTOS...`);
+      console.log('[SHARE] Preparando datos para enviar a PICTOS');
+      addLog('info', t('share.sharing', { utterance: row.UTTERANCE }));
 
-      const githubToken = process.env.GITHUB_TOKEN;
-      if (!githubToken) {
-        addLog('error', 'Token de GitHub no configurado. Define GITHUB_TOKEN en las variables de entorno.');
-        return false;
-      }
+      const payload = {
+        id: row.id,
+        UTTERANCE: row.UTTERANCE,
+        status: row.status,
+        NLU: row.NLU,
+        elements: row.elements,
+        prompt: row.prompt,
+        bitmap: row.bitmap, // Bitmap already resized to 800x800 at generation time
+        evaluation: row.evaluation,
+        nluStatus: row.nluStatus,
+        visualStatus: row.visualStatus,
+        bitmapStatus: row.bitmapStatus,
+        evalStatus: row.evalStatus,
+        source: 'pictos.net',
+        author: config.author,
+        timestamp: new Date().toISOString()
+      };
+      console.log('[SHARE] Enviando a función serverless', { payloadSize: JSON.stringify(payload).length });
 
-      const response = await fetch('https://api.github.com/repos/mediafranca/pictogram-collector/dispatches', {
+      // Llamar a la función de Netlify (protege el GITHUB_TOKEN)
+      const response = await fetch('/.netlify/functions/share-pictogram', {
         method: 'POST',
         headers: {
-          'Accept': 'application/vnd.github.v3+json',
-          'Authorization': `Bearer ${githubToken}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          event_type: 'append-row',
-          client_payload: {
-            id: row.id,
-            UTTERANCE: row.UTTERANCE,
-            status: row.status,
-            NLU: row.NLU,
-            elements: row.elements,
-            prompt: row.prompt,
-            bitmap: row.bitmap,
-            evaluation: row.evaluation,
-            nluStatus: row.nluStatus,
-            visualStatus: row.visualStatus,
-            bitmapStatus: row.bitmapStatus,
-            evalStatus: row.evalStatus,
-            source: 'pictos.net',
-            author: config.author,
-            timestamp: new Date().toISOString()
-          }
-        })
+        body: JSON.stringify(payload)
       });
+
+      console.log('[SHARE] Respuesta recibida', { status: response.status, statusText: response.statusText });
 
       if (!response.ok) {
         const errorText = await response.text();
-        addLog('error', `Error al compartir: ${response.status} - ${errorText}`);
+        console.error('[SHARE] Error en respuesta', { status: response.status, error: errorText });
+        addLog('error', t('share.error', { status: response.status, error: errorText }));
         return false;
       }
 
+      console.log('[SHARE] ✓ Pictograma compartido exitosamente');
       updateRow(index, { shared: true });
-      addLog('success', `✓ Pictograma "${row.UTTERANCE}" compartido exitosamente con PICTOS`);
+      addLog('success', t('share.success', { utterance: row.UTTERANCE }));
+
+      // Mostrar mensaje de agradecimiento al usuario
+      alert(t('share.thanksMessage'));
+
       return true;
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Error desconocido';
-      addLog('error', `Error al compartir pictograma: ${msg}`);
+      console.error('[SHARE] Excepción capturada', { error: msg });
+      addLog('error', t('share.exception', { error: msg }));
       return false;
     }
   };
@@ -1091,7 +1251,7 @@ const App: React.FC = () => {
           <div className="p-1.5"><LogoIcon size={44} /></div>
           <div>
             <h1 className="font-bold uppercase tracking-tight text-xl text-slate-900 leading-none">{config.author}</h1>
-            <span id="tagline" className="text-[9px] text-slate-400 font-mono tracking-widest uppercase">v{APP_VERSION} {t('header.subtitle')}</span>
+            <span id="tagline" className="text-[9px] text-slate-400 font-mono tracking-widest uppercase">v{APP_VERSION}</span>
           </div>
         </div>
 
@@ -1297,7 +1457,7 @@ const App: React.FC = () => {
           <div className="py-20 text-center space-y-16 animate-in fade-in zoom-in-95 duration-700">
             <div className="space-y-4">
               <div className="inline-flex gap-4 bg-violet-950 text-white px-6 py-2 text-[10px] font-medium uppercase tracking-[0.4em] shadow-lg">
-                <ScreenShare size={14} /> better on large screens
+                <ScreenShare size={14} /> {t('header.betterOnLargeScreens')}
               </div>
               <h2 className="text-8xl font-black tracking-tighter text-slate-900 leading-none">{config.author}</h2>
               <p className="text-slate-400 text-xl font-medium max-w-2xl mx-auto leading-relaxed">
@@ -1337,6 +1497,57 @@ const App: React.FC = () => {
               </div>
             </div>
 
+            {/* Example Libraries Section - Only show if libraries are available */}
+            {availableLibraries.length > 0 && (
+              <div className="max-w-2xl mx-auto space-y-6">
+                <div className="text-center space-y-2">
+                  <h3 className="text-2xl font-bold tracking-tight text-slate-900">{t('home.exampleLibraries')}</h3>
+                  <p className="text-sm text-slate-500">{t('home.exampleLibrariesDescription')}</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {availableLibraries.map((library: LibraryMetadata) => (
+                    <div
+                      key={library.filename}
+                    onClick={() => loadLibrary(library.filename)}
+                    className="bg-slate-50 border border-slate-200 p-6 text-left space-y-3 hover:border-violet-600 hover:bg-white transition-all cursor-pointer group"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="text-violet-600 group-hover:scale-110 transition-transform">
+                        <Library size={24} />
+                      </div>
+                      <div className="flex gap-1">
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 bg-slate-100 px-2 py-0.5">
+                          {library.language}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h4 className="font-bold text-sm uppercase tracking-wide text-slate-900">{library.name}</h4>
+                      <div className="text-[10px] text-slate-400 font-mono mt-0.5">{library.location}</div>
+                    </div>
+
+                    {/* {library.description && (
+                      <p className="text-xs text-slate-500 leading-relaxed">{library.description}</p>
+                    )} */}
+
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-200">
+                      <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">
+                        {t('home.loadLibrary')}
+                      </span>
+                      {library.items && (
+                        <span className="text-[10px] text-violet-600 font-bold">
+                          {library.items} {t('home.items')}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="mt-8 text-center">
               <a
                 href="https://github.com/hspencer/pictos-net#readme"
@@ -1363,7 +1574,14 @@ const App: React.FC = () => {
                     addLog('info', `🛑 Solicitud de detención para: "${row.UTTERANCE}"`);
                   }}
                   onCascade={() => processCascade(globalIndex)}
-                  onDelete={() => setRows(prev => prev.filter(r => r.id !== row.id))}
+                  onDelete={() => {
+                    // Delete bitmap from IndexedDB
+                    IndexedDBService.deleteBitmap(row.id).catch(err => {
+                      console.error('Failed to delete bitmap from IndexedDB:', err);
+                    });
+                    // Remove row from state
+                    setRows(prev => prev.filter(r => r.id !== row.id));
+                  }}
                   onFocus={step => setFocusMode({ step, rowId: row.id })}
                   onShare={() => sharePictogram(globalIndex)}
                   onLog={addLog}
@@ -1398,6 +1616,7 @@ const App: React.FC = () => {
           onClose={() => setFocusMode(null)}
           onUpdate={updates => updateRow(rows.findIndex(r => r.id === focusMode.rowId), updates)}
           onShare={() => sharePictogram(rows.findIndex(r => r.id === focusMode.rowId))}
+          onRegeneratePrompt={() => regeneratePrompt(rows.findIndex(r => r.id === focusMode.rowId))}
           config={config}
           onLog={addLog}
         />
@@ -1409,6 +1628,49 @@ const App: React.FC = () => {
           onUpdateConfig={setConfig}
           onClose={() => setShowStyleEditor(false)}
         />
+      )}
+
+      {/* Confirmation Dialog Modal */}
+      {confirmDialog.isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] animate-in fade-in duration-200" onClick={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))}>
+          <div className="bg-white rounded-lg shadow-2xl max-w-md w-full mx-4 animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+            <div className="p-6 border-b border-slate-200">
+              <h3 className="text-lg font-bold text-slate-900">{confirmDialog.title}</h3>
+            </div>
+            <div className="p-6">
+              <p className="text-slate-600 leading-relaxed">{confirmDialog.message}</p>
+            </div>
+            <div className="p-6 border-t border-slate-200 flex justify-end gap-3">
+              <button
+                onClick={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))}
+                className="px-6 py-2.5 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 transition-all rounded-md"
+              >
+                {t('actions.cancel')}
+              </button>
+              <button
+                onClick={() => {
+                  confirmDialog.onConfirm();
+                }}
+                className="px-6 py-2.5 text-sm font-medium text-white bg-violet-950 hover:bg-black transition-all rounded-md shadow-lg"
+              >
+                {t('actions.confirm')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Loading Library Overlay */}
+      {isLoadingLibrary && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[70] animate-in fade-in duration-200">
+          <div className="bg-white rounded-lg shadow-2xl p-8 mx-4 animate-in zoom-in-95 duration-200 flex flex-col items-center gap-4">
+            <div className="w-12 h-12 border-4 border-violet-200 border-t-violet-950 rounded-full animate-spin"></div>
+            <div className="text-center">
+              <p className="text-lg font-bold text-slate-900">{t('messages.loadingLibrary', { name: loadingLibraryName })}</p>
+              <p className="text-sm text-slate-500 mt-1">{lang === 'es-419' ? 'Por favor espere...' : 'Please wait...'}</p>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -1431,6 +1693,7 @@ const RowComponent: React.FC<{
   const [elementsManuallyEdited, setElementsManuallyEdited] = React.useState(false);
   const [promptManuallyEdited, setPromptManuallyEdited] = React.useState(false);
   const [isPromptEditing, setIsPromptEditing] = React.useState(false);
+  const [isRegeneratingPrompt, setIsRegeneratingPrompt] = React.useState(false);
 
   const handleRetraceSVG = async () => {
     if (!row.bitmap) return;
@@ -1612,17 +1875,29 @@ const RowComponent: React.FC<{
                   }} />
                   {elementsManuallyEdited && row.NLU && row.elements && row.elements.length > 0 && (
                     <button
-                      onClick={(e) => {
+                      onClick={async (e) => {
                         e.stopPropagation();
-                        onRegeneratePrompt();
+                        setIsRegeneratingPrompt(true);
+                        await onRegeneratePrompt();
+                        setIsRegeneratingPrompt(false);
                         setElementsManuallyEdited(false);
                         setPromptManuallyEdited(false);
                       }}
-                      className="mt-3 w-full py-2 px-3 bg-white border border-slate-200 hover:border-violet-950 text-slate-400 hover:text-violet-950 transition-all flex items-center justify-center gap-2 text-[10px] font-medium uppercase tracking-widest shadow-sm animate-in fade-in slide-in-from-top-2 duration-300"
+                      disabled={isRegeneratingPrompt}
+                      className="mt-3 w-full py-2 px-3 bg-violet-950 hover:bg-black text-white transition-all flex items-center justify-end gap-2 text-[10px] font-bold uppercase tracking-widest shadow-lg disabled:opacity-50 disabled:cursor-not-allowed animate-in fade-in slide-in-from-top-2 duration-300"
                       title={t('actions.regeneratePrompt')}
                     >
-                      <Play size={12} />
-                      {t('actions.regeneratePrompt')}
+                      {isRegeneratingPrompt ? (
+                        <>
+                          <RefreshCw size={12} className="animate-spin" />
+                          {t('actions.regenerate')}...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw size={12} />
+                          {t('actions.regeneratePrompt')}
+                        </>
+                      )}
                     </button>
                   )}
                 </div>
@@ -1769,27 +2044,30 @@ const RowComponent: React.FC<{
                           row.evaluation.cultural_adequacy +
                           row.evaluation.cognitive_accessibility
                         ) / 6;
-                        if (avgScore >= 4.0 && !row.shared) {
-                          return (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onShare();
-                              }}
-                              className="p-1.5 border hover:border-violet-950 text-slate-400 hover:text-violet-950 transition-all rounded-full flex items-center justify-center"
-                              title="Compartir con PICTOS"
-                            >
-                              <ImageUp size={14} />
-                            </button>
-                          );
-                        } else if (row.shared) {
-                          return (
-                            <span className="text-emerald-600" title="Compartido con PICTOS">
-                              <CheckCircle size={14} />
-                            </span>
-                          );
-                        }
-                        return null;
+
+                        const canShare = avgScore >= 4.0 && !row.shared;
+                        const isShared = row.shared;
+
+                        // Solo mostrar botón si puede compartir o ya está compartido
+                        if (!canShare && !isShared) return null;
+
+                        return (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (!isShared) onShare();
+                            }}
+                            disabled={isShared}
+                            className={`p-1.5 border transition-all rounded-full flex items-center justify-center ${
+                              isShared
+                                ? 'border-emerald-500 text-emerald-600 bg-emerald-50 cursor-default'
+                                : 'border-emerald-500 text-emerald-600 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-600'
+                            }`}
+                            title={isShared ? t('share.alreadyShared') : t('share.shareWithPictos')}
+                          >
+                            {isShared ? <CheckCircle size={14} /> : <ImageUp size={14} />}
+                          </button>
+                        );
                       })()}
                       <button
                         onClick={() => onFocus('eval')}
@@ -2232,12 +2510,15 @@ const FocusViewModal: React.FC<{
   onClose: () => void;
   onUpdate: (updates: Partial<RowData>) => void;
   onShare: () => void;
+  onRegeneratePrompt: () => void;
   config: GlobalConfig;
   onLog: (type: 'info' | 'error' | 'success', message: string) => void;
-}> = ({ mode, row, onClose, onUpdate, onShare, config, onLog }) => {
+}> = ({ mode, row, onClose, onUpdate, onShare, onRegeneratePrompt, config, onLog }) => {
   const { t } = useTranslation();
   const [copyStatus, setCopyStatus] = useState(t('actions.copy'));
   const [isPromptEditing, setIsPromptEditing] = useState(false);
+  const [elementsManuallyEdited, setElementsManuallyEdited] = useState(false);
+  const [isRegeneratingPrompt, setIsRegeneratingPrompt] = useState(false);
 
   const handleCopy = () => {
     let contentToCopy: string = '';
@@ -2273,7 +2554,36 @@ const FocusViewModal: React.FC<{
         <div className="flex flex-col h-full gap-6">
           <div>
             <label className="text-[10px] font-medium uppercase text-slate-400 block mb-2 tracking-widest">{t('editor.hierarchicalElements')}</label>
-            <ElementsEditor elements={row.elements || []} onUpdate={val => onUpdate({ elements: val, bitmapStatus: 'outdated', evalStatus: 'outdated', evaluation: undefined, shared: false })} />
+            <ElementsEditor elements={row.elements || []} onUpdate={val => {
+              onUpdate({ elements: val, bitmapStatus: 'outdated', evalStatus: 'outdated', evaluation: undefined, shared: false });
+              setElementsManuallyEdited(true);
+            }} />
+            {elementsManuallyEdited && row.NLU && row.elements && row.elements.length > 0 && (
+              <button
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  setIsRegeneratingPrompt(true);
+                  await onRegeneratePrompt();
+                  setIsRegeneratingPrompt(false);
+                  setElementsManuallyEdited(false);
+                }}
+                disabled={isRegeneratingPrompt}
+                className="mt-3 w-full py-2 px-3 bg-violet-950 hover:bg-black text-white transition-all flex items-center justify-end gap-2 text-[10px] font-bold uppercase tracking-widest shadow-lg disabled:opacity-50 disabled:cursor-not-allowed animate-in fade-in slide-in-from-top-2 duration-300"
+                title={t('actions.regeneratePrompt')}
+              >
+                {isRegeneratingPrompt ? (
+                  <>
+                    <RefreshCw size={12} className="animate-spin" />
+                    {t('actions.regenerate')}...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw size={12} />
+                    {t('actions.regeneratePrompt')}
+                  </>
+                )}
+              </button>
+            )}
           </div>
           <div className="flex-1 mt-6 border-t pt-6 border-slate-200">
             <label className="text-[10px] font-medium uppercase text-slate-400 block mb-3 tracking-widest">{t('editor.spatialLogic')}</label>
@@ -2339,26 +2649,26 @@ const FocusViewModal: React.FC<{
                       row.evaluation.cultural_adequacy +
                       row.evaluation.cognitive_accessibility
                     ) / 6;
-                    if (avgScore >= 4.0 && !row.shared) {
-                      return (
-                        <button
-                          onClick={onShare}
-                          className="flex items-center gap-2 px-3 py-1.5 bg-violet-950 text-white text-[10px] font-medium uppercase tracking-widest hover:bg-black transition-all shadow-sm"
-                          title="Compartir con PICTOS"
-                        >
-                          <ImageUp size={12} />
-                          Compartir
-                        </button>
-                      );
-                    } else if (row.shared) {
-                      return (
-                        <span className="text-[10px] text-emerald-600 font-medium uppercase tracking-widest flex items-center gap-1">
-                          <CheckCircle size={12} />
-                          Compartido
-                        </span>
-                      );
-                    }
-                    return null;
+
+                    const canShare = avgScore >= 4.0 && !row.shared;
+                    const isShared = row.shared;
+
+                    if (!canShare && !isShared) return null;
+
+                    return (
+                      <button
+                        onClick={onShare}
+                        disabled={isShared}
+                        className={`p-2 transition-all shadow-sm ${
+                          isShared
+                            ? 'bg-emerald-50 text-emerald-600 border border-emerald-200 cursor-default'
+                            : 'bg-slate-50 text-emerald-600 border border-emerald-500 hover:bg-emerald-50 hover:border-emerald-600'
+                        }`}
+                        title={isShared ? t('share.alreadyShared') : t('share.shareWithPictos')}
+                      >
+                        {isShared ? <CheckCircle size={14} /> : <ImageUp size={14} />}
+                      </button>
+                    );
                   })()}
                 </div>
                 <div className="flex-1 overflow-hidden">

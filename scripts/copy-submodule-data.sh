@@ -5,22 +5,27 @@
 echo "📦 Copying submodule data to public directory..."
 
 # Create directories
-mkdir -p public/schemas/VCSCI/data
+mkdir -p public/schemas/ICAP/data
 mkdir -p public/schemas/nlu-schema
 mkdir -p public/schemas/mf-svg-schema
+mkdir -p public/libraries
 
-# Copy VCSCI data
-if [ -f "schemas/VCSCI/data/rubric-scale-descriptions.json" ]; then
-    cp schemas/VCSCI/data/rubric-scale-descriptions.json public/schemas/VCSCI/data/
-    echo "✅ VCSCI rubric descriptions copied"
-else
-    echo "⚠️  VCSCI rubric file not found. Run: git submodule update --init --recursive"
+# Copy ICAP data (evaluation rubric) - optional, app works without it
+if [ -f "schemas/ICAP/data/rubric-scale-descriptions.json" ]; then
+    cp schemas/ICAP/data/rubric-scale-descriptions.json public/schemas/ICAP/data/
+    echo "✅ ICAP rubric descriptions copied"
 fi
+# Note: ICAP rubric is optional - app works without it
 
 # Copy NLU schema (if needed in the future)
 # cp schemas/nlu-schema/schema.json public/schemas/nlu-schema/
 
 # Copy SVG schema (when implemented)
 # cp schemas/mf-svg-schema/schema.json public/schemas/mf-svg-schema/
+
+# Generate libraries index
+if [ -d "public/libraries" ]; then
+    node scripts/generate-libraries-index.cjs
+fi
 
 echo "✅ Submodule data copy complete"

@@ -2,6 +2,7 @@
   "header": {
     "title": "PICTOS.NET",
     "subtitle": "Pictogramas Generativos para la Accesibilidad Cognitiva",
+    "betterOnLargeScreens": "mejor en pantallas grandes",
     "library": "Librería",
     "libraryTooltip": "Ir a la Librería (Workbench)",
     "settings": "Ajustes de Grafo",
@@ -38,15 +39,19 @@
   "home": {
     "graphArchitecture": "Arquitectura de Grafo",
     "description": "Sistema generativo de pictogramas paso-a-paso desde la intención comunicativa a la representación visual",
-    "icapModule": "Cargar Dataset de Ejemplo",
-    "icapNamespace": "mediafranca.graph.dataset",
-    "icapDescription": "50 pictogramas completos del corpus ICAP-50 con análisis NLU, elementos visuales, imágenes renderizadas y evaluaciones cognitivas (8 categorías: Solicitar, Rechazar, Dirigir, Aceptar, Social, Emoción, Comentar, Preguntar).",
-    "icapRepository": "Ver repositorio",
+    "icapModule": "Listado de 50 frases ICAP",
+    "icapNamespace": "mediafranca.icap.corpus",
+    "icapDescription": "El corpus ICAP-50 es un conjunto de 50 frases organizadas en 8 categorías pragmáticas: Solicitar, Rechazar, Dirigir, Aceptar, Social, Emoción, Comentar y Preguntar.",
+    "icapRepository": "Ver repositorio ICAP",
     "importTextNode": "Sube Tus Propias Frases",
     "importNamespace": "vocabulario_personalizado",
     "importDescription": "Define tu propio vocabulario a partir de frases personalizadas. Sube un archivo .txt con una frase por línea.",
-    "loadICAPWarning": "Tiene {count} pictograma(s) en su biblioteca. Cargar el dataset de ejemplo sobreescribirá su trabajo actual. ¿Desea continuar?",
-    "aboutProject": "Acerca de este proyecto"
+    "loadICAPWarning": "Tiene {count} pictograma(s) en su biblioteca. Cargar el listado ICAP sobreescribirá su trabajo actual. ¿Desea continuar?",
+    "aboutProject": "Acerca de este proyecto",
+    "exampleLibraries": "Bibliotecas de Ejemplo",
+    "exampleLibrariesDescription": "Colecciones curadas de pictogramas con evaluaciones completas",
+    "loadLibrary": "Cargar biblioteca",
+    "items": "elementos"
   },
   "pipeline": {
     "understand": "Comprender",
@@ -157,6 +162,7 @@
     "deleteAllConfirm": "¿Está seguro que desea borrar todos los nodos? Esta acción no se puede deshacer.",
     "save": "Guardar",
     "cancel": "Cancelar",
+    "confirm": "Confirmar",
     "regenerate": "Regenerar",
     "regeneratePrompt": "Regenerar Prompt Espacial",
     "stop": "Detener"
@@ -189,6 +195,7 @@
     "graphRestoredPlural": "Grafo restaurado: {count} nodos.",
     "configRestored": "Configuración global restaurada.",
     "allCleared": "Todos los nodos y logs han sido borrados.",
+    "loadingLibrary": "Cargando {name}...",
     "cascadeStarted": "Iniciando propagación en grafo para: {utterance}",
     "cascadeStopped": "Cascada detenida en {step} para {utterance}",
     "stepComplete": "{step} completado: {duration}s para \"{utterance}\"",
@@ -222,5 +229,18 @@
     "library": "Biblioteca SVG",
     "compliant": "Compatible con mf-svg-schema",
     "unavailable": "No disponible"
+  },
+  "share": {
+    "shareWithPictos": "Compartir con PICTOS",
+    "requiresEvaluation": "Se requiere evaluación para compartir el pictograma",
+    "lowScore": "El pictograma debe tener una evaluación promedio ≥ 4.0 para compartir",
+    "requiresHighScore": "Requiere evaluación ≥ 4.0",
+    "alreadyShared": "Este pictograma ya fue compartido con PICTOS",
+    "sharing": "Compartiendo \"{utterance}\" con PICTOS...",
+    "noToken": "Token de GitHub no configurado. Define GITHUB_TOKEN en las variables de entorno.",
+    "error": "Error al compartir: {status} - {error}",
+    "success": "✓ Pictograma \"{utterance}\" compartido exitosamente con PICTOS",
+    "exception": "Error al compartir pictograma: {error}",
+    "thanksMessage": "Gracias por compartir tu pictograma con PICTOS. Este pictograma será visible por toda la comunidad."
   }
 }

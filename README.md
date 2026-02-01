@@ -1,4 +1,4 @@
-# PICTOS.NET
+# [PICTOS.NET](https://pictos.net)
 
 ## Pictogramas Generativos para la Accesibilidad Cognitiva
 
@@ -9,14 +9,17 @@ Este proyecto avanza sobre [PICTOS.cl](https://pictos.cl) desarrollado por el [N
 
 ## Cómo Funciona PICTOS.NET
 
+[![Netlify Status](https://api.netlify.com/api/v1/badges/24f068d3-f368-4526-a503-2f09af1def0b/deploy-status)](https://app.netlify.com/projects/pictos/deploys)
+
 ### Almacenamiento Local
 
-**Importante**: Todos los pictogramas y datos se almacenan **localmente en el navegador** usando `localStorage`. Esto significa:
+**Importante**: Todos los pictogramas y datos se almacenan **localmente en el navegador** usando `localStorage` (metadatos) e `IndexedDB` (imágenes bitmap). Esto significa:
 
 - Los datos persisten entre sesiones en el mismo navegador
 - Si limpias los datos del navegador, **perderás todo tu trabajo**
 - Para respaldar tu trabajo, usa la función **Exportar Grafo** en el menú de Librería
-- Los archivos JSON exportados contienen toda la información, incluyendo las imágenes en Base64 y las evaluaciones.
+- Los archivos JSON exportados contienen toda la información, incluyendo las imágenes en Base64 y las evaluaciones
+- Las imágenes bitmap se almacenan en IndexedDB para optimizar el rendimiento (pueden ser archivos grandes)
 
 **Contribuye al proyecto**: Puedes enviar tu grafo exportado con tus comentarios y recomendaciones a [hspencer@ead.cl](mailto:hspencer@ead.cl). De esta forma ayudarás a mejorar esta herramienta de comunicación de código abierto.
 
@@ -118,13 +121,15 @@ Los SVGs generados son **autocontenidos** e incluyen toda la información semán
 
 ### Del Lenguaje Natural a la Imagen
 
-Los pictogramas son más que ilustraciones: son sistemas de comunicación visual que deben capturar la **esencia semántica** de un mensaje. PICTOS propone un enfoque generativo que atraviesa tres dimensiones fundamentales:
+Los pictogramas son más que ilustraciones: son sistemas de comunicación visual que deben capturar la **esencia semántica** de un mensaje como un *acto del habla* para comprender la **intención comunicativa**. 
+
+PICTOS propone un enfoque generativo que atraviesa tres dimensiones fundamentales:
 
 1. **Comprender**: Análisis lingüístico profundo basado en Natural Semantic Metalanguage (NSM)
 2. **Componer**: Definición de elementos visuales jerárquicos y su lógica de articulación espacial
 3. **Producir**: Renderizado final de la imagen mediante inteligencia artificial generativa
 
-Este pipeline reconoce que la comunicación visual efectiva requiere primero **comprender profundamente** qué se quiere comunicar, antes de decidir **cómo visualizarlo**.
+Este *pipeline de razonamiento* reconoce que la comunicación visual efectiva requiere primero **comprender profundamente** qué se quiere comunicar, antes de decidir **cómo visualizarlo**.
 
 ### Fundamentos Teóricos
 
@@ -230,13 +235,17 @@ Exportar pictogramas vectoriales con metadatos completos para integración en ap
 
 ## Tecnología
 
-- **Frontend**: React + TypeScript + Vite
+- **Frontend**: React 19 + TypeScript 5.8 + Vite 6
+- **Styling**: Tailwind CSS 3.4 (PostCSS)
 - **Procesamiento Lingüístico**: Google Gemini 3 Pro (análisis NSM)
 - **Generación de Imágenes**: Gemini 2.5 Flash Image / Gemini 3 Pro Image
 - **Vectorización**: VTracer WASM (bitmap → SVG)
 - **Estructuración SVG**: Gemini 3 Pro (aplicación de mf-svg-schema)
-- **Arquitectura**: Cliente-lado con almacenamiento local (localStorage)
-- **Almacenamiento Dual**: Bitmaps (RowData) + SVGs (Biblioteca independiente)
+- **Arquitectura**: Cliente-lado con almacenamiento híbrido
+  - `localStorage`: Metadatos, configuración y datos del grafo
+  - `IndexedDB`: Imágenes bitmap (optimización para archivos grandes)
+- **Almacenamiento Dual**: Bitmaps (RowData + IndexedDB) + SVGs (Biblioteca independiente)
+- **Backend**: Netlify Functions (compartir pictogramas a GitHub)
 - **Internacionalización**: Soporte para inglés (UK) y español (Latinoamérica)
 - **Licencia**: MIT (código) / CC-BY-4.0 (imágenes generadas)
 
@@ -352,4 +361,4 @@ Para preguntas, sugerencias o colaboraciones:
 
 *PICTOS.NET - es una iniciativa de código abierto de MediaFranca.*
 
-**Versión 2.8** | Pictogramas vectoriales semánticos para investigación en lingüística aplicada y accesibilidad cognitiva.
+Pictogramas semánticos para investigación gráfica en lingüística aplicada y accesibilidad cognitiva.

@@ -31,6 +31,9 @@ dist-ssr
 # Auto-generated from submodules
 public/schemas/
 
+# Auto-generated libraries index
+public/libraries/index.json
+
 # AI / Local folders
 .gemini
 .claude

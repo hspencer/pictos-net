@@ -2,6 +2,7 @@
   "header": {
     "title": "PICTOS.NET",
     "subtitle": "Generative Pictograms for Cognitive Accessibility",
+    "betterOnLargeScreens": "better on large screens",
     "library": "Library",
     "libraryTooltip": "Go to Library (Workbench)",
     "settings": "Graph Settings",
@@ -38,15 +39,19 @@
   "home": {
     "graphArchitecture": "Graph Architecture",
     "description": "Step-by-step generative system for pictograms from communicative intent to visual representation",
-    "icapModule": "Load Example Dataset",
-    "icapNamespace": "mediafranca.graph.dataset",
-    "icapDescription": "50 complete pictograms from the ICAP-50 corpus with NLU analysis, visual elements, rendered images, and cognitive evaluations (8 categories: Request, Reject, Direct, Accept, Social, Emotion, Comment, Question).",
-    "icapRepository": "View repository",
+    "icapModule": "ICAP-50 Phrase List",
+    "icapNamespace": "mediafranca.icap.corpus",
+    "icapDescription": "The ICAP-50 corpus represents a set of 50 phrases organized into 8 pragmatic categories: Request, Reject, Direct, Accept, Social, Emotion, Comment, and Question.",
+    "icapRepository": "View ICAP repository",
     "importTextNode": "Upload Your Own Phrases",
     "importNamespace": "custom_vocabulary",
     "importDescription": "Define your own vocabulary from custom phrases. Upload a .txt file with one phrase per line.",
-    "loadICAPWarning": "You have {count} pictogram(s) in your library. Loading the example dataset will overwrite your current work. Do you want to continue?",
-    "aboutProject": "About this project"
+    "loadICAPWarning": "You have {count} pictogram(s) in your library. Loading the ICAP list will overwrite your current work. Do you want to continue?",
+    "aboutProject": "About this project",
+    "exampleLibraries": "Example Libraries",
+    "exampleLibrariesDescription": "Curated collections of pictograms with complete evaluations",
+    "loadLibrary": "Load library",
+    "items": "items"
   },
   "pipeline": {
     "understand": "Understand",
@@ -157,6 +162,7 @@
     "deleteAllConfirm": "Are you sure you want to delete all nodes? This action cannot be undone.",
     "save": "Save",
     "cancel": "Cancel",
+    "confirm": "Confirm",
     "regenerate": "Regenerate",
     "regeneratePrompt": "Regenerate Spatial Prompt",
     "stop": "Stop"
@@ -189,6 +195,7 @@
     "graphRestoredPlural": "Graph restored: {count} nodes.",
     "configRestored": "Global configuration restored.",
     "allCleared": "All nodes and logs have been cleared.",
+    "loadingLibrary": "Loading {name}...",
     "cascadeStarted": "Starting graph propagation for: {utterance}",
     "cascadeStopped": "Cascade stopped at {step} for {utterance}",
     "stepComplete": "{step} complete: {duration}s for \"{utterance}\"",
@@ -222,5 +229,18 @@
     "library": "SVG Library",
     "compliant": "mf-svg-schema compliant",
     "unavailable": "Unavailable"
+  },
+  "share": {
+    "shareWithPictos": "Share with PICTOS",
+    "requiresEvaluation": "Evaluation required to share the pictogram",
+    "lowScore": "The pictogram must have an average evaluation ≥ 4.0 to share",
+    "requiresHighScore": "Requires evaluation ≥ 4.0",
+    "alreadyShared": "This pictogram has already been shared with PICTOS",
+    "sharing": "Sharing \"{utterance}\" with PICTOS...",
+    "noToken": "GitHub token not configured. Define GITHUB_TOKEN in environment variables.",
+    "error": "Error sharing: {status} - {error}",
+    "success": "✓ Pictogram \"{utterance}\" successfully shared with PICTOS",
+    "exception": "Error sharing pictogram: {error}",
+    "thanksMessage": "Thank you for sharing your pictogram with PICTOS. This pictogram will be visible to the entire community."
   }
 }
