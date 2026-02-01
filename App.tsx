@@ -1616,6 +1616,7 @@ const App: React.FC = () => {
           onClose={() => setFocusMode(null)}
           onUpdate={updates => updateRow(rows.findIndex(r => r.id === focusMode.rowId), updates)}
           onShare={() => sharePictogram(rows.findIndex(r => r.id === focusMode.rowId))}
+          onRegeneratePrompt={() => regeneratePrompt(rows.findIndex(r => r.id === focusMode.rowId))}
           config={config}
           onLog={addLog}
         />
@@ -2496,12 +2497,14 @@ const FocusViewModal: React.FC<{
   onClose: () => void;
   onUpdate: (updates: Partial<RowData>) => void;
   onShare: () => void;
+  onRegeneratePrompt: () => void;
   config: GlobalConfig;
   onLog: (type: 'info' | 'error' | 'success', message: string) => void;
-}> = ({ mode, row, onClose, onUpdate, onShare, config, onLog }) => {
+}> = ({ mode, row, onClose, onUpdate, onShare, onRegeneratePrompt, config, onLog }) => {
   const { t } = useTranslation();
   const [copyStatus, setCopyStatus] = useState(t('actions.copy'));
   const [isPromptEditing, setIsPromptEditing] = useState(false);
+  const [elementsManuallyEdited, setElementsManuallyEdited] = useState(false);
 
   const handleCopy = () => {
     let contentToCopy: string = '';
@@ -2537,7 +2540,24 @@ const FocusViewModal: React.FC<{
         <div className="flex flex-col h-full gap-6">
           <div>
             <label className="text-[10px] font-medium uppercase text-slate-400 block mb-2 tracking-widest">{t('editor.hierarchicalElements')}</label>
-            <ElementsEditor elements={row.elements || []} onUpdate={val => onUpdate({ elements: val, bitmapStatus: 'outdated', evalStatus: 'outdated', evaluation: undefined, shared: false })} />
+            <ElementsEditor elements={row.elements || []} onUpdate={val => {
+              onUpdate({ elements: val, bitmapStatus: 'outdated', evalStatus: 'outdated', evaluation: undefined, shared: false });
+              setElementsManuallyEdited(true);
+            }} />
+            {elementsManuallyEdited && row.NLU && row.elements && row.elements.length > 0 && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRegeneratePrompt();
+                  setElementsManuallyEdited(false);
+                }}
+                className="mt-3 w-full py-2 px-3 bg-white border border-slate-200 hover:border-violet-950 text-slate-400 hover:text-violet-950 transition-all flex items-center justify-center gap-2 text-[10px] font-medium uppercase tracking-widest shadow-sm animate-in fade-in slide-in-from-top-2 duration-300"
+                title={t('actions.regeneratePrompt')}
+              >
+                <Play size={12} />
+                {t('actions.regeneratePrompt')}
+              </button>
+            )}
           </div>
           <div className="flex-1 mt-6 border-t pt-6 border-slate-200">
             <label className="text-[10px] font-medium uppercase text-slate-400 block mb-3 tracking-widest">{t('editor.spatialLogic')}</label>
