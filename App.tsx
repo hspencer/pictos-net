@@ -25,7 +25,7 @@ import * as IndexedDBService from './services/indexedDBService';
 
 const STORAGE_KEY = 'pictonet_v19_storage';
 const CONFIG_KEY = 'pictonet_v19_config';
-const APP_VERSION = '3.0.0';
+const APP_VERSION = '1.0.0';
 
 interface LibraryMetadata {
   filename: string;
@@ -1251,7 +1251,7 @@ const App: React.FC = () => {
           <div className="p-1.5"><LogoIcon size={44} /></div>
           <div>
             <h1 className="font-bold uppercase tracking-tight text-xl text-slate-900 leading-none">{config.author}</h1>
-            <span id="tagline" className="text-[9px] text-slate-400 font-mono tracking-widest uppercase">v{APP_VERSION} {t('header.subtitle')}</span>
+            <span id="tagline" className="text-[9px] text-slate-400 font-mono tracking-widest uppercase">v{APP_VERSION}</span>
           </div>
         </div>
 
@@ -1457,7 +1457,7 @@ const App: React.FC = () => {
           <div className="py-20 text-center space-y-16 animate-in fade-in zoom-in-95 duration-700">
             <div className="space-y-4">
               <div className="inline-flex gap-4 bg-violet-950 text-white px-6 py-2 text-[10px] font-medium uppercase tracking-[0.4em] shadow-lg">
-                <ScreenShare size={14} /> better on large screens
+                <ScreenShare size={14} /> {t('header.betterOnLargeScreens')}
               </div>
               <h2 className="text-8xl font-black tracking-tighter text-slate-900 leading-none">{config.author}</h2>
               <p className="text-slate-400 text-xl font-medium max-w-2xl mx-auto leading-relaxed">

@@ -2,6 +2,7 @@
   "header": {
     "title": "PICTOS.NET",
     "subtitle": "Pictogramas Generativos para la Accesibilidad Cognitiva",
+    "betterOnLargeScreens": "mejor en pantallas grandes",
     "library": "Librería",
     "libraryTooltip": "Ir a la Librería (Workbench)",
     "settings": "Ajustes de Grafo",
