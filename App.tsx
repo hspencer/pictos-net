@@ -541,6 +541,8 @@ const App: React.FC = () => {
     message: '',
     onConfirm: () => {}
   });
+  const [isLoadingLibrary, setIsLoadingLibrary] = useState(false);
+  const [loadingLibraryName, setLoadingLibraryName] = useState('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
@@ -836,6 +838,8 @@ const App: React.FC = () => {
 
   const loadICAPModule = async () => {
     const executeLoad = async () => {
+      setIsLoadingLibrary(true);
+      setLoadingLibraryName('ICAP-50');
       try {
         addLog('info', 'Cargando corpus ICAP-50 desde repositorio oficial...');
         const module = await fetchICAPModule();
@@ -848,8 +852,11 @@ const App: React.FC = () => {
         // Fallback to basic ICAP phrases
         setRows(ICAP_MODULE_FALLBACK.data as RowData[]);
         setViewMode('list');
+      } finally {
+        setIsLoadingLibrary(false);
+        setLoadingLibraryName('');
+        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
       }
-      setConfirmDialog(prev => ({ ...prev, isOpen: false }));
     };
 
     if (rows.length > 0) {
@@ -866,9 +873,15 @@ const App: React.FC = () => {
 
   // Load library from libraries folder
   const loadLibrary = async (filename: string) => {
+    // Get library metadata for better display name
+    const libraryMeta = availableLibraries.find(lib => lib.filename === filename);
+    const displayName = libraryMeta?.name || filename;
+
     const executeLoad = async () => {
+      setIsLoadingLibrary(true);
+      setLoadingLibraryName(displayName);
       try {
-        addLog('info', `Cargando biblioteca: ${filename}...`);
+        addLog('info', `Cargando biblioteca: ${displayName}...`);
         const response = await fetch(`/libraries/${filename}`);
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
@@ -886,8 +899,11 @@ const App: React.FC = () => {
         const msg = error instanceof Error ? error.message : 'Unknown error';
         addLog('error', `Error al cargar biblioteca: ${msg}`);
         console.error('Library load error:', error);
+      } finally {
+        setIsLoadingLibrary(false);
+        setLoadingLibraryName('');
+        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
       }
-      setConfirmDialog(prev => ({ ...prev, isOpen: false }));
     };
 
     if (rows.length > 0) {
@@ -1638,6 +1654,19 @@ const App: React.FC = () => {
               >
                 {t('actions.confirm')}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Loading Library Overlay */}
+      {isLoadingLibrary && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[70] animate-in fade-in duration-200">
+          <div className="bg-white rounded-lg shadow-2xl p-8 mx-4 animate-in zoom-in-95 duration-200 flex flex-col items-center gap-4">
+            <div className="w-12 h-12 border-4 border-violet-200 border-t-violet-950 rounded-full animate-spin"></div>
+            <div className="text-center">
+              <p className="text-lg font-bold text-slate-900">{t('messages.loadingLibrary', { name: loadingLibraryName })}</p>
+              <p className="text-sm text-slate-500 mt-1">{lang === 'es-419' ? 'Por favor espere...' : 'Please wait...'}</p>
             </div>
           </div>
         </div>

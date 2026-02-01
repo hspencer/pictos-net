@@ -161,6 +161,7 @@
     "deleteAllConfirm": "¿Está seguro que desea borrar todos los nodos? Esta acción no se puede deshacer.",
     "save": "Guardar",
     "cancel": "Cancelar",
+    "confirm": "Confirmar",
     "regenerate": "Regenerar",
     "regeneratePrompt": "Regenerar Prompt Espacial",
     "stop": "Detener"
@@ -193,6 +194,7 @@
     "graphRestoredPlural": "Grafo restaurado: {count} nodos.",
     "configRestored": "Configuración global restaurada.",
     "allCleared": "Todos los nodos y logs han sido borrados.",
+    "loadingLibrary": "Cargando {name}...",
     "cascadeStarted": "Iniciando propagación en grafo para: {utterance}",
     "cascadeStopped": "Cascada detenida en {step} para {utterance}",
     "stepComplete": "{step} completado: {duration}s para \"{utterance}\"",

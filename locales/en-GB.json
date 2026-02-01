@@ -161,6 +161,7 @@
     "deleteAllConfirm": "Are you sure you want to delete all nodes? This action cannot be undone.",
     "save": "Save",
     "cancel": "Cancel",
+    "confirm": "Confirm",
     "regenerate": "Regenerate",
     "regeneratePrompt": "Regenerate Spatial Prompt",
     "stop": "Stop"
@@ -193,6 +194,7 @@
     "graphRestoredPlural": "Graph restored: {count} nodes.",
     "configRestored": "Global configuration restored.",
     "allCleared": "All nodes and logs have been cleared.",
+    "loadingLibrary": "Loading {name}...",
     "cascadeStarted": "Starting graph propagation for: {utterance}",
     "cascadeStopped": "Cascade stopped at {step} for {utterance}",
     "stepComplete": "{step} complete: {duration}s for \"{utterance}\"",
