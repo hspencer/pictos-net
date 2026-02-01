@@ -1697,6 +1697,7 @@ const RowComponent: React.FC<{
   const [promptManuallyEdited, setPromptManuallyEdited] = React.useState(false);
   const [isPromptEditing, setIsPromptEditing] = React.useState(false);
   const [isRegeneratingPrompt, setIsRegeneratingPrompt] = React.useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
 
   const handleRetraceSVG = async () => {
     if (!row.bitmap) return;
@@ -2122,9 +2123,7 @@ const RowComponent: React.FC<{
           <button
             onClick={(e) => {
               e.stopPropagation();
-              if (window.confirm(t('actions.deleteRowConfirm', { utterance: row.UTTERANCE }))) {
-                onDelete();
-              }
+              setShowDeleteConfirm(true);
             }}
             className="p-2 border border-slate-200 hover:border-rose-600 text-slate-400 hover:text-rose-600 transition-all bg-white shadow-sm"
             title={t('actions.deleteRow')}
@@ -2133,6 +2132,37 @@ const RowComponent: React.FC<{
           </button>
         </div>
       </>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] animate-in fade-in duration-200" onClick={() => setShowDeleteConfirm(false)}>
+          <div className="bg-white rounded-lg shadow-2xl max-w-md w-full mx-4 animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+            <div className="p-6 border-b border-slate-200">
+              <h3 className="text-lg font-bold text-slate-900">{t('actions.deleteRow')}</h3>
+            </div>
+            <div className="p-6">
+              <p className="text-slate-600 leading-relaxed">{t('actions.deleteRowConfirm', { utterance: row.UTTERANCE })}</p>
+            </div>
+            <div className="p-6 border-t border-slate-200 flex justify-end gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-6 py-2.5 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 transition-all rounded-md"
+              >
+                {t('actions.cancel')}
+              </button>
+              <button
+                onClick={() => {
+                  onDelete();
+                  setShowDeleteConfirm(false);
+                }}
+                className="px-6 py-2.5 text-sm font-medium text-white bg-rose-600 hover:bg-rose-700 transition-all rounded-md shadow-lg"
+              >
+                {t('actions.delete')}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
