@@ -361,4 +361,4 @@ Para preguntas, sugerencias o colaboraciones:
 
 *PICTOS.NET - es una iniciativa de código abierto de MediaFranca.*
 
-**Versión 2.8** | Pictogramas vectoriales semánticos para investigación en lingüística aplicada y accesibilidad cognitiva.
+Pictogramas semánticos para investigación gráfica en lingüística aplicada y accesibilidad cognitiva.
