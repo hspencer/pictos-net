@@ -46,7 +46,7 @@
     "importTextNode": "Sube Tus Propias Frases",
     "importNamespace": "vocabulario_personalizado",
     "importDescription": "Define tu propio vocabulario a partir de frases personalizadas. Sube un archivo .txt con una frase por línea.",
-    "loadICAPWarning": "Tiene {count} pictograma(s) en su biblioteca. Cargar el listado ICAP sobreescribirá su trabajo actual. ¿Desea continuar?",
+    "loadICAPWarning": "Tiene {count} pictograma(s) en su biblioteca. Cargar una nueva biblioteca sobreescribirá su trabajo actual. ¿Desea continuar?",
     "aboutProject": "Acerca de este proyecto",
     "exampleLibraries": "Bibliotecas de Ejemplo",
     "exampleLibrariesDescription": "Colecciones curadas de pictogramas con evaluaciones completas",

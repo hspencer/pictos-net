@@ -46,7 +46,7 @@
     "importTextNode": "Upload Your Own Phrases",
     "importNamespace": "custom_vocabulary",
     "importDescription": "Define your own vocabulary from custom phrases. Upload a .txt file with one phrase per line.",
-    "loadICAPWarning": "You have {count} pictogram(s) in your library. Loading the ICAP list will overwrite your current work. Do you want to continue?",
+    "loadICAPWarning": "You have {count} pictogram(s) in your library. Loading a new library will overwrite your current work. Do you want to continue?",
     "aboutProject": "About this project",
     "exampleLibraries": "Example Libraries",
     "exampleLibrariesDescription": "Curated collections of pictograms with complete evaluations",

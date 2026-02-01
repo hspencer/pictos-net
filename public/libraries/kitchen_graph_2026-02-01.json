@@ -3,9 +3,9 @@
   "type": "pictonet_graph_dump",
   "timestamp": "2026-02-01T00:47:39.846Z",
   "config": {
-    "lang": "es",
+    "lang": "en",
     "aspectRatio": "1:1",
-    "imageModel": "pro",
+    "imageModel": "flash",
     "author": "Kitchen",
     "license": "CC BY 4.0",
     "visualStylePrompt": "Siluetas sobre un fondo blanco plano. Sin degradados, sin sombras, sin texturas y sin contornos. Geometría: usa trazos gruesos y consistentes y simplificación geométrica. Todas las extremidades y terminales deben tener puntas redondeadas y vértices suavizados. Composición: representación plana 2D centrada. Usa el espacio negativo (blanco) para definir la separación interna entre formas negras superpuestas (por ejemplo, el espacio entre una cabeza y un torso). Claridad: maximiza la legibilidad y el reconocimiento semántico a escalas pequeñas. Evita cualquier rasgo facial o detalles intrincados. Usa color solo en el elemento distintivo, si es necesario.",
