@@ -530,6 +530,17 @@ const App: React.FC = () => {
   const [showStyleEditor, setShowStyleEditor] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const [availableLibraries, setAvailableLibraries] = useState<LibraryMetadata[]>([]);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {}
+  });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
@@ -798,73 +809,96 @@ const App: React.FC = () => {
     setIsSearching(false);
   };
 
-  const clearAll = async () => {
-    const confirmed = window.confirm(t('actions.deleteAllConfirm'));
-    if (confirmed) {
-      setRows([]);
-      setLogs([]);
-      localStorage.removeItem(STORAGE_KEY);
+  const clearAll = () => {
+    setConfirmDialog({
+      isOpen: true,
+      title: t('actions.deleteAll'),
+      message: t('actions.deleteAllConfirm'),
+      onConfirm: async () => {
+        setRows([]);
+        setLogs([]);
+        localStorage.removeItem(STORAGE_KEY);
 
-      // Clear IndexedDB bitmaps
-      try {
-        await IndexedDBService.clearAllBitmaps();
-      } catch (err) {
-        console.error('Failed to clear IndexedDB:', err);
+        // Clear IndexedDB bitmaps
+        try {
+          await IndexedDBService.clearAllBitmaps();
+        } catch (err) {
+          console.error('Failed to clear IndexedDB:', err);
+        }
+
+        setViewMode('home');
+        setShowLibraryMenu(false);
+        addLog('info', t('messages.allCleared'));
+        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
       }
-
-      setViewMode('home');
-      setShowLibraryMenu(false);
-      addLog('info', t('messages.allCleared'));
-    }
+    });
   };
 
   const loadICAPModule = async () => {
-    if (rows.length > 0) {
-      const confirmed = window.confirm(t('home.loadICAPWarning', { count: rows.length }));
-      if (!confirmed) return;
-    }
+    const executeLoad = async () => {
+      try {
+        addLog('info', 'Cargando corpus ICAP-50 desde repositorio oficial...');
+        const module = await fetchICAPModule();
+        addLog('success', `Corpus ICAP-50 v${module.version} cargado: ${module.data.length} frases base`);
+        setRows(module.data as RowData[]);
+        setViewMode('list');
+      } catch (error) {
+        addLog('error', 'Error al cargar corpus ICAP, usando corpus base local');
+        console.error('ICAP fetch error:', error);
+        // Fallback to basic ICAP phrases
+        setRows(ICAP_MODULE_FALLBACK.data as RowData[]);
+        setViewMode('list');
+      }
+      setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+    };
 
-    try {
-      addLog('info', 'Cargando corpus ICAP-50 desde repositorio oficial...');
-      const module = await fetchICAPModule();
-      addLog('success', `Corpus ICAP-50 v${module.version} cargado: ${module.data.length} frases base`);
-      setRows(module.data as RowData[]);
-      setViewMode('list');
-    } catch (error) {
-      addLog('error', 'Error al cargar corpus ICAP, usando corpus base local');
-      console.error('ICAP fetch error:', error);
-      // Fallback to basic ICAP phrases
-      setRows(ICAP_MODULE_FALLBACK.data as RowData[]);
-      setViewMode('list');
+    if (rows.length > 0) {
+      setConfirmDialog({
+        isOpen: true,
+        title: 'ICAP-50',
+        message: t('home.loadICAPWarning', { count: rows.length }),
+        onConfirm: executeLoad
+      });
+    } else {
+      await executeLoad();
     }
   };
 
   // Load library from libraries folder
   const loadLibrary = async (filename: string) => {
-    if (rows.length > 0) {
-      const confirmed = window.confirm(t('home.loadICAPWarning', { count: rows.length }));
-      if (!confirmed) return;
-    }
+    const executeLoad = async () => {
+      try {
+        addLog('info', `Cargando biblioteca: ${filename}...`);
+        const response = await fetch(`/libraries/${filename}`);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
-    try {
-      addLog('info', `Cargando biblioteca: ${filename}...`);
-      const response = await fetch(`/libraries/${filename}`);
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const data = await response.json();
+        addLog('success', `Biblioteca cargada: ${data.rows?.length || 0} pictogramas`);
 
-      const data = await response.json();
-      addLog('success', `Biblioteca cargada: ${data.rows?.length || 0} pictogramas`);
+        // Load config if available
+        if (data.config) {
+          setConfig(prev => ({ ...prev, ...data.config }));
+        }
 
-      // Load config if available
-      if (data.config) {
-        setConfig(prev => ({ ...prev, ...data.config }));
+        setRows(data.rows as RowData[]);
+        setViewMode('list');
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : 'Unknown error';
+        addLog('error', `Error al cargar biblioteca: ${msg}`);
+        console.error('Library load error:', error);
       }
+      setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+    };
 
-      setRows(data.rows as RowData[]);
-      setViewMode('list');
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : 'Unknown error';
-      addLog('error', `Error al cargar biblioteca: ${msg}`);
-      console.error('Library load error:', error);
+    if (rows.length > 0) {
+      setConfirmDialog({
+        isOpen: true,
+        title: t('home.loadLibrary'),
+        message: t('home.loadICAPWarning', { count: rows.length }),
+        onConfirm: executeLoad
+      });
+    } else {
+      await executeLoad();
     }
   };
 
@@ -1478,9 +1512,9 @@ const App: React.FC = () => {
                       <div className="text-[10px] text-slate-400 font-mono mt-0.5">{library.location}</div>
                     </div>
 
-                    {library.description && (
+                    {/* {library.description && (
                       <p className="text-xs text-slate-500 leading-relaxed">{library.description}</p>
-                    )}
+                    )} */}
 
                     <div className="flex items-center justify-between pt-2 border-t border-slate-200">
                       <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">
@@ -1577,6 +1611,36 @@ const App: React.FC = () => {
           onUpdateConfig={setConfig}
           onClose={() => setShowStyleEditor(false)}
         />
+      )}
+
+      {/* Confirmation Dialog Modal */}
+      {confirmDialog.isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] animate-in fade-in duration-200" onClick={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))}>
+          <div className="bg-white rounded-lg shadow-2xl max-w-md w-full mx-4 animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+            <div className="p-6 border-b border-slate-200">
+              <h3 className="text-lg font-bold text-slate-900">{confirmDialog.title}</h3>
+            </div>
+            <div className="p-6">
+              <p className="text-slate-600 leading-relaxed">{confirmDialog.message}</p>
+            </div>
+            <div className="p-6 border-t border-slate-200 flex justify-end gap-3">
+              <button
+                onClick={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))}
+                className="px-6 py-2.5 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 transition-all rounded-md"
+              >
+                {t('actions.cancel')}
+              </button>
+              <button
+                onClick={() => {
+                  confirmDialog.onConfirm();
+                }}
+                className="px-6 py-2.5 text-sm font-medium text-white bg-violet-950 hover:bg-black transition-all rounded-md shadow-lg"
+              >
+                {t('actions.confirm')}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
