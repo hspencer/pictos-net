@@ -1022,7 +1022,7 @@ const App: React.FC = () => {
         [durationKey]: duration,
         ...(step === 'nlu' ? { NLU: result, visualStatus: 'outdated', bitmapStatus: 'outdated', evalStatus: 'outdated' } : {}),
         ...(step === 'visual' ? { elements: result.elements, prompt: result.prompt, bitmapStatus: 'outdated', evalStatus: 'outdated' } : {}),
-        ...(step === 'bitmap' ? { bitmap: result, status: 'completed', evalStatus: 'idle', evaluation: undefined } : {}) // Reset eval and clear previous evaluation data
+        ...(step === 'bitmap' ? { bitmap: result, status: 'completed', evalStatus: 'idle', evaluation: undefined, shared: false } : {}) // Reset eval and clear previous evaluation data
       });
       addLog('success', `${step.toUpperCase()} completo: ${duration.toFixed(1)}s para "${row.UTTERANCE}"`);
       return true;
@@ -1092,7 +1092,10 @@ const App: React.FC = () => {
       // --- End of Automation ---
       // We do NOT auto-run evaluation. It is manual.
       // We set evalStatus to 'idle' to indicate it is ready for input.
+      // Clear previous evaluation and shared status since bitmap changed
       finalUpdates.evalStatus = 'idle';
+      finalUpdates.evaluation = undefined;
+      finalUpdates.shared = false;
 
       finalUpdates.status = 'completed';
       updateRow(index, finalUpdates);
