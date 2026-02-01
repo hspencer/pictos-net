@@ -284,9 +284,9 @@ Disponible en: https://pictos.net
 
 ## Roadmap
 
-### v2.8 (Actual - SVG Generation)
+### v1.0 (Actual - SVG Generation)
 
-- Generación de pictogramas vectoriales (SVG)
+- Generación de pictogramas vectoriales (SVG) *Modo prueba*
 - Pipeline de vectorización en dos etapas: Trace + Format
 - Integración con vtracer (WASM) para conversión bitmap→SVG
 - Estructuración semántica con Gemini Pro según mf-svg-schema
@@ -296,14 +296,14 @@ Disponible en: https://pictos.net
 - Exportación e importación de SVGs individuales
 - Filtro de elegibilidad ICAP ≥ 4.0 para generación SVG
 
-### v2.7
+### v0.7
 
 - Integración de esquemas de investigación como git submodules
 - Documentación completa de workflow con submodules
 - Mejoras en sistema de ayuda de evaluación ICAP
 - Enlaces corregidos a repositorios externos
 
-### v2.6
+### v0.1a
 
 - Pipeline completo: Understand → Compose → Produce → Evaluate
 - Interfaz bilingüe (ES/EN)
@@ -316,11 +316,11 @@ Disponible en: https://pictos.net
 - Control fino de interpretación semántica
 - Control de layout
 - Comprender cómo almacenar las metáforas o "blends" visuales de acuerdo a cada contexto
-- Implementar una partida rápida a partir de referentes personalziados
+- Implementar una partida rápida a partir de referentes personalizados
 - Editor visual de SVG con manipulación directa de grupos semánticos
 - Exportación masiva de SVGs como dataset
 - Animaciones SVG basadas en roles semánticos
-- Colaboración multi-usuario en tiempo real
+- Colaboración multiusuario en tiempo real
 - API pública para integración con otros sistemas
 
 ---
@@ -329,13 +329,13 @@ Disponible en: https://pictos.net
 
 PICTOS es un proyecto abierto que invita a:
 
-- **Lingüistas** a refinar el análisis NSM
-- **Diseñadores** a mejorar la composición visual
-- **Investigadores** a validar los criterios ICAP
-- **Desarrolladores** a extender las funcionalidades
-- **Usuarios finales** a reportar necesidades reales
+- **Lingüistas** a refinar el análisis NLU y NSM para definir un esquema estándar
+- **Diseñadores** a mejorar la composición visual y la consistencia de los pictogramas dentro de un sistema gráfico
+- **Investigadores** a validar los criterios ICAP, validar rúbrica e instrumento
+- **Desarrolladores** a extender las funcionalidades e implementar aprendizaje federado
+- **Usuarios finales** a reportar necesidades reales y enviarnos ejemplos de uso para entrenar el siguiente modelo generativo de pictogramas
 
-Las contribuciones son bienvenidas. Por favor lee [CONTRIBUTING.md](./CONTRIBUTING.md) antes de comenzar.
+Las contribuciones son bienvenidas. Por favor, lee [CONTRIBUTING.md](./CONTRIBUTING.md) antes de comenzar.
 
 
 ## Reconocimientos
@@ -343,9 +343,10 @@ Las contribuciones son bienvenidas. Por favor lee [CONTRIBUTING.md](./CONTRIBUTI
 Este proyecto se inspira en el trabajo de:
 
 - **Anna Wierzbicka** y **Cliff Goddard** (Natural Semantic Metalanguage)
-- **ARASAAC** (Proyecto aragonés de pictogramas)
+- **ARASAAC** (Proyecto aragonés de pictogramas) y el diseño de Sergio Palao
 - La comunidad de Comunicación Aumentativa y Alternativa (AAC)
 - Investigadores en accesibilidad cognitiva y diseño universal
+- [PICTOS.cl](https://pictos.cl)
 
 
 ## Contacto
@@ -355,10 +356,10 @@ Para preguntas, sugerencias o colaboraciones:
 - Abre un issue en GitHub
 - Reporta bugs en el repositorio
 - Propone nuevas funcionalidades mediante Pull Requests
-- Esta aplicación es el sitio de investigación doctoral de [Herbert Spencer](https://herbertspencer.net). Me puedes escribir directamente.
+- Esta aplicación es el sitio de investigación doctoral de [Herbert Spencer](https://herbertspencer.net). También me puedes escribir directamente.
 
 ---
 
 *PICTOS.NET - es una iniciativa de código abierto de MediaFranca.*
 
-Pictogramas semánticos para investigación gráfica en lingüística aplicada y accesibilidad cognitiva.
+**v1.0** Pictogramas semánticos para la investigación gráfica en lingüística aplicada y accesibilidad cognitiva.
