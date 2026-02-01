@@ -1693,6 +1693,7 @@ const RowComponent: React.FC<{
   const [elementsManuallyEdited, setElementsManuallyEdited] = React.useState(false);
   const [promptManuallyEdited, setPromptManuallyEdited] = React.useState(false);
   const [isPromptEditing, setIsPromptEditing] = React.useState(false);
+  const [isRegeneratingPrompt, setIsRegeneratingPrompt] = React.useState(false);
 
   const handleRetraceSVG = async () => {
     if (!row.bitmap) return;
@@ -1874,17 +1875,29 @@ const RowComponent: React.FC<{
                   }} />
                   {elementsManuallyEdited && row.NLU && row.elements && row.elements.length > 0 && (
                     <button
-                      onClick={(e) => {
+                      onClick={async (e) => {
                         e.stopPropagation();
-                        onRegeneratePrompt();
+                        setIsRegeneratingPrompt(true);
+                        await onRegeneratePrompt();
+                        setIsRegeneratingPrompt(false);
                         setElementsManuallyEdited(false);
                         setPromptManuallyEdited(false);
                       }}
-                      className="mt-3 w-full py-2 px-3 bg-white border border-slate-200 hover:border-violet-950 text-slate-400 hover:text-violet-950 transition-all flex items-center justify-center gap-2 text-[10px] font-medium uppercase tracking-widest shadow-sm animate-in fade-in slide-in-from-top-2 duration-300"
+                      disabled={isRegeneratingPrompt}
+                      className="mt-3 w-full py-2 px-3 bg-violet-950 hover:bg-black text-white transition-all flex items-center justify-end gap-2 text-[10px] font-bold uppercase tracking-widest shadow-lg disabled:opacity-50 disabled:cursor-not-allowed animate-in fade-in slide-in-from-top-2 duration-300"
                       title={t('actions.regeneratePrompt')}
                     >
-                      <Play size={12} />
-                      {t('actions.regeneratePrompt')}
+                      {isRegeneratingPrompt ? (
+                        <>
+                          <RefreshCw size={12} className="animate-spin" />
+                          {t('actions.regenerate')}...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw size={12} />
+                          {t('actions.regeneratePrompt')}
+                        </>
+                      )}
                     </button>
                   )}
                 </div>
@@ -2505,6 +2518,7 @@ const FocusViewModal: React.FC<{
   const [copyStatus, setCopyStatus] = useState(t('actions.copy'));
   const [isPromptEditing, setIsPromptEditing] = useState(false);
   const [elementsManuallyEdited, setElementsManuallyEdited] = useState(false);
+  const [isRegeneratingPrompt, setIsRegeneratingPrompt] = useState(false);
 
   const handleCopy = () => {
     let contentToCopy: string = '';
@@ -2546,16 +2560,28 @@ const FocusViewModal: React.FC<{
             }} />
             {elementsManuallyEdited && row.NLU && row.elements && row.elements.length > 0 && (
               <button
-                onClick={(e) => {
+                onClick={async (e) => {
                   e.stopPropagation();
-                  onRegeneratePrompt();
+                  setIsRegeneratingPrompt(true);
+                  await onRegeneratePrompt();
+                  setIsRegeneratingPrompt(false);
                   setElementsManuallyEdited(false);
                 }}
-                className="mt-3 w-full py-2 px-3 bg-white border border-slate-200 hover:border-violet-950 text-slate-400 hover:text-violet-950 transition-all flex items-center justify-center gap-2 text-[10px] font-medium uppercase tracking-widest shadow-sm animate-in fade-in slide-in-from-top-2 duration-300"
+                disabled={isRegeneratingPrompt}
+                className="mt-3 w-full py-2 px-3 bg-violet-950 hover:bg-black text-white transition-all flex items-center justify-end gap-2 text-[10px] font-bold uppercase tracking-widest shadow-lg disabled:opacity-50 disabled:cursor-not-allowed animate-in fade-in slide-in-from-top-2 duration-300"
                 title={t('actions.regeneratePrompt')}
               >
-                <Play size={12} />
-                {t('actions.regeneratePrompt')}
+                {isRegeneratingPrompt ? (
+                  <>
+                    <RefreshCw size={12} className="animate-spin" />
+                    {t('actions.regenerate')}...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw size={12} />
+                    {t('actions.regeneratePrompt')}
+                  </>
+                )}
               </button>
             )}
           </div>
