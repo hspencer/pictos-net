@@ -318,11 +318,11 @@ const EvaluationEditor: React.FC<{
       <div className="flex flex-col h-full">
         {/* Top: Chart - smaller to save space */}
         <div className="flex justify-center py-3 mb-2 shrink-0">
-          <HexagonChart metrics={current} size={120} />
+          <HexagonChart metrics={current} size={180} />
         </div>
 
         {/* Bottom: Sliders - very compact spacing */}
-        <div className="space-y-2 shrink-0">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-8">
           {axes.map(axis => (
             <div key={axis.key} className="space-y-1">
               <div className="flex justify-between items-end">
@@ -333,14 +333,15 @@ const EvaluationEditor: React.FC<{
                     className="text-violet-400 hover:text-violet-600 transition-colors"
                     title={t('evaluation.helpTitle', { dimension: axis.label })}
                   >
-                    <HelpCircle size={12} />
+                    <HelpCircle size={14} />
                   </button>
                 </div>
+                
                 <div className="flex gap-1">
                   {[1, 2, 3, 4, 5].map(v => (
-                    <div key={v} className={`w-2 h-2 rounded-full transition-colors duration-300 ${(current as any)[axis.key] >= v ? 'bg-violet-600' : 'bg-slate-200'}`}></div>
+                    <div key={v} className={`w-2 h-2 rounded-full transition-colors duration-300 ${(current as any)[axis.key] >= v ? 'bg-violet-300' : 'bg-slate-200'}`}></div>
                   ))}
-                </div>
+                </div> 
               </div>
               <div className="flex items-center gap-3">
                 <span className="text-[10px] font-mono text-slate-400 w-3">1</span>
