@@ -26,7 +26,7 @@ import * as IndexedDBService from './services/indexedDBService';
 
 const STORAGE_KEY = 'pictonet_v19_storage';
 const CONFIG_KEY = 'pictonet_v19_config';
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '1.0.1';
 
 interface LibraryMetadata {
   filename: string;
