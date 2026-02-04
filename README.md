@@ -2,10 +2,11 @@
 
 ## Pictogramas Generativos para la Accesibilidad Cognitiva
 
-**PICTOS** es una herramienta de [investigación doctoral](http://herbertspencer.net/cc) que explora la generación automática de pictogramas a partir de intenciones comunicativas expresadas en lenguaje natural. El proyecto investiga cómo transformar el significado profundo del lenguaje en representaciones visuales universales que faciliten la comunicación para personas con diversidad cognitiva.
+**PICTOS** es una herramienta de [investigación doctoral](http://herbertspencer.net/cc) que explora la generación automática de pictogramas a partir de intenciones comunicativas expresadas en lenguaje natural. El proyecto investiga cómo transformar el significado profundo del lenguaje en representaciones visuales universales que faciliten la comunicación a personas con diversidad cognitiva.
 
-Este proyecto avanza sobre [PICTOS.cl](https://pictos.cl) desarrollado por el [Núcleo de Accesibilidad e Inclusión PUCV](https://accesibilidad-inclusion.cl/) enfocado en el desarrollo de apoyos visuales y procedimentales para la interacción accesible con los servicios públicos en Chile.
+El objetivo de esta iniciativa online es actuar como una sonda de pictogramas, para entrenar entre todos, un nuevo modelo (PictoNet, en homenaje a WordNet, ImageNet y todas aquellas bibliotecas públicas). Esta sonda, de absoluta soberanía tecnológica, busca recoger pictogramas y sus calificaciones. Si quieres compartir tu biblioteca (con atribuciones), escríbeme a hspencer@ead.cl.
 
+Este proyecto avanza sobre [PICTOS.cl](https://pictos.cl), desarrollado por el [Núcleo de Accesibilidad e Inclusión PUCV](https://accesibilidad-inclusion.cl/), enfocado en el desarrollo de apoyos visuales y procedimentales para una interacción accesible con los servicios públicos en Chile. [Este sistema pictográfico inicial](https://pictogramas.pictos.cl/), por su parte, se construye por 3 capas que guardan una estrecha relación con el texto que la describe, de forma tal que una capa representa **la acción**, la segunda el **hito** o **elemento** con el que se interactúa y la tercera representa al **espacio** que contextualiza la escena.
 
 ## Cómo Funciona PICTOS.NET
 
