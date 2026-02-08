@@ -1,0 +1,88 @@
+{
+  "project": {
+    "name": "PICTOS.net",
+    "description": "A modern React project with TypeScript, Tailwind CSS, and Vite for generating semantic pictograms based on NSM and ICAP evaluation",
+    "version": "1.0",
+    "language": "TypeScript",
+    "framework": "React",
+    "buildTool": "Vite",
+    "styling": "Tailwind CSS",
+    "architecture": "Modern React with TypeScript and hybrid client-side storage"
+  },
+  "files": {
+    "mainEntry": "index.tsx",
+    "entryPoints": [
+      "index.tsx",
+      "App.tsx"
+    ],
+    "configFiles": [
+      "package.json",
+      "tsconfig.json",
+      "vite.config.ts",
+      "tailwind.config.js",
+      "postcss.config.js"
+    ],
+    "documentation": [
+      "README.md",
+      "CONTRIBUTING.md",
+      "ARCHITECTURE.md",
+      "SECURITY.md"
+    ],
+    "environment": [
+      ".env.example"
+    ]
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "typescript": "^5.0.0",
+    "tailwindcss": "^3.3.0",
+    "vite": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0",
+    "@vitejs/plugin-react": "^4.0.0",
+    "autoprefixer": "^10.4.0",
+    "postcss": "^8.4.0"
+  },
+  "directories": {
+    "components": "React components directory",
+    "data": "Data handling and storage (localStorage and IndexedDB)",
+    "hooks": "Custom React hooks",
+    "locales": "Internationalization files (ES/EN)",
+    "netlify": "Netlify deployment configuration",
+    "schemas": "Data schemas (NLU, ICAP, MF-SVG)",
+    "services": "API services and business logic (Gemini Pro, vtracer)",
+    "styles": "CSS and styling files",
+    "types": "TypeScript type definitions",
+    "utils": "Utility functions"
+  },
+  "features": [
+    "TypeScript support",
+    "React component structure",
+    "Tailwind CSS styling",
+    "Vite build system",
+    "Internationalization support (ES/EN)",
+    "Responsive design",
+    "Modern React patterns",
+    "Hybrid client-side storage (localStorage + IndexedDB)",
+    "NSM-based natural language understanding",
+    "ICAP evaluation framework",
+    "SVG generation pipeline (Trace + Format)",
+    "vtracer WASM integration",
+    "Gemini Pro integration for semantic structuring",
+    "MF-SVG schema compliance",
+    "Export/import functionality for RowData and SVGs",
+    "Semantic pictogram generation workflow"
+  ],
+  "build": {
+    "outputDirectory": "dist",
+    "buildCommand": "npm run build",
+    "devCommand": "npm run dev"
+  },
+  "deployment": {
+    "platform": "Netlify",
+    "configurationFile": "netlify.toml"
+  }
+}
