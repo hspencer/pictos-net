@@ -1,4 +1,4 @@
-# PICTOS.NET v2.8 - Architecture Documentation
+# PICTOS.NET v1.0.1 - Architecture Documentation
 
 **Semantic Image Architect / Semantic Pictogram Architect**
 
@@ -253,6 +253,156 @@ generateVisualBlueprint() → Visual Elements + Spatial Prompt
 generateImage() → Base64 Bitmap
     ↓
 Manual Evaluation → Metrics Data
+```
+
+
+#### Future data vision
+
+```mermaid
+
+erDiagram
+  SPACE ||--o{ SPACE_MEMBERSHIP : has
+  USER  ||--o{ SPACE_MEMBERSHIP : belongs_to
+
+  SPACE ||--o{ CSS_PROFILE : uses
+  SPACE ||--o{ CANONICAL_EXAMPLE : showcases
+  CANONICAL_EXAMPLE }o--|| ASSET : references
+
+  SPACE ||--o{ UTTERANCE : contains
+  UTTERANCE ||--o| SEMANTIC_EXPANSION : expands_to
+  UTTERANCE ||--o{ PICTOGRAM : renders_as
+
+  PICTOGRAM }o--|| ASSET : svg_asset
+  PICTOGRAM }o--o| ASSET : bitmap_asset
+
+  SPACE ||--o{ EVALUATION : records
+  USER  ||--o{ EVALUATION : authored
+  PICTOGRAM ||--o{ EVALUATION : evaluated_by
+
+  EVALUATION ||--o{ EVALUATION_DIMENSION_SCORE : includes
+
+  RUBRIC ||--o{ EVALUATION : versioned_by
+
+  SPACE {
+    string space_id PK
+    string name
+    string language_locales
+    float geopoint_lat
+    float geopoint_lng
+    array user_collaborators
+    string place_label
+    string style_prompt
+    array css_styles
+    string aspect_policy
+    datetime created_at
+  }
+
+  USER {
+    string user_id PK
+    string display_name
+    string email_hash
+    string auth_provider
+    string auth_subject
+    datetime created_at
+  }
+
+  SPACE_MEMBERSHIP {
+    string space_id FK
+    string user_id FK
+    string role
+    string status
+    string invited_by FK
+    datetime invited_at
+    datetime created_at
+  }
+
+  CSS_PROFILE {
+    string css_profile_id PK
+    string space_id FK
+    string css_text
+    json palette_json
+    datetime created_at
+  }
+
+  CANONICAL_EXAMPLE {
+    string example_id PK
+    string space_id FK
+    string asset_id FK
+    string label
+    datetime created_at
+  }
+
+  UTTERANCE {
+    string utterance_id PK
+    string space_id FK
+    string text
+    string language
+    datetime created_at
+  }
+
+  SEMANTIC_EXPANSION {
+    string semantic_expansion_id PK
+    string utterance_id FK
+    json nlu_json
+    string nlu_schema_version
+    string generator_model
+    string generator_prompt_hash
+    datetime created_at
+  }
+
+  PICTOGRAM {
+    string pictogram_id PK
+    string utterance_id FK
+    string svg_asset_id FK
+    string bitmap_asset_id FK
+    json render_params_json
+    json style_profile_snapshot_json
+    string pipeline_version
+    string created_by_user_id FK
+    datetime created_at
+  }
+
+  ASSET {
+    string asset_id PK
+    string kind
+    string mime_type
+    int byte_size
+    string sha256
+    string storage_uri
+    datetime created_at
+  }
+
+  RUBRIC {
+    string rubric_id PK
+    string version
+    json rubric_json
+    datetime created_at
+  }
+
+  EVALUATION {
+    string evaluation_id PK
+    string pictogram_id FK
+    string space_id FK
+    string evaluator_user_id FK
+    string evaluator_role
+    string rubric_id FK
+    int overall_score
+    string notes
+    datetime created_at
+  }
+
+  EVALUATION_DIMENSION_SCORE {
+    string evaluation_id FK
+    string dimension_key
+    int score
+    string scale_label_en
+    string scale_label_es
+    string dimension_name_en
+    string dimension_name_es
+    string level_description_en
+    string level_description_es
+  }
+  
 ```
 
 ### 5.3 State Management
