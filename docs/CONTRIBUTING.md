@@ -54,7 +54,7 @@ GEMINI_API_KEY=tu_api_key_aquí
 
 - **NUNCA** subas el archivo `.env` a Git (ya está en `.gitignore`)
 - **NO COMPARTAS** tu API key públicamente
-- **ADVERTENCIA**: Esta aplicación expone la API key en el código del cliente (navegador). Para más detalles, consulta [SECURITY.md](./SECURITY.md)
+- **ADVERTENCIA**: Esta aplicación expone la API key en el código del cliente (navegador). Para más detalles, consulta [SECURITY.md](SECURITY.md)
 
 ### 3. Ejecutar el Proyecto
 
@@ -82,7 +82,7 @@ Genera los archivos optimizados en el directorio `dist/`:
 
 - JavaScript minificado y bundled
 - Assets optimizados
-- **NOTA**: La API key seguirá expuesta en el código compilado (ver [SECURITY.md](./SECURITY.md))
+- **NOTA**: La API key seguirá expuesta en el código compilado (ver [SECURITY.md](SECURITY.md))
 
 #### Vista Previa del Build
 
@@ -134,7 +134,7 @@ El proyecto incluye un workflow de GitHub Actions (`.github/workflows/deploy.yml
 
 También puedes ejecutar el workflow manualmente desde la pestaña "Actions" en GitHub.
 
-**NOTA DE SEGURIDAD**: Aunque la API key está configurada como secreto de GitHub, seguirá siendo visible en el código JavaScript compilado del navegador. Consulta [SECURITY.md](./SECURITY.md) para más información.
+**NOTA DE SEGURIDAD**: Aunque la API key está configurada como secreto de GitHub, seguirá siendo visible en el código JavaScript compilado del navegador. Consulta [SECURITY.md](SECURITY.md) para más información.
 
 ## Verificación de Servicios de IA
 
@@ -376,8 +376,8 @@ addLog('success', t('messages.importSuccess', { count: phrases.length }));
 
 ## Recursos Adicionales
 
-- [SECURITY.md](./SECURITY.md) - Consideraciones de seguridad
-- [ARCHITECTURE.md](./ARCHITECTURE.md) - Arquitectura detallada del sistema
+- [SECURITY.md](SECURITY.md) - Consideraciones de seguridad
+- [ARCHITECTURE.md](ARCHITECTURE.md) - Arquitectura detallada del sistema
 - [Google Gemini API Docs](https://ai.google.dev/docs)
 - [NSM Homepage](https://nsm-approach.net/)
 

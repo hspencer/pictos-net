@@ -2,364 +2,248 @@
 
 ## Pictogramas Generativos para la Accesibilidad Cognitiva
 
+[![Netlify Status](https://api.netlify.com/api/v1/badges/24f068d3-f368-4526-a503-2f09af1def0b/deploy-status)](https://app.netlify.com/projects/pictos/deploys)
+![código abierto](https://img.shields.io/badge/opensource--always-available-blue)
+
 **PICTOS** es una herramienta de [investigación doctoral](http://herbertspencer.net/cc) que explora la generación automática de pictogramas a partir de intenciones comunicativas expresadas en lenguaje natural. El proyecto investiga cómo transformar el significado profundo del lenguaje en representaciones visuales universales que faciliten la comunicación para personas con diversidad cognitiva.
 
 Este proyecto avanza sobre [PICTOS.cl](https://pictos.cl) desarrollado por el [Núcleo de Accesibilidad e Inclusión PUCV](https://accesibilidad-inclusion.cl/) enfocado en el desarrollo de apoyos visuales y procedimentales para la interacción accesible con los servicios públicos en Chile.
 
+---
 
-## Cómo Funciona PICTOS.NET
+## 🚀 Inicio Rápido
 
-[![Netlify Status](https://api.netlify.com/api/v1/badges/24f068d3-f368-4526-a503-2f09af1def0b/deploy-status)](https://app.netlify.com/projects/pictos/deploys)
+### Usar PICTOS.NET
+- **Aplicación web**: [pictos.net](https://pictos.net)
+- **Tutorial completo**: [Ver Tutorial](docs/TUTORIAL.md) (en castellano)
 
-### Almacenamiento Local
+### Para Desarrolladores
+- **Guía de contribución**: [CONTRIBUTING.md](docs/CONTRIBUTING.md)
+- **Arquitectura técnica**: [ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- **Seguridad**: [SECURITY.md](docs/SECURITY.md)
 
-**Importante**: Todos los pictogramas y datos se almacenan **localmente en el navegador** usando `localStorage` (metadatos) e `IndexedDB` (imágenes bitmap). Esto significa:
+---
 
-- Los datos persisten entre sesiones en el mismo navegador
-- Si limpias los datos del navegador, **perderás todo tu trabajo**
-- Para respaldar tu trabajo, usa la función **Exportar Grafo** en el menú de Librería
-- Los archivos JSON exportados contienen toda la información, incluyendo las imágenes en Base64 y las evaluaciones
-- Las imágenes bitmap se almacenan en IndexedDB para optimizar el rendimiento (pueden ser archivos grandes)
+## ¿Cómo Funciona?
 
-**Contribuye al proyecto**: Puedes enviar tu grafo exportado con tus comentarios y recomendaciones a [hspencer@ead.cl](mailto:hspencer@ead.cl). De esta forma ayudarás a mejorar esta herramienta de comunicación de código abierto.
-
-![código abierto](https://img.shields.io/badge/opensource--always-available-blue)
-
-#### Arquitectura de Almacenamiento: Bitmaps + SVGs
-
-PICTOS implementa un sistema de **almacenamiento dual** que mantiene tanto versiones bitmap como vectoriales:
-
-##### Bitmaps (RowData)
-
-- Almacenados como parte del grafo principal en `RowData.bitmap`
-- Formato: Base64 data URLs (PNG)
-- Incluyen: NLU, elementos visuales, prompts, evaluación ICAP
-- Exportables como JSON con toda la trazabilidad del pipeline
-
-##### SVGs (Biblioteca Separada)
-
-- Almacenados en una biblioteca independiente (`SVGLibrary`)
-- Principio **Single Source of Truth (SSoT)**: cada SVG es autosuficiente
-- Incluyen metadatos embebidos: NSM, conceptos semánticos, ICAP, accesibilidad
-- Referencia al RowData original mediante `sourceRowId` (relación 1:1)
-- Cumplen con el estándar [mf-svg-schema](https://github.com/mediafranca/mf-svg-schema)
-
-Esta arquitectura permite:
-
-- Mantener bitmaps para iteración rápida del pipeline generativo
-- Generar SVGs solo para pictogramas de alta calidad (ICAP ≥ 4.0)
-- Exportar SVGs como artefactos independientes con toda su semántica embebida
-- Interoperar con otras herramientas que consuman mf-svg-schema
-
-### Generando Pictogramas
-
-Hay dos formas de generar un pictograma a partir de una intención comunicativa:
-
-#### 1. Modo Cascada (Automático)
-
-Presiona el botón **▶ Play** en la barra de cada utterance para ejecutar el pipeline completo automáticamente:
+PICTOS utiliza un pipeline de 3 fases que transforma texto en pictogramas:
 
 ```
-Utterance → NLU → Visual → Bitmap
+UTTERANCE → [1. COMPRENDER] → [2. COMPONER] → [3. PRODUCIR] → PICTOGRAMA
+              (Análisis NSM)   (Blueprint)      (Imagen)
 ```
 
-Este modo procesa las tres fases secuencialmente sin intervención manual. Ideal para generación rápida.
+### Dos Modos de Generación
 
-#### 2. Modo Paso a Paso (Control Total)
+#### 1. **Modo Cascada** (Automático)
+Presiona **▶ Play** para ejecutar el pipeline completo automáticamente. Ideal para generación rápida.
 
-Expande la barra del utterance para revelar los **3 bloques interiores**:
+#### 2. **Modo Paso a Paso** (Control Total)
+Expande cada utterance para acceder a los 3 bloques interiores:
+- **Comprender**: Análisis semántico basado en NSM (65 primitivos universales)
+- **Componer**: Elementos jerárquicos y composición espacial
+- **Producir**: Renderizado de imagen + Evaluación ICAP
 
-1. **Comprender (NLU)**: Análisis semántico basado en NSM de 65 primitivos
-2. **Componer (Visual)**: Elementos jerárquicos y lógica de articulación espacial
-3. **Producir (Bitmap)**: Renderizado de la imagen final
+Cada bloque permite inspeccionar, editar y regenerar resultados intermedios.
 
-Cada bloque tiene su propio botón de regeneración, permitiéndote:
-- Inspeccionar y editar los resultados intermedios
-- Regenerar solo una fase específica
-- Experimentar con diferentes configuraciones
+Ver el [Tutorial completo](docs/TUTORIAL.md) para guía detallada pantalla por pantalla.
 
-La **evaluación ICAP** (cuarto bloque) es siempre manual, permitiendo valorar la calidad del pictograma generado según 6 dimensiones.
+---
 
-### Generación de Pictogramas Vectoriales (SVG)
+## 🎯 Características Principales
 
-Una vez completadas las fases principales y la evaluación ICAP, los pictogramas con calificación **≥ 4.0** pueden convertirse a formato vectorial estructurado:
+### Almacenamiento Dual: Bitmaps + SVGs
 
-#### Proceso de Vectorización en Dos Etapas
+**Bitmaps** (para iteración)
+- Almacenados en IndexedDB + localStorage
+- Incluyen trazabilidad completa del pipeline (NLU, elementos, prompts, ICAP)
+- Exportables como JSON con toda la metadata
 
-1. **Trace (Vectorizar)**: Convierte el bitmap PNG a SVG vectorial usando vtracer (WASM)
-   - Genera un SVG "crudo" con paths optimizados
-   - Permite previsualizar y descargar el SVG sin procesar
-   - Usa algoritmos de ajuste de curvas spline para suavidad óptima
+**SVGs** (para producción)
+- Biblioteca independiente con principio Single Source of Truth (SSoT)
+- Solo pictogramas de alta calidad (ICAP ≥ 4.0)
+- Metadatos embebidos: NSM, conceptos semánticos, roles, accesibilidad
+- Cumplen con [mf-svg-schema](https://github.com/mediafranca/mf-svg-schema)
 
-2. **Format (Estructurar)**: Transforma el SVG crudo en un SVG semántico usando Gemini Pro
-   - Agrupa elementos según roles semánticos (Agent, Patient, Theme, Action)
-   - Embebe metadatos completos: NSM primes, conceptos, accesibilidad, ICAP
-   - Aplica el esquema [mf-svg-schema](https://github.com/mediafranca/mf-svg-schema) para máxima interoperabilidad
-   - Genera estilos CSS configurables y clases reutilizables
+### Vectorización en Dos Etapas
 
-Los SVGs generados son **autocontenidos** e incluyen toda la información semántica, permitiendo su uso independiente en cualquier contexto.
+1. **Trace**: Bitmap PNG → SVG vectorial (vtracer WASM)
+2. **Format**: SVG crudo → SVG semántico estructurado (Gemini Pro)
 
-### Importación y Exportación
+Los SVGs generados son autocontenidos e interoperables.
 
-#### Grafos (RowData)
+### Evaluación ICAP
 
-- **Exportar Grafo**: Genera un archivo JSON con todos los nodos, incluyendo imágenes bitmap en Base64
-- **Importar Grafo**: Carga un archivo JSON previamente exportado (se pedirá confirmación si hay datos existentes)
+Sistema de evaluación multidimensional con 6 métricas:
+- Clarity (Claridad visual)
+- Recognizability (Reconocibilidad)
+- Semantic Transparency (Transparencia semántica)
+- Pragmatic Fit (Ajuste pragmático)
+- Cultural Adequacy (Adecuación cultural)
+- Cognitive Accessibility (Accesibilidad cognitiva)
 
-#### SVGs Individuales
+---
 
-- **Descargar SVG**: Cada pictograma vectorial puede descargarse como archivo `.svg` independiente
-- Los SVGs descargados son **autocontenidos** e incluyen:
-  - Metadatos semánticos (NSM, conceptos, roles)
-  - Información de accesibilidad (ARIA labels, descriptions)
-  - Datos de evaluación ICAP
-  - Información de proveniencia (generador, fecha, licencia)
-  - Estilos CSS embebidos y configurables
+## 📚 Documentación
 
+### Guías de Usuario
+- **[Tutorial Completo](docs/TUTORIAL.md)** - Guía paso a paso en castellano
+- **[Configuración del Espacio](docs/TUTORIAL.md#configuración-del-espacio)** - Prompt general, geo-context, modelos
+- **[Evaluación ICAP](docs/TUTORIAL.md#evaluación-icap)** - Cómo evaluar pictogramas
 
-## Filosofía del Proyecto
+### Documentación Técnica
+- **[Arquitectura](docs/ARCHITECTURE.md)** - Diseño del sistema, flujo de datos, APIs
+- **[Contribuir](docs/CONTRIBUTING.md)** - Guía para desarrolladores
+- **[Seguridad](docs/SECURITY.md)** - Políticas y reportes de seguridad
+
+### Esquemas de Investigación (Git Submodules)
+- **[NLU Schema](https://github.com/mediafranca/nlu-schema)** - Análisis lingüístico NSM
+- **[ICAP](https://github.com/mediafranca/ICAP)** - Visual Communication Index
+- **[MF-SVG Schema](https://github.com/mediafranca/mf-svg-schema)** - Pictogramas vectoriales estructurados
+
+---
+
+## 🛠 Tecnología
+
+- **Frontend**: React 19 + TypeScript 5.8 + Vite 6
+- **Styling**: Tailwind CSS 3.4
+- **Modelos IA**:
+  - Gemini 3 Pro Preview (NLU, Visual Blueprint, SVG structuring)
+  - Gemini 2.5 Flash Image (generación rápida)
+  - Gemini 3 Pro Image (alta calidad)
+- **Vectorización**: VTracer WASM
+- **Almacenamiento**: localStorage + IndexedDB
+- **Backend**: Netlify Functions
+- **i18n**: Inglés (UK) + Español (Latinoamérica)
+- **Licencia**: MIT (código) / CC-BY-4.0 (imágenes)
+
+---
+
+## 🎓 Filosofía del Proyecto
 
 ### Del Lenguaje Natural a la Imagen
 
-Los pictogramas son más que ilustraciones: son sistemas de comunicación visual que deben capturar la **esencia semántica** de un mensaje como un *acto del habla* para comprender la **intención comunicativa**. 
+Los pictogramas son **sistemas de comunicación visual** que capturan la esencia semántica de un acto del habla. PICTOS propone un enfoque generativo que:
 
-PICTOS propone un enfoque generativo que atraviesa tres dimensiones fundamentales:
+1. **Comprende profundamente** la intención comunicativa (NSM)
+2. **Define la composición** visual jerárquica
+3. **Renderiza** la imagen final
 
-1. **Comprender**: Análisis lingüístico profundo basado en Natural Semantic Metalanguage (NSM)
-2. **Componer**: Definición de elementos visuales jerárquicos y su lógica de articulación espacial
-3. **Producir**: Renderizado final de la imagen mediante inteligencia artificial generativa
-
-Este *pipeline de razonamiento* reconoce que la comunicación visual efectiva requiere primero **comprender profundamente** qué se quiere comunicar, antes de decidir **cómo visualizarlo**.
+Este pipeline reconoce que la comunicación visual efectiva requiere primero **comprender qué** se quiere comunicar, antes de decidir **cómo** visualizarlo.
 
 ### Fundamentos Teóricos
 
-El proyecto se apoya en dos pilares conceptuales:
-
 **Natural Semantic Metalanguage (NSM)**
-Un enfoque lingüístico desarrollado por Anna Wierzbicka y Cliff Goddard que identifica 65 conceptos semánticos universales presentes en todas las lenguas humanas. Estos primitivos semánticos permiten descomponer el significado de cualquier enunciado en sus elementos más básicos, facilitando una representación visual culturalmente neutra.
+Descompone cualquier enunciado en 65 primitivos semánticos universales, facilitando representación visual culturalmente neutra.
 
-**Visual Communication Semiotic Construction Index (ICAP)**
-Un marco de evaluación multidimensional que mide la calidad de los pictogramas según seis ejes:
-- **Semantics**: Precisión del significado
-- **Syntactics**: Composición visual
-- **Pragmatics**: Adecuación al contexto
-- **Clarity**: Legibilidad
-- **Universality**: Neutralidad cultural
-- **Aesthetics**: Atractivo visual
+**ICAP (Image-Communication Accessibility Protocol)**
+Marco de evaluación multidimensional que mide calidad según 6 ejes complementarios.
 
-### Arquitectura como Investigación
-
-PICTOS implementa una **arquitectura de grafo semántico** donde cada nodo representa un utterance (intención comunicativa) y sus transformaciones sucesivas:
-
-```
-Utterance → Análisis NSM → Blueprint Visual → Imagen PNG → Evaluación ICAP
-                                                      ↓
-                                          [Si ICAP ≥ 4.0]
-                                                      ↓
-                                    Vectorización (vtracer) → SVG crudo
-                                                      ↓
-                              Estructuración semántica (Gemini) → SVG mf-schema
-```
-
-Esta arquitectura permite:
-
-- **Trazabilidad completa**: Desde la intención original hasta la imagen final (bitmap o SVG)
-- **Iteración experimental**: Regenerar cualquier paso sin perder el contexto
-- **Evaluación sistemática**: Medir la calidad de los pictogramas según criterios objetivos
-- **Exportación de datasets**: Construir corpus de pictogramas para investigación
-- **Formatos múltiples**: Mantener bitmaps para iteración y generar SVGs para producción
-- **Semántica embebida**: Los SVGs son artefactos autocontenidos con metadatos completos
-
-### Accesibilidad e Inclusión
-
-El proyecto nace de una convicción: **la comunicación visual debe ser universal y accesible**. Los pictogramas generados por PICTOS buscan:
-
-- Reducir barreras cognitivas en la comunicación
-- Facilitar la expresión de necesidades básicas
-- Promover la autonomía de personas con diversidad funcional
-- Contribuir a entornos más inclusivos
-
-### Tecnología al Servicio del Significado
-
-PICTOS utiliza modelos de lenguaje e imagen de última generación (Google Gemini 3 Pro) no como un fin en sí mismo, sino como **instrumentos para explorar la relación entre lenguaje y representación visual**. La herramienta es un laboratorio donde investigadores, lingüistas y diseñadores pueden experimentar con diferentes estrategias de visualización.
-
-
-## El Vocabulario Base ICAP
-
-El proyecto incluye un módulo de investigación con **20 frases de intenciones comunicativas básicas**, cuidadosamente seleccionadas para representar necesidades fundamentales en situaciones cotidianas:
-
-- "Quiero beber agua"
-- "Necesito ir al baño"
-- "Tengo dolor"
-- "Quiero comer algo"
-- [... y 16 más]
-
-Este vocabulario base sirve como **benchmark** para evaluar y comparar diferentes enfoques de generación de pictogramas.
-
-
-## Casos de Uso
-
-### Investigación Lingüística
-
-Explorar cómo diferentes lenguas expresan conceptos universales y cómo estos se pueden visualizar de manera transcultural. Los SVGs semánticos permiten analizar la correspondencia entre primitivos NSM y elementos visuales.
-
-### Diseño de Sistemas de Comunicación Aumentativa
-
-Generar rápidamente prototipos de pictogramas para sistemas AAC (Augmentative and Alternative Communication). Los SVGs escalables garantizan legibilidad en cualquier dispositivo, desde tablets hasta pantallas grandes.
-
-### Educación Especial
-
-Crear materiales visuales personalizados adaptados a las necesidades específicas de cada estudiante. Los SVGs permiten ajustar estilos, colores y tamaños sin pérdida de calidad.
-
-### Evaluación de Pictogramas Existentes
-
-Usar los criterios ICAP para analizar y mejorar pictogramas de bibliotecas existentes (ARASAAC, Mulberry, etc.). Comparar pictogramas generados automáticamente con estándares establecidos.
-
-### Desarrollo de Corpus Visuales
-
-Construir datasets de pictogramas para entrenar modelos de IA o realizar estudios de percepción visual. Los SVGs con metadatos embebidos facilitan el análisis computacional de características semánticas.
-
-### Interoperabilidad y Publicación
-
-Exportar pictogramas vectoriales con metadatos completos para integración en aplicaciones web, sistemas AAC comerciales, o publicación como recursos educativos abiertos (OER).
-
-
-## Principios de Diseño
-
-1. **Transparencia Semántica**: Cada paso del pipeline es visible y editable
-2. **Neutralidad Cultural**: Los pictogramas buscan ser comprensibles más allá de fronteras lingüísticas
-3. **Simplicidad Compositiva**: Elementos visuales mínimos pero expresivos
-4. **Coherencia Estilística**: Uniformidad visual en toda la biblioteca generada
-5. **Trazabilidad Completa**: Rastrear cada decisión desde el utterance hasta el píxel final
-
-
-## Tecnología
-
-- **Frontend**: React 19 + TypeScript 5.8 + Vite 6
-- **Styling**: Tailwind CSS 3.4 (PostCSS)
-- **Procesamiento Lingüístico**: Google Gemini 3 Pro (análisis NSM)
-- **Generación de Imágenes**: Gemini 2.5 Flash Image / Gemini 3 Pro Image
-- **Vectorización**: VTracer WASM (bitmap → SVG)
-- **Estructuración SVG**: Gemini 3 Pro (aplicación de mf-svg-schema)
-- **Arquitectura**: Cliente-lado con almacenamiento híbrido
-  - `localStorage`: Metadatos, configuración y datos del grafo
-  - `IndexedDB`: Imágenes bitmap (optimización para archivos grandes)
-- **Almacenamiento Dual**: Bitmaps (RowData + IndexedDB) + SVGs (Biblioteca independiente)
-- **Backend**: Netlify Functions (compartir pictogramas a GitHub)
-- **Internacionalización**: Soporte para inglés (UK) y español (Latinoamérica)
-- **Licencia**: MIT (código) / CC-BY-4.0 (imágenes generadas)
-
-### Esquemas y Módulos Externos
-
-PICTOS integra esquemas de investigación como **git submodules**, permitiendo versionado explícito y reproducibilidad científica:
-
-- **[NLU Schema](https://github.com/mediafranca/nlu-schema)** - Esquema MediaFranca para análisis lingüístico profundo basado en NSM (Natural Semantic Metalanguage). Define la estructura para la fase "Comprender".
-
-- **[ICAP](https://github.com/mediafranca/ICAP)** - Visual Communication Semiotic Construction Index. Marco de evaluación multidimensional para pictogramas (6 métricas: Semantics, Syntactics, Pragmatics, Clarity, Universality, Aesthetics). Usado en la fase "Evaluar".
-
-- **[MF-SVG Schema](https://github.com/mediafranca/mf-svg-schema)** - Esquema para pictogramas vectoriales estructurados. Define la composición jerárquica de elementos visuales y su articulación espacial. Fundamento para la futura fase "Componer SVG".
-
-Cada esquema evoluciona de forma independiente, permitiendo actualizaciones controladas sin afectar la estabilidad de PICTOS.
-
-
-## Comenzar a Usar PICTOS
-
-- **Aplicación web**: [pictos.net](https://pictos.net)
-- **Para desarrolladores**: Consulta [CONTRIBUTING.md](./CONTRIBUTING.md)
-- **Consideraciones de seguridad**: Lee [SECURITY.md](./SECURITY.md)
-- **Arquitectura técnica**: Ver [ARCHITECTURE.md](./ARCHITECTURE.md)
-
-
-## Citar este Proyecto
-
-Si usas PICTOS en tu investigación, considera citarlo como:
-
-```
-PICTOS.NET (2025). Pictogramas Generativos para la Accesibilidad Cognitiva.
-Sistema de generación automática basado en NSM y evaluación ICAP.
-Disponible en: https://pictos.net
-```
+Ver [Arquitectura](docs/ARCHITECTURE.md) para detalles técnicos completos.
 
 ---
 
-## Roadmap
+## 📦 Importación y Exportación
+
+### Datos Locales
+⚠️ **Importante**: Todos los datos se almacenan localmente en tu navegador.
+- Si limpias datos del navegador, perderás tu trabajo
+- **Exporta regularmente** tu grafo para respaldos
+- Los JSON exportados incluyen imágenes en Base64
+
+### Grafos (RowData)
+- **Exportar**: JSON con todos los nodos y metadatos
+- **Importar**: Cargar archivos previamente exportados
+
+### SVGs Individuales
+- **Descargar**: Archivos `.svg` autocontenidos
+- **Compartir**: Envía tu grafo a [hspencer@ead.cl](mailto:hspencer@ead.cl) para contribuir al proyecto
+
+---
+
+## 🎯 Casos de Uso
+
+- **Investigación Lingüística**: Analizar correspondencia NSM ↔ elementos visuales
+- **Sistemas AAC**: Prototipos rápidos de comunicación aumentativa
+- **Educación Especial**: Materiales visuales personalizados
+- **Evaluación**: Análisis de pictogramas existentes (ARASAAC, Mulberry, etc.)
+- **Desarrollo de Corpus**: Datasets para IA o estudios de percepción
+- **Interoperabilidad**: Integración con apps web, sistemas AAC, OER
+
+---
+
+## 🗺️ Roadmap
 
 ### v1.0 (Actual - SVG Generation)
-
-- Generación de pictogramas vectoriales (SVG) *Modo prueba*
-- Pipeline de vectorización en dos etapas: Trace + Format
-- Integración con vtracer (WASM) para conversión bitmap→SVG
-- Estructuración semántica con Gemini Pro según mf-svg-schema
-- Biblioteca SVG independiente con almacenamiento SSoT
-- Sistema de estilos CSS configurable para SVGs
-- Metadatos embebidos: NSM, conceptos, ICAP, accesibilidad
-- Exportación e importación de SVGs individuales
-- Filtro de elegibilidad ICAP ≥ 4.0 para generación SVG
-
-### v0.7
-
-- Integración de esquemas de investigación como git submodules
-- Documentación completa de workflow con submodules
-- Mejoras en sistema de ayuda de evaluación ICAP
-- Enlaces corregidos a repositorios externos
-
-### v0.1a
-
-- Pipeline completo: Understand → Compose → Produce → Evaluate
-- Interfaz bilingüe (ES/EN)
-- Evaluación ICAP integrada
-- Exportación con imágenes embebidas
+✅ Generación vectorial con metadatos semánticos
+✅ Pipeline Trace + Format
+✅ Biblioteca SVG independiente (SSoT)
+✅ Sistema de estilos CSS configurables
+✅ Filtro ICAP ≥ 4.0
 
 ### Próximas Versiones
-
-- Control fino de estilos a partir de corpus
-- Control fino de interpretación semántica
-- Control de layout
-- Comprender cómo almacenar las metáforas o "blends" visuales de acuerdo a cada contexto
-- Implementar una partida rápida a partir de referentes personalizados
-- Editor visual de SVG con manipulación directa de grupos semánticos
-- Exportación masiva de SVGs como dataset
+- Control fino de estilos desde corpus
+- Editor visual de SVG con manipulación directa
+- Exportación masiva como dataset
 - Animaciones SVG basadas en roles semánticos
-- Colaboración multiusuario en tiempo real
-- API pública para integración con otros sistemas
+- Colaboración multiusuario
+- API pública
+
+Ver [roadmap completo](docs/ARCHITECTURE.md#roadmap) para más detalles.
 
 ---
 
-## Comunidad y Contribuciones
+## 🤝 Comunidad y Contribuciones
 
 PICTOS es un proyecto abierto que invita a:
 
-- **Lingüistas** a refinar el análisis NLU y NSM para definir un esquema estándar
-- **Diseñadores** a mejorar la composición visual y la consistencia de los pictogramas dentro de un sistema gráfico
-- **Investigadores** a validar los criterios ICAP, validar rúbrica e instrumento
-- **Desarrolladores** a extender las funcionalidades e implementar aprendizaje federado
-- **Usuarios finales** a reportar necesidades reales y enviarnos ejemplos de uso para entrenar el siguiente modelo generativo de pictogramas
+- **Lingüistas** → Refinar análisis NLU y NSM
+- **Diseñadores** → Mejorar composición visual y consistencia gráfica
+- **Investigadores** → Validar criterios ICAP
+- **Desarrolladores** → Extender funcionalidades
+- **Usuarios finales** → Reportar necesidades y enviar ejemplos de uso
 
-Las contribuciones son bienvenidas. Por favor, lee [CONTRIBUTING.md](./CONTRIBUTING.md) antes de comenzar.
-
-
-## Reconocimientos
-
-Este proyecto se inspira en el trabajo de:
-
-- **Anna Wierzbicka** y **Cliff Goddard** (Natural Semantic Metalanguage)
-- **ARASAAC** (Proyecto aragonés de pictogramas) y el diseño de Sergio Palao
-- La comunidad de Comunicación Aumentativa y Alternativa (AAC)
-- Investigadores en accesibilidad cognitiva y diseño universal
-- [PICTOS.cl](https://pictos.cl)
-
-
-## Contacto
-
-Para preguntas, sugerencias o colaboraciones:
-
-- Abre un issue en GitHub
-- Reporta bugs en el repositorio
-- Propone nuevas funcionalidades mediante Pull Requests
-- Esta aplicación es el sitio de investigación doctoral de [Herbert Spencer](https://herbertspencer.net). También me puedes escribir directamente.
+Lee [CONTRIBUTING.md](docs/CONTRIBUTING.md) antes de contribuir.
 
 ---
 
-*PICTOS.NET - es una iniciativa de código abierto de MediaFranca.*
+## 📖 Citar este Proyecto
 
-**v1.0** Pictogramas semánticos para la investigación gráfica en lingüística aplicada y accesibilidad cognitiva.
+Si usas PICTOS en tu investigación:
+
+```bibtex
+@software{pictos2025,
+  title = {PICTOS.NET: Pictogramas Generativos para la Accesibilidad Cognitiva},
+  author = {Spencer, Herbert},
+  year = {2025},
+  url = {https://pictos.net},
+  note = {Sistema de generación automática basado en NSM y evaluación ICAP}
+}
+```
+
+---
+
+## 🙏 Reconocimientos
+
+- **Anna Wierzbicka** y **Cliff Goddard** (Natural Semantic Metalanguage)
+- **ARASAAC** (Proyecto aragonés de pictogramas) y Sergio Palao
+- Comunidad AAC (Augmentative and Alternative Communication)
+- Investigadores en accesibilidad cognitiva y diseño universal
+- [PICTOS.cl](https://pictos.cl) y [Núcleo de Accesibilidad e Inclusión PUCV](https://accesibilidad-inclusion.cl/)
+
+---
+
+## 📬 Contacto
+
+Para preguntas, sugerencias o colaboraciones:
+
+- **Issues**: Abre un issue en GitHub
+- **Pull Requests**: Propón nuevas funcionalidades
+- **Email**: [hspencer@ead.cl](mailto:hspencer@ead.cl)
+- **Web**: [herbertspencer.net](https://herbertspencer.net)
+
+---
+
+*PICTOS.NET - Iniciativa de código abierto de [MediaFranca](https://github.com/mediafranca)*
+
+**v1.0.1** - Pictogramas semánticos para la investigación gráfica en lingüística aplicada y accesibilidad cognitiva.

@@ -162,8 +162,8 @@ Si sospechas que una key ha sido comprometida o para mantenimiento periódico:
 
 ### Documentación del Proyecto
 
-- [README.md](./README.md) - Instrucciones de setup y desarrollo
-- [ARCHITECTURE.md](./ARCHITECTURE.md) - Arquitectura del sistema v2.6
+- [README.md](../README.md) - Instrucciones de setup y desarrollo
+- [ARCHITECTURE.md](ARCHITECTURE.md) - Arquitectura del sistema v2.6
 - [.env.example](./.env.example) - Template de variables de entorno
 
 ### APIs y Servicios
