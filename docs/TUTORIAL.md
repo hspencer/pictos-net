@@ -2,8 +2,6 @@
 
 ## Guía Completa de Uso - v1.0.1
 
----
-
 ## Índice
 
 1. [Introducción](#introducción)
@@ -16,8 +14,6 @@
 8. [Evaluación ICAP](#evaluación-icap)
 9. [Gestión de la Biblioteca SVG](#gestión-de-la-biblioteca-svg)
 10. [Consejos y Buenas Prácticas](#consejos-y-buenas-prácticas)
-
----
 
 ## Introducción
 
@@ -37,11 +33,11 @@ Convierte frases en lenguaje natural (intención comunicativa) en pictogramas me
 - **Análisis Semántico**: Natural Semantic Metalanguage (NSM)
 - **Validación**: Sistema de evaluación ICAP-50
 
----
-
 ## Primeros Pasos
 
 ### Pantalla de Inicio (HOME)
+
+![Pictos.net: Pantalla de inicio](img/pictos-inicio.png)
 
 Al abrir PICTOS.NET, verás la pantalla principal con dos opciones:
 
@@ -60,6 +56,8 @@ El **ICAP-50** es un corpus canónico de 50 frases diseñadas para cubrir las di
 2. Se cargarán automáticamente las 50 frases base
 3. Serás redirigido a la pantalla de trabajo (LIST)
 
+El índice **ICAP** es un módulo independiente que está documentado y disponible de forma separada acá: [https://github.com/mediafranca/ICAP](https://github.com/mediafranca/ICAP).
+
 #### 2. Importar Frases Personalizadas
 
 Puedes cargar tus propias frases desde un archivo de texto:
@@ -76,8 +74,6 @@ Y otra más
 2. Haz clic en "Importar Frases Personalizadas"
 3. Selecciona tu archivo
 4. Las frases se agregarán a tu espacio de trabajo
-
----
 
 ## Configuración del Espacio
 
@@ -141,8 +137,6 @@ Un **Espacio** es tu colección de pictogramas con una configuración global com
 ### Guardar Configuración
 
 Los cambios se guardan automáticamente en tu navegador (localStorage). La configuración persiste entre sesiones.
-
----
 
 ## El Prompt General de Estilo Visual
 
@@ -216,8 +210,6 @@ Un buen prompt de estilo debe especificar:
 3. Edita el texto según tu necesidad
 4. Los cambios afectarán **solo** a pictogramas generados **después** del cambio
 5. Para actualizar pictogramas existentes, deberás **regenerar** la Fase 3 (PRODUCIR)
-
----
 
 ## Generación en Cascada
 
@@ -311,8 +303,6 @@ Si alguna fase falla:
    - Revisar el error en la consola (botón Console en cabecera)
    - Intentar regenerar solo ese paso
    - Editar manualmente el input del paso fallido
-
----
 
 ## Generación Paso por Paso
 
@@ -444,8 +434,6 @@ Haz clic en cualquier parte de la fila (excepto en botones) para expandir la vis
 2. **Iteración eficiente**: Regenera solo lo necesario
 3. **Aprendizaje**: Comprende cómo funciona el pipeline
 4. **Calidad**: Ajusta hasta obtener el resultado óptimo
-
----
 
 ## Edición y Regeneración de Pasos Intermedios
 
@@ -609,8 +597,6 @@ Cuando estés en el editor de enfoque (modal pantalla completa):
 - **Ctrl+S** (Windows/Linux) o **Cmd+S** (Mac): Guardar cambios
 - **Tab**: Navegar entre campos
 
----
-
 ## Evaluación ICAP
 
 ![Evaluación ICAP](img/evaluacion-icap.png)
@@ -755,8 +741,6 @@ Puedes re-evaluar en cualquier momento:
 
 **Nota:** Si regeneras el BITMAP, la evaluación se **resetea** a "idle" (debes evaluar nuevamente).
 
----
-
 ## Gestión de la Biblioteca SVG
 
 ### ¿Qué es la Biblioteca SVG?
@@ -884,8 +868,6 @@ Los SVG de la biblioteca pueden:
    - Los metadatos permiten regeneración contextual
    - Pueden servir como base para variaciones
 
----
-
 ## Consejos y Buenas Prácticas
 
 ### 1. Configuración Inicial
@@ -999,8 +981,6 @@ Los SVG de la biblioteca pueden:
 - Los cambios se guardan automáticamente
 - Exporta versiones estables antes de experimentos radicales
 
----
-
 ## Resumen del Flujo de Trabajo Completo
 
 ```
@@ -1035,8 +1015,6 @@ Los SVG de la biblioteca pueden:
    └─ Refinar configuración basado en resultados
 ```
 
----
-
 ## Recursos Adicionales
 
 ### Documentación Técnica
@@ -1055,8 +1033,6 @@ Los SVG de la biblioteca pueden:
 PICTOS.NET es software de código abierto bajo licencia MIT.
 Los pictogramas generados pueden licenciarse según configuración del espacio (ej: CC BY 4.0).
 
----
-
 ## Conclusión
 
 PICTOS.NET es una herramienta poderosa para generar pictogramas accesibles basados en análisis semántico profundo. La clave para obtener resultados óptimos es:
@@ -1069,7 +1045,5 @@ PICTOS.NET es una herramienta poderosa para generar pictogramas accesibles basad
 Con práctica, podrás generar bibliotecas completas de pictogramas coherentes, accesibles y culturalmente apropiados.
 
 **¡Buena suerte con tu generación de pictogramas!**
-
----
 
 _Tutorial creado para PICTOS.NET v1.0.1 - Enero 2025_
