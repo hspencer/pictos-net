@@ -56,7 +56,6 @@ Cada bloque permite inspeccionar, editar y regenerar resultados intermedios.
 Ver el [Tutorial completo](docs/TUTORIAL.md) para guía detallada pantalla por pantalla.
 
 
-
 ## Características Principales
 
 ### Almacenamiento Dual: Bitmaps + SVGs
@@ -108,7 +107,6 @@ Sistema de evaluación multidimensional con 6 métricas:
 - **[MF-SVG Schema](https://github.com/mediafranca/mf-svg-schema)** - Pictogramas vectoriales estructurados
 
 
-
 ## Tecnología
 
 - **Frontend**: React 19 + TypeScript 5.8 + Vite 6
@@ -122,7 +120,6 @@ Sistema de evaluación multidimensional con 6 métricas:
 - **Backend**: Netlify Functions
 - **i18n**: Inglés (UK) + Español (Latinoamérica)
 - **Licencia**: MIT (código) / CC-BY-4.0 (imágenes)
-
 
 
 ## Filosofía del Proyecto
@@ -166,7 +163,6 @@ Ver [Arquitectura](docs/ARCHITECTURE.md) para detalles técnicos completos.
 - **Descargar**: Archivos `.svg` autocontenidos
 - **Compartir**: Envía tu grafo a [hspencer@ead.cl](mailto:hspencer@ead.cl) para contribuir al proyecto
 
----
 
 ## Casos de Uso
 
@@ -177,7 +173,6 @@ Ver [Arquitectura](docs/ARCHITECTURE.md) para detalles técnicos completos.
 - **Desarrollo de Corpus**: Datasets para IA o estudios de percepción
 - **Interoperabilidad**: Integración con apps web, sistemas AAC, OER
 
----
 
 ## Roadmap
 
@@ -213,7 +208,6 @@ PICTOS es un proyecto abierto que invita a:
 
 Lee [CONTRIBUTING.md](docs/CONTRIBUTING.md) antes de contribuir.
 
----
 
 ## Citar este Proyecto
 
@@ -229,7 +223,6 @@ Si usas PICTOS en tu investigación:
 }
 ```
 
----
 
 ## Reconocimientos
 
@@ -250,7 +243,6 @@ Para preguntas, sugerencias o colaboraciones:
 - **Email**: [hspencer@ead.cl](mailto:hspencer@ead.cl)
 - **Web**: [herbertspencer.net](https://herbertspencer.net)
 
----
 
 *PICTOS.NET - Iniciativa de código abierto de [MediaFranca](https://github.com/mediafranca)*
 
