@@ -2,9 +2,8 @@
 
 Bienvenido a la documentación completa de PICTOS.NET. Aquí encontrarás toda la información necesaria para usar, desarrollar y contribuir al proyecto.
 
----
 
-## 📖 Índice de Documentación
+## Índice de Documentación
 
 ### Para Usuarios
 
@@ -20,7 +19,6 @@ Guía paso a paso en castellano sobre cómo usar PICTOS.NET.
 - Gestión de biblioteca SVG
 - Consejos y buenas prácticas
 
----
 
 ### Para Desarrolladores
 
@@ -58,17 +56,15 @@ Políticas de seguridad y consideraciones importantes.
 - Consideraciones de almacenamiento local
 - Mejores prácticas de seguridad
 
----
 
-## 🚀 Enlaces Rápidos
+## Enlaces Rápidos
 
 - **[README principal](../README.md)** - Visión general del proyecto
 - **[Aplicación web](https://pictos.net)** - Usar PICTOS.NET online
 - **[Repositorio GitHub](https://github.com/mediafranca/pictos-net)** - Código fuente
 
----
 
-## 📦 Recursos Externos
+## Recursos Externos
 
 ### Esquemas de Investigación (Git Submodules)
 
@@ -76,9 +72,8 @@ Políticas de seguridad y consideraciones importantes.
 - **[ICAP](https://github.com/mediafranca/ICAP)** - Visual Communication Semiotic Construction Index
 - **[MF-SVG Schema](https://github.com/mediafranca/mf-svg-schema)** - Esquema para pictogramas vectoriales estructurados
 
----
 
-## 📁 Estructura de esta Carpeta
+## Estructura de esta Carpeta
 
 ```
 docs/
@@ -91,16 +86,15 @@ docs/
     └── (capturas de pantalla del tutorial)
 ```
 
----
 
-## 🎯 Rutas de Aprendizaje Sugeridas
+## Rutas de Aprendizaje Sugeridas
 
-### 👤 Nuevo Usuario
+### Nuevo Usuario
 1. Lee el [README principal](../README.md) para entender qué es PICTOS.NET
 2. Sigue el [Tutorial Completo](TUTORIAL.md) paso por paso
 3. Prueba la [aplicación web](https://pictos.net)
 
-### 👨‍💻 Nuevo Desarrollador
+### Nuevo Desarrollador
 1. Lee el [README principal](../README.md) y la sección de tecnología
 2. Revisa la [Arquitectura](ARCHITECTURE.md) para entender el diseño del sistema
 3. Sigue la [Guía de Contribución](CONTRIBUTING.md) para setup del entorno
@@ -112,9 +106,8 @@ docs/
 3. Usa el [Tutorial](TUTORIAL.md) para generar corpus de pictogramas
 4. Consulta [ARCHITECTURE.md](ARCHITECTURE.md) para detalles del pipeline NSM
 
----
 
-## 🤝 Contribuir a la Documentación
+## Contribuir a la Documentación
 
 La documentación también es código. Si encuentras:
 
@@ -124,15 +117,7 @@ La documentación también es código. Si encuentras:
 
 Lee [CONTRIBUTING.md](CONTRIBUTING.md) para el proceso completo.
 
----
 
-## 📬 Contacto
 
-¿Preguntas sobre la documentación?
-
-- **Issues**: [GitHub Issues](https://github.com/mediafranca/pictos-net/issues)
-- **Email**: [hspencer@ead.cl](mailto:hspencer@ead.cl)
-
----
 
 *Documentación PICTOS.NET v1.0.1 - Enero 2025*

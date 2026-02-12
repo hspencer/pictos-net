@@ -9,9 +9,8 @@
 
 Este proyecto avanza sobre [PICTOS.cl](https://pictos.cl) desarrollado por el [Núcleo de Accesibilidad e Inclusión PUCV](https://accesibilidad-inclusion.cl/) enfocado en el desarrollo de apoyos visuales y procedimentales para la interacción accesible con los servicios públicos en Chile.
 
----
 
-## 🚀 Inicio Rápido
+## Inicio Rápido
 
 ### Usar PICTOS.NET
 - **Aplicación web**: [pictos.net](https://pictos.net)
@@ -22,15 +21,23 @@ Este proyecto avanza sobre [PICTOS.cl](https://pictos.cl) desarrollado por el [N
 - **Arquitectura técnica**: [ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - **Seguridad**: [SECURITY.md](docs/SECURITY.md)
 
----
 
 ## ¿Cómo Funciona?
 
 PICTOS utiliza un pipeline de 3 fases que transforma texto en pictogramas:
 
-```
-UTTERANCE → [1. COMPRENDER] → [2. COMPONER] → [3. PRODUCIR] → PICTOGRAMA
-              (Análisis NSM)   (Blueprint)      (Imagen)
+```mermaid
+graph LR
+    A[UTTERANCE] --> B[1. COMPRENDER<br/>Análisis NSM]
+    B --> C[2. COMPONER<br/>Blueprint Visual]
+    C --> D[3. PRODUCIR<br/>Imagen]
+    D --> E[PICTOGRAMA]
+
+    style A fill:#e1f5ff
+    style B fill:#fff4e1
+    style C fill:#ffe1f5
+    style D fill:#e1ffe1
+    style E fill:#f5e1ff
 ```
 
 ### Dos Modos de Generación
@@ -48,9 +55,9 @@ Cada bloque permite inspeccionar, editar y regenerar resultados intermedios.
 
 Ver el [Tutorial completo](docs/TUTORIAL.md) para guía detallada pantalla por pantalla.
 
----
 
-## 🎯 Características Principales
+
+## Características Principales
 
 ### Almacenamiento Dual: Bitmaps + SVGs
 
@@ -82,9 +89,8 @@ Sistema de evaluación multidimensional con 6 métricas:
 - Cultural Adequacy (Adecuación cultural)
 - Cognitive Accessibility (Accesibilidad cognitiva)
 
----
 
-## 📚 Documentación
+## Documentación
 
 ### Guías de Usuario
 - **[Tutorial Completo](docs/TUTORIAL.md)** - Guía paso a paso en castellano
@@ -101,9 +107,9 @@ Sistema de evaluación multidimensional con 6 métricas:
 - **[ICAP](https://github.com/mediafranca/ICAP)** - Visual Communication Index
 - **[MF-SVG Schema](https://github.com/mediafranca/mf-svg-schema)** - Pictogramas vectoriales estructurados
 
----
 
-## 🛠 Tecnología
+
+## Tecnología
 
 - **Frontend**: React 19 + TypeScript 5.8 + Vite 6
 - **Styling**: Tailwind CSS 3.4
@@ -117,9 +123,9 @@ Sistema de evaluación multidimensional con 6 métricas:
 - **i18n**: Inglés (UK) + Español (Latinoamérica)
 - **Licencia**: MIT (código) / CC-BY-4.0 (imágenes)
 
----
 
-## 🎓 Filosofía del Proyecto
+
+## Filosofía del Proyecto
 
 ### Del Lenguaje Natural a la Imagen
 
@@ -129,24 +135,25 @@ Los pictogramas son **sistemas de comunicación visual** que capturan la esencia
 2. **Define la composición** visual jerárquica
 3. **Renderiza** la imagen final
 
-Este pipeline reconoce que la comunicación visual efectiva requiere primero **comprender qué** se quiere comunicar, antes de decidir **cómo** visualizarlo.
+Este pipeline reconoce que la comunicación visual efectiva requiere, primero, **comprender qué** se quiere comunicar, antes de decidir **cómo** visualizarlo.
 
 ### Fundamentos Teóricos
 
 **Natural Semantic Metalanguage (NSM)**
-Descompone cualquier enunciado en 65 primitivos semánticos universales, facilitando representación visual culturalmente neutra.
+Descompone cualquier enunciado en 65 primitivos semánticos universales, facilitando la representación visual culturalmente neutra.
 
 **ICAP (Image-Communication Accessibility Protocol)**
-Marco de evaluación multidimensional que mide calidad según 6 ejes complementarios.
+Marco de evaluación multidimensional que mide la calidad a través de 6 ejes complementarios. Este índice tiene un repositorio dedicado en [https://github.com/mediafranca/ICAP](https://github.com/mediafranca/ICAP).
 
 Ver [Arquitectura](docs/ARCHITECTURE.md) para detalles técnicos completos.
 
----
 
-## 📦 Importación y Exportación
+
+## Importación y Exportación
 
 ### Datos Locales
 ⚠️ **Importante**: Todos los datos se almacenan localmente en tu navegador.
+
 - Si limpias datos del navegador, perderás tu trabajo
 - **Exporta regularmente** tu grafo para respaldos
 - Los JSON exportados incluyen imágenes en Base64
@@ -161,7 +168,7 @@ Ver [Arquitectura](docs/ARCHITECTURE.md) para detalles técnicos completos.
 
 ---
 
-## 🎯 Casos de Uso
+## Casos de Uso
 
 - **Investigación Lingüística**: Analizar correspondencia NSM ↔ elementos visuales
 - **Sistemas AAC**: Prototipos rápidos de comunicación aumentativa
@@ -172,14 +179,15 @@ Ver [Arquitectura](docs/ARCHITECTURE.md) para detalles técnicos completos.
 
 ---
 
-## 🗺️ Roadmap
+## Roadmap
 
 ### v1.0 (Actual - SVG Generation)
-✅ Generación vectorial con metadatos semánticos
-✅ Pipeline Trace + Format
-✅ Biblioteca SVG independiente (SSoT)
-✅ Sistema de estilos CSS configurables
-✅ Filtro ICAP ≥ 4.0
+
+- ✅ Generación vectorial con metadatos semánticos
+- ✅ Pipeline Trace + Format
+- ✅ Biblioteca SVG independiente (SSoT)
+- ✅ Sistema de estilos CSS configurables
+- ✅ Filtro ICAP ≥ 4.0
 
 ### Próximas Versiones
 - Control fino de estilos desde corpus
@@ -191,9 +199,9 @@ Ver [Arquitectura](docs/ARCHITECTURE.md) para detalles técnicos completos.
 
 Ver [roadmap completo](docs/ARCHITECTURE.md#roadmap) para más detalles.
 
----
 
-## 🤝 Comunidad y Contribuciones
+
+## Comunidad y Contribuciones
 
 PICTOS es un proyecto abierto que invita a:
 
@@ -207,15 +215,15 @@ Lee [CONTRIBUTING.md](docs/CONTRIBUTING.md) antes de contribuir.
 
 ---
 
-## 📖 Citar este Proyecto
+## Citar este Proyecto
 
 Si usas PICTOS en tu investigación:
 
 ```bibtex
-@software{pictos2025,
+@software{pictos2026,
   title = {PICTOS.NET: Pictogramas Generativos para la Accesibilidad Cognitiva},
   author = {Spencer, Herbert},
-  year = {2025},
+  year = {2026},
   url = {https://pictos.net},
   note = {Sistema de generación automática basado en NSM y evaluación ICAP}
 }
@@ -223,7 +231,7 @@ Si usas PICTOS en tu investigación:
 
 ---
 
-## 🙏 Reconocimientos
+## Reconocimientos
 
 - **Anna Wierzbicka** y **Cliff Goddard** (Natural Semantic Metalanguage)
 - **ARASAAC** (Proyecto aragonés de pictogramas) y Sergio Palao
@@ -231,9 +239,9 @@ Si usas PICTOS en tu investigación:
 - Investigadores en accesibilidad cognitiva y diseño universal
 - [PICTOS.cl](https://pictos.cl) y [Núcleo de Accesibilidad e Inclusión PUCV](https://accesibilidad-inclusion.cl/)
 
----
 
-## 📬 Contacto
+
+## Contacto
 
 Para preguntas, sugerencias o colaboraciones:
 
