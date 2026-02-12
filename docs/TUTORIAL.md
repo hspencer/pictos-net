@@ -716,16 +716,18 @@ Para cada dimensión, desliza el slider de 1 a 5:
 
 ### Visualización: HexagonChart
 
+![gráfico o visualización hexagonal del ICAP](img/icap-hexagono.png)
+
 En modo enfoque, verás un **gráfico radar hexagonal** que visualiza las 6 dimensiones:
 
-```
-         Clarity
-           /\
-          /  \
- Cultural  ▓  Recogniz.
-         \▓▓/
-      Cognitive
-```
+1. Claridad
+2. Transparencia Semántica
+3. Adecuación Cultural
+4. Reconocibilidad
+5. Adecuación Pragmática
+6. Accesibilidad Cognitiva
+
+Esta evaluación:
 
 - Permite identificar **rápidamente** puntos débiles
 - Un hexágono **regular y grande** indica alta calidad
@@ -870,25 +872,26 @@ Los SVG de la biblioteca pueden:
 
 ## Consejos y Buenas Prácticas
 
-### 1. Configuración Inicial
+### 1. Configuración de tu espacio
 
-- **Define tu prompt general** antes de generar pictogramas
-- **Mantén consistencia** en el estilo durante un proyecto
+- **Nombra y ubica tu espacio** 
+- **Define tu prompt general** o verifica que el predeterminado adecuado para tus propósitos
+- **Mantén consistencia** en el estilo durante un proyecto intentando no cambiar el *prompt general* una vez que ya está generando pictogramas
 - **Documenta tu configuración** (export/import para diferentes espacios)
 
 ### 2. Escritura de Utterances
 
 **Buenas prácticas:**
-- ✅ Frases simples y directas: "Quiero agua"
-- ✅ Verbos en infinitivo o primera persona: "Comer", "Estoy feliz"
-- ✅ Conceptos concretos mejor que abstractos
-- ✅ Una idea por frase
+-  Frases simples y directas: "Quiero agua"
+-  Verbos en infinitivo o primera persona: "Comer", "Estoy feliz"
+-  Conceptos concretos mejor que abstractos
+-  Una idea por frase
 
 **Evitar:**
-- ❌ Frases complejas con múltiples cláusulas
-- ❌ Ironía o sarcasmo
-- ❌ Referencias muy específicas a cultura pop
-- ❌ Ambigüedades sin contexto
+- Frases complejas con múltiples cláusulas
+- Ironía o sarcasmo
+- Referencias muy específicas a cultura pop
+- Ambigüedades sin contexto
 
 ### 3. Iteración Eficiente
 
@@ -981,6 +984,10 @@ Los SVG de la biblioteca pueden:
 - Los cambios se guardan automáticamente
 - Exporta versiones estables antes de experimentos radicales
 
+### 11. Colabora
+
+**Si quieres colaborar con esta investigación, por favor [envíame](mailto:hspencer@ead.cl) tu biblioteca. También podemos compartirla dentro de las bibliotecas de ejemplo en la portada.**
+
 ## Resumen del Flujo de Trabajo Completo
 
 ```
@@ -1015,35 +1022,10 @@ Los SVG de la biblioteca pueden:
    └─ Refinar configuración basado en resultados
 ```
 
-## Recursos Adicionales
-
-### Documentación Técnica
-
-- **Esquema mf-svg-schema**: Formato de SVG estructurados
-- **ICAP Protocol**: Protocolo de evaluación completo
-- **NSM Theory**: Natural Semantic Metalanguage
-
-### Soporte
-
-- **GitHub**: [github.com/tu-repo/pictos-net](https://github.com)
-- **Issues**: Reporta bugs o solicita features
-
 ### Licencia
 
 PICTOS.NET es software de código abierto bajo licencia MIT.
 Los pictogramas generados pueden licenciarse según configuración del espacio (ej: CC BY 4.0).
 
-## Conclusión
-
-PICTOS.NET es una herramienta poderosa para generar pictogramas accesibles basados en análisis semántico profundo. La clave para obtener resultados óptimos es:
-
-1. **Configurar cuidadosamente** tu espacio (especialmente el prompt general)
-2. **Iterar** usando la edición de pasos intermedios
-3. **Evaluar rigurosamente** con ICAP
-4. **Mantener** una biblioteca de alta calidad
-
-Con práctica, podrás generar bibliotecas completas de pictogramas coherentes, accesibles y culturalmente apropiados.
-
-**¡Buena suerte con tu generación de pictogramas!**
 
 _Tutorial creado para PICTOS.NET v1.0.1 - Enero 2025_
