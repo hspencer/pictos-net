@@ -11,9 +11,12 @@
  *          → callStructuringModel (single API call — Claude or Gemini)
  *              inputs: marked image + raw SVG source + VisualDOM + CSS palette
  *              tool: restructure_svg → StructuringMapping
- *          → Phase5_GeometryValidation (local — validate MergedPath.d)
  *          → if recording.enabled: return mapping for Phase5_Review
  *          → assembleFromMapping (local — geometry never leaves browser)
+ *              → resolveMergeGeometry: model proposes merge.sources (path ids)
+ *                only; the exact union is computed here via svgBooleanOps
+ *                (Martinez sweep-line) + applySimplify, never model-authored.
+ *                This is what actually removes VTracer's double-contour noise.
  *          → post-process: deriveChildIds, filterCSS, validateXML
  *
  * NLU context is NOT sent to the model — structuring is a purely visual task.
@@ -26,6 +29,8 @@ import { SVG_STYLESHEET } from './svgStyles';
 import { generateCssString } from '../lib/style-editor/lib/utils/cssGenerator';
 import { callStructuringModel, extractToolUse } from './aiClient';
 import type { ClaudeResponse } from './aiClient';
+import { applyBooleanN, applySimplify } from './svgBooleanOps';
+import { findUnreachableNodeIds } from './svgTreeUtils';
 
 const MARK_RENDER_SIZE = 800;
 
@@ -47,6 +52,12 @@ export interface SVGStructureInput {
     utterance: string;
     config: GlobalConfig;
     phase5Model?: string;
+    /**
+     * Source bitmap (data URL) used as the visual reference for the redraw path.
+     * Preferred over a raster of the noisy trace. Optional — falls back to a
+     * clean raster of rawSvg when absent.
+     */
+    referenceImage?: string;
     onProgress?: (msg: string) => void;
     onStatus?: (status: string) => void;
 }
@@ -444,16 +455,15 @@ function buildRestructureToolSchema(nodeList: NodeInfo[]) {
                                 description: 'Path IDs (by mark number or id) to include verbatim from the SVG.',
                             },
                             merge: {
-                                description: 'Optional: propose a union merge of overlapping paths. Combine their d attributes with a space separator.',
+                                description: 'Optional: identify 2+ path ids that are duplicate/overlapping traces of the SAME visual line or shape (e.g. the inner and outer edge of a stroked line traced as two near-concentric closed contours). The system computes the exact geometric union locally — list only the source ids, never author path data yourself.',
                                 oneOf: [
                                     { type: 'null' },
                                     {
                                         type: 'object',
                                         properties: {
-                                            d: { type: 'string', description: 'Combined SVG path data.' },
-                                            sources: { type: 'array', items: { type: 'string' }, description: 'Source path ids merged.' },
+                                            sources: { type: 'array', items: { type: 'string' }, minItems: 2, description: 'Path ids (2 or more) whose union forms one clean shape.' },
                                         },
-                                        required: ['d', 'sources'],
+                                        required: ['sources'],
                                     },
                                 ],
                             },
@@ -474,27 +484,43 @@ function buildRestructureToolSchema(nodeList: NodeInfo[]) {
 
 // ─── System Prompt ───────────────────────────────────────────────────────────
 
-function buildSystemPrompt(): string {
-    return `Eres un agente de restructuración semántica de SVG para pictogramas AAC (Comunicación Aumentativa y Alternativa).
-
-Recibes:
-1. Una imagen del SVG con un círculo numerado en rojo sobre el centroide de cada path
+function buildSystemPrompt(hasCleanRef: boolean): string {
+    const imagesSection = hasCleanRef
+        ? `1. IMAGEN A — el bitmap limpio original del pictograma. Es la VERDAD visual: muestra la figura como debe verse, sin ruido.
+2. IMAGEN B — el trazado automático con un círculo numerado en rojo sobre el centroide de cada path. Aporta las COORDENADAS, pero viene sucio: ruido, motas y contornos DOBLES (cada línea trazada como su borde interno + externo).
+3. El código fuente SVG en bruto (paths con sus IDs)
+4. El DOM semántico objetivo — nodos con id, concepto y etiqueta
+5. La paleta CSS de la librería — clases disponibles para estilizar`
+        : `1. Una imagen del SVG con un círculo numerado en rojo sobre el centroide de cada path
 2. El código fuente SVG en bruto (paths con sus IDs)
 3. El DOM semántico objetivo — nodos con id, concepto y etiqueta
-4. La paleta CSS de la librería — clases disponibles para estilizar
+4. La paleta CSS de la librería — clases disponibles para estilizar`;
 
-Tu tarea:
-- Identifica qué paths numerados corresponden visualmente a cada nodo semántico
-- Descarta SOLO estos casos:
+    const cleanupSection = hasCleanRef
+        ? `Preservación primero (usa la IMAGEN A como referencia de qué es real):
+- CONSERVA todo path que corresponda a una forma real del dibujo. La geometría del trazado suele estar limpia y a color — NO la reinventes ni la recortes de más; tu trabajo es agrupar y clasificar, no rediseñar.
+- Contornos dobles: cuando dos o más paths casi concéntricos tracen la misma línea (borde interno + externo), NO elijas uno y descartes el otro — proponlos como merge con sources=[id1, id2, …]. El sistema calcula la unión geométrica exacta de forma local (nunca escribas tú el atributo d). La unión conserva todo el área cubierta por cualquiera de los contornos, así que es más segura que descartar uno a ciegas.
+- DESCARTA solo lo que claramente NO existe en el bitmap: motas, fragmentos sueltos, bordes irregulares sin relación con ninguna forma real.
+- Regla de oro: preservar la figura reconocible es la prioridad. Ante la duda, CONSERVA (o fusiona). Perder un elemento visible (una mano, el inodoro, el globo de habla) es un error grave; dejar una mota menor es tolerable.`
+        : `Descarta SOLO estos casos:
   · Micro-blobs: paths con área visualmente insignificante (punto sin significado funcional)
   · Duplicados exactos: paths con geometría d= idéntica a otro path ya asignado
   · Fondos: rectángulos de relleno que cubren todo el viewBox (ya pre-excluidos en su mayoría)
-- En caso de duda, CONSERVA el path. Eliminar un elemento visualmente presente es un error grave; incluir un artefacto menor es tolerable.
+- En caso de duda, CONSERVA el path. Eliminar un elemento visualmente presente es un error grave; incluir un artefacto menor es tolerable.`;
+
+    return `Eres un agente de restructuración semántica de SVG para pictogramas AAC (Comunicación Aumentativa y Alternativa).
+
+Recibes:
+${imagesSection}
+
+Tu tarea:
+- Identifica qué paths numerados corresponden visualmente a cada nodo semántico
+- ${cleanupSection}
 - Asigna clases CSS de la paleta (nunca uses colores inline)
-- Opcionalmente propón una fusión de paths: si múltiples paths claramente forman la misma región visual, puedes combinar sus atributos d con un separador de espacio (unión SVG de sub-paths). Sé conservador con las fusiones.
+- Opcionalmente propón una fusión de paths: si múltiples paths claramente forman la misma región visual (p. ej. contorno doble), lista sus ids en merge.sources — el sistema calcula la geometría fusionada exacta, tú nunca escribes el atributo d.
 
 Reglas:
-1. Trabaja desde la evidencia visual de la imagen — no asumas contenido semántico a partir de los nombres de nodos
+1. Trabaja desde la evidencia visual de las imágenes — no asumas contenido semántico a partir de los nombres de nodos
 2. Cada path que no sea fondo debe aparecer en exactamente un keep de grupo, o en discard
 3. Usa solo los valores de cssClass listados en la paleta
 4. "k" = agente/actor (personaje principal), "f" = objeto o acción, "accent" = acento de color
@@ -503,7 +529,7 @@ Reglas:
 
 // ─── User Prompt ─────────────────────────────────────────────────────────────
 
-function buildUserText(rawSvg: string, nodeList: NodeInfo[], cssStyles: string, inventory: PathInventory): string {
+function buildUserText(rawSvg: string, nodeList: NodeInfo[], cssStyles: string, inventory: PathInventory, hasCleanRef: boolean): string {
     const domSection = nodeList
         .map(n => `- ${n.id} [${n.concept}] "${n.label}"${n.parentId ? ` (hijo de ${n.parentId})` : ''}`)
         .join('\n');
@@ -518,7 +544,11 @@ function buildUserText(rawSvg: string, nodeList: NodeInfo[], cssStyles: string, 
         ? rawSvg.slice(0, 10000) + '\n<!-- … SVG truncado —>'
         : rawSvg;
 
-    return `Analiza esta imagen SVG numerada y restructúrala semánticamente.
+    const intro = hasCleanRef
+        ? `Tienes dos imágenes: IMAGEN A (bitmap limpio original = verdad visual) e IMAGEN B (trazado numerado, con coordenadas pero sucio). Usa A para decidir qué es real y B para las coordenadas. Restructura semánticamente y descarta ruido y contornos duplicados.`
+        : `Analiza esta imagen SVG numerada y restructúrala semánticamente.`;
+
+    return `${intro}
 
 DOM semántico objetivo:
 ${domSection}
@@ -537,6 +567,7 @@ ${svgSource}`;
 
 async function callVisionStructuring(
     image: { base64: string; widthPx: number; heightPx: number; sizeKB: number },
+    referenceImage: string | undefined,
     rawSvg: string,
     elements: VisualElement[],
     cssStyles: string,
@@ -546,8 +577,9 @@ async function callVisionStructuring(
 ): Promise<StructuringMapping> {
     const nodeList = flattenElements(elements);
     const tool = buildRestructureToolSchema(nodeList);
-    const systemPrompt = buildSystemPrompt();
-    const userText = buildUserText(rawSvg, nodeList, cssStyles, inventory);
+    const cleanRef = referenceImage ? parseDataUrl(referenceImage) : null;
+    const systemPrompt = buildSystemPrompt(!!cleanRef);
+    const userText = buildUserText(rawSvg, nodeList, cssStyles, inventory, !!cleanRef);
 
     // ── Console: Phase5_Console event 1 — full prompt
     if (onProgress) {
@@ -555,9 +587,10 @@ async function callVisionStructuring(
         onProgress(`[ESTRUCTURAR] Prompt de usuario (${userText.length} chars):\n${userText.slice(0, 800)}${userText.length > 800 ? '…' : ''}`);
     }
 
-    // ── Console: Phase5_Console event 2 — image attached
+    // ── Console: Phase5_Console event 2 — image(s) attached
     if (onProgress) {
-        onProgress(`[ESTRUCTURAR] imagen adjunta: ${image.widthPx}×${image.heightPx}px JPEG, ${image.sizeKB} KB`);
+        onProgress(`[ESTRUCTURAR] trazado numerado: ${image.widthPx}×${image.heightPx}px JPEG, ${image.sizeKB} KB`);
+        if (cleanRef) onProgress(`[ESTRUCTURAR] + bitmap de referencia (${cleanRef.mediaType}) para limpieza`);
     }
 
     // ── Console: Phase5_Console event 3 — calling model
@@ -567,22 +600,21 @@ async function callVisionStructuring(
 
     const startMs = Date.now();
 
+    // Image order matches the prompt: [clean bitmap], numbered trace.
+    const content: Array<Record<string, unknown>> = [];
+    if (cleanRef) {
+        content.push({ type: 'image', source: { type: 'base64', media_type: cleanRef.mediaType, data: cleanRef.base64 } });
+    }
+    content.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: image.base64 } });
+    content.push({ type: 'text', text: userText });
+
     const response: ClaudeResponse = await callStructuringModel({
         model,
         max_tokens: 8192,
         system: systemPrompt,
         tools: [tool],
         tool_choice: { type: 'tool', name: 'restructure_svg' },
-        messages: [{
-            role: 'user',
-            content: [
-                {
-                    type: 'image',
-                    source: { type: 'base64', media_type: 'image/jpeg', data: image.base64 },
-                },
-                { type: 'text', text: userText },
-            ],
-        }],
+        messages: [{ role: 'user', content }],
     });
 
     const elapsedMs = Date.now() - startMs;
@@ -639,28 +671,6 @@ function validateMergedPath(d: string): boolean {
     }
 }
 
-function applyGeometryValidation(
-    mapping: StructuringMapping,
-    onProgress?: (msg: string) => void,
-): StructuringMapping {
-    const groups = mapping.groups.map(g => {
-        if (!g.merge) return g;
-        const { d, sources } = g.merge;
-        const valid = validateMergedPath(d);
-        // ── Console: Phase5_Console event 8
-        if (onProgress) {
-            onProgress(`[ESTRUCTURAR] merge ${g.nodeId}: ${sources.join('+')} → "${d.slice(0, 80)}${d.length > 80 ? '…' : ''}" [${valid ? 'OK' : 'INVÁLIDO'}]`);
-        }
-        if (!valid) {
-            // ── Console: Phase5_Console event 9 — Fallback B
-            onProgress?.(`[ESTRUCTURAR] fallback B — ${g.nodeId}: merge inválido, usando paths originales (${sources.join(', ')})`);
-            return { ...g, keep: [...(g.keep ?? []), ...sources], merge: null };
-        }
-        return g;
-    });
-    return { ...mapping, groups };
-}
-
 // ─── Assembly ─────────────────────────────────────────────────────────────────
 
 interface OriginalPathData {
@@ -715,8 +725,8 @@ function renderGroup(
     const lines: string[] = [];
     lines.push(`${indent}<g id="${group.nodeId}" role="group" tabindex="0" data-concept="${concept}" aria-label="${label}" class="${cls}">`);
 
-    // Merged path (validated before reaching here)
-    if (group.merge) {
+    // Merged path — geometry resolved by resolveMergeGeometry() before render.
+    if (group.merge?.d) {
         lines.push(`${indent}  <path d="${escapeXmlAttr(group.merge.d)}" />`);
     } else {
         for (const pathId of (group.keep ?? [])) {
@@ -739,6 +749,68 @@ function renderGroup(
     return lines.join('\n');
 }
 
+/**
+ * Compute the real geometric union for each group's proposed merge — this is
+ * what actually eliminates VTracer's double-contour artifacts (an inner +
+ * outer trace of the same stroked line). The model only lists source path
+ * ids; coordinates are never model-authored.
+ *
+ * Steps per group: bake each source path's local d + transform into absolute
+ * root-space coordinates (offsetPathD), union them pairwise (Martinez
+ * sweep-line, exact — handles disjoint/contained/overlapping), then
+ * applySimplify to refit the polyline union back to smooth Bezier curves
+ * (VTracer output is already polyline-based, so nothing is lost).
+ *
+ * On any failure (missing path, degenerate union, invalid result) the group
+ * falls back to keeping the sources as separate paths — never a broken merge.
+ */
+function resolveMergeGeometry(
+    groups: StructuringGroup[],
+    originalPaths: Map<string, OriginalPathData>,
+    onProgress?: (msg: string) => void,
+): StructuringGroup[] {
+    return groups.map(g => {
+        const sources = g.merge?.sources ?? [];
+        if (sources.length < 2) {
+            if (g.merge) return { ...g, keep: [...(g.keep ?? []), ...sources], merge: null };
+            return g;
+        }
+
+        const absDs: string[] = [];
+        for (const id of sources) {
+            const p = originalPaths.get(id);
+            if (!p) { console.warn(`[assemble] merge: path no encontrado: ${id}`); continue; }
+            const [tx, ty] = getTranslateOffset(p.transform || null);
+            absDs.push(tx || ty ? offsetPathD(p.d, tx, ty) : p.d);
+        }
+
+        const fallback = () => ({ ...g, keep: [...(g.keep ?? []), ...sources], merge: null });
+        if (absDs.length < 2) return fallback();
+
+        let unioned: string | null = null;
+        try {
+            unioned = applyBooleanN('union', absDs);
+        } catch (err) {
+            console.warn(`[assemble] merge ${g.nodeId}: unión falló`, err);
+        }
+        if (!unioned) {
+            onProgress?.(`[ESTRUCTURAR] merge ${g.nodeId}: unión geométrica falló — usando paths originales (${sources.join(', ')})`);
+            return fallback();
+        }
+
+        // Refit the polyline union to smooth curves — cleans jagged VTracer
+        // micro-segments (the "cuadraditos" noise) at the geometry level.
+        const smoothed = applySimplify(unioned, 0.5) ?? unioned;
+        if (!validateMergedPath(smoothed)) {
+            onProgress?.(`[ESTRUCTURAR] merge ${g.nodeId}: resultado inválido — usando paths originales (${sources.join(', ')})`);
+            return fallback();
+        }
+
+        onProgress?.(`[ESTRUCTURAR] merge ${g.nodeId}: unión de [${sources.join(', ')}] calculada (${smoothed.length} chars)`);
+        return { ...g, merge: { d: smoothed, sources } };
+    });
+}
+
 export function assembleFromMapping(
     mapping: StructuringMapping,
     input: SVGStructureInput,
@@ -752,11 +824,15 @@ export function assembleFromMapping(
         const pathInfoMap = new Map<string, PathInfo>(inventory.paths.map(p => [p.id, p]));
 
         // Apply selection and label overrides (from Phase5_Review)
-        const effectiveGroups = mapping.groups.map(g => ({
+        let effectiveGroups = mapping.groups.map(g => ({
             ...g,
             selected: selectionOverrides?.has(g.nodeId) ? selectionOverrides.get(g.nodeId)! : g.selected,
             label: labelOverrides?.get(g.nodeId) ?? g.label,
         })).filter(g => g.selected !== false);
+
+        // Compute real geometric unions for proposed merges (double-contour
+        // cleanup) — the model only proposed source ids, never path data.
+        effectiveGroups = resolveMergeGeometry(effectiveGroups, originalPaths, input.onProgress);
 
         // Build parent → children map
         const childMap = new Map<string | null, StructuringGroup[]>();
@@ -764,6 +840,33 @@ export function assembleFromMapping(
             const parentId = g.parentId ?? null;
             if (!childMap.has(parentId)) childMap.set(parentId, []);
             childMap.get(parentId)!.push(g);
+        }
+
+        // Rescue orphaned subtrees: rendering only walks what's reachable from
+        // top-level via childMap. A dangling parentId (pointing to a nodeId
+        // the model never emitted, discarded, or that is itself unreachable)
+        // would otherwise silently drop a WHOLE semantic element from the
+        // output — visible content (e.g. "cabeza" + its child "dolor")
+        // vanishing together with no error, even though their group entries
+        // and paths are present. Reparent anything unreachable to top-level
+        // so it always renders instead of disappearing.
+        const unreachable = findUnreachableNodeIds(effectiveGroups.map(g => ({ nodeId: g.nodeId, parentId: g.parentId ?? null })));
+        if (unreachable.size > 0) {
+            const ids = Array.from(unreachable);
+            console.warn(`[assemble] grupo(s) huérfano(s) reparentado(s) a top-level: ${ids.join(', ')}`);
+            input.onProgress?.(`[ESTRUCTURAR] ${ids.length} grupo(s) huérfano(s) reparentado(s) a top-level (${ids.join(', ')})`);
+            for (const g of effectiveGroups) {
+                if (!unreachable.has(g.nodeId)) continue;
+                const oldParent = g.parentId ?? null;
+                const bucket = childMap.get(oldParent);
+                if (bucket) {
+                    const idx = bucket.indexOf(g);
+                    if (idx !== -1) bucket.splice(idx, 1);
+                }
+                g.parentId = null;
+                if (!childMap.has(null)) childMap.set(null, []);
+                childMap.get(null)!.push(g);
+            }
         }
 
         // Track all assigned path ids
@@ -973,6 +1076,293 @@ ${filteredCSS}
 </svg>`;
 }
 
+// ─── ESTRUCTURAR (redraw): clean SVG authored from the reference image ────────
+// Instead of relabeling noisy VTracer geometry, the vision model REDRAWS the
+// pictogram as clean, single-stroke, semantically-grouped SVG. Trades faithful
+// geometry for a clean icon — the "estructurar redibuja / limpieza" decision.
+
+const REDRAW_VIEWBOX = '0 0 1024 1024';
+
+interface RedrawGroup {
+    nodeId: string;
+    label: string;
+    cssClass: string;
+    parentId: string | null;
+    paths: string[];
+}
+
+/** Class names available in the palette (for enum validation + fallback). */
+function extractPaletteClassNames(cssString: string): string[] {
+    const names: string[] = [];
+    const ruleRe = /\.([a-zA-Z][\w-]*)\s*\{/g;
+    let m: RegExpExecArray | null;
+    while ((m = ruleRe.exec(cssString)) !== null) {
+        if (!names.includes(m[1])) names.push(m[1]);
+        if (names.length >= 40) break;
+    }
+    return names;
+}
+
+/** Parse a data URL (data:image/png;base64,…) → { base64, mediaType }. */
+function parseDataUrl(dataUrl: string): { base64: string; mediaType: string } | null {
+    const m = dataUrl.match(/^data:([^;]+);base64,([\s\S]+)$/);
+    if (!m) return null;
+    return { mediaType: m[1], base64: m[2] };
+}
+
+/** Clean raster of the SVG (no set-of-marks) — visual-reference fallback. */
+async function rasterizeClean(svgString: string, viewBox: string): Promise<{ base64: string; mediaType: string }> {
+    const stubInventory = { viewBox, paths: [] } as unknown as PathInventory;
+    const img = await rasterizeWithMarks(svgString, stubInventory);
+    return { base64: img.base64, mediaType: 'image/jpeg' };
+}
+
+function buildRedrawToolSchema(nodeList: NodeInfo[], paletteClasses: string[]) {
+    const nodeIds = nodeList.map(n => n.id);
+    const cssClassSchema = paletteClasses.length
+        ? { type: 'string', enum: paletteClasses, description: 'CSS class from the palette.' }
+        : { type: 'string', description: 'CSS class (e.g. "k" agent, "f" object/action, "accent").' };
+    return {
+        name: 'redraw_svg',
+        description: 'Redraw the pictogram as a clean SVG from the reference image: single-stroke paths, no double contours, no tracing noise, grouped by semantic node.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                description: { type: 'string', description: 'Brief visual description of the pictogram (1–2 sentences).' },
+                groups: {
+                    type: 'array',
+                    description: 'One entry per visible semantic node. Flat list — use parentId for hierarchy.',
+                    items: {
+                        type: 'object',
+                        properties: {
+                            nodeId: { type: 'string', enum: nodeIds, description: 'VisualDOM node id this group represents.' },
+                            label: { type: 'string', description: 'Human-readable label.' },
+                            cssClass: cssClassSchema,
+                            parentId: { type: 'string', description: 'Parent nodeId, or null for top-level.', nullable: true },
+                            paths: {
+                                type: 'array',
+                                items: { type: 'string' },
+                                description: 'Clean SVG path "d" strings for this node. Single strokes — never trace both edges of a line.',
+                            },
+                        },
+                        required: ['nodeId', 'label', 'cssClass', 'paths'],
+                    },
+                },
+            },
+            required: ['description', 'groups'],
+        },
+    };
+}
+
+function buildRedrawSystemPrompt(): string {
+    return `Eres un ilustrador de pictogramas AAC (Comunicación Aumentativa y Alternativa). Tu trabajo es REDIBUJAR, no calcar.
+
+Recibes:
+1. Una imagen de referencia del pictograma. Puede venir de un trazado automático sucio: líneas dobles, contornos huecos y fragmentos de ruido.
+2. El DOM semántico objetivo — nodos con id, concepto y etiqueta.
+3. La paleta CSS de la librería.
+
+Tu tarea: producir un SVG NUEVO y LIMPIO que represente el mismo pictograma.
+
+Reglas de dibujo (críticas):
+- Traza CADA forma con un único contorno. NUNCA dibujes el doble borde de una línea (interno + externo). Si en la referencia una línea se ve doble o hueca, dibújala como UN solo trazo.
+- Elimina todo el ruido: fragmentos, motas, cuadraditos y bordes irregulares no existen en el dibujo limpio.
+- Simplifica a la silueta esencial reconocible, con formas suaves y continuas (usa curvas C/Q cuando corresponda).
+- Dibuja dentro del viewBox ${REDRAW_VIEWBOX}. Centra la figura y ocupa la mayor parte del lienzo.
+- Agrupa los trazos por nodo semántico: cada parte visible (agente, acción, objeto, contexto) va en su nodo.
+- Asigna a cada grupo una clase CSS de la paleta. Nunca uses colores inline ni atributos de estilo en los paths.
+- Devuelve solo atributos "d" válidos (empiezan con M/m), con coordenadas dentro de 0–1024.`;
+}
+
+function buildRedrawUserText(nodeList: NodeInfo[], cssStyles: string, nlu: NLUData, utterance: string): string {
+    const domSection = nodeList
+        .map(n => `- ${n.id} [${n.concept}] "${n.label}"${n.parentId ? ` (hijo de ${n.parentId})` : ''}`)
+        .join('\n');
+    const paletteSection = extractPaletteClasses(cssStyles);
+    const vg = nlu.visual_guidelines;
+    const intent = [
+        vg?.focus_actor && `actor: ${vg.focus_actor}`,
+        vg?.action_core && `acción: ${vg.action_core}`,
+        vg?.object_core && `objeto: ${vg.object_core}`,
+        vg?.context && `contexto: ${vg.context}`,
+    ].filter(Boolean).join('; ');
+
+    return `Redibuja este pictograma en limpio.
+
+Frase: "${utterance}"${intent ? `\nIntención visual: ${intent}` : ''}
+
+DOM semántico objetivo (un grupo por nodo visible):
+${domSection}
+
+Paleta CSS disponible:
+${paletteSection}
+
+viewBox de salida: ${REDRAW_VIEWBOX}
+
+Mira la imagen de referencia y dibuja los trazos limpios de cada nodo.`;
+}
+
+async function callRedrawModel(
+    image: { base64: string; mediaType: string },
+    elements: VisualElement[],
+    cssStyles: string,
+    nlu: NLUData,
+    utterance: string,
+    model: string,
+    onProgress?: (msg: string) => void,
+): Promise<{ description: string; groups: RedrawGroup[] }> {
+    const nodeList = flattenElements(elements);
+    const paletteClasses = extractPaletteClassNames(cssStyles);
+    const tool = buildRedrawToolSchema(nodeList, paletteClasses);
+    const systemPrompt = buildRedrawSystemPrompt();
+    const userText = buildRedrawUserText(nodeList, cssStyles, nlu, utterance);
+
+    if (onProgress) {
+        onProgress(`[ESTRUCTURAR] Modo redibujo — el modelo genera SVG limpio desde la imagen`);
+        onProgress(`[ESTRUCTURAR] imagen de referencia: ${image.mediaType}, ~${Math.round(image.base64.length * 3 / 4 / 1024)} KB`);
+        onProgress(`[ESTRUCTURAR] llamando ${model}…`);
+    }
+
+    const startMs = Date.now();
+    const response: ClaudeResponse = await callStructuringModel({
+        // Redraw authors geometry → needs headroom so the tool call isn't cut
+        // off mid-output (truncation surfaces as a 500 from the proxy).
+        model,
+        max_tokens: 32768,
+        system: systemPrompt,
+        tools: [tool],
+        tool_choice: { type: 'tool', name: 'redraw_svg' },
+        messages: [{
+            role: 'user',
+            content: [
+                { type: 'image', source: { type: 'base64', media_type: image.mediaType, data: image.base64 } },
+                { type: 'text', text: userText },
+            ],
+        }],
+    });
+    const elapsedMs = Date.now() - startMs;
+
+    const result = extractToolUse(response, 'redraw_svg') as { description?: string; groups?: Array<Record<string, unknown>> };
+
+    if (onProgress) {
+        onProgress(`[ESTRUCTURAR] respuesta en ${(elapsedMs / 1000).toFixed(1)}s`);
+        if (response.usage) onProgress(`[ESTRUCTURAR] tokens: entrada=${response.usage.input_tokens}, salida=${response.usage.output_tokens}`);
+    }
+
+    const groups: RedrawGroup[] = (result.groups ?? []).map(g => ({
+        nodeId: String(g.nodeId ?? ''),
+        label: String(g.label ?? g.nodeId ?? ''),
+        cssClass: String(g.cssClass ?? 'main'),
+        parentId: (g.parentId as string | null | undefined) ?? null,
+        paths: Array.isArray(g.paths) ? (g.paths as unknown[]).filter((d): d is string => typeof d === 'string') : [],
+    }));
+
+    if (onProgress) {
+        onProgress(`[ESTRUCTURAR] grupos redibujados: ${groups.length}`);
+        for (const g of groups) onProgress(`  ${g.nodeId} (${g.cssClass}): ${g.paths.length} trazo(s)`);
+    }
+
+    return { description: result.description ?? '', groups };
+}
+
+function renderRedrawGroup(
+    group: RedrawGroup,
+    childMap: Map<string | null, RedrawGroup[]>,
+    paletteClasses: string[],
+    indent = '  ',
+): string {
+    const semanticCls = paletteClasses.includes(group.cssClass) ? group.cssClass : (paletteClasses[0] || 'main');
+    const label = escapeXmlAttr(group.label || group.nodeId);
+    const concept = escapeXmlAttr(guessConceptFromId(group.nodeId));
+    const lines: string[] = [];
+    lines.push(`${indent}<g id="${group.nodeId}" role="group" tabindex="0" data-concept="${concept}" aria-label="${label}">`);
+    for (const d of group.paths) {
+        if (!validateMergedPath(d)) continue;
+        lines.push(`${indent}  <path class="${semanticCls}" d="${escapeXmlAttr(d)}" />`);
+    }
+    for (const child of (childMap.get(group.nodeId) ?? [])) {
+        lines.push(renderRedrawGroup(child, childMap, paletteClasses, indent + '  '));
+    }
+    lines.push(`${indent}</g>`);
+    return lines.join('\n');
+}
+
+/**
+ * ESTRUCTURAR via redraw: the vision model authors a clean SVG from the
+ * reference image (single strokes, no noise), which we assemble locally into
+ * mf-svg-schema. Unlike assembleFromMapping, geometry here is model-authored.
+ *
+ * RETIRED as default — high variance: fine on trivial shapes, but it destroyed
+ * clean multi-element pictograms (authoring geometry blind). The active path is
+ * the two-image relabel, which preserves the traced geometry. Kept for
+ * experimentation; runs via the background worker (no 90s timeout) when used.
+ */
+export async function redrawSVG(input: SVGStructureInput): Promise<SVGStructureResult> {
+    try {
+        const model = input.phase5Model ?? 'claude-sonnet-4-6';
+
+        // Reference image: prefer the source bitmap (cleaner intent) over a
+        // raster of the noisy trace.
+        input.onProgress?.('[ESTRUCTURAR] Preparando imagen de referencia…');
+        let image: { base64: string; mediaType: string } | null =
+            input.referenceImage ? parseDataUrl(input.referenceImage) : null;
+        if (!image) {
+            if (!input.rawSvg) {
+                return { svg: '', success: false, error: 'Se requiere una imagen de referencia o un SVG trazado' };
+            }
+            const rawSvgWithIds = ensurePathIds(input.rawSvg);
+            const inventory = buildPathInventory(rawSvgWithIds);
+            image = await rasterizeClean(rawSvgWithIds, inventory.viewBox || REDRAW_VIEWBOX);
+        }
+
+        const cssStyles = generateStylesheet(input.config);
+        const paletteClasses = extractPaletteClassNames(cssStyles);
+
+        const { description, groups } = await callRedrawModel(
+            image, input.elements, cssStyles, input.nlu, input.utterance, model, input.onProgress,
+        );
+
+        const validGroups = groups.filter(g => g.paths.some(d => validateMergedPath(d)));
+        if (validGroups.length === 0) {
+            return { svg: '', success: false, error: 'El modelo no devolvió trazos válidos' };
+        }
+
+        // parent → children
+        const childMap = new Map<string | null, RedrawGroup[]>();
+        for (const g of validGroups) {
+            const pid = g.parentId ?? null;
+            if (!childMap.has(pid)) childMap.set(pid, []);
+            childMap.get(pid)!.push(g);
+        }
+        const topLevel = childMap.get(null) ?? validGroups;
+        const body = `<desc>${escapeXmlAttr(description || input.utterance)}</desc>\n` +
+            topLevel.map(g => renderRedrawGroup(g, childMap, paletteClasses)).join('\n');
+
+        const usedClasses = new Set<string>();
+        validGroups.forEach(g => { if (paletteClasses.includes(g.cssClass)) usedClasses.add(g.cssClass); });
+        const filteredCSS = buildFilteredCSS(cssStyles, usedClasses);
+
+        const metadata = buildMetadataJSON(input);
+        let svgContent = assembleStructuredSVG(body, input, metadata, filteredCSS, REDRAW_VIEWBOX);
+        svgContent = removeEmptyGroupsFromFragment(svgContent);
+
+        const validation = validateXML(svgContent);
+        if (validation) {
+            input.onProgress?.(`[ESTRUCTURAR] advertencia XML: ${validation.slice(0, 120)}`);
+        } else {
+            svgContent = deriveChildIds(svgContent);
+        }
+
+        const pathCount = (svgContent.match(/<path /g) ?? []).length;
+        const groupCount = (svgContent.match(/<g /g) ?? []).length;
+        input.onProgress?.(`[ESTRUCTURAR] redibujo completado — ${(svgContent.length / 1024).toFixed(1)} KB, ${groupCount} grupos, ${pathCount} trazos limpios`);
+
+        return { svg: svgContent, success: true };
+    } catch (error) {
+        return { svg: '', success: false, error: error instanceof Error ? error.message : 'Error desconocido en ESTRUCTURAR (redibujo)' };
+    }
+}
+
 // ─── Main structuring function ────────────────────────────────────────────────
 
 export async function structureSVG(input: SVGStructureInput): Promise<SVGStructureResult> {
@@ -981,6 +1371,10 @@ export async function structureSVG(input: SVGStructureInput): Promise<SVGStructu
             return { svg: '', success: false, error: 'rawSvg no es un string válido' };
         }
 
+        // Default = two-image relabel: PRESERVE the traced geometry (which is
+        // often already clean and coloured) and only add semantic groups +
+        // discard genuine noise, guided by the bitmap. Redraw-from-scratch is
+        // retired as default — it destroyed clean pictograms (see redrawSVG).
         const model = input.phase5Model ?? 'claude-sonnet-4-6';
 
         input.onProgress?.('[ESTRUCTURAR] Pre-procesando SVG local…');
@@ -998,8 +1392,13 @@ export async function structureSVG(input: SVGStructureInput): Promise<SVGStructu
 
         const cssStyles = generateStylesheet(input.config);
 
+        // Two-image relabel: the numbered trace supplies coordinates, and the
+        // source bitmap (when present) shows the clean intent so the model can
+        // confidently discard noise and redundant double-contours. Output stays
+        // small (path ids) — fast and no output-token-cap 500s (unlike redraw).
         let mapping = await callVisionStructuring(
             image,
+            input.referenceImage,
             rawSvgWithIds,
             input.elements,
             cssStyles,
@@ -1008,8 +1407,9 @@ export async function structureSVG(input: SVGStructureInput): Promise<SVGStructu
             input.onProgress,
         );
 
-        // Phase5_GeometryValidation
-        mapping = applyGeometryValidation(mapping, input.onProgress);
+        // Merge geometry (the real double-contour union) is resolved later,
+        // in assembleFromMapping — the model has proposed only merge.sources
+        // (path ids) at this point, no path data to validate yet.
 
         // Recording mode → return mapping for review timer
         if (input.config.recording?.enabled) {
@@ -1037,10 +1437,13 @@ export function canVectorize(_row: object): { eligible: boolean; reason?: string
 
 export function canStructureSVG(row: {
     rawSvg?: string;
+    bitmap?: string;
     NLU?: NLUData | string;
     elements?: VisualElement[];
 }): { eligible: boolean; reason?: string } {
-    if (!row.rawSvg) return { eligible: false, reason: 'Se requiere SVG de Recraft (ejecutar PRODUCIR primero)' };
+    // Relabel preserves and groups the traced geometry, so the trace is
+    // required; the bitmap is an optional cleanup reference.
+    if (!row.rawSvg) return { eligible: false, reason: 'Se requiere el trazado (ejecutar TRAZAR primero)' };
     if (!row.NLU || typeof row.NLU === 'string') return { eligible: false, reason: 'Se requiere análisis NLU' };
     if (!row.elements || row.elements.length === 0) return { eligible: false, reason: 'Se requieren elementos visuales' };
     return { eligible: true };

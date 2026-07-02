@@ -73,7 +73,9 @@ export const PHASE5_MODELS: { id: Phase5StructuringModel; label: string }[] = [
 export const DEFAULT_PHASE5_MODEL: Phase5StructuringModel = 'gemini-2.5-flash';
 
 export interface MergedPath {
-  d: string;         // combined SVG path data (space-joined subpaths)
+  // Computed locally (exact geometric union via svgBooleanOps) — the model
+  // only proposes `sources`; it never authors path data itself.
+  d?: string;
   sources: string[]; // original path ids that were merged
 }
 
@@ -250,7 +252,7 @@ export function getModelFamily(model: GenerationModel): ModelFamily {
   return model === 'recraftv4_1_vector' ? 'vector' : 'bitmap';
 }
 
-export const DEFAULT_GENERATION_MODEL: GenerationModel = 'recraftv4_1_vector';
+export const DEFAULT_GENERATION_MODEL: GenerationModel = 'gemini-3.1-flash-image';
 
 /** Human-readable labels for GenerationModel values (used by GenerationModelSelector). */
 export const GENERATION_MODEL_LABELS: Record<GenerationModel, string> = {
@@ -274,7 +276,12 @@ export const GENERATION_MODEL_LABELS: Record<GenerationModel, string> = {
  * gemini-3-pro-image es baja y puede devolver 429 RESOURCE_EXHAUSTED de forma
  * intermitente; el cliente debe degradar con un mensaje claro en ese caso.
  */
-export const INOPERATIVE_GENERATION_MODELS: Partial<Record<GenerationModel, string>> = {};
+export const INOPERATIVE_GENERATION_MODELS: Partial<Record<GenerationModel, string>> = {
+  // Low daily quota → 429 RESOURCE_EXHAUSTED intermittently. Disabled in the
+  // selector; stored configs are migrated to gemini-3.1-flash-image. Remove this
+  // entry (and the remap in migrateGenerationModel) when the quota recovers.
+  'gemini-3-pro-image': 'cuota diaria agotada',
+};
 
 /** Migrates a legacy imageModel string to the canonical GenerationModel value. */
 export function migrateImageModel(imageModel: string | undefined): GenerationModel {
@@ -294,7 +301,10 @@ const VALID_GENERATION_MODELS: readonly GenerationModel[] = [
 export function migrateGenerationModel(model: string | undefined): GenerationModel {
   if (!model) return DEFAULT_GENERATION_MODEL;
   if (model === 'gemini-3.1-flash-image-preview') return 'gemini-3.1-flash-image';
-  if (model === 'gemini-3-pro-image-preview') return 'gemini-3-pro-image';
+  // gemini-3-pro-image has a low daily quota and 429s (RESOURCE_EXHAUSTED)
+  // intermittently, so stored configs are moved onto 3.1 Flash. Revert this
+  // (and the INOPERATIVE_GENERATION_MODELS entry) when 3 Pro quota recovers.
+  if (model === 'gemini-3-pro-image' || model === 'gemini-3-pro-image-preview') return 'gemini-3.1-flash-image';
   if ((VALID_GENERATION_MODELS as readonly string[]).includes(model)) return model as GenerationModel;
   return DEFAULT_GENERATION_MODEL;
 }

@@ -13,6 +13,7 @@
 import { logCall } from './_shared/usage.js';
 import { connectBlobs } from './_shared/blobs.js';
 import { getVertexAccessToken, vertexModelUrl } from './_shared/vertex.js';
+import { buildGeminiRequest, geminiResponseToClaude } from './_shared/geminiTranslate.js';
 
 const ALLOWED_MODELS = [
   'gemini-2.5-pro',
@@ -32,39 +33,6 @@ function corsHeaders(origin) {
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Content-Type': 'application/json',
-  };
-}
-
-/**
- * Translate a Claude-style content block array to Gemini parts array.
- * Handles: { type: 'text', text } and { type: 'image', source: { type: 'base64', media_type, data } }
- */
-function claudeContentToGeminiParts(content) {
-  if (typeof content === 'string') return [{ text: content }];
-  return content.map(block => {
-    if (block.type === 'text') return { text: block.text };
-    if (block.type === 'image' && block.source?.type === 'base64') {
-      return {
-        inlineData: {
-          mimeType: block.source.media_type,
-          data: block.source.data,
-        },
-      };
-    }
-    console.warn('[api-gemini-structure] Unknown content block type:', block.type);
-    return { text: '' };
-  });
-}
-
-/**
- * Translate Claude tool schema (input_schema) to Gemini function declaration (parameters).
- * Gemini uses the same JSON Schema subset, so this is mostly a rename.
- */
-function claudeToolToGeminiFunctionDeclaration(tool) {
-  return {
-    name: tool.name,
-    description: tool.description ?? '',
-    parameters: tool.input_schema ?? {},
   };
 }
 
@@ -104,46 +72,10 @@ async function handleRequest(event, context) {
   // Phase 5 Gemini calls are free-tier (0 units)
   console.log(`[api-gemini-structure] user=${email} model=${model}`);
 
-  // ── Translate to Gemini format ─────────────────────────────────────────────
-
-  // messages[0] is the user turn
-  const userContent = messages[0]?.content ?? [];
-  const geminiContents = [{
-    role: 'user',
-    parts: claudeContentToGeminiParts(userContent),
-  }];
-
-  const geminiBody = {
-    contents: geminiContents,
-  };
-
-  // System instruction
-  if (system) {
-    const systemText = typeof system === 'string' ? system : system.map(b => b.text ?? '').join('\n');
-    geminiBody.systemInstruction = { parts: [{ text: systemText }] };
-  }
-
-  // Tools (function declarations)
-  if (tools && tools.length > 0) {
-    geminiBody.tools = [{
-      functionDeclarations: tools.map(claudeToolToGeminiFunctionDeclaration),
-    }];
-  }
-
-  // Tool choice (force function call)
-  if (tool_choice?.name) {
-    geminiBody.toolConfig = {
-      functionCallingConfig: {
-        mode: 'ANY',
-        allowedFunctionNames: [tool_choice.name],
-      },
-    };
-  }
-
-  // Generation config
-  geminiBody.generationConfig = {
-    maxOutputTokens: Math.min(max_tokens || 8192, 8192),
-  };
+  // ── Translate to Gemini format (pure — see _shared/geminiTranslate.js) ─────
+  // Output cap lifted and Gemini "thinking" disabled so geometry-authoring
+  // calls (redraw) don't truncate or blow past the 90s function timeout.
+  const geminiBody = buildGeminiRequest({ model, system, tools, tool_choice, messages, max_tokens });
 
   // ── Call Gemini via Vertex AI (service-account OAuth, no static API key) ──
 
@@ -194,62 +126,29 @@ async function handleRequest(event, context) {
 
   const ms = Date.now() - startMs;
 
-  // ── Translate Gemini response to Claude format ────────────────────────────
+  // ── Translate Gemini response to Claude format (pure — tested) ────────────
+  const parsed = geminiResponseToClaude(geminiData);
+  const usage = parsed.usage ?? {};
 
-  const candidate = geminiData?.candidates?.[0];
-  const parts = candidate?.content?.parts ?? [];
-  const usage = geminiData?.usageMetadata ?? {};
-
-  // Find the function call part
-  const funcCallPart = parts.find(p => p.functionCall);
-
-  if (!funcCallPart?.functionCall) {
-    const textParts = parts.filter(p => p.text).map(p => p.text).join('\n');
-    console.error(`[api-gemini-structure] No function call in response. Parts: ${JSON.stringify(parts).slice(0, 400)}`);
-
+  if (!parsed.ok) {
+    console.error(`[api-gemini-structure] ${parsed.error}`);
     await logCall({
       email, phase: 'gemini-structure', model, units_charged: 0,
-      ms,
-      tokens_in: usage.promptTokenCount ?? 0,
-      tokens_out: usage.candidatesTokenCount ?? 0,
-      ok: false,
-      error_msg: 'No function call in Gemini response',
+      ms, tokens_in: usage.promptTokenCount ?? 0, tokens_out: usage.candidatesTokenCount ?? 0,
+      ok: false, error_msg: parsed.error.slice(0, 200),
     });
-
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({ error: `Gemini did not invoke the tool. Response: ${textParts.slice(0, 200)}` }),
-    };
+    return { statusCode: 500, headers, body: JSON.stringify({ error: parsed.error }) };
   }
 
   await logCall({
     email, phase: 'gemini-structure', model, units_charged: 0,
-    ms,
-    tokens_in: usage.promptTokenCount ?? 0,
-    tokens_out: usage.candidatesTokenCount ?? 0,
+    ms, tokens_in: usage.promptTokenCount ?? 0, tokens_out: usage.candidatesTokenCount ?? 0,
     ok: true,
   });
 
   console.log(`[api-gemini-structure] user=${email} model=${model} ms=${ms} in=${usage.promptTokenCount ?? '?'} out=${usage.candidatesTokenCount ?? '?'}`);
 
-  // Return Claude-compatible response
-  return {
-    statusCode: 200,
-    headers,
-    body: JSON.stringify({
-      content: [{
-        type: 'tool_use',
-        name: funcCallPart.functionCall.name,
-        input: funcCallPart.functionCall.args ?? {},
-      }],
-      stop_reason: 'tool_use',
-      usage: {
-        input_tokens: usage.promptTokenCount ?? 0,
-        output_tokens: usage.candidatesTokenCount ?? 0,
-      },
-    }),
-  };
+  return { statusCode: 200, headers, body: JSON.stringify(parsed.response) };
 }
 
 export const handler = async (event, context) => {

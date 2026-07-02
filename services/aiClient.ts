@@ -112,12 +112,60 @@ export async function callClaude(params: ClaudeParams): Promise<ClaudeResponse> 
 
 /**
  * Call the Phase 5 structuring model (vision + tool use).
- * Routes claude-* models to api-claude; gemini-* models to api-gemini-structure.
- * Both endpoints return a ClaudeResponse-compatible shape.
+ * claude-* → api-claude (synchronous). gemini-* → background job + poll, so
+ * slow geometry-authoring (redraw) is not bound by the 90s function timeout.
+ * Both return a ClaudeResponse-compatible shape.
  */
 export async function callStructuringModel(params: ClaudeParams): Promise<ClaudeResponse> {
-    const endpoint = params.model.startsWith('gemini-') ? 'api-gemini-structure' : 'api-claude';
-    return callProxy(endpoint, params);
+    if (params.model.startsWith('gemini-')) {
+        return callStructuringBackground(params);
+    }
+    return callProxy('api-claude', params);
+}
+
+/**
+ * Start a Gemini structuring background job and poll for the result.
+ * Long-poll (up to ~6 min) because authoring geometry can take minutes.
+ */
+async function callStructuringBackground(params: ClaudeParams): Promise<ClaudeResponse> {
+    const jobId = 'struct-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9);
+    const isLocalDev = import.meta.env.DEV;
+    const reqHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (!isLocalDev) {
+        const token = await getAuthToken();
+        reqHeaders['Authorization'] = `Bearer ${token}`;
+    }
+
+    const startRes = await fetch('/.netlify/functions/api-gemini-structure-background', {
+        method: 'POST',
+        headers: reqHeaders,
+        body: JSON.stringify({ ...params, jobId }),
+    });
+    if (!startRes.ok && startRes.status !== 202) {
+        throw new Error(`Fallo al iniciar el trabajo de estructurado: ${startRes.statusText}`);
+    }
+
+    // Poll up to ~6 min (180 × 2s). Redraw of complex pictograms can take minutes.
+    for (let i = 0; i < 180; i++) {
+        await new Promise(r => setTimeout(r, 2000));
+
+        const pollRes = await fetch(`/.netlify/functions/api-gemini-structure-poll?jobId=${jobId}`, {
+            headers: reqHeaders,
+        });
+        if (!pollRes.ok) {
+            if ([502, 503, 504].includes(pollRes.status)) continue;
+            const err = await pollRes.json().catch(() => ({}));
+            throw new Error(err.error || `Proxy error ${pollRes.status}`);
+        }
+
+        const data = await pollRes.json();
+        if (data.response) return data.response as ClaudeResponse;
+        if (data.quotaExceeded) throw new QuotaExceededError(data.units_used ?? 0, data.limit ?? 100);
+        if (data.error) throw new Error(data.error);
+        if (data.pending) continue;
+    }
+
+    throw new Error('Tiempo de espera agotado (6 min) estructurando el pictograma');
 }
 
 /**

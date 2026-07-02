@@ -3401,11 +3401,11 @@ const RowComponent: React.FC<{
 
                 {/* Bitmap slot — shown whenever bitmap exists; download only */}
                 {validBitmap(row) && (
-                  <div className="border border-slate-200 bg-white flex items-center justify-center relative overflow-hidden group/bitmap-row" style={{ height: 200 }}>
+                  <div className="border border-slate-200 bg-white flex items-center justify-center relative overflow-hidden group/bitmap-row w-full aspect-square">
                     <img
                       src={validBitmap(row)!}
                       alt={row.UTTERANCE}
-                      className="max-h-[180px] w-auto object-contain p-3"
+                      className="w-full h-full object-contain p-3"
                     />
                     <div className="absolute bottom-1.5 right-1.5 flex gap-1.5 z-10 opacity-0 group-hover/bitmap-row:opacity-100 transition-opacity">
                       <button
@@ -3424,7 +3424,8 @@ const RowComponent: React.FC<{
                   </div>
                 )}
 
-                {/* SVG artifacts: trazado (rawSvg) and/or estructurado (structuredSvg) */}
+                {/* SVG artifacts: trazado (rawSvg) and/or estructurado (structuredSvg).
+                   ESTRUCTURAR (relabel) needs the trace, so a bitmap alone offers TRAZAR. */}
                 {hasAnyValidSvg(row) ? (
                   <div id="svg-preview">
                     <SVGGenerator
@@ -3440,7 +3441,6 @@ const RowComponent: React.FC<{
                     />
                   </div>
                 ) : validBitmap(row) ? (
-                  /* Bitmap exists but no SVG yet: offer Trazar */
                   <button
                     type="button"
                     onClick={onOpenVectorizer}
@@ -4435,11 +4435,11 @@ const FocusViewModal: React.FC<{
                 )}
               </div>
             ) : phase3Bitmap ? (
-              <div className="flex flex-col items-center gap-4 max-w-sm w-full">
+              <div className="flex flex-col items-center gap-4 w-full h-full max-w-full max-h-full">
                 <img
                   src={phase3Bitmap}
                   alt={row.UTTERANCE}
-                  className="max-h-[320px] w-auto object-contain shadow-2xl bg-white"
+                  className="flex-1 min-h-0 w-full object-contain shadow-2xl bg-white"
                 />
                 {onOpenVectorizer && (
                   <button

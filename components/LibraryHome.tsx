@@ -138,10 +138,10 @@ function LibraryCard({ lib, isActive, onOpen, onDuplicate, onDownload, onRename,
     // No overflow-hidden here — the dropdown menu must escape the card bounds.
     // The ThumbnailStrip handles its own rounded-t-xl overflow clipping.
     <div
-      className={`relative bg-white rounded-xl transition-all flex flex-col group cursor-pointer border ${
+      className={`relative bg-white rounded-xl border border-slate-200 transition-all duration-300 ease-out flex flex-col group cursor-pointer ${
         isActive
-          ? 'border-violet-400 scale-[1.06] shadow-[0_18px_30px_-10px_rgba(0,0,0,0.25)] z-10'
-          : 'border-slate-200 hover:border-violet-400 hover:shadow-md'
+          ? 'scale-[1.05] -translate-y-2 shadow-[0_28px_50px_-12px_rgba(76,8,119,0.45)] z-20'
+          : 'hover:-translate-y-1 hover:shadow-xl hover:z-10'
       }`}
       onClick={() => !menuOpen && !isEditing && onOpen(lib.id)}
     >
@@ -164,11 +164,14 @@ function LibraryCard({ lib, isActive, onOpen, onDuplicate, onDownload, onRename,
             />
           ) : (
             <h3
-              className="font-bold text-sm text-slate-900 leading-tight flex-1 min-w-0 truncate"
+              className="font-bold text-sm text-slate-900 leading-tight flex-1 min-w-0 truncate flex items-center gap-1.5"
               onDoubleClick={() => { setIsEditing(true); setEditName(lib.name); }}
               title={lib.name}
             >
-              {lib.name}
+              {isActive && (
+                <span className="w-1.5 h-1.5 rounded-full bg-orange-400 shrink-0" aria-label={t('home.activeLibrary')} />
+              )}
+              <span className="truncate">{lib.name}</span>
             </h3>
           )}
           {lib.language && !isEditing && (
@@ -243,7 +246,7 @@ function TemplateCard({ tmpl, onOpen }: { tmpl: LibraryMetadata; onOpen: () => v
   return (
     <div
       onClick={() => !menuOpen && onOpen()}
-      className="bg-white border border-slate-200 rounded-xl hover:border-violet-400 hover:shadow-md transition-all flex flex-col group cursor-pointer"
+      className="bg-white border border-slate-200 rounded-xl transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-xl hover:z-10 flex flex-col group cursor-pointer"
     >
       <ThumbnailStrip images={images} />
 
@@ -295,6 +298,66 @@ function TemplateCard({ tmpl, onOpen }: { tmpl: LibraryMetadata; onOpen: () => v
   );
 }
 
+// ── PictosMark ─────────────────────────────────────────────────────────────────
+// White-on-dark rendering of the pictos isotype (the "p" with the eye). The eye
+// aperture is filled with the card background (violet-950) so it reads as a hole
+// cut out of the white "p"; the pupil is white.
+
+function PictosMark({ size = 44 }: { size?: number }) {
+  return (
+    <svg viewBox="0 0 45.9 45.9" width={size} height={size} aria-hidden="true" className="shrink-0">
+      <path
+        fill="#ffffff"
+        d="m 23.091677,5.4233045 c -9.4,0 -17.1,6.2999995 -17.1,14.0999995 0,7.8 0,0 0,0 v 0 17.7 c 0,2.1 1.7,3.9 3.9,3.9 h 1.6 c 2.1,0 3.9,-1.7 3.9,-3.9 v -5.3 c 2.3,1 4.9,1.5 7.7,1.5 9.4,0 17.1,-6.3 17.1,-14.1 0,-7.8 -7.7,-13.8999995 -17.1,-13.8999995 z m 0.3,20.4999995 c -6.4,0 -9.2,-6.4 -9.2,-6.4 0,0 2.8,-6.4 9.2,-6.4 6.4,0 9.2,6.4 9.2,6.4 0,0 -2.8,6.4 -9.2,6.4 z"
+      />
+      <path
+        fill="#2e1065"
+        d="m 23.410324,13.143028 c -6.4,0 -9.199219,6.40039 -9.199219,6.40039 0,1e-6 2.799219,6.400391 9.199219,6.400391 6.4,0 9.199219,-6.400391 9.199219,-6.400391 0,1e-6 -2.799219,-6.40039 -9.199219,-6.40039 z"
+      />
+      <circle fill="#ffffff" cx="23.391676" cy="19.223303" r="3.1" />
+    </svg>
+  );
+}
+
+// ── HomeActionsCard ────────────────────────────────────────────────────────────
+// First grid cell: the pictos mark plus the home-level library actions
+// (import phrases, import library, back up). Replaces the separate logo card and
+// the old bottom action bar.
+
+function HomeActionsCard({
+  onImport,
+  onImportPhrases,
+  onBackup,
+}: {
+  onImport: () => void;
+  onImportPhrases: () => void;
+  onBackup: () => void;
+}) {
+  const { t } = useTranslation();
+  const actions = [
+    { icon: <FileText size={16} />, label: t('home.importPhrases'), onClick: onImportPhrases },
+    { icon: <Upload size={16} />, label: t('home.importLibraryFile'), onClick: onImport },
+    { icon: <Download size={16} />, label: t('actions.backupLibraries'), onClick: onBackup },
+  ];
+  return (
+    <div className="bg-violet-950 rounded-xl p-6 flex flex-col gap-5 min-h-[160px] shadow-xl">
+      <PictosMark size={48} />
+      <div className="flex flex-col gap-1">
+        {actions.map(a => (
+          <button
+            key={a.label}
+            onClick={a.onClick}
+            className="flex items-center gap-2.5 py-1.5 text-sm font-medium text-violet-200 hover:text-white transition-colors text-left"
+          >
+            <span className="shrink-0">{a.icon}</span>
+            <span className="truncate">{a.label}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── CreateLibraryCard ──────────────────────────────────────────────────────────
 
 function CreateLibraryCard({ onCreate }: { onCreate: () => void }) {
@@ -302,7 +365,7 @@ function CreateLibraryCard({ onCreate }: { onCreate: () => void }) {
   return (
     <div
       onClick={onCreate}
-      className="border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-violet-400 hover:bg-violet-50 transition-all min-h-[160px] group"
+      className="border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-violet-400 hover:bg-violet-50 hover:-translate-y-1 hover:shadow-lg transition-all duration-300 ease-out min-h-[160px] group"
     >
       <Plus size={20} className="text-slate-300 group-hover:text-violet-500 transition-colors" />
       <span className="text-xs font-semibold text-slate-400 group-hover:text-violet-600 transition-colors text-center px-4">
@@ -340,50 +403,13 @@ export function LibraryHome({
     : [...libraries].sort((a, b) => new Date(b.modifiedAt).getTime() - new Date(a.modifiedAt).getTime());
 
   const isStorageHigh = storageQuota > 0 && storageUsed / storageQuota > 0.8;
-  const activeLib = libraries.find(l => l.id === activeLibraryId);
 
   return (
     <div className="py-12 space-y-8 animate-in fade-in zoom-in-95 duration-700">
 
-      {/* Hero — large branding + import card */}
-      <div className="py-8 text-center space-y-10">
-        <div className="space-y-3">
-          <p className="text-8xl font-black tracking-tighter text-slate-900 leading-none select-none" aria-hidden="true">
-            pictos
-          </p>
-          <p className="text-slate-500 text-lg font-medium max-w-xl mx-auto leading-relaxed">
-            {t('home.description')}
-          </p>
-        </div>
-        <div className="flex justify-center">
-          <div
-            onClick={onImportPhrases}
-            className="bg-violet-950 p-12 text-left space-y-6 shadow-xl hover:bg-black transition-all cursor-pointer group hover:-translate-y-1 w-full max-w-md"
-          >
-            <div className="text-white group-hover:scale-110 transition-transform origin-left">
-              <FileText size={40} />
-            </div>
-            <div>
-              <h2 className="font-bold text-xl uppercase tracking-wider text-white">{t('home.importTextNode')}</h2>
-              <div className="text-xs text-violet-400 font-mono mt-1">{t('home.importNamespace')}</div>
-            </div>
-            <p className="text-xs text-violet-300 leading-relaxed font-medium">{t('home.importDescription')}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Title row: "Librerías" left (with active library indicator), sort links right */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">{t('home.libraries')}</h1>
-          {activeLib && (
-            <p className="flex items-center gap-1.5 mt-1 text-xs text-slate-500">
-              <span className="w-1.5 h-1.5 rounded-full bg-orange-400 shrink-0" aria-hidden="true" />
-              {activeLib.name}
-            </p>
-          )}
-        </div>
-        <div className="flex items-center gap-1 text-xs text-slate-400 mt-1">
+      {/* Toolbar: sort links (active library is shown by the highlighted card) */}
+      <div className="flex items-center justify-end gap-4">
+        <div className="flex items-center gap-1 text-xs text-slate-400">
           <button
             onClick={() => onSortChange('recientes')}
             className={`transition-colors ${sort === 'recientes' ? 'text-violet-700 font-semibold' : 'hover:text-slate-700'}`}
@@ -400,8 +426,9 @@ export function LibraryHome({
         </div>
       </div>
 
-      {/* Unified grid: user libraries + example templates + create card */}
+      {/* Unified grid: actions card + user libraries + example templates + create card */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <HomeActionsCard onImport={onImport} onImportPhrases={onImportPhrases} onBackup={onBackup} />
         {sortedLibraries.map(lib => (
           <LibraryCard
             key={lib.id}
@@ -424,7 +451,7 @@ export function LibraryHome({
         <CreateLibraryCard onCreate={onCreate} />
       </div>
 
-      {/* Bottom bar: storage + icon-link actions */}
+      {/* Bottom bar: storage indicator (import/backup actions live in the actions card) */}
       <div className="flex items-center justify-between gap-4 pt-4 border-t border-slate-100">
         <div className="flex items-center gap-1.5">
           <HardDrive size={12} className={isStorageHigh ? 'text-amber-500' : 'text-slate-400'} />
@@ -436,22 +463,6 @@ export function LibraryHome({
               })}
             </span>
           )}
-        </div>
-        <div className="flex items-center gap-5">
-          <button
-            onClick={onImport}
-            className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-violet-700 transition-colors"
-          >
-            <Upload size={12} />
-            {t('home.importLibraryFile')}
-          </button>
-          <button
-            onClick={onBackup}
-            className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-violet-700 transition-colors"
-          >
-            <Download size={12} />
-            {t('actions.backupLibraries')}
-          </button>
         </div>
       </div>
 

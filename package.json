@@ -1,12 +1,13 @@
 {
   "name": "pictos.net",
   "private": true,
-  "version": "2.1.3",
+  "version": "2.2.0",
   "type": "module",
   "scripts": {
     "dev": "npm run copy-schemas && npm run optimize-thumbs && netlify dev",
     "build": "npm run copy-schemas && npm run optimize-thumbs && vite build",
     "preview": "npm run copy-schemas && vite preview",
+    "test": "node --test \"netlify/functions/**/*.test.mjs\" \"services/**/*.test.ts\"",
     "generate-index": "node scripts/generate-libraries-index.cjs",
     "validate-i18n": "node scripts/validateTranslations.cjs",
     "copy-schemas": "sh scripts/copy-submodule-data.sh",

@@ -102,10 +102,13 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
         return undefined;
     }, [row.id, row.structuredSvg, row.structuredSvgDiscarded, row.UTTERANCE, getSVGByRowId]);
 
-    // Structuring requires rawSvg + NLU + non-empty elements (no bitmap needed).
-    // A discarded rawSvg is not eligible.
+    // Redraw needs only a reference image, so structuring is eligible from a
+    // bitmap alone (no trace required) — or from a valid rawSvg. The bitmap is
+    // the preferred redraw reference.
+    const bitmapRef = row.bitmapDiscarded ? undefined : row.bitmap;
     const structureEligibility = canStructureSVG({
         rawSvg: row.rawSvgDiscarded ? undefined : row.rawSvg,
+        bitmap: bitmapRef,
         NLU: row.NLU,
         elements: row.elements,
     });
@@ -310,6 +313,10 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
                 utterance: row.UTTERANCE,
                 config,
                 phase5Model,
+                // Redraw reference: the source bitmap shows clean intent (solid
+                // strokes) vs the noisy trace. Omitted if discarded → falls back
+                // to a clean raster of rawSvg.
+                referenceImage: bitmapRef,
                 onProgress: (msg) => onLog('info', msg),
                 onStatus: (s) => setSubStatus(s),
             });
@@ -382,18 +389,22 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
         const previewWrapperClass = isColumns
             ? 'flex-1 flex flex-row gap-3 min-h-0'
             : 'flex flex-col gap-3';
+        // Stacked (row column): every pictogram is a full-width square so bitmap
+        // and SVG artifacts render at the same size and use all available width.
+        // Columns (maximized focus view): share the available height side by side.
+        const sectionSquareClass = isColumns ? '' : 'w-full aspect-square';
         const rawSectionStyle = isColumns
             ? { flex: '1 1 0%', minHeight: 80 }
-            : { height: 200, flexShrink: 0 };
+            : undefined;
         const structuredSectionStyle = isColumns
             ? { flex: '1 1 0%', minHeight: 120 }
-            : { height: 200, flexShrink: 0 };
+            : undefined;
         return (
             <div className={isColumns ? "flex flex-col h-full" : "flex flex-col"}>
               <div className={previewWrapperClass}>
                 {/* Raw traced SVG — compact preview (only when rawSvg exists) */}
                 {rawSvg && (
-                    <div className="bg-white border border-slate-200 flex items-center justify-center p-3 relative overflow-hidden group/raw-compact" style={rawSectionStyle}>
+                    <div className={`bg-white border border-slate-200 flex items-center justify-center p-3 relative overflow-hidden group/raw-compact ${sectionSquareClass}`} style={rawSectionStyle}>
                         <div className="absolute inset-0 pattern-grid-sm opacity-5 pointer-events-none"></div>
                         <div className="absolute top-1.5 left-1.5 bg-amber-500 text-white text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider pointer-events-none z-10 opacity-0 group-hover/raw-compact:opacity-100 transition-opacity">
                             {t('svg.traceLabel')}
@@ -456,7 +467,7 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
                 )}
 
                 {/* Structured SVG — main preview */}
-                <div className="bg-white border border-slate-200 flex items-center justify-center p-4 relative overflow-hidden group/svg-preview" style={structuredSectionStyle}>
+                <div className={`bg-white border border-slate-200 flex items-center justify-center p-4 relative overflow-hidden group/svg-preview ${sectionSquareClass}`} style={structuredSectionStyle}>
                     <div className="absolute inset-0 pattern-grid-sm opacity-5 pointer-events-none"></div>
                     <div className="absolute top-2 left-2 bg-emerald-600 text-white text-xs px-2 py-1 rounded font-bold uppercase tracking-wider pointer-events-none z-10 opacity-0 group-hover/svg-preview:opacity-100 transition-opacity">
                         {t('svg.structureLabel')}
@@ -706,7 +717,7 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
 
         return (
             <div className="flex flex-col">
-                <div className="bg-white border border-slate-200 flex items-center justify-center p-4 relative mb-3 overflow-hidden group/raw-preview" style={{ height: 200 }}>
+                <div className="bg-white border border-slate-200 flex items-center justify-center p-4 relative mb-3 overflow-hidden group/raw-preview w-full aspect-square">
                     <div className="absolute inset-0 pattern-grid-sm opacity-5 pointer-events-none"></div>
                     <div className="absolute top-2 right-2 bg-amber-500 text-white text-xs px-2 py-1 rounded font-bold uppercase tracking-wider pointer-events-none z-10 opacity-0 group-hover/raw-preview:opacity-100 transition-opacity">
                         {t('svg.traceLabel')}
@@ -800,8 +811,7 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
         return (
             <div className="flex flex-col">
                 <div
-                    className="bg-white border border-slate-200 flex items-center justify-center p-4 relative mb-3 overflow-hidden"
-                    style={{ height: 200 }}
+                    className="bg-white border border-slate-200 flex items-center justify-center p-4 relative mb-3 overflow-hidden w-full aspect-square"
                 >
                     <div className="absolute inset-0 pattern-grid-sm opacity-5 pointer-events-none" />
                     <div className="absolute top-2 right-2 bg-amber-500 text-white text-xs px-2 py-1 rounded font-bold uppercase tracking-wider pointer-events-none z-10">

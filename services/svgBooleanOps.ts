@@ -19,7 +19,7 @@
  * Spec: specs/svg-boolean-operations.allium
  */
 
-import paper from 'paper/dist/paper-core';
+import paper from 'paper/dist/paper-core.js';
 import * as martinez from 'martinez-polygon-clipping';
 
 export type BooleanOp = 'union' | 'subtract' | 'intersect';

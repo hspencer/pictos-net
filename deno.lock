@@ -24,6 +24,7 @@
         "npm:@vitejs/plugin-react@5",
         "npm:autoprefixer@^10.4.24",
         "npm:framer-motion@^12.34.1",
+        "npm:google-auth-library@^10.7.0",
         "npm:jspdf@^4.2.1",
         "npm:jszip@^3.10.1",
         "npm:lucide-react@0.562",
