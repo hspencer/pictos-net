@@ -1,0 +1,159 @@
+{
+  "name": "Trámites Escolares Chile — Taller Mineduc",
+  "createdAt": "2026-07-03T12:00:00.000Z",
+  "modifiedAt": "2026-07-03T12:00:00.000Z",
+  "config": {
+    "name": "Trámites Escolares Chile — Taller Mineduc",
+    "lang": "es-419",
+    "uiLang": "es-419",
+    "license": "CC BY-SA 4.0",
+    "credits": "Herbert Spencer González (e[ad] PUCV), investigación doctoral Pictos.net. Corpus original: Ana María Torres, Coordinación Institucional Ley Autismo y Sordera, Secretaría Ministerial de Educación Región de Valparaíso, Ministerio de Educación de Chile.",
+    "generationModel": "gemini-2.5-flash-image",
+    "geoContext": {
+      "lat": "-33.0245",
+      "lng": "-71.5518",
+      "region": "Región de Valparaíso, Chile"
+    },
+    "annotatedContext": "Apoyos visuales transaccionales para trámites del sistema escolar chileno. Los enunciados corresponden a un diálogo entre una persona funcionaria pública (voz formal, trato de usted) y una persona usuaria que puede ser autista, sorda, con discapacidad intelectual, con baja lectoescritura o migrante. Cada pictograma representa un solo acto comunicativo: pregunta, instrucción, información o derecho. Los enunciados en primera persona (yo) son respuestas de la persona usuaria para señalar. Contexto físico: oficinas de Ayuda Mineduc, Superintendencia de Educación en Viña del Mar, y la plataforma web del Sistema de Admisión Escolar (SAE).",
+    "visualStylePrompt": "AAC pictogram style: bold uniform black outlines, flat solid colors, high contrast, simple geometric shapes, plain white background, one single clear focal scene per image, no text or letters inside the image, no gradients, no shadows, no decorative detail, generous white margins, front-facing perspective, in the visual convention of augmentative and alternative communication symbol sets"
+  },
+  "rows": [
+    { "id": "r-cert-q1", "UTTERANCE": "¿Cuál fue el último curso que usted aprobó en el colegio?", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "r-cert-q2", "UTTERANCE": "¿En qué año aprobó usted ese último curso?", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "r-cert-q3", "UTTERANCE": "¿Cómo se llama el colegio donde usted estudió?", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "r-cert-q4", "UTTERANCE": "¿Iba usted al colegio a clases todos los días?", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "r-cert-q5", "UTTERANCE": "¿Estudió usted en una sede social de su barrio?", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "r-cert-q6", "UTTERANCE": "¿Rindió usted exámenes libres, sin ir a clases?", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "r-cert-q7", "UTTERANCE": "¿Rindió usted exámenes de estudios para conseguir un trabajo?", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+
+    { "id": "r-reg-i1", "UTTERANCE": "No encontramos sus documentos de estudios en nuestro sistema.", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "r-reg-i2", "UTTERANCE": "Nosotros vamos a llamar a su colegio para pedir su información escolar.", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "r-reg-i3", "UTTERANCE": "El colegio nos va a informar qué cursos aprobó usted.", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "r-reg-i4", "UTTERANCE": "Nosotros le vamos a avisar a usted cuando tengamos la respuesta.", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+
+    { "id": "r-sup-d1", "UTTERANCE": "Alguien no respetó sus derechos en el colegio.", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "r-sup-d2", "UTTERANCE": "La Superintendencia de Educación atiende este tipo de problemas.", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "r-sup-d3", "UTTERANCE": "Usted debe ir a la oficina de la Superintendencia de Educación en Viña del Mar.", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "r-sup-d4", "UTTERANCE": "La oficina está en calle Limache 3405, piso 3, oficina 38, sector El Salto, Viña del Mar.", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "r-sup-d5", "UTTERANCE": "En la oficina, una persona va a recibir su reclamo.", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+
+    { "id": "r-sae-s1", "UTTERANCE": "Usted quiere matricular a un estudiante en un colegio.", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "r-sae-s2", "UTTERANCE": "Usted no debe ir al colegio a pedir la matrícula.", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "r-sae-s3", "UTTERANCE": "Usted debe postular por internet, en la página del Sistema de Admisión Escolar.", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "r-sae-s4", "UTTERANCE": "Entre a la página web sistemadeadmisionescolar.cl.", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "r-sae-s5", "UTTERANCE": "Haga clic en el botón que dice 'Ingresa aquí'.", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "r-sae-s6", "UTTERANCE": "Si usted no tiene una cuenta, haga clic en 'Regístrate aquí' y cree su cuenta.", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "r-sae-s7", "UTTERANCE": "Complete la información que le pide la página.", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "r-sae-s8", "UTTERANCE": "Haga clic en 'Añadir estudiante' y escriba los datos del estudiante.", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "r-sae-s9", "UTTERANCE": "Haga clic en 'Agregar establecimiento' y elija los colegios que usted prefiere.", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "r-sae-s10", "UTTERANCE": "Espere el resultado de la postulación en la misma página web.", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+
+    { "id": "r-nee-n1", "UTTERANCE": "Todos los colegios que reciben dinero del Estado deben aceptar a estudiantes que necesitan apoyos.", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "r-nee-n2", "UTTERANCE": "El colegio debe darle apoyos al estudiante, aunque el colegio no tenga Programa de Integración Escolar.", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "r-nee-n3", "UTTERANCE": "Si el colegio no le da los apoyos, usted puede reclamar en la Superintendencia de Educación.", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+
+    { "id": "r-usr-u1", "UTTERANCE": "Sí.", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "r-usr-u2", "UTTERANCE": "No.", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "r-usr-u3", "UTTERANCE": "Yo no me acuerdo.", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "r-usr-u4", "UTTERANCE": "Yo no entiendo. Repita, por favor.", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "r-usr-u5", "UTTERANCE": "Yo necesito más tiempo para responder.", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "r-usr-u6", "UTTERANCE": "Yo quiero responder con ayuda de una persona de apoyo.", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "r-usr-u7", "UTTERANCE": "Yo aprobé un curso de educación básica.", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "r-usr-u8", "UTTERANCE": "Yo aprobé un curso de educación media.", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" },
+    { "id": "r-usr-u9", "UTTERANCE": "Yo estudié en otro país.", "status": "idle", "nluStatus": "idle", "visualStatus": "idle", "bitmapStatus": "idle" }
+  ],
+  "sequences": [
+    {
+      "id": "seq-certificacion",
+      "libraryId": "placeholder",
+      "name": "Entrevista: certificación de estudios",
+      "createdAt": "2026-07-03T12:00:00.000Z",
+      "modifiedAt": "2026-07-03T12:00:00.000Z",
+      "steps": [
+        { "id": "st-cert-1", "position": 1, "utterance": "¿Cuál fue el último curso que usted aprobó en el colegio?", "rowId": "r-cert-q1", "state": "complete" },
+        { "id": "st-cert-2", "position": 2, "utterance": "¿En qué año aprobó usted ese último curso?", "rowId": "r-cert-q2", "state": "complete" },
+        { "id": "st-cert-3", "position": 3, "utterance": "¿Cómo se llama el colegio donde usted estudió?", "rowId": "r-cert-q3", "state": "complete" },
+        { "id": "st-cert-4", "position": 4, "utterance": "¿Iba usted al colegio a clases todos los días?", "rowId": "r-cert-q4", "state": "complete" },
+        { "id": "st-cert-5", "position": 5, "utterance": "¿Estudió usted en una sede social de su barrio?", "rowId": "r-cert-q5", "state": "complete" },
+        { "id": "st-cert-6", "position": 6, "utterance": "¿Rindió usted exámenes libres, sin ir a clases?", "rowId": "r-cert-q6", "state": "complete" },
+        { "id": "st-cert-7", "position": 7, "utterance": "¿Rindió usted exámenes de estudios para conseguir un trabajo?", "rowId": "r-cert-q7", "state": "complete" }
+      ]
+    },
+    {
+      "id": "seq-registros",
+      "libraryId": "placeholder",
+      "name": "Información: búsqueda de registros escolares",
+      "createdAt": "2026-07-03T12:00:00.000Z",
+      "modifiedAt": "2026-07-03T12:00:00.000Z",
+      "steps": [
+        { "id": "st-reg-1", "position": 1, "utterance": "No encontramos sus documentos de estudios en nuestro sistema.", "rowId": "r-reg-i1", "state": "complete" },
+        { "id": "st-reg-2", "position": 2, "utterance": "Nosotros vamos a llamar a su colegio para pedir su información escolar.", "rowId": "r-reg-i2", "state": "complete" },
+        { "id": "st-reg-3", "position": 3, "utterance": "El colegio nos va a informar qué cursos aprobó usted.", "rowId": "r-reg-i3", "state": "complete" },
+        { "id": "st-reg-4", "position": 4, "utterance": "Nosotros le vamos a avisar a usted cuando tengamos la respuesta.", "rowId": "r-reg-i4", "state": "complete" }
+      ]
+    },
+    {
+      "id": "seq-superintendencia",
+      "libraryId": "placeholder",
+      "name": "Derivación: reclamo por vulneración de derechos",
+      "createdAt": "2026-07-03T12:00:00.000Z",
+      "modifiedAt": "2026-07-03T12:00:00.000Z",
+      "steps": [
+        { "id": "st-sup-1", "position": 1, "utterance": "Alguien no respetó sus derechos en el colegio.", "rowId": "r-sup-d1", "state": "complete" },
+        { "id": "st-sup-2", "position": 2, "utterance": "La Superintendencia de Educación atiende este tipo de problemas.", "rowId": "r-sup-d2", "state": "complete" },
+        { "id": "st-sup-3", "position": 3, "utterance": "Usted debe ir a la oficina de la Superintendencia de Educación en Viña del Mar.", "rowId": "r-sup-d3", "state": "complete" },
+        { "id": "st-sup-4", "position": 4, "utterance": "La oficina está en calle Limache 3405, piso 3, oficina 38, sector El Salto, Viña del Mar.", "rowId": "r-sup-d4", "state": "complete" },
+        { "id": "st-sup-5", "position": 5, "utterance": "En la oficina, una persona va a recibir su reclamo.", "rowId": "r-sup-d5", "state": "complete" }
+      ]
+    },
+    {
+      "id": "seq-sae",
+      "libraryId": "placeholder",
+      "name": "Procedimiento: postulación al Sistema de Admisión Escolar",
+      "createdAt": "2026-07-03T12:00:00.000Z",
+      "modifiedAt": "2026-07-03T12:00:00.000Z",
+      "steps": [
+        { "id": "st-sae-1", "position": 1, "utterance": "Usted quiere matricular a un estudiante en un colegio.", "rowId": "r-sae-s1", "state": "complete" },
+        { "id": "st-sae-2", "position": 2, "utterance": "Usted no debe ir al colegio a pedir la matrícula.", "rowId": "r-sae-s2", "state": "complete" },
+        { "id": "st-sae-3", "position": 3, "utterance": "Usted debe postular por internet, en la página del Sistema de Admisión Escolar.", "rowId": "r-sae-s3", "state": "complete" },
+        { "id": "st-sae-4", "position": 4, "utterance": "Entre a la página web sistemadeadmisionescolar.cl.", "rowId": "r-sae-s4", "state": "complete" },
+        { "id": "st-sae-5", "position": 5, "utterance": "Haga clic en el botón que dice 'Ingresa aquí'.", "rowId": "r-sae-s5", "state": "complete" },
+        { "id": "st-sae-6", "position": 6, "utterance": "Si usted no tiene una cuenta, haga clic en 'Regístrate aquí' y cree su cuenta.", "rowId": "r-sae-s6", "state": "complete" },
+        { "id": "st-sae-7", "position": 7, "utterance": "Complete la información que le pide la página.", "rowId": "r-sae-s7", "state": "complete" },
+        { "id": "st-sae-8", "position": 8, "utterance": "Haga clic en 'Añadir estudiante' y escriba los datos del estudiante.", "rowId": "r-sae-s8", "state": "complete" },
+        { "id": "st-sae-9", "position": 9, "utterance": "Haga clic en 'Agregar establecimiento' y elija los colegios que usted prefiere.", "rowId": "r-sae-s9", "state": "complete" },
+        { "id": "st-sae-10", "position": 10, "utterance": "Espere el resultado de la postulación en la misma página web.", "rowId": "r-sae-s10", "state": "complete" }
+      ]
+    },
+    {
+      "id": "seq-nee",
+      "libraryId": "placeholder",
+      "name": "Derecho: apoyos educativos para el estudiante",
+      "createdAt": "2026-07-03T12:00:00.000Z",
+      "modifiedAt": "2026-07-03T12:00:00.000Z",
+      "steps": [
+        { "id": "st-nee-1", "position": 1, "utterance": "Todos los colegios que reciben dinero del Estado deben aceptar a estudiantes que necesitan apoyos.", "rowId": "r-nee-n1", "state": "complete" },
+        { "id": "st-nee-2", "position": 2, "utterance": "El colegio debe darle apoyos al estudiante, aunque el colegio no tenga Programa de Integración Escolar.", "rowId": "r-nee-n2", "state": "complete" },
+        { "id": "st-nee-3", "position": 3, "utterance": "Si el colegio no le da los apoyos, usted puede reclamar en la Superintendencia de Educación.", "rowId": "r-nee-n3", "state": "complete" }
+      ]
+    },
+    {
+      "id": "seq-respuestas",
+      "libraryId": "placeholder",
+      "name": "Tablero: respuestas de la persona usuaria",
+      "createdAt": "2026-07-03T12:00:00.000Z",
+      "modifiedAt": "2026-07-03T12:00:00.000Z",
+      "steps": [
+        { "id": "st-usr-1", "position": 1, "utterance": "Sí.", "rowId": "r-usr-u1", "state": "complete" },
+        { "id": "st-usr-2", "position": 2, "utterance": "No.", "rowId": "r-usr-u2", "state": "complete" },
+        { "id": "st-usr-3", "position": 3, "utterance": "Yo no me acuerdo.", "rowId": "r-usr-u3", "state": "complete" },
+        { "id": "st-usr-4", "position": 4, "utterance": "Yo no entiendo. Repita, por favor.", "rowId": "r-usr-u4", "state": "complete" },
+        { "id": "st-usr-5", "position": 5, "utterance": "Yo necesito más tiempo para responder.", "rowId": "r-usr-u5", "state": "complete" },
+        { "id": "st-usr-6", "position": 6, "utterance": "Yo quiero responder con ayuda de una persona de apoyo.", "rowId": "r-usr-u6", "state": "complete" },
+        { "id": "st-usr-7", "position": 7, "utterance": "Yo aprobé un curso de educación básica.", "rowId": "r-usr-u7", "state": "complete" },
+        { "id": "st-usr-8", "position": 8, "utterance": "Yo aprobé un curso de educación media.", "rowId": "r-usr-u8", "state": "complete" },
+        { "id": "st-usr-9", "position": 9, "utterance": "Yo estudié en otro país.", "rowId": "r-usr-u9", "state": "complete" }
+      ]
+    }
+  ]
+}
