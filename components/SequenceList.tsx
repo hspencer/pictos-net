@@ -63,11 +63,12 @@ function SequenceCard({ seq, libraryRows, onOpen, onDelete, onRename }: {
 
   return (
     <div
-      className="bg-white border border-slate-200 rounded-xl overflow-hidden hover:border-violet-400 hover:shadow-lg transition-all cursor-pointer group"
+      className="bg-white border border-slate-200 rounded-xl hover:border-violet-400 hover:shadow-lg transition-all cursor-pointer group"
       onClick={() => !menuOpen && !isEditing && onOpen()}
     >
-      {/* Thumbnail strip — 3 equal slots */}
-      <div className="flex h-24 bg-slate-100">
+      {/* Thumbnail strip — 3 equal slots. overflow-hidden lives HERE (not on
+          the card root) so the 3-dot dropdown below is never clipped. */}
+      <div className="flex h-24 bg-slate-100 rounded-t-xl overflow-hidden">
         {[0, 1, 2].map(i => {
           const row = thumbRows[i];
           const svg = row ? (row.structuredSvg || row.rawSvg) : null;
@@ -122,7 +123,7 @@ function SequenceCard({ seq, libraryRows, onOpen, onDelete, onRename }: {
               <MoreHorizontal size={14} />
             </button>
             {menuOpen && (
-              <div className="absolute right-0 top-7 z-20 bg-white border border-slate-200 rounded-lg shadow-lg min-w-[140px] py-1">
+              <div className="absolute right-0 top-7 z-30 bg-white border border-slate-200 rounded-lg shadow-lg min-w-[140px] py-1">
                 <button
                   onClick={e => { e.stopPropagation(); onOpen(); setMenuOpen(false); }}
                   className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 text-left"

@@ -876,13 +876,35 @@ const App: React.FC<AppProps> = ({ authUser }) => {
     const confirmMsg = (t('actions.deleteLibraryConfirm') || '¿Eliminar esta librería?').replace('{name}', meta?.name ?? id);
     if (!window.confirm(confirmMsg)) return;
     libraryService.deleteLibrary(id);
-    await Promise.all([
-      IndexedDBService.deleteBitmapsForLibrary(id),
-      IndexedDBService.deleteSvgsForLibrary(id),
-    ]);
+    // Refresh the UI immediately: a hung or failing IndexedDB cleanup must
+    // never make deletion LOOK broken (the index entry is already gone).
     if (id === activeLibraryId) closeLibrary();
     setLibraryIndex(libraryService.getLibraryIndex());
+    // Binary cleanup is best-effort in the background.
+    Promise.all([
+      IndexedDBService.deleteBitmapsForLibrary(id),
+      IndexedDBService.deleteSvgsForLibrary(id),
+    ]).catch(err => console.warn('[deleteLibrary] IDB cleanup failed:', err));
   }, [t, activeLibraryId, closeLibrary]);
+
+  // ── Hidden example templates (per device) ─────────────────────────────────
+  // Template cards ship with the deploy and cannot be deleted, but they can
+  // be hidden. Persisted in localStorage; restorable from the home footer.
+  const HIDDEN_TEMPLATES_KEY = 'pictonet_hidden_templates';
+  const [hiddenTemplates, setHiddenTemplates] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem(HIDDEN_TEMPLATES_KEY) || '[]'); } catch { return []; }
+  });
+  const hideTemplate = useCallback((filename: string) => {
+    setHiddenTemplates(prev => {
+      const next = [...new Set([...prev, filename])];
+      localStorage.setItem(HIDDEN_TEMPLATES_KEY, JSON.stringify(next));
+      return next;
+    });
+  }, []);
+  const restoreTemplates = useCallback(() => {
+    localStorage.removeItem(HIDDEN_TEMPLATES_KEY);
+    setHiddenTemplates([]);
+  }, []);
 
   // Load available libraries from index.json
   useEffect(() => {
@@ -2991,7 +3013,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
         {(activeLibraryId === null || viewingLibraryHome) ? (
           <LibraryHome
             libraries={libraryIndex}
-            templates={availableLibraries}
+            templates={availableLibraries.filter(l => !hiddenTemplates.includes(l.filename))}
             sort={librarySort}
             onSortChange={setLibrarySort}
             storageUsed={storageInfo?.usage ?? 0}
@@ -3007,6 +3029,9 @@ const App: React.FC<AppProps> = ({ authUser }) => {
             onImportPhrases={() => homeImportRef.current?.click()}
             onBackup={handleBackupLibraries}
             onOpenTemplate={loadLibrary}
+            onHideTemplate={hideTemplate}
+            hiddenTemplateCount={hiddenTemplates.length}
+            onRestoreTemplates={restoreTemplates}
           />
         ) : libraryContentMode === 'secuencias' ? (
           activeSequenceId ? (

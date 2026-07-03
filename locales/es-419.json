@@ -93,7 +93,8 @@
     "importLibraryFile": "Importar librería (.json)",
     "libraries": "Librerías",
     "useTemplate": "Usar",
-    "libraryItemCount": "{pictograms} pictogramas · {sequences} secuencias"
+    "libraryItemCount": "{pictograms} pictogramas · {sequences} secuencias",
+    "showHiddenTemplates": "Mostrar {{count}} ejemplos ocultos"
   },
   "pipeline": {
     "understand": "Comprender",
@@ -320,7 +321,8 @@
     "downloadLibrary": "Descargar librería",
     "renameLibrary": "Renombrar",
     "deleteLibrary": "Eliminar",
-    "deleteLibraryConfirm": "¿Eliminar «{name}»? Se borrarán todos los pictogramas e imágenes generadas. Esta acción no se puede deshacer."
+    "deleteLibraryConfirm": "¿Eliminar «{name}»? Se borrarán todos los pictogramas e imágenes generadas. Esta acción no se puede deshacer.",
+    "hideTemplate": "Ocultar ejemplo"
   },
   "metadata": {
     "speechAct": "acto_de_habla",

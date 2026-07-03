@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   Plus, MoreHorizontal, Globe, Download, Copy, Trash2, Edit,
-  FolderOpen, HardDrive, Upload, FileText,
+  FolderOpen, HardDrive, Upload, FileText, EyeOff,
 } from 'lucide-react';
 import { LibraryMeta } from '../types';
 import { useTranslation } from '../hooks/useTranslation';
@@ -33,6 +33,12 @@ interface LibraryHomeProps {
   onImportPhrases: () => void;
   onBackup: () => void;
   onOpenTemplate: (filename: string) => void;
+  /** Hide an example template card on this device (localStorage). */
+  onHideTemplate: (filename: string) => void;
+  /** How many example templates are currently hidden (for the restore link). */
+  hiddenTemplateCount: number;
+  /** Unhide all example templates. */
+  onRestoreTemplates: () => void;
 }
 
 // ── helpers ────────────────────────────────────────────────────────────────────
@@ -224,7 +230,7 @@ function LibraryCard({ lib, isActive, onOpen, onDuplicate, onDownload, onRename,
 // ── TemplateCard ───────────────────────────────────────────────────────────────
 // Visually identical structure to LibraryCard: strip → name+badge+menu → count → footer.
 
-function TemplateCard({ tmpl, onOpen }: { tmpl: LibraryMetadata; onOpen: () => void }) {
+function TemplateCard({ tmpl, onOpen, onHide }: { tmpl: LibraryMetadata; onOpen: () => void; onHide: () => void }) {
   const { t } = useTranslation();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -278,6 +284,16 @@ function TemplateCard({ tmpl, onOpen }: { tmpl: LibraryMetadata; onOpen: () => v
                 >
                   <FolderOpen size={12} />{t('actions.openLibrary')}
                 </button>
+                <div className="border-t border-slate-100 mt-1 pt-1">
+                  {/* Example templates ship with the deploy: they cannot be
+                      deleted, but they can be hidden per device. */}
+                  <button
+                    onClick={e => { e.stopPropagation(); onHide(); setMenuOpen(false); }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-red-600 hover:bg-red-50 text-left"
+                  >
+                    <EyeOff size={12} />{t('actions.hideTemplate')}
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -395,6 +411,9 @@ export function LibraryHome({
   onImportPhrases,
   onBackup,
   onOpenTemplate,
+  onHideTemplate,
+  hiddenTemplateCount,
+  onRestoreTemplates,
 }: LibraryHomeProps) {
   const { t } = useTranslation();
 
@@ -446,10 +465,23 @@ export function LibraryHome({
             key={tmpl.filename}
             tmpl={tmpl}
             onOpen={() => onOpenTemplate(tmpl.filename)}
+            onHide={() => onHideTemplate(tmpl.filename)}
           />
         ))}
         <CreateLibraryCard onCreate={onCreate} />
       </div>
+
+      {/* Restore link for hidden example templates */}
+      {hiddenTemplateCount > 0 && (
+        <div className="flex justify-end">
+          <button
+            onClick={onRestoreTemplates}
+            className="text-xs text-slate-400 hover:text-violet-700 transition-colors"
+          >
+            {t('home.showHiddenTemplates', { count: hiddenTemplateCount })}
+          </button>
+        </div>
+      )}
 
       {/* Bottom bar: storage indicator (import/backup actions live in the actions card) */}
       <div className="flex items-center justify-between gap-4 pt-4 border-t border-slate-100">

@@ -93,7 +93,8 @@
     "importLibraryFile": "Import library (.json)",
     "libraries": "Libraries",
     "useTemplate": "Use",
-    "libraryItemCount": "{pictograms} pictograms · {sequences} sequences"
+    "libraryItemCount": "{pictograms} pictograms · {sequences} sequences",
+    "showHiddenTemplates": "Show {{count}} hidden examples"
   },
   "pipeline": {
     "understand": "Understand",
@@ -320,7 +321,8 @@
     "downloadLibrary": "Download library",
     "renameLibrary": "Rename",
     "deleteLibrary": "Delete",
-    "deleteLibraryConfirm": "Delete \"{name}\"? All generated pictograms and images will be deleted. This action cannot be undone."
+    "deleteLibraryConfirm": "Delete \"{name}\"? All generated pictograms and images will be deleted. This action cannot be undone.",
+    "hideTemplate": "Hide example"
   },
   "metadata": {
     "speechAct": "speech_act",
