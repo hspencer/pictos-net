@@ -1,16 +1,20 @@
 /**
  * IndexedDB Service — primary persistence layer for pictos-net
  *
- * v4 schema:
+ * v5 schema:
  *   rows    — RowData metadata WITHOUT binary fields (bitmap, rawSvg, structuredSvg)
- *   bitmaps — { id, bitmap: base64 data URL, libraryId }
+ *   bitmaps — { libraryId, id, bitmap: base64 data URL } — keyPath: ['libraryId', 'id']
  *   svgs    — { id, rawSvg?, structuredSvg?, libraryId }
+ *
+ * v4 → v5: bitmaps keyPath changed from 'id' to ['libraryId', 'id'] so that
+ * two libraries that happen to share row IDs (e.g. template copies) no longer
+ * clobber each other's bitmap entries.
  *
  * localStorage is used only for config (pictonet_v19_config).
  */
 
 const DB_NAME = 'pictonet_storage';
-const DB_VERSION = 4;
+const DB_VERSION = 5;
 const STORE_ROWS = 'rows';
 const STORE_BITMAPS = 'bitmaps';
 const STORE_SVGS = 'svgs';
@@ -56,9 +60,12 @@ export const initDB = (): Promise<IDBDatabase> => {
     request.onupgradeneeded = (event) => {
       const db = (event.target as IDBOpenDBRequest).result;
       const transaction = (event.target as IDBOpenDBRequest).transaction!;
+      const oldVersion = event.oldVersion;
 
+      // ── Fresh stores (new database, oldVersion = 0) ──────────────────────────
       if (!db.objectStoreNames.contains(STORE_BITMAPS)) {
-        const store = db.createObjectStore(STORE_BITMAPS, { keyPath: 'id' });
+        // v5+: compound key so two libraries sharing row IDs don't collide
+        const store = db.createObjectStore(STORE_BITMAPS, { keyPath: ['libraryId', 'id'] });
         store.createIndex('timestamp', 'timestamp', { unique: false });
         store.createIndex('libraryId', 'libraryId', { unique: false });
       }
@@ -74,44 +81,51 @@ export const initDB = (): Promise<IDBDatabase> => {
         store.createIndex('timestamp', 'timestamp', { unique: false });
       }
 
-      // v3 → v4: add libraryId index to bitmaps and svgs stores
-      // and tag all existing entries with libraryId = 'migrated'
-      // (App.tsx migration will rename 'migrated' to the real library id)
-      if (event.oldVersion < 4) {
-        const oldVersion = event.oldVersion;
-        if (oldVersion >= 1 && db.objectStoreNames.contains(STORE_BITMAPS)) {
-          const bitmapStore = transaction.objectStore(STORE_BITMAPS);
-          if (!bitmapStore.indexNames.contains('libraryId')) {
-            bitmapStore.createIndex('libraryId', 'libraryId', { unique: false });
-          }
-          // Tag existing entries
-          const bitmapCursor = bitmapStore.openCursor();
-          bitmapCursor.onsuccess = (e) => {
-            const cursor = (e.target as IDBRequest<IDBCursorWithValue>).result;
-            if (!cursor) return;
-            if (!cursor.value.libraryId) {
-              cursor.update({ ...cursor.value, libraryId: 'migrated' });
-            }
-            cursor.continue();
-          };
+      // ── v3 → v4: add libraryId index to svgs store ──────────────────────────
+      // (bitmaps migration is handled entirely in v5 below; skip here to avoid
+      // tagging entries we are about to discard anyway)
+      if (oldVersion >= 1 && oldVersion < 4 && db.objectStoreNames.contains(STORE_SVGS)) {
+        const svgStore = transaction.objectStore(STORE_SVGS);
+        if (!svgStore.indexNames.contains('libraryId')) {
+          svgStore.createIndex('libraryId', 'libraryId', { unique: false });
         }
+        const svgCursor = svgStore.openCursor();
+        svgCursor.onsuccess = (e) => {
+          const cursor = (e.target as IDBRequest<IDBCursorWithValue>).result;
+          if (!cursor) return;
+          if (!cursor.value.libraryId) {
+            cursor.update({ ...cursor.value, libraryId: 'migrated' });
+          }
+          cursor.continue();
+        };
+      }
 
-        if (oldVersion >= 1 && db.objectStoreNames.contains(STORE_SVGS)) {
-          const svgStore = transaction.objectStore(STORE_SVGS);
-          if (!svgStore.indexNames.contains('libraryId')) {
-            svgStore.createIndex('libraryId', 'libraryId', { unique: false });
-          }
-          // Tag existing entries
-          const svgCursor = svgStore.openCursor();
-          svgCursor.onsuccess = (e) => {
-            const cursor = (e.target as IDBRequest<IDBCursorWithValue>).result;
-            if (!cursor) return;
-            if (!cursor.value.libraryId) {
-              cursor.update({ ...cursor.value, libraryId: 'migrated' });
-            }
-            cursor.continue();
-          };
-        }
+      // ── v4 → v5: recreate bitmaps with compound keyPath ['libraryId', 'id'] ─
+      // Existing entries keyed only by 'id' caused template libraries with
+      // shared row IDs to clobber each other's bitmaps.  Recreate the store
+      // and preserve any entries that already carry a valid libraryId.
+      if (oldVersion >= 1 && oldVersion < 5 && db.objectStoreNames.contains(STORE_BITMAPS)) {
+        const oldBitmapStore = transaction.objectStore(STORE_BITMAPS);
+        const getAllReq = oldBitmapStore.getAll();
+        getAllReq.onsuccess = () => {
+          const existing = (getAllReq.result as BitmapEntry[]).filter(
+            e => e.libraryId && e.id && e.libraryId !== 'migrated',
+          );
+          db.deleteObjectStore(STORE_BITMAPS);
+          const newStore = db.createObjectStore(STORE_BITMAPS, { keyPath: ['libraryId', 'id'] });
+          newStore.createIndex('timestamp', 'timestamp', { unique: false });
+          newStore.createIndex('libraryId', 'libraryId', { unique: false });
+          existing.forEach(entry => {
+            try { newStore.put(entry); } catch (_) { /* skip duplicates */ }
+          });
+        };
+        // If read fails just recreate empty — bitmaps are re-fetched from templates
+        getAllReq.onerror = () => {
+          db.deleteObjectStore(STORE_BITMAPS);
+          const newStore = db.createObjectStore(STORE_BITMAPS, { keyPath: ['libraryId', 'id'] });
+          newStore.createIndex('timestamp', 'timestamp', { unique: false });
+          newStore.createIndex('libraryId', 'libraryId', { unique: false });
+        };
       }
     };
   });
@@ -250,12 +264,12 @@ export const saveBitmap = async (id: string, bitmap: string, libraryId: string):
   });
 };
 
-export const getBitmap = async (id: string): Promise<string | null> => {
+export const getBitmap = async (id: string, libraryId: string): Promise<string | null> => {
   const db = await initDB();
   return new Promise((resolve, reject) => {
     const transaction = db.transaction([STORE_BITMAPS], 'readonly');
     const store = transaction.objectStore(STORE_BITMAPS);
-    const request = store.get(id);
+    const request = store.get([libraryId, id]);
     request.onsuccess = () => {
       const result = request.result as BitmapEntry | undefined;
       resolve(result?.bitmap || null);
@@ -297,12 +311,12 @@ export const getAllBitmapsForLibrary = async (libraryId: string): Promise<Map<st
   });
 };
 
-export const deleteBitmap = async (id: string): Promise<void> => {
+export const deleteBitmap = async (id: string, libraryId: string): Promise<void> => {
   const db = await initDB();
   return new Promise((resolve, reject) => {
     const transaction = db.transaction([STORE_BITMAPS], 'readwrite');
     const store = transaction.objectStore(STORE_BITMAPS);
-    const request = store.delete(id);
+    const request = store.delete([libraryId, id]);
     request.onsuccess = () => resolve();
     request.onerror = () => reject(request.error);
   });

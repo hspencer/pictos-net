@@ -3036,7 +3036,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
                   onCascade={() => processCascade(row.id)}
                   onDelete={() => {
                     // Delete bitmap and SVG from IndexedDB
-                    IndexedDBService.deleteBitmap(row.id).catch(err => {
+                    if (activeLibraryId) IndexedDBService.deleteBitmap(row.id, activeLibraryId).catch(err => {
                       console.error('Failed to delete bitmap from IndexedDB:', err);
                     });
                     IndexedDBService.deleteSvgs(row.id).catch(err => {
