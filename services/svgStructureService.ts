@@ -31,6 +31,7 @@ import { callStructuringModel, extractToolUse } from './aiClient';
 import type { ClaudeResponse } from './aiClient';
 import { applyBooleanN, applySimplify } from './svgBooleanOps';
 import { findUnreachableNodeIds } from './svgTreeUtils';
+import { isMicroBlob } from './svgGeometryUtils';
 
 const MARK_RENDER_SIZE = 800;
 
@@ -441,7 +442,8 @@ function buildRestructureToolSchema(nodeList: NodeInfo[]) {
                 },
                 groups: {
                     type: 'array',
-                    description: 'One entry per VisualDOM node. Flat list — use parentId for hierarchy.',
+                    minItems: 1,
+                    description: 'One entry per VisualDOM node. Flat list — use parentId for hierarchy. MUST NOT be empty — an empty array means every path was silently lost; if a node is unclear, assign it to the closest matching node instead of omitting it.',
                     items: {
                         type: 'object',
                         properties: {
@@ -875,7 +877,30 @@ export function assembleFromMapping(
             (g.keep ?? []).forEach(id => assignedIds.add(id));
             g.merge?.sources?.forEach(id => assignedIds.add(id));
         }
-        for (const id of (mapping.discard ?? [])) assignedIds.add(id);
+
+        // Discards are only trusted when the path is a genuine micro-blob —
+        // the prompt's own rule ("área visualmente insignificante"). A
+        // discarded path with a real, visible bounding box is distrusted
+        // (see "Me duele la cabeza": the model discarded a clearly-visible
+        // pain-indicator icon despite "preservar es la prioridad") and left
+        // unassigned instead, so it flows through the orphan rescue below
+        // and still renders, in an ungrouped 'contexto' bucket, rather than
+        // silently vanishing.
+        const [, , vbW, vbH] = inventory.viewBox.split(/\s+/).map(Number);
+        const viewBoxArea = (vbW || 1024) * (vbH || 1024);
+        let overriddenDiscards = 0;
+        for (const id of (mapping.discard ?? [])) {
+            const p = originalPaths.get(id);
+            if (p && !isMicroBlob(p.d, viewBoxArea)) {
+                overriddenDiscards++;
+                continue; // left unassigned on purpose — rescued as an orphan below
+            }
+            assignedIds.add(id);
+        }
+        if (overriddenDiscards > 0) {
+            console.warn(`[assemble] ${overriddenDiscards} descarte(s) del modelo revertido(s) por no ser micro-mancha(s)`);
+            input.onProgress?.(`[ESTRUCTURAR] ${overriddenDiscards} descarte(s) del modelo revertido(s) — no eran micro-manchas, se preservan en 'contexto'`);
+        }
 
         // Unaccounted paths → fallback contexto group
         const allOriginalIds = Array.from(originalPaths.keys()).filter(id => !inventory.backgroundPathIds.includes(id));
@@ -890,6 +915,23 @@ export function assembleFromMapping(
                 if (!childMap.has(null)) childMap.set(null, []);
                 childMap.get(null)!.push(effectiveGroups[effectiveGroups.length - 1]);
             }
+        }
+
+        // Hard safety net: if, after every rescue above, there is STILL
+        // nothing renderable — the model returned zero groups, or its
+        // `discard` list swallowed every real path (which also skips the
+        // orphan rescue above, since discarded ids count as "accounted
+        // for") — NEVER silently emit a blank pictogram. A wholesale-empty
+        // response contradicts "preservar es la prioridad" outright, so it
+        // is distrusted entirely: fall back to one flat group holding every
+        // non-background path. Visible and unstructured beats invisible.
+        if (effectiveGroups.length === 0 && allOriginalIds.length > 0) {
+            console.warn(`[assemble] el modelo no devolvió ningún grupo renderizable (grupos vacíos o descarte total) — fallback a grupo plano con ${allOriginalIds.length} path(s)`);
+            input.onProgress?.(`[ESTRUCTURAR] el modelo devolvió una estructura vacía — usando todos los trazos sin agrupar como respaldo (${allOriginalIds.length} paths)`);
+            const fallbackGroup: StructuringGroup = { nodeId: 'contexto', label: 'elementos de contexto', cssClass: 'f', parentId: null, keep: allOriginalIds, selected: true };
+            effectiveGroups = [fallbackGroup];
+            childMap.clear();
+            childMap.set(null, [fallbackGroup]);
         }
 
         // Render top-level groups (parentId = null)
