@@ -482,6 +482,7 @@ export interface LibraryMeta {
   pictogramCount: number;
   sequenceCount: number;
   language?: string;
+  sourceTemplate?: string;  // filename in /libraries/ — set when loaded from a template card
 }
 
 // ── Sequences ──────────────────────────────────────────────────────────────

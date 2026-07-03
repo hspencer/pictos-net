@@ -542,6 +542,38 @@ const App: React.FC<AppProps> = ({ authUser }) => {
             if (value.rawSvg || value.structuredSvg) seeded.add(id);
           });
           svgRowIdsRef.current = seeded;
+
+          // ── Bitmap recovery for stale template libraries (on app startup) ──
+          if (bitmapsMap.size === 0) {
+            const meta = index.find(l => l.id === targetId);
+            const sourceTemplate = meta?.sourceTemplate;
+            if (sourceTemplate) {
+              const needsBitmaps = loadedRows.some(
+                (r: RowData) => r.bitmapStatus === 'completed' && !r.rawSvg && !r.structuredSvg,
+              );
+              if (needsBitmaps) {
+                fetch(`/libraries/${sourceTemplate}`)
+                  .then(res => res.ok ? res.json() : Promise.reject(res.status))
+                  .then((data: { rows?: RowData[] }) => {
+                    const templateMap = new Map<string, string>(
+                      (data.rows ?? []).filter(r => r.bitmap).map(r => [r.id, r.bitmap!]),
+                    );
+                    const entries = loadedRows
+                      .filter((r: RowData) => templateMap.has(r.id))
+                      .map((r: RowData) => ({ id: r.id, bitmap: templateMap.get(r.id)!, libraryId: targetId }));
+                    if (entries.length === 0) return;
+                    return IndexedDBService.saveBitmapsBatch(entries).then(() => {
+                      setRows(prev => prev.map(r => {
+                        const bmp = templateMap.get(r.id);
+                        return bmp ? { ...r, bitmap: bmp } : r;
+                      }));
+                      console.info(`[init] Recovered ${entries.length} bitmap(s) from ${sourceTemplate}`);
+                    });
+                  })
+                  .catch(err => console.warn('[init] Bitmap recovery failed:', err));
+              }
+            }
+          }
         } catch (err) {
           console.error('Failed to load binary data from IndexedDB:', err);
         }
@@ -656,6 +688,41 @@ const App: React.FC<AppProps> = ({ authUser }) => {
         const seeded = new Set<string>();
         svgsMap.forEach((_v, rowId) => { seeded.add(rowId); });
         svgRowIdsRef.current = seeded;
+
+        // ── Bitmap recovery for stale template libraries ─────────────────────
+        // If IDB has no bitmaps but rows have bitmapStatus:'completed', the
+        // bitmaps were lost (clobbered by a same-ID template load before v5).
+        // Re-fetch the source template and restore bitmaps silently.
+        if (bitmapsMap.size === 0) {
+          const meta = libraryService.getLibraryIndex().find(l => l.id === id);
+          const sourceTemplate = meta?.sourceTemplate;
+          if (sourceTemplate) {
+            const needsBitmaps = savedRows.some(
+              (r: RowData) => r.bitmapStatus === 'completed' && !r.rawSvg && !r.structuredSvg,
+            );
+            if (needsBitmaps) {
+              fetch(`/libraries/${sourceTemplate}`)
+                .then(res => res.ok ? res.json() : Promise.reject(res.status))
+                .then((data: { rows?: RowData[] }) => {
+                  const templateMap = new Map<string, string>(
+                    (data.rows ?? []).filter(r => r.bitmap).map(r => [r.id, r.bitmap!]),
+                  );
+                  const entries = savedRows
+                    .filter((r: RowData) => templateMap.has(r.id))
+                    .map((r: RowData) => ({ id: r.id, bitmap: templateMap.get(r.id)!, libraryId: id }));
+                  if (entries.length === 0) return;
+                  return IndexedDBService.saveBitmapsBatch(entries).then(() => {
+                    setRows(prev => prev.map(r => {
+                      const bmp = templateMap.get(r.id);
+                      return bmp ? { ...r, bitmap: bmp } : r;
+                    }));
+                    console.info(`[openLibrary] Recovered ${entries.length} bitmap(s) from ${sourceTemplate}`);
+                  });
+                })
+                .catch(err => console.warn('[openLibrary] Bitmap recovery failed:', err));
+            }
+          }
+        }
       }).catch(err => console.error('[openLibrary] IDB load failed:', err));
     }
 
@@ -1185,6 +1252,9 @@ const App: React.FC<AppProps> = ({ authUser }) => {
           }
           libraryService.saveLibraryConfig(newLib.id, pendingConfig);
         }
+
+        // Tag library with its source template so bitmap recovery can re-fetch it later
+        libraryService.updateLibraryMeta(newLib.id, { sourceTemplate: filename });
 
         // Restore sequences from the template JSON (re-keyed to the new library id)
         if (Array.isArray(data.sequences) && data.sequences.length > 0) {
