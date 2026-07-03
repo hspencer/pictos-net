@@ -42,6 +42,13 @@ external entity Row {
 external entity Sequence {
   id: String
   name: String
+  reference_row_id: String?   -- key pictogram chosen as visual reference
+}
+
+-- Library-level config (managed by generation-config.allium / library-manager).
+-- Only the field batch reference resolution touches.
+external entity LibraryConfig {
+  reference_row_id: String?   -- library-wide visual identity reference
 }
 
 ------------------------------------------------------------
@@ -82,6 +89,9 @@ entity BatchJob {
   model: String           -- gemini image model frozen at submission
   sequence_id: String?    -- present when the job batches one sequence
   anchors: String?        -- shared visual-anchor preamble (sequence jobs only)
+  reference_row_id: String?   -- key pictogram used as image reference, if any
+  reference_gcs_uri: String?  -- the job's OWN copy of the reference in GCS;
+                              -- set iff reference_row_id is set
   vertex_job_name: String
   state: BatchState
   items: List<BatchItem>
@@ -118,6 +128,50 @@ config {
 }
 
 ------------------------------------------------------------
+-- Rules — Reference pictogram
+------------------------------------------------------------
+
+-- A reference lives at two levels with clear precedence: the sequence's key
+-- pictogram (the protagonist of that transaction) wins over the library's
+-- reference (its global visual identity). Choosing an approved pictogram IS
+-- the professional's curation gesture: they point at an image that came out
+-- right instead of editing a textual description of a character.
+
+rule UserSelectsSequenceReference {
+  when: UserSelectsSequenceReference(sequence, row)
+  requires: row.bitmap_status = "completed"
+    -- only a generated pictogram can serve as reference (bootstrap: the
+    -- online path always exists, so batching "from nothing" simply falls
+    -- back to textual anchors — no deadlock)
+  ensures: sequence.reference_row_id = row.id
+}
+
+rule UserSelectsLibraryReference {
+  when: UserSelectsLibraryReference(library_config, row)
+  requires: row.bitmap_status = "completed"
+  ensures: library_config.reference_row_id = row.id
+}
+
+rule ClearDanglingReference {
+  when: RowRemoved(row_id)
+    -- emitted by the row lifecycle (visual-reasoning / library-manager)
+    -- when a row is deleted; regeneration keeps the id, so a regenerated
+    -- reference simply changes meaning — the professional re-curates if
+    -- the new image no longer represents the intended style.
+  ensures:
+    for s in Sequences where reference_row_id = row_id:
+      s.reference_row_id = null
+    if library_config.reference_row_id = row_id:
+      library_config.reference_row_id = null
+
+  @guidance
+    -- Same dangling-pointer hygiene sequences already apply to step.rowId.
+    -- Active BatchJobs are NOT touched: they hold their own GCS copy
+    -- (reference_gcs_uri), so deleting the source row never breaks a
+    -- running job. See invariant "active jobs immune to reference mutation".
+}
+
+------------------------------------------------------------
 -- Rules — Submission
 ------------------------------------------------------------
 
@@ -140,13 +194,25 @@ rule SubmitBatch {
     -- attempts; failed lines are not refunded (see open question).
     QuotaCharged(email: submitter.email, units: rows.count)
 
+    -- Reference resolution (precedence: none at library scope beyond the
+    -- library reference itself). resolve_reference is a black box: reads
+    -- library_config.reference_row_id; if set and that row's artifact
+    -- exists, rasterizes it when it is SVG (Recraft output), uploads the
+    -- job's own copy to gs://{bucket}/{gcs_input_prefix}/{job_id}/reference.png
+    -- and returns its uri; otherwise returns null.
+    let reference = resolve_reference(library_config)
+
     let job = BatchJob.created(
       library_id: library.id,
       owner_email: submitter.email,
       model: model,
-      vertex_job_name: vertex_create_batch_job(rows, model),
+      reference_row_id: library_config.reference_row_id,
+      reference_gcs_uri: reference,
+      vertex_job_name: vertex_create_batch_job(rows, model, reference),
         -- black box: builds JSONL (one generateContent request per row,
-        -- responseModalities IMAGE, 1:1, 1K — batch caps output at 1K),
+        -- responseModalities IMAGE, 1:1, 1K — batch caps output at 1K);
+        -- when reference != null each line includes it as fileData
+        -- (image reference for character and style consistency);
         -- uploads to gs://{bucket}/{gcs_input_prefix}/{job_id}.jsonl,
         -- creates the Vertex job on the global endpoint,
         -- output to gs://{bucket}/{gcs_output_prefix}/{job_id}/
@@ -192,17 +258,29 @@ rule SubmitSequenceBatch {
     -- is untouched); consistency travels to Phase 3 only.
     let anchors = derive_sequence_anchors(sequence, rows)
     QuotaCharged(email: submitter.email, units: rows.count)
+
+    -- Reference resolution with precedence sequence > library: the
+    -- sequence's key pictogram (protagonist of this transaction) wins over
+    -- the library-wide visual identity. Same black box as SubmitBatch.
+    let reference = resolve_reference(sequence, library_config)
+    let reference_row = sequence.reference_row_id ?? library_config.reference_row_id
+
     let job = BatchJob.created(
       library_id: library.id,
       owner_email: submitter.email,
       model: model,
       sequence_id: sequence.id,
       anchors: anchors,
-      vertex_job_name: vertex_create_sequence_batch_job(rows, model, anchors),
+      reference_row_id: reference_row,
+      reference_gcs_uri: reference,
+      vertex_job_name: vertex_create_sequence_batch_job(rows, model, anchors, reference),
         -- black box: like vertex_create_batch_job, but each JSONL line's
         -- prompt = anchors + "Step {position} of {rows.count} in the
-        -- sequence '{sequence.name}'." + row.prompt. The manifest hashes
-        -- this COMPOSED prompt, since that is the text Vertex echoes back.
+        -- sequence '{sequence.name}'." + row.prompt, and when reference !=
+        -- null each line carries it as fileData. Image reference and
+        -- textual anchors are complementary: the image pins character and
+        -- style, the text pins step position and scene. The manifest hashes
+        -- the COMPOSED prompt, since that is the text Vertex echoes back.
       state: submitted,
       items: manifest_of_composed(rows, anchors),
       row_count: rows.count,
@@ -343,6 +421,18 @@ invariant ManifestCoversAllRows {
   -- No API key or service-account credential ever reaches the browser; the
   -- client talks only to Netlify functions, which hold GCS/Vertex access.
 
+@invariant "active jobs immune to reference mutation"
+  -- A BatchJob carries its own GCS copy of the reference image
+  -- (reference_gcs_uri), uploaded at submission. Deleting, regenerating or
+  -- re-pointing the source pictogram after submission cannot alter or break
+  -- a queued or running job.
+
+@invariant "reference is always a completed pictogram"
+  -- Both selection rules require bitmap_status = completed, and
+  -- resolve_reference returns null when the referenced artifact is missing.
+  -- Batching without any reference is always possible (textual anchors
+  -- only): the bootstrap is by design, never a deadlock.
+
 ------------------------------------------------------------
 -- Open Questions
 ------------------------------------------------------------
@@ -365,20 +455,19 @@ open question LiveProgressGranularity {
   -- so finished pictograms appear before the job ends?
 }
 
-open question ImageReferenceConsistency {
-  -- gemini-2.5-flash-image GA supports reference images, and batch JSONL
-  -- lines accept fileData with gs:// URIs. A two-pass sequence batch —
-  -- generate the anchor pictogram first, upload it to the bucket, then
-  -- batch the remaining steps with the anchor as character/style reference —
-  -- would give consistency by image rather than by description, which is
-  -- more robust. v1 uses textual anchors only; is the two-pass flow worth
-  -- its extra latency and orchestration?
-}
+-- RESOLVED (2026-07-03) ImageReferenceConsistency: instead of a two-pass
+-- batch, the reference is a key pictogram already generated in the library,
+-- chosen by the professional (sequence-level, falling back to a
+-- library-level reference). Single-pass submission; the job uploads its own
+-- copy. Bootstrap via the always-available online path; no reference means
+-- textual anchors only.
 
 open question AnchorAuthorship {
-  -- Who defines the recurring character and visual anchors of a sequence:
-  -- the machine (Phase 2.5 proposes silently), the professional (machine
-  -- proposes, therapist edits before submitting), or the end user (the
-  -- persona should perhaps resemble THEM)? This is a doctoral control-point
-  -- question, not just a UX choice. v1: machine proposes, no editing.
+  -- Partially resolved: choosing the key pictogram IS the professional's
+  -- curation of character and style — pointing at an approved image instead
+  -- of editing a textual description. Remaining question: should the
+  -- recurring persona be able to resemble the END USER (their photo or
+  -- avatar as reference input), and what consent does that require? This
+  -- stays a doctoral control-point question. v1: machine proposes textual
+  -- anchors; professional optionally pins a reference pictogram.
 }

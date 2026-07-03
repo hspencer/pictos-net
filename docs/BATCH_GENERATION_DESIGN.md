@@ -122,11 +122,31 @@ LIBRERIA_TALLER.md rule 7); consistency travels to Phase 3 only. The
 manifest hashes the composed prompt (anchors + position + row prompt), since
 that is the text Vertex echoes back.
 
-Two open questions worth flagging: consistency by reference image (two-pass
-batch using `fileData` gs:// URIs — more robust than textual anchors) and
-anchor authorship (machine proposes vs. professional edits vs. end-user
-likeness), the latter being a doctoral control-point question. Both tracked
-in the spec.
+## Reference pictogram (consistency by image)
+
+`gemini-2.5-flash-image` accepts reference images, and batch JSONL lines
+carry them as `fileData` with gs:// URIs. Rather than a two-pass batch, the
+reference is a key pictogram already generated in the library, chosen by the
+professional: sequence-level reference (the protagonist of that transaction)
+takes precedence over a library-level reference (its global visual
+identity). Choosing an approved image is the curation gesture — far more
+natural for educators and speech therapists than editing a textual
+description of a character. Image reference and textual anchors are
+complementary: the image pins character and style, the text pins step
+position and scene.
+
+Bootstrap is by design, never a deadlock: with no reference chosen the batch
+runs on textual anchors alone, and the online path always exists to generate
+the first candidate pictograms from which a reference is picked. Two
+mechanics matter: SVG references (Recraft output) are rasterized before
+upload, and each job uploads its own copy of the reference to its GCS input
+prefix — deleting or regenerating the source row never breaks an active job.
+Dangling `reference_row_id` pointers are cleared on row deletion, the same
+hygiene sequences apply to `step.rowId`.
+
+Remaining doctoral control-point question (tracked in the spec as
+AnchorAuthorship): should the recurring persona be able to resemble the end
+user, and what consent would that require?
 
 ## UX sketch
 
