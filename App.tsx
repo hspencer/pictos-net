@@ -1468,10 +1468,22 @@ const App: React.FC<AppProps> = ({ authUser }) => {
   const bulkRegenerate = async (newModel: GenerationModel) => {
     setConfig(prev => ({ ...prev, generationModel: newModel }));
     const affected = rows.filter(r => r.generationModel && r.generationModel !== newModel && r.bitmapStatus === 'completed');
-    // BulkRegeneration rule: dispatch Phase 3 concurrently for all affected rows
+    // BulkRegeneration rule: dispatch Phase 3 for all affected rows, but with
+    // bounded concurrency (pool of 3). An unbounded Promise.all over N rows
+    // fires N simultaneous provider calls and reliably trips 429
+    // RESOURCE_EXHAUSTED on Vertex image models (dynamic shared quota).
     const configWithNewModel = { ...config, generationModel: newModel };
+    const POOL_SIZE = 3;
+    const pending = [...affected];
     await Promise.all(
-      affected.map(async (row) => {
+      Array.from({ length: Math.min(POOL_SIZE, pending.length) }, async () => {
+        for (let row = pending.shift(); row; row = pending.shift()) {
+          await regenerateRow(row);
+        }
+      })
+    );
+
+    async function regenerateRow(row: RowData) {
         updateRowById(row.id, {
           bitmapStatus: 'processing',
           rawSvg: undefined,
@@ -1503,8 +1515,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
             addLog('error', `[REGENERAR] Error en "${row.UTTERANCE}": ${err.message}`);
           }
         }
-      })
-    );
+    }
   };
 
   const processStep = async (rowId: string, step: 'nlu' | 'visual' | 'produce' | 'structure'): Promise<boolean> => {

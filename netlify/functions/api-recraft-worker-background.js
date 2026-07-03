@@ -98,7 +98,9 @@ export const handler = async (event, context) => {
     };
 
     // fetchWithRetry absorbs transient "fetch failed" transport errors and
-    // upstream 5xx; 4xx is returned unretried and handled below.
+    // upstream 5xx. retryOn429: Recraft rate-limits bursts (parallel cascades)
+    // with 429 — retried with exponential backoff like the Gemini worker.
+    // Other 4xx are returned unretried and handled below.
     const recraftRes = await fetchWithRetry(RECRAFT_API_URL, {
       method: 'POST',
       headers: {
@@ -106,7 +108,7 @@ export const handler = async (event, context) => {
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify(body),
-    });
+    }, { retries: 4, baseDelayMs: 2000, retryOn429: true });
 
     if (!recraftRes.ok) {
       const errText = await recraftRes.text().catch(() => recraftRes.statusText);

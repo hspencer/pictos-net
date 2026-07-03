@@ -218,8 +218,10 @@ export async function callRecraft(params: RecraftParams): Promise<RecraftRespons
         throw new Error(`Fallo al iniciar el trabajo de Recraft: ${startRes.statusText}`);
     }
 
-    // 2. Hacer polling hasta por 60 segundos
-    for (let i = 0; i < 30; i++) {
+    // 2. Hacer polling hasta por 120 segundos — el worker reintenta 429 del
+    //    proveedor con backoff exponencial (hasta ~30s extra), así que la
+    //    ventana debe superar generación + reintentos.
+    for (let i = 0; i < 60; i++) {
         await new Promise(r => setTimeout(r, 2000));
 
         const pollRes = await fetch(`/.netlify/functions/api-recraft-poll?jobId=${jobId}`, {
@@ -244,7 +246,7 @@ export async function callRecraft(params: RecraftParams): Promise<RecraftRespons
         if (data.pending) continue;
     }
 
-    throw new Error('Tiempo de espera agotado tras 60s generando el pictograma');
+    throw new Error('Tiempo de espera agotado tras 120s generando el pictograma');
 }
 
 export interface GeminiParams {
@@ -279,7 +281,9 @@ export async function callGemini(params: GeminiParams): Promise<GeminiResponse> 
         throw new Error(`Fallo al iniciar el trabajo de Gemini: ${startRes.statusText}`);
     }
 
-    for (let i = 0; i < 30; i++) {
+    // Polling hasta 120s: el worker reintenta 429 (cuota compartida de Vertex)
+    // con backoff exponencial, así que la espera puede superar los 60s.
+    for (let i = 0; i < 60; i++) {
         await new Promise(r => setTimeout(r, 2000));
 
         const pollRes = await fetch(`/.netlify/functions/api-gemini-poll?jobId=${jobId}`, {
@@ -302,7 +306,7 @@ export async function callGemini(params: GeminiParams): Promise<GeminiResponse> 
         if (data.pending) continue;
     }
 
-    throw new Error('Tiempo de espera agotado tras 60s generando imagen con Gemini');
+    throw new Error('Tiempo de espera agotado tras 120s generando imagen con Gemini');
 }
 
 export interface CheckResult {

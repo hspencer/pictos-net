@@ -42,26 +42,40 @@ export function describeFetchError(error) {
  * fetch() with retry + exponential backoff for transient failures.
  *
  * Retries on: network-level throws (the "fetch failed" TypeError) and upstream
- * 5xx responses. Does NOT retry 4xx (auth, quota, bad request) — those are
- * returned to the caller unchanged so existing handling still applies.
+ * 5xx responses. Does NOT retry 4xx (auth, quota, bad request) by default —
+ * those are returned to the caller unchanged so existing handling still applies.
+ *
+ * `retryOn429: true` additionally retries HTTP 429 (RESOURCE_EXHAUSTED).
+ * Rationale: Gemini image models on Vertex AI run on dynamic *shared* quota —
+ * there is no per-project quota to raise, and transient 429s are expected
+ * during bursts or global congestion. Google's own guidance is truncated
+ * exponential backoff. The `Retry-After` header is honored when present, and
+ * jitter de-synchronises parallel background workers so they don't all retry
+ * at the same instant. Waits are capped at 30s per attempt.
  *
  * Used by both image workers for the upstream generation request (and, in the
  * Recraft worker, the CDN image download).
  *
  * @param {string} url
  * @param {RequestInit} options    Standard fetch options.
- * @param {{retries?: number, baseDelayMs?: number}} cfg
+ * @param {{retries?: number, baseDelayMs?: number, retryOn429?: boolean}} cfg
  * @returns {Promise<Response>}
  */
-export async function fetchWithRetry(url, options, { retries = 2, baseDelayMs = 600 } = {}) {
+export async function fetchWithRetry(url, options, { retries = 2, baseDelayMs = 600, retryOn429 = false } = {}) {
   let lastError;
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
       const res = await fetch(url, options);
-      // Retry transient upstream 5xx; return everything else to the caller.
-      if (res.status >= 500 && res.status < 600 && attempt < retries) {
+      // Retry transient upstream 5xx (and 429 when opted in); return
+      // everything else to the caller.
+      const retryable = (res.status >= 500 && res.status < 600) || (retryOn429 && res.status === 429);
+      if (retryable && attempt < retries) {
         lastError = new Error(`Upstream ${res.status}`);
-        await delay(baseDelayMs * 2 ** attempt);
+        const retryAfterSec = Number(res.headers.get('retry-after'));
+        const backoff = baseDelayMs * 2 ** attempt * (1 + Math.random() * 0.25);
+        const wait = retryAfterSec > 0 ? retryAfterSec * 1000 : backoff;
+        console.warn(`[httpRetry] upstream ${res.status}, retry ${attempt + 1}/${retries} in ${Math.round(wait)}ms`);
+        await delay(Math.min(wait, 30000));
         continue;
       }
       return res;

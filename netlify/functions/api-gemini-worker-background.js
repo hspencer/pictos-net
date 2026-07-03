@@ -74,7 +74,10 @@ export const handler = async (event, context) => {
     const url = vertexModelUrl(model);
     // fetchWithRetry absorbs transient "fetch failed" transport errors (DNS,
     // IPv6, dead keep-alive socket) that otherwise reach the user as an opaque
-    // failure. 4xx (auth/quota) is returned unretried and handled below.
+    // failure. retryOn429: Vertex image models run on dynamic shared quota and
+    // return transient 429 RESOURCE_EXHAUSTED under burst/congestion — retried
+    // with exponential backoff (2s/4s/8s/16s + jitter, ~30s worst case, well
+    // inside the client's 120s poll window). Other 4xx handled below unretried.
     const geminiRes = await fetchWithRetry(url, {
       method: 'POST',
       headers: {
@@ -88,7 +91,7 @@ export const handler = async (event, context) => {
           imageConfig: { aspectRatio: '1:1', imageSize: '1K' },
         },
       }),
-    });
+    }, { retries: 4, baseDelayMs: 2000, retryOn429: true });
 
     if (!geminiRes.ok) {
       const errText = await geminiRes.text().catch(() => geminiRes.statusText);
