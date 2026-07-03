@@ -37,6 +37,13 @@ external entity Row {
   bitmap_status: String   -- idle | processing | completed | error
 }
 
+-- A sequence of the active library (managed by sequences.allium). Only the
+-- fields sequence batching touches; steps resolve to Rows via rowId.
+external entity Sequence {
+  id: String
+  name: String
+}
+
 ------------------------------------------------------------
 -- Value Types
 ------------------------------------------------------------
@@ -73,6 +80,8 @@ entity BatchJob {
   library_id: String
   owner_email: String     -- Identity user who submitted; only they may collect
   model: String           -- gemini image model frozen at submission
+  sequence_id: String?    -- present when the job batches one sequence
+  anchors: String?        -- shared visual-anchor preamble (sequence jobs only)
   vertex_job_name: String
   state: BatchState
   items: List<BatchItem>
@@ -157,6 +166,59 @@ rule SubmitBatch {
     -- Identity JWT verified via _shared/identity.js like all workers.
     -- The BatchJob blob is the single source of truth; the client keeps
     -- only {library_id} pointers and re-reads state via api-batch-status.
+    -- UI entry point: "Generar en lote" at library level (logistic gesture:
+    -- produce many, cheap, overnight).
+}
+
+rule SubmitSequenceBatch {
+  when: UserSubmitsSequenceBatch(library, sequence, rows, model)
+    -- rows are the sequence's steps resolved to Rows, in step order
+
+  requires: model in config.batch_models
+  requires: rows.count >= 1 and rows.count <= config.max_rows_per_batch
+  requires: rows.all(r => r.prompt != null)
+  requires: not exists BatchJob{library_id: library.id, state: submitted}
+    and not exists BatchJob{library_id: library.id, state: queued}
+    and not exists BatchJob{library_id: library.id, state: running}
+    and not exists BatchJob{library_id: library.id, state: collecting}
+
+  ensures:
+    -- Phase 2.5: derive_sequence_anchors is a black box — one Claude call
+    -- (0 units, api-claude is quota-free per usage-enforcement) that reads
+    -- ALL utterances of the sequence and produces a shared visual-anchor
+    -- preamble: one recurring character described once (appearance, age,
+    -- clothing), a fixed palette, the recurring objects and setting of the
+    -- transaction. The sequence stays semantically self-contained (Phase 1
+    -- is untouched); consistency travels to Phase 3 only.
+    let anchors = derive_sequence_anchors(sequence, rows)
+    QuotaCharged(email: submitter.email, units: rows.count)
+    let job = BatchJob.created(
+      library_id: library.id,
+      owner_email: submitter.email,
+      model: model,
+      sequence_id: sequence.id,
+      anchors: anchors,
+      vertex_job_name: vertex_create_sequence_batch_job(rows, model, anchors),
+        -- black box: like vertex_create_batch_job, but each JSONL line's
+        -- prompt = anchors + "Step {position} of {rows.count} in the
+        -- sequence '{sequence.name}'." + row.prompt. The manifest hashes
+        -- this COMPOSED prompt, since that is the text Vertex echoes back.
+      state: submitted,
+      items: manifest_of_composed(rows, anchors),
+      row_count: rows.count,
+      succeeded_count: 0,
+      failed_count: 0,
+      created_at: now
+    )
+    for r in rows:
+      r.bitmap_status = "processing"
+
+  @guidance
+    -- UI entry point: "Generar secuencia en lote" in the sequence editor
+    -- toolbar (semantic gesture: visual consistency across the steps of one
+    -- transaction). Monitoring and collection are shared with SubmitBatch:
+    -- PollBatch, CollectResults and ApplyRowOutcome operate on any BatchJob
+    -- regardless of sequence_id.
 }
 
 ------------------------------------------------------------
@@ -301,4 +363,22 @@ open question LiveProgressGranularity {
   -- completionStats gives counts, not per-row identity. Is "12/38" enough
   -- for the UI, or should the collector run incrementally on partial output
   -- so finished pictograms appear before the job ends?
+}
+
+open question ImageReferenceConsistency {
+  -- gemini-2.5-flash-image GA supports reference images, and batch JSONL
+  -- lines accept fileData with gs:// URIs. A two-pass sequence batch —
+  -- generate the anchor pictogram first, upload it to the bucket, then
+  -- batch the remaining steps with the anchor as character/style reference —
+  -- would give consistency by image rather than by description, which is
+  -- more robust. v1 uses textual anchors only; is the two-pass flow worth
+  -- its extra latency and orchestration?
+}
+
+open question AnchorAuthorship {
+  -- Who defines the recurring character and visual anchors of a sequence:
+  -- the machine (Phase 2.5 proposes silently), the professional (machine
+  -- proposes, therapist edits before submitting), or the end user (the
+  -- persona should perhaps resemble THEM)? This is a doctoral control-point
+  -- question, not just a UX choice. v1: machine proposes, no editing.
 }

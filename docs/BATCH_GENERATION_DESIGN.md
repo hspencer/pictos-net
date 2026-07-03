@@ -103,15 +103,43 @@ no batch API).
 Custom service accounts are not supported by batch jobs themselves; the job
 runs under Google's AI Platform service agent, which is why step 2 exists.
 
+## Sequence batch and visual anchors (Phase 2.5)
+
+Batching a sequence is a different gesture from batching a library: the
+library button is logistic (produce many, cheap, overnight); the sequence
+button is semantic. Because the batch assembles every JSONL line in a single
+act, it can inject a shared preamble into each line that row-by-row online
+generation cannot provide: the same recurring character described once
+(appearance, age, clothing), a fixed palette, the recurring objects and
+setting of the transaction, plus the step position ("Step 4 of 10 in the
+sequence 'Postulación SAE'").
+
+The anchors come from one extra Claude call before submission — a Phase 2.5
+(`derive_sequence_anchors`, 0 quota units since api-claude is free) that
+reads all utterances of the sequence and writes the shared visual bible.
+Phase 1 semantics are untouched: utterances remain self-contained (see
+LIBRERIA_TALLER.md rule 7); consistency travels to Phase 3 only. The
+manifest hashes the composed prompt (anchors + position + row prompt), since
+that is the text Vertex echoes back.
+
+Two open questions worth flagging: consistency by reference image (two-pass
+batch using `fileData` gs:// URIs — more robust than textual anchors) and
+anchor authorship (machine proposes vs. professional edits vs. end-user
+likeness), the latter being a doctoral control-point question. Both tracked
+in the spec.
+
 ## UX sketch
 
-Library view gains "Generar librería en lote" (enabled when 1+ rows have a
-Phase 2 prompt and no batch is active). Confirmation dialog states the unit
-cost, the 50% discount and the "minutes to hours, up to 24h" expectation. A
-persistent status chip on the library header shows queue/run progress from
-`completionStats` ("Lote: generando 12/38") and survives reloads. On
-completion, rows fill in with the standard completed/error states; failed
-rows show the per-line Vertex error and can be retried online.
+Two entry points. Library view gains "Generar librería en lote" (enabled
+when 1+ rows have a Phase 2 prompt and no batch is active); the sequence
+editor toolbar gains "Generar secuencia en lote", which runs Phase 2.5 and
+shows the derived anchors in the confirmation dialog. The confirmation
+states the unit cost, the 50% discount and the "minutes to hours, up to 24h"
+expectation. A persistent status chip on the library header shows queue/run
+progress from `completionStats` ("Lote: generando 12/38") and survives
+reloads. On completion, rows fill in with the standard completed/error
+states; failed rows show the per-line Vertex error and can be retried
+online.
 
 ## Out of scope for v1
 
