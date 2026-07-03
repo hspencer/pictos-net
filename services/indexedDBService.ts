@@ -1,20 +1,23 @@
 /**
  * IndexedDB Service — primary persistence layer for pictos-net
  *
- * v5 schema:
+ * v6 schema:
  *   rows    — RowData metadata WITHOUT binary fields (bitmap, rawSvg, structuredSvg)
  *   bitmaps — { libraryId, id, bitmap: base64 data URL } — keyPath: ['libraryId', 'id']
  *   svgs    — { id, rawSvg?, structuredSvg?, libraryId }
  *
- * v4 → v5: bitmaps keyPath changed from 'id' to ['libraryId', 'id'] so that
- * two libraries that happen to share row IDs (e.g. template copies) no longer
- * clobber each other's bitmap entries.
+ * v4 → v5: bitmaps keyPath changed from 'id' to ['libraryId', 'id'] (async migration —
+ *   was buggy; the async getAll() inside onupgradeneeded could hang the upgrade
+ *   transaction, blocking all IDB operations indefinitely).
+ * v5 → v6: synchronous recreation of bitmaps store to fix any corrupt/missing
+ *   state left by the broken v5 migration. Existing bitmap entries are dropped
+ *   (they are re-fetched from template JSON via the sourceTemplate recovery path).
  *
  * localStorage is used only for config (pictonet_v19_config).
  */
 
 const DB_NAME = 'pictonet_storage';
-const DB_VERSION = 5;
+const DB_VERSION = 6;
 const STORE_ROWS = 'rows';
 const STORE_BITMAPS = 'bitmaps';
 const STORE_SVGS = 'svgs';
@@ -62,28 +65,7 @@ export const initDB = (): Promise<IDBDatabase> => {
       const transaction = (event.target as IDBOpenDBRequest).transaction!;
       const oldVersion = event.oldVersion;
 
-      // ── Fresh stores (new database, oldVersion = 0) ──────────────────────────
-      if (!db.objectStoreNames.contains(STORE_BITMAPS)) {
-        // v5+: compound key so two libraries sharing row IDs don't collide
-        const store = db.createObjectStore(STORE_BITMAPS, { keyPath: ['libraryId', 'id'] });
-        store.createIndex('timestamp', 'timestamp', { unique: false });
-        store.createIndex('libraryId', 'libraryId', { unique: false });
-      }
-
-      if (!db.objectStoreNames.contains(STORE_SVGS)) {
-        const store = db.createObjectStore(STORE_SVGS, { keyPath: 'id' });
-        store.createIndex('timestamp', 'timestamp', { unique: false });
-        store.createIndex('libraryId', 'libraryId', { unique: false });
-      }
-
-      if (!db.objectStoreNames.contains(STORE_ROWS)) {
-        const store = db.createObjectStore(STORE_ROWS, { keyPath: 'id' });
-        store.createIndex('timestamp', 'timestamp', { unique: false });
-      }
-
       // ── v3 → v4: add libraryId index to svgs store ──────────────────────────
-      // (bitmaps migration is handled entirely in v5 below; skip here to avoid
-      // tagging entries we are about to discard anyway)
       if (oldVersion >= 1 && oldVersion < 4 && db.objectStoreNames.contains(STORE_SVGS)) {
         const svgStore = transaction.objectStore(STORE_SVGS);
         if (!svgStore.indexNames.contains('libraryId')) {
@@ -100,32 +82,31 @@ export const initDB = (): Promise<IDBDatabase> => {
         };
       }
 
-      // ── v4 → v5: recreate bitmaps with compound keyPath ['libraryId', 'id'] ─
-      // Existing entries keyed only by 'id' caused template libraries with
-      // shared row IDs to clobber each other's bitmaps.  Recreate the store
-      // and preserve any entries that already carry a valid libraryId.
-      if (oldVersion >= 1 && oldVersion < 5 && db.objectStoreNames.contains(STORE_BITMAPS)) {
-        const oldBitmapStore = transaction.objectStore(STORE_BITMAPS);
-        const getAllReq = oldBitmapStore.getAll();
-        getAllReq.onsuccess = () => {
-          const existing = (getAllReq.result as BitmapEntry[]).filter(
-            e => e.libraryId && e.id && e.libraryId !== 'migrated',
-          );
+      // ── v4/v5 → v6: recreate bitmaps with compound keyPath ─────────────────
+      // v5's migration used async getAll() inside onupgradeneeded which could
+      // hang the upgrade transaction forever, blocking all IDB operations.
+      // v6 fixes this by always recreating the bitmaps store synchronously.
+      // Existing bitmap entries are dropped — template bitmaps are re-fetched
+      // via the sourceTemplate recovery path on next library open.
+      if (oldVersion < 6) {
+        if (db.objectStoreNames.contains(STORE_BITMAPS)) {
           db.deleteObjectStore(STORE_BITMAPS);
-          const newStore = db.createObjectStore(STORE_BITMAPS, { keyPath: ['libraryId', 'id'] });
-          newStore.createIndex('timestamp', 'timestamp', { unique: false });
-          newStore.createIndex('libraryId', 'libraryId', { unique: false });
-          existing.forEach(entry => {
-            try { newStore.put(entry); } catch (_) { /* skip duplicates */ }
-          });
-        };
-        // If read fails just recreate empty — bitmaps are re-fetched from templates
-        getAllReq.onerror = () => {
-          db.deleteObjectStore(STORE_BITMAPS);
-          const newStore = db.createObjectStore(STORE_BITMAPS, { keyPath: ['libraryId', 'id'] });
-          newStore.createIndex('timestamp', 'timestamp', { unique: false });
-          newStore.createIndex('libraryId', 'libraryId', { unique: false });
-        };
+        }
+        const bitmapStore = db.createObjectStore(STORE_BITMAPS, { keyPath: ['libraryId', 'id'] });
+        bitmapStore.createIndex('timestamp', 'timestamp', { unique: false });
+        bitmapStore.createIndex('libraryId', 'libraryId', { unique: false });
+      }
+
+      // ── Fresh stores (new database or missing stores) ─────────────────────
+      if (!db.objectStoreNames.contains(STORE_SVGS)) {
+        const store = db.createObjectStore(STORE_SVGS, { keyPath: 'id' });
+        store.createIndex('timestamp', 'timestamp', { unique: false });
+        store.createIndex('libraryId', 'libraryId', { unique: false });
+      }
+
+      if (!db.objectStoreNames.contains(STORE_ROWS)) {
+        const store = db.createObjectStore(STORE_ROWS, { keyPath: 'id' });
+        store.createIndex('timestamp', 'timestamp', { unique: false });
       }
     };
   });

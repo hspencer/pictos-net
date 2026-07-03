@@ -346,6 +346,8 @@ const App: React.FC<AppProps> = ({ authUser }) => {
   // the row entirely and the old SVG would resurrect on next reload.
   const svgRowIdsRef = useRef<Set<string>>(new Set());
   const [availableLibraries, setAvailableLibraries] = useState<LibraryMetadata[]>([]);
+  // Ref so openLibrary (useCallback with [] deps) can access current templates for recovery
+  const availableLibrariesRef = useRef<LibraryMetadata[]>([]);
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
     title: string;
@@ -544,14 +546,20 @@ const App: React.FC<AppProps> = ({ authUser }) => {
           svgRowIdsRef.current = seeded;
 
           // ── Bitmap recovery for stale template libraries (on app startup) ──
+          // Fallback: if sourceTemplate is not tagged, match by library name.
           if (bitmapsMap.size === 0) {
             const meta = index.find(l => l.id === targetId);
-            const sourceTemplate = meta?.sourceTemplate;
+            const sourceTemplate =
+              meta?.sourceTemplate ||
+              availableLibrariesRef.current.find(t => t.name === meta?.name)?.filename;
             if (sourceTemplate) {
               const needsBitmaps = loadedRows.some(
                 (r: RowData) => r.bitmapStatus === 'completed' && !r.rawSvg && !r.structuredSvg,
               );
               if (needsBitmaps) {
+                if (!meta?.sourceTemplate) {
+                  libraryService.updateLibraryMeta(targetId, { sourceTemplate });
+                }
                 fetch(`/libraries/${sourceTemplate}`)
                   .then(res => res.ok ? res.json() : Promise.reject(res.status))
                   .then((data: { rows?: RowData[] }) => {
@@ -691,16 +699,24 @@ const App: React.FC<AppProps> = ({ authUser }) => {
 
         // ── Bitmap recovery for stale template libraries ─────────────────────
         // If IDB has no bitmaps but rows have bitmapStatus:'completed', the
-        // bitmaps were lost (clobbered by a same-ID template load before v5).
-        // Re-fetch the source template and restore bitmaps silently.
+        // bitmaps were lost (dropped by the v4→v5 IDB migration or a previous
+        // failed save). Re-fetch from the source template JSON.
+        // Fallback: if sourceTemplate is not tagged (loaded before v2.2.2),
+        // try to match the library name against available template filenames.
         if (bitmapsMap.size === 0) {
           const meta = libraryService.getLibraryIndex().find(l => l.id === id);
-          const sourceTemplate = meta?.sourceTemplate;
+          const sourceTemplate =
+            meta?.sourceTemplate ||
+            availableLibrariesRef.current.find(t => t.name === meta?.name)?.filename;
           if (sourceTemplate) {
             const needsBitmaps = savedRows.some(
               (r: RowData) => r.bitmapStatus === 'completed' && !r.rawSvg && !r.structuredSvg,
             );
             if (needsBitmaps) {
+              // Tag the library with its template so future reloads skip the fetch
+              if (!meta?.sourceTemplate) {
+                libraryService.updateLibraryMeta(id, { sourceTemplate });
+              }
               fetch(`/libraries/${sourceTemplate}`)
                 .then(res => res.ok ? res.json() : Promise.reject(res.status))
                 .then((data: { rows?: RowData[] }) => {
@@ -882,7 +898,9 @@ const App: React.FC<AppProps> = ({ authUser }) => {
 
         const index = await response.json();
         console.log('[LIBRARIES] Index loaded:', index);
-        setAvailableLibraries(index.libraries || []);
+        const libs = index.libraries || [];
+        setAvailableLibraries(libs);
+        availableLibrariesRef.current = libs;
         console.log(`[LIBRARIES] ✅ ${index.libraries.length} libraries ready to display`);
       } catch (error) {
         console.error('[LIBRARIES] Failed to load index:', error);
@@ -1264,19 +1282,22 @@ const App: React.FC<AppProps> = ({ authUser }) => {
           addLog('info', `${reKeyed.length} secuencia(s) restaurada(s)`);
         }
 
-        // Write binary data to IDB now (awaited) so bitmaps survive a page
-        // reload even for large libraries whose IDB writes might not finish
-        // before the browser is closed if left fire-and-forget.
+        // Write binary data to IDB fire-and-forget — state update must NOT
+        // depend on IDB success. If initDB() is slow or fails, we still show
+        // bitmaps from typedRows (which already contain the data from the JSON).
+        // The save effect and auto-recovery handle IDB persistence separately.
         const bitmapEntries = typedRows
           .filter(r => r.bitmap)
           .map(r => ({ id: r.id, bitmap: r.bitmap!, libraryId: newLib.id }));
         const svgEntries = typedRows.filter(r => r.rawSvg || r.structuredSvg);
-        await Promise.all([
-          bitmapEntries.length > 0 ? IndexedDBService.saveBitmapsBatch(bitmapEntries) : Promise.resolve(),
-          ...svgEntries.map(r =>
-            IndexedDBService.saveSvgs(r.id, { rawSvg: r.rawSvg, structuredSvg: r.structuredSvg }, newLib.id)
-          ),
-        ]);
+        if (bitmapEntries.length > 0) {
+          IndexedDBService.saveBitmapsBatch(bitmapEntries)
+            .catch(err => console.error('[loadLibrary] IDB bitmap write failed:', err));
+        }
+        svgEntries.forEach(r =>
+          IndexedDBService.saveSvgs(r.id, { rawSvg: r.rawSvg, structuredSvg: r.structuredSvg }, newLib.id)
+            .catch(err => console.error('[loadLibrary] IDB SVG write failed:', err))
+        );
 
         // Apply all state changes in one batch so the save effect sees the
         // correct activeLibraryId alongside the new rows and config.
