@@ -54,5 +54,7 @@ export const handler = async (event, context) => {
     return { statusCode: 200, headers, body: JSON.stringify(result) };
   }
 
-  return { statusCode: 200, headers, body: JSON.stringify({ pending: true }) };
+  // Pending: forward the blob as-is so retry progress written by the worker
+  // (`retrying: { attempt, of, waitMs, status }`) reaches the client UI.
+  return { statusCode: 200, headers, body: JSON.stringify({ pending: true, ...result }) };
 };

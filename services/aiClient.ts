@@ -194,10 +194,32 @@ export interface RecraftResponse {
 }
 
 /**
+ * Retry progress payload forwarded by the poll functions while the background
+ * worker is backing off on provider 429/5xx. Used to narrate the wait in the
+ * UI log instead of leaving a mute spinner.
+ */
+interface RetryingInfo {
+    attempt: number;
+    of: number;
+    waitMs: number;
+    status: number;
+}
+
+/**
+ * Build the user-facing log line for a worker retry. Used by callRecraft and
+ * callGemini below whenever the poll response carries `retrying`.
+ */
+function retryStatusMessage(r: RetryingInfo): string {
+    const cause = r.status === 429 ? 'proveedor saturado (429)' : `error ${r.status} del proveedor`;
+    return `[PRODUCIR] ${cause} — reintento ${r.attempt}/${r.of}, esperando ${Math.round(r.waitMs / 1000)}s…`;
+}
+
+/**
  * Call Recraft via the Background Worker and polling.
  * Returns { svg } for vector model or { bitmap } for raster model.
+ * `onStatus` receives human-readable retry progress for the UI log.
  */
-export async function callRecraft(params: RecraftParams): Promise<RecraftResponse> {
+export async function callRecraft(params: RecraftParams, onStatus?: (msg: string) => void): Promise<RecraftResponse> {
     const jobId = 'job-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9);
     const isLocalDev = import.meta.env.DEV;
     const reqHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -219,8 +241,9 @@ export async function callRecraft(params: RecraftParams): Promise<RecraftRespons
     }
 
     // 2. Hacer polling hasta por 120 segundos — el worker reintenta 429 del
-    //    proveedor con backoff exponencial (hasta ~30s extra), así que la
-    //    ventana debe superar generación + reintentos.
+    //    proveedor con backoff exponencial (presupuesto interno de 90s), así
+    //    que la ventana debe superar generación + reintentos.
+    let lastRetryAttempt = 0;
     for (let i = 0; i < 60; i++) {
         await new Promise(r => setTimeout(r, 2000));
 
@@ -243,7 +266,13 @@ export async function callRecraft(params: RecraftParams): Promise<RecraftRespons
             throw new QuotaExceededError(data.units_used ?? 0, data.limit ?? 100);
         }
         if (data.error) throw new Error(data.error);
-        if (data.pending) continue;
+        if (data.pending) {
+            if (data.retrying && data.retrying.attempt !== lastRetryAttempt) {
+                lastRetryAttempt = data.retrying.attempt;
+                onStatus?.(retryStatusMessage(data.retrying));
+            }
+            continue;
+        }
     }
 
     throw new Error('Tiempo de espera agotado tras 120s generando el pictograma');
@@ -261,8 +290,9 @@ export interface GeminiResponse {
 /**
  * Call Gemini image generation via Background Worker and polling.
  * Returns { bitmap } — a base64 PNG data URL.
+ * `onStatus` receives human-readable retry progress for the UI log.
  */
-export async function callGemini(params: GeminiParams): Promise<GeminiResponse> {
+export async function callGemini(params: GeminiParams, onStatus?: (msg: string) => void): Promise<GeminiResponse> {
     const jobId = 'gemini-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9);
     const isLocalDev = import.meta.env.DEV;
     const reqHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -282,7 +312,9 @@ export async function callGemini(params: GeminiParams): Promise<GeminiResponse> 
     }
 
     // Polling hasta 120s: el worker reintenta 429 (cuota compartida de Vertex)
-    // con backoff exponencial, así que la espera puede superar los 60s.
+    // con backoff exponencial (presupuesto interno de 90s), así que la espera
+    // puede superar los 60s.
+    let lastRetryAttempt = 0;
     for (let i = 0; i < 60; i++) {
         await new Promise(r => setTimeout(r, 2000));
 
@@ -303,7 +335,13 @@ export async function callGemini(params: GeminiParams): Promise<GeminiResponse> 
             throw new QuotaExceededError(data.units_used ?? 0, data.limit ?? 100);
         }
         if (data.error) throw new Error(data.error);
-        if (data.pending) continue;
+        if (data.pending) {
+            if (data.retrying && data.retrying.attempt !== lastRetryAttempt) {
+                lastRetryAttempt = data.retrying.attempt;
+                onStatus?.(retryStatusMessage(data.retrying));
+            }
+            continue;
+        }
     }
 
     throw new Error('Tiempo de espera agotado tras 120s generando imagen con Gemini');

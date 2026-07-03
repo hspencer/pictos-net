@@ -108,7 +108,17 @@ export const handler = async (event, context) => {
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify(body),
-    }, { retries: 4, baseDelayMs: 2000, retryOn429: true });
+    }, {
+      retries: 4,
+      baseDelayMs: 2000,
+      retryOn429: true,
+      // Terminal result guaranteed before the client's 120s poll window ends.
+      maxTotalMs: 90000,
+      // Publish retry progress so the UI can narrate the wait instead of
+      // showing a mute spinner (api-recraft-poll forwards pending blobs as-is).
+      onRetry: (attempt, total, waitMs, status) =>
+        store.setJSON(jobId, { pending: true, retrying: { attempt, of: total, waitMs, status } }),
+    });
 
     if (!recraftRes.ok) {
       const errText = await recraftRes.text().catch(() => recraftRes.statusText);

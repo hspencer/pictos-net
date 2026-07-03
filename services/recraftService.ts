@@ -98,7 +98,9 @@ export const generateImage = async (
 
     onLog?.('info', '[PRODUCIR] Enviando prompt a Recraft…');
     const colors = config.paletteColors?.filter(c => /^#[0-9a-fA-F]{6}$/.test(c));
-    const response = await callRecraft({ prompt: fullPrompt, model, ...(colors?.length ? { colors } : {}) });
+    // onStatus: narra los reintentos del worker (429 del proveedor) en el log
+    // de la UI, para que la espera larga no parezca un cuelgue silencioso.
+    const response = await callRecraft({ prompt: fullPrompt, model, ...(colors?.length ? { colors } : {}) }, msg => onLog?.('info', msg));
 
     if (getModelFamily(model) === 'vector') {
         if (!response.svg?.includes('<svg')) {

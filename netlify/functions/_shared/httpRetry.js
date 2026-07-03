@@ -56,12 +56,24 @@ export function describeFetchError(error) {
  * Used by both image workers for the upstream generation request (and, in the
  * Recraft worker, the CDN image download).
  *
+ * `maxTotalMs` is a hard time budget for the whole retry dance: when the next
+ * wait would exceed it, the last upstream response is returned immediately so
+ * the caller can surface a terminal error. This guarantees the background
+ * workers always write a result to the blob store BEFORE the browser client
+ * stops polling — without it, a long Retry-After chain leaves the user staring
+ * at an infinite spinner (silent failure).
+ *
+ * `onRetry(attempt, retries, waitMs, status)` fires before each backoff wait;
+ * the workers use it to publish retry progress into the job blob so the UI
+ * can show "provider saturated, retry 2/4" instead of a mute spinner.
+ *
  * @param {string} url
  * @param {RequestInit} options    Standard fetch options.
- * @param {{retries?: number, baseDelayMs?: number, retryOn429?: boolean}} cfg
+ * @param {{retries?: number, baseDelayMs?: number, retryOn429?: boolean, maxTotalMs?: number, onRetry?: (attempt: number, retries: number, waitMs: number, status: number) => Promise<void> | void}} cfg
  * @returns {Promise<Response>}
  */
-export async function fetchWithRetry(url, options, { retries = 2, baseDelayMs = 600, retryOn429 = false } = {}) {
+export async function fetchWithRetry(url, options, { retries = 2, baseDelayMs = 600, retryOn429 = false, maxTotalMs = Infinity, onRetry = null } = {}) {
+  const startedAt = Date.now();
   let lastError;
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
@@ -73,9 +85,16 @@ export async function fetchWithRetry(url, options, { retries = 2, baseDelayMs = 
         lastError = new Error(`Upstream ${res.status}`);
         const retryAfterSec = Number(res.headers.get('retry-after'));
         const backoff = baseDelayMs * 2 ** attempt * (1 + Math.random() * 0.25);
-        const wait = retryAfterSec > 0 ? retryAfterSec * 1000 : backoff;
+        const wait = Math.min(retryAfterSec > 0 ? retryAfterSec * 1000 : backoff, 30000);
+        // Budget exhausted → hand the response back so the caller reports a
+        // terminal error while the client is still polling.
+        if (Date.now() - startedAt + wait > maxTotalMs) {
+          console.warn(`[httpRetry] upstream ${res.status}, retry budget exhausted (${maxTotalMs}ms) — returning last response`);
+          return res;
+        }
         console.warn(`[httpRetry] upstream ${res.status}, retry ${attempt + 1}/${retries} in ${Math.round(wait)}ms`);
-        await delay(Math.min(wait, 30000));
+        if (onRetry) { try { await onRetry(attempt + 1, retries, wait, res.status); } catch { /* progress is best-effort */ } }
+        await delay(wait);
         continue;
       }
       return res;

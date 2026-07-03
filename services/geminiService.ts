@@ -60,7 +60,9 @@ export const generateImage = async (
     ].filter(s => s !== undefined).join('\n');
 
     onLog?.('info', `[PRODUCIR] Enviando prompt a Gemini (${fullPrompt.length} chars)…`);
-    const response = await callGemini({ prompt: fullPrompt, model });
+    // onStatus: narra los reintentos del worker (429 de Vertex) en el log de
+    // la UI, para que la espera larga no parezca un cuelgue silencioso.
+    const response = await callGemini({ prompt: fullPrompt, model }, msg => onLog?.('info', msg));
 
     if (!response.bitmap) {
         throw new Error('Gemini no devolvió imagen');
