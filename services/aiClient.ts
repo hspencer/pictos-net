@@ -22,7 +22,7 @@ export class QuotaExceededError extends Error {
   }
 }
 
-async function getAuthToken(): Promise<string> {
+export async function getAuthToken(): Promise<string> {
     let user = getCurrentUser();
     if (!user) {
         user = await requestLogin();
@@ -303,4 +303,41 @@ export async function callGemini(params: GeminiParams): Promise<GeminiResponse> 
     }
 
     throw new Error('Tiempo de espera agotado tras 60s generando imagen con Gemini');
+}
+
+export interface CheckResult {
+    ok: boolean;
+    latency: number;
+    error?: string;
+}
+
+/**
+ * Ping an AI provider via api-check to verify connectivity and credentials.
+ * Does NOT consume quota units.
+ * service: 'claude' | 'gemini' | 'recraft'
+ * model: required for 'claude'; unused for 'gemini'/'recraft'
+ */
+export async function callCheck(service: string, model?: string): Promise<CheckResult> {
+    const isLocalDev = import.meta.env.DEV;
+    const reqHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (!isLocalDev) {
+        try {
+            const token = await getAuthToken();
+            reqHeaders['Authorization'] = `Bearer ${token}`;
+        } catch (e) {
+            return { ok: false, latency: 0, error: 'No autenticado' };
+        }
+    }
+    const t0 = Date.now();
+    try {
+        const res = await fetch('/.netlify/functions/api-check', {
+            method: 'POST',
+            headers: reqHeaders,
+            body: JSON.stringify({ service, model }),
+        });
+        const data = await res.json();
+        return { ok: data.ok ?? false, latency: data.latency ?? (Date.now() - t0), error: data.error };
+    } catch (e) {
+        return { ok: false, latency: Date.now() - t0, error: (e as Error).message };
+    }
 }

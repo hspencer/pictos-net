@@ -53,6 +53,19 @@ export interface NLUData {
 
 export type StepStatus = 'idle' | 'processing' | 'completed' | 'error' | 'outdated' | 'review';
 
+// ── NLU Model (Phases 1+2: COMPRENDER + COMPONER) ────────────────────────────
+
+export type NluModel =
+  | 'claude-haiku-4-5-20251001'
+  | 'claude-sonnet-4-6';
+
+export const NLU_MODELS: { id: NluModel; label: string }[] = [
+  { id: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5' },
+  { id: 'claude-sonnet-4-6',         label: 'Claude Sonnet 4.6' },
+];
+
+export const DEFAULT_NLU_MODEL: NluModel = 'claude-haiku-4-5-20251001';
+
 // ── Phase 5: ESTRUCTURAR ─────────────────────────────────────────────────────
 
 export type Phase5StructuringModel =
@@ -252,7 +265,7 @@ export function getModelFamily(model: GenerationModel): ModelFamily {
   return model === 'recraftv4_1_vector' ? 'vector' : 'bitmap';
 }
 
-export const DEFAULT_GENERATION_MODEL: GenerationModel = 'gemini-3.1-flash-image';
+export const DEFAULT_GENERATION_MODEL: GenerationModel = 'gemini-2.5-flash-image';
 
 /** Human-readable labels for GenerationModel values (used by GenerationModelSelector). */
 export const GENERATION_MODEL_LABELS: Record<GenerationModel, string> = {
@@ -302,9 +315,9 @@ export function migrateGenerationModel(model: string | undefined): GenerationMod
   if (!model) return DEFAULT_GENERATION_MODEL;
   if (model === 'gemini-3.1-flash-image-preview') return 'gemini-3.1-flash-image';
   // gemini-3-pro-image has a low daily quota and 429s (RESOURCE_EXHAUSTED)
-  // intermittently, so stored configs are moved onto 3.1 Flash. Revert this
-  // (and the INOPERATIVE_GENERATION_MODELS entry) when 3 Pro quota recovers.
-  if (model === 'gemini-3-pro-image' || model === 'gemini-3-pro-image-preview') return 'gemini-3.1-flash-image';
+  // intermittently, so stored configs are moved onto 2.5 Flash. Revert this
+  // (and the INOPERATIVE_GENERATION_MODELS entry) when the quota recovers.
+  if (model === 'gemini-3-pro-image' || model === 'gemini-3-pro-image-preview') return 'gemini-2.5-flash-image';
   if ((VALID_GENERATION_MODELS as readonly string[]).includes(model)) return model as GenerationModel;
   return DEFAULT_GENERATION_MODEL;
 }
@@ -333,6 +346,8 @@ export interface GlobalConfig {
   aspectRatio?: string;
   /** @deprecated v2.0 — migrated to generationModel on first load. */
   imageModel?: string;
+  /** NLU/composition model for phases 1+2 (COMPRENDER + COMPONER). Defaults to DEFAULT_NLU_MODEL. */
+  nluModel?: NluModel;
   /** Phase 3 generation model. Persisted in localStorage. */
   generationModel: GenerationModel;
   /** Phase 5 structuring model. Persisted in localStorage. Defaults to DEFAULT_PHASE5_MODEL. */

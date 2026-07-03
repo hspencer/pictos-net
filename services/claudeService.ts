@@ -5,7 +5,7 @@
  * Phase 5 (ESTRUCTURAR / vision) lives in svgStructureService.ts.
  */
 
-import { NLUData, GlobalConfig, VisualElement, VOCAB_NSM, VOCAB } from "../types";
+import { NLUData, GlobalConfig, VisualElement, VOCAB_NSM, VOCAB, DEFAULT_NLU_MODEL } from "../types";
 import { callClaude, extractToolUse } from "./aiClient";
 
 type LogFn = (type: 'info' | 'error' | 'success', msg: string) => void;
@@ -159,9 +159,10 @@ Reglas:
 2. Analiza semántica y pragmática profunda, no solo la superficie.
 3. Todos los campos requeridos deben estar presentes.`;
 
-    onLog?.('info', '[NLU] Enviando a Claude Haiku…');
+    const nluModel = config?.nluModel ?? DEFAULT_NLU_MODEL;
+    onLog?.('info', `[NLU] Enviando a ${nluModel}…`);
     const response = await callClaude({
-        model: 'claude-haiku-4-5-20251001',
+        model: nluModel,
         max_tokens: 4096,
         system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
         tools: [{
@@ -248,9 +249,10 @@ Prompt rules:
 
 You MUST invoke the compose_pictogram tool with both \`elements\` and \`prompt\`.`;
 
-    onLog?.('info', '[VISUAL] Enviando NLU a Claude Haiku…');
+    const nluModel = config?.nluModel ?? DEFAULT_NLU_MODEL;
+    onLog?.('info', `[VISUAL] Enviando NLU a ${nluModel}…`);
     const response = await callClaude({
-        model: 'claude-haiku-4-5-20251001',
+        model: nluModel,
         max_tokens: 4096,
         system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
         tools: [{
@@ -293,7 +295,7 @@ Describe only TOPOLOGY and COMPOSITION. No style. 3–6 sentences.
 Reply with plain text — no JSON, no markdown.`;
 
     const response = await callClaude({
-        model: 'claude-haiku-4-5-20251001',
+        model: config?.nluModel ?? DEFAULT_NLU_MODEL,
         max_tokens: 1024,
         system,
         messages: [{

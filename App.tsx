@@ -8,16 +8,16 @@ import {
   X, Code, Plus, FileText, Maximize, Copy, BrainCircuit, PlusCircle, CornerDownRight, Image as ImageIcon,
   Library, ScreenShare, Globe, HelpCircle, ExternalLink, Palette, GripVertical, Edit,
   ChevronLeft, ChevronRight, ArrowUp, FileCode, Layers, LogOut, LogIn, History,
-  List, LayoutGrid, Clock, Scan
+  List, LayoutGrid, Clock, Scan, CheckCircle2, XCircle, Wifi
 } from 'lucide-react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { RowData, LogEntry, StepStatus, NLUData, GlobalConfig, VOCAB, VisualElement, NLUFrameRole, ElementOpKind, RowInterventionLog, SvgMetrics, DEFAULT_PHASE5_MODEL, PHASE5_MODELS, Phase5StructuringModel, LibraryMeta, Sequence, Step } from './types';
+import { RowData, LogEntry, StepStatus, NLUData, GlobalConfig, VOCAB, VisualElement, NLUFrameRole, ElementOpKind, RowInterventionLog, SvgMetrics, DEFAULT_PHASE5_MODEL, PHASE5_MODELS, Phase5StructuringModel, LibraryMeta, Sequence, Step, NluModel, NLU_MODELS, DEFAULT_NLU_MODEL } from './types';
 import * as Claude from './services/claudeService';
 import * as Recraft from './services/recraftService';
 import * as Gemini from './services/geminiService';
-import { QuotaExceededError } from './services/aiClient';
+import { QuotaExceededError, callCheck } from './services/aiClient';
 import { GenerationModel, DEFAULT_GENERATION_MODEL, migrateImageModel, migrateGenerationModel, GENERATION_MODEL_LABELS, INOPERATIVE_GENERATION_MODELS, Phase3Result, getModelFamily } from './types';
 import { structureSVG } from './services/svgStructureService';
 import * as Recording from './services/interventionRecording';
@@ -357,8 +357,27 @@ const App: React.FC<AppProps> = ({ authUser }) => {
   });
   const [isLoadingLibrary, setIsLoadingLibrary] = useState(false);
   const [loadingLibraryName, setLoadingLibraryName] = useState('');
-  // Session-only Phase 5 model selector (not persisted — for experimentation)
+  // Model helpers (changes persist via setConfig → localStorage)
   const setPhase5Model = (m: string) => setConfig(prev => ({ ...prev, phase5Model: m as Phase5StructuringModel }));
+  const setNluModel = (m: string) => setConfig(prev => ({ ...prev, nluModel: m as NluModel }));
+
+  // Connection check state per phase key ('nlu' | 'generation' | 'structuring')
+  const [connectionChecks, setConnectionChecks] = useState<Record<string, {
+    status: 'idle' | 'checking' | 'ok' | 'error';
+    latency?: number;
+    error?: string;
+  }>>({});
+
+  const checkConnection = async (key: string, service: string, model?: string) => {
+    setConnectionChecks(prev => ({ ...prev, [key]: { status: 'checking' } }));
+    const result = await callCheck(service, model);
+    setConnectionChecks(prev => ({
+      ...prev,
+      [key]: result.ok
+        ? { status: 'ok', latency: result.latency }
+        : { status: 'error', latency: result.latency, error: result.error },
+    }));
+  };
   const [svgEditorState, setSvgEditorState] = useState<{
     isOpen: boolean;
     rowId: string | null;
@@ -2362,124 +2381,244 @@ const App: React.FC<AppProps> = ({ authUser }) => {
             </button>
 
             {config.advancedConfigOpen && (
-              <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="mt-4 space-y-6">
 
-                {/* field-generation-model */}
-                <div id="field-generation-model">
-                  <FieldLabel
-                    label={t('config.generationModel')}
-                    tooltip={t('config.generationModelTooltip')}
-                  />
-                  <select
-                    value={config.generationModel ?? DEFAULT_GENERATION_MODEL}
-                    onChange={e => handleGenerationModelChange(e.target.value as GenerationModel)}
-                    className="w-full text-xs border p-2.5 bg-slate-50 focus:bg-white transition-colors"
-                  >
-                    {(Object.keys(GENERATION_MODEL_LABELS) as GenerationModel[]).map(m => {
-                      // Disable models verified as non-operational (quota/no-image)
-                      // so the selector never offers a model that fails. See
-                      // INOPERATIVE_GENERATION_MODELS in types.ts.
-                      const inoperativeReason = INOPERATIVE_GENERATION_MODELS[m];
+                {/* ── Modelos por fase ── */}
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-2">
+                    {t('config.pipelineModels')}
+                  </p>
+                  <div className="border border-slate-200 rounded divide-y divide-slate-100">
+
+                    {/* Phase 1+2: COMPRENDER + COMPONER */}
+                    {(() => {
+                      const chk = connectionChecks['nlu'];
+                      const currentNluModel = config.nluModel ?? DEFAULT_NLU_MODEL;
                       return (
-                        <option key={m} value={m} disabled={!!inoperativeReason}>
-                          {GENERATION_MODEL_LABELS[m]}
-                          {m === DEFAULT_GENERATION_MODEL ? ` (${t('config.generationModels.default') || 'predeterminado'})` : ''}
-                          {inoperativeReason ? ` — no disponible (${inoperativeReason})` : ''}
-                        </option>
+                        <div className="flex items-center gap-2 p-2.5">
+                          <div className="shrink-0 w-28">
+                            <FieldLabel
+                              label={t('config.nluModel')}
+                              tooltip={t('config.nluModelTooltip')}
+                            />
+                          </div>
+                          <select
+                            value={currentNluModel}
+                            onChange={e => setNluModel(e.target.value)}
+                            className="flex-1 text-xs border p-2 bg-slate-50 focus:bg-white transition-colors min-w-0"
+                          >
+                            {NLU_MODELS.map(m => (
+                              <option key={m.id} value={m.id}>
+                                {m.label}{m.id === DEFAULT_NLU_MODEL ? ` (${t('config.generationModels.default') || 'predeterminado'})` : ''}
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            type="button"
+                            onClick={() => checkConnection('nlu', 'claude', currentNluModel)}
+                            disabled={chk?.status === 'checking'}
+                            className="shrink-0 flex items-center gap-1.5 text-[11px] px-2.5 py-2 border border-slate-200 text-slate-500 hover:text-violet-700 hover:border-violet-300 rounded transition-colors disabled:opacity-50"
+                            title={chk?.status === 'error' ? chk.error : undefined}
+                          >
+                            {chk?.status === 'checking'
+                              ? <RefreshCw size={11} className="animate-spin" />
+                              : chk?.status === 'ok'
+                                ? <CheckCircle2 size={11} className="text-emerald-500" />
+                                : chk?.status === 'error'
+                                  ? <XCircle size={11} className="text-rose-500" />
+                                  : <Wifi size={11} />}
+                            <span className="hidden sm:inline">
+                              {chk?.status === 'checking' ? t('config.connectionChecking')
+                                : chk?.status === 'ok' ? `${t('config.connectionOk')} ${chk.latency}ms`
+                                  : chk?.status === 'error' ? t('config.connectionError')
+                                    : t('config.checkConnection')}
+                            </span>
+                          </button>
+                        </div>
                       );
-                    })}
-                  </select>
-                </div>
+                    })()}
 
-                {/* field-phase5-model */}
-                <div id="field-phase5-model">
-                  <FieldLabel
-                    label={t('config.phase5Model')}
-                    tooltip={t('config.phase5ModelTooltip')}
-                  />
-                  <select
-                    value={config.phase5Model ?? DEFAULT_PHASE5_MODEL}
-                    onChange={e => setPhase5Model(e.target.value)}
-                    className="w-full text-xs border p-2.5 bg-slate-50 focus:bg-white transition-colors"
-                  >
-                    {PHASE5_MODELS.map(m => (
-                      <option key={m.id} value={m.id}>
-                        {m.label}{m.id === DEFAULT_PHASE5_MODEL ? ` (${t('config.generationModels.default') || 'predeterminado'})` : ''}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                    {/* Phase 3: PRODUCIR */}
+                    {(() => {
+                      const chk = connectionChecks['generation'];
+                      const currentGenModel = config.generationModel ?? DEFAULT_GENERATION_MODEL;
+                      const genService = (currentGenModel.startsWith('recraft')) ? 'recraft' : 'gemini';
+                      return (
+                        <div className="flex items-center gap-2 p-2.5">
+                          <div className="shrink-0 w-28">
+                            <FieldLabel
+                              label={t('config.generationModel')}
+                              tooltip={t('config.generationModelTooltip')}
+                            />
+                          </div>
+                          <select
+                            value={currentGenModel}
+                            onChange={e => handleGenerationModelChange(e.target.value as GenerationModel)}
+                            className="flex-1 text-xs border p-2 bg-slate-50 focus:bg-white transition-colors min-w-0"
+                          >
+                            {(Object.keys(GENERATION_MODEL_LABELS) as GenerationModel[]).map(m => {
+                              const inoperativeReason = INOPERATIVE_GENERATION_MODELS[m];
+                              return (
+                                <option key={m} value={m} disabled={!!inoperativeReason}>
+                                  {GENERATION_MODEL_LABELS[m]}
+                                  {m === DEFAULT_GENERATION_MODEL ? ` (${t('config.generationModels.default') || 'predeterminado'})` : ''}
+                                  {inoperativeReason ? ` — no disponible (${inoperativeReason})` : ''}
+                                </option>
+                              );
+                            })}
+                          </select>
+                          <button
+                            type="button"
+                            onClick={() => checkConnection('generation', genService)}
+                            disabled={chk?.status === 'checking'}
+                            className="shrink-0 flex items-center gap-1.5 text-[11px] px-2.5 py-2 border border-slate-200 text-slate-500 hover:text-violet-700 hover:border-violet-300 rounded transition-colors disabled:opacity-50"
+                            title={chk?.status === 'error' ? chk.error : undefined}
+                          >
+                            {chk?.status === 'checking'
+                              ? <RefreshCw size={11} className="animate-spin" />
+                              : chk?.status === 'ok'
+                                ? <CheckCircle2 size={11} className="text-emerald-500" />
+                                : chk?.status === 'error'
+                                  ? <XCircle size={11} className="text-rose-500" />
+                                  : <Wifi size={11} />}
+                            <span className="hidden sm:inline">
+                              {chk?.status === 'checking' ? t('config.connectionChecking')
+                                : chk?.status === 'ok' ? `${t('config.connectionOk')} ${chk.latency}ms`
+                                  : chk?.status === 'error' ? t('config.connectionError')
+                                    : t('config.checkConnection')}
+                            </span>
+                          </button>
+                        </div>
+                      );
+                    })()}
 
-                {/* field-annotated-context */}
-                <div id="field-annotated-context">
-                  <FieldLabel
-                    label={t('config.annotatedContext')}
-                    tooltip={t('config.annotatedContextTooltip')}
-                  />
-                  <textarea
-                    value={config.annotatedContext || ''}
-                    onChange={e => setConfig(prev => ({ ...prev, annotatedContext: e.target.value }))}
-                    placeholder={t('config.annotatedContextPlaceholder')}
-                    className="w-full text-xs border p-2.5 bg-slate-50 focus:bg-white transition-colors h-16 resize-none"
-                  />
-                </div>
+                    {/* Phase 4: ESTRUCTURAR */}
+                    {(() => {
+                      const chk = connectionChecks['structuring'];
+                      const currentP5Model = config.phase5Model ?? DEFAULT_PHASE5_MODEL;
+                      const structService = currentP5Model.startsWith('claude') ? 'claude' : 'gemini';
+                      return (
+                        <div className="flex items-center gap-2 p-2.5">
+                          <div className="shrink-0 w-28">
+                            <FieldLabel
+                              label={t('config.phase5Model')}
+                              tooltip={t('config.phase5ModelTooltip')}
+                            />
+                          </div>
+                          <select
+                            value={currentP5Model}
+                            onChange={e => setPhase5Model(e.target.value)}
+                            className="flex-1 text-xs border p-2 bg-slate-50 focus:bg-white transition-colors min-w-0"
+                          >
+                            {PHASE5_MODELS.map(m => (
+                              <option key={m.id} value={m.id}>
+                                {m.label}{m.id === DEFAULT_PHASE5_MODEL ? ` (${t('config.generationModels.default') || 'predeterminado'})` : ''}
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            type="button"
+                            onClick={() => checkConnection('structuring', structService, structService === 'claude' ? currentP5Model : undefined)}
+                            disabled={chk?.status === 'checking'}
+                            className="shrink-0 flex items-center gap-1.5 text-[11px] px-2.5 py-2 border border-slate-200 text-slate-500 hover:text-violet-700 hover:border-violet-300 rounded transition-colors disabled:opacity-50"
+                            title={chk?.status === 'error' ? chk.error : undefined}
+                          >
+                            {chk?.status === 'checking'
+                              ? <RefreshCw size={11} className="animate-spin" />
+                              : chk?.status === 'ok'
+                                ? <CheckCircle2 size={11} className="text-emerald-500" />
+                                : chk?.status === 'error'
+                                  ? <XCircle size={11} className="text-rose-500" />
+                                  : <Wifi size={11} />}
+                            <span className="hidden sm:inline">
+                              {chk?.status === 'checking' ? t('config.connectionChecking')
+                                : chk?.status === 'ok' ? `${t('config.connectionOk')} ${chk.latency}ms`
+                                  : chk?.status === 'error' ? t('config.connectionError')
+                                    : t('config.checkConnection')}
+                            </span>
+                          </button>
+                        </div>
+                      );
+                    })()}
 
-                {/* field-palette */}
-                <div id="field-palette">
-                  <FieldLabel
-                    label={t('config.paletteColors')}
-                    tooltip={t('config.paletteColorsTooltip')}
-                  />
-                  <div className="grid grid-cols-2 gap-x-3 gap-y-2">
-                    {(config.paletteColors ?? DEFAULT_PALETTE).map((color, i) => (
-                      <div key={i} className="flex items-center gap-1">
-                        <input
-                          type="color"
-                          value={color}
-                          onChange={e => {
-                            const next = [...(config.paletteColors ?? DEFAULT_PALETTE)];
-                            next[i] = e.target.value;
-                            setConfig(prev => ({ ...prev, paletteColors: next }));
-                          }}
-                          className="w-7 h-7 rounded border border-slate-200 cursor-pointer p-0.5 bg-white shrink-0"
-                        />
-                        <span className="text-[10px] font-mono text-slate-400 flex-1 select-all truncate">{color}</span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const next = (config.paletteColors ?? DEFAULT_PALETTE).filter((_, idx) => idx !== i);
-                            setConfig(prev => ({ ...prev, paletteColors: next }));
-                          }}
-                          className="p-1 text-slate-300 hover:text-rose-500 rounded transition-colors"
-                          aria-label="Eliminar color"
-                        >
-                          <X size={11} />
-                        </button>
-                      </div>
-                    ))}
-                    {(config.paletteColors ?? DEFAULT_PALETTE).length < 10 && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const next = [...(config.paletteColors ?? DEFAULT_PALETTE), '#888888'];
-                          setConfig(prev => ({ ...prev, paletteColors: next }));
-                        }}
-                        className="col-span-2 flex items-center justify-center gap-1.5 text-xs text-slate-400 hover:text-violet-600 py-1.5 px-1 border border-dashed border-slate-200 hover:border-violet-300 rounded transition-colors mt-0.5"
-                      >
-                        <Plus size={11} aria-hidden="true" /> {t('config.addColor')}
-                      </button>
-                    )}
                   </div>
                 </div>
 
-                {/* field-style-editor — svgStyleDefs + svgKeyframes */}
-                <div id="field-style-editor">
-                  <button
-                    onClick={() => setShowStyleEditor(true)}
-                    className="w-full text-xs font-bold uppercase text-violet-700 bg-violet-50 hover:bg-violet-100 border border-violet-200 p-2.5 rounded transition-colors flex items-center justify-center gap-2"
-                  >
-                    <Palette size={14} aria-hidden="true" /> {t('config.openEditor')}
-                  </button>
+                {/* ── Resto de la configuración avanzada ── */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+                  {/* field-annotated-context */}
+                  <div id="field-annotated-context">
+                    <FieldLabel
+                      label={t('config.annotatedContext')}
+                      tooltip={t('config.annotatedContextTooltip')}
+                    />
+                    <textarea
+                      value={config.annotatedContext || ''}
+                      onChange={e => setConfig(prev => ({ ...prev, annotatedContext: e.target.value }))}
+                      placeholder={t('config.annotatedContextPlaceholder')}
+                      className="w-full text-xs border p-2.5 bg-slate-50 focus:bg-white transition-colors h-16 resize-none"
+                    />
+                  </div>
+
+                  {/* field-palette */}
+                  <div id="field-palette">
+                    <FieldLabel
+                      label={t('config.paletteColors')}
+                      tooltip={t('config.paletteColorsTooltip')}
+                    />
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-2">
+                      {(config.paletteColors ?? DEFAULT_PALETTE).map((color, i) => (
+                        <div key={i} className="flex items-center gap-1">
+                          <input
+                            type="color"
+                            value={color}
+                            onChange={e => {
+                              const next = [...(config.paletteColors ?? DEFAULT_PALETTE)];
+                              next[i] = e.target.value;
+                              setConfig(prev => ({ ...prev, paletteColors: next }));
+                            }}
+                            className="w-7 h-7 rounded border border-slate-200 cursor-pointer p-0.5 bg-white shrink-0"
+                          />
+                          <span className="text-[10px] font-mono text-slate-400 flex-1 select-all truncate">{color}</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const next = (config.paletteColors ?? DEFAULT_PALETTE).filter((_, idx) => idx !== i);
+                              setConfig(prev => ({ ...prev, paletteColors: next }));
+                            }}
+                            className="p-1 text-slate-300 hover:text-rose-500 rounded transition-colors"
+                            aria-label="Eliminar color"
+                          >
+                            <X size={11} />
+                          </button>
+                        </div>
+                      ))}
+                      {(config.paletteColors ?? DEFAULT_PALETTE).length < 10 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const next = [...(config.paletteColors ?? DEFAULT_PALETTE), '#888888'];
+                            setConfig(prev => ({ ...prev, paletteColors: next }));
+                          }}
+                          className="col-span-2 flex items-center justify-center gap-1.5 text-xs text-slate-400 hover:text-violet-600 py-1.5 px-1 border border-dashed border-slate-200 hover:border-violet-300 rounded transition-colors mt-0.5"
+                        >
+                          <Plus size={11} aria-hidden="true" /> {t('config.addColor')}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* field-style-editor — svgStyleDefs + svgKeyframes */}
+                  <div id="field-style-editor">
+                    <button
+                      onClick={() => setShowStyleEditor(true)}
+                      className="w-full text-xs font-bold uppercase text-violet-700 bg-violet-50 hover:bg-violet-100 border border-violet-200 p-2.5 rounded transition-colors flex items-center justify-center gap-2"
+                    >
+                      <Palette size={14} aria-hidden="true" /> {t('config.openEditor')}
+                    </button>
+                  </div>
+
                 </div>
 
               </div>
