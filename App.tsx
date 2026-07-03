@@ -1574,19 +1574,49 @@ const App: React.FC<AppProps> = ({ authUser }) => {
     return () => { cancelled = true; };
   }, [activeLibraryId]);
 
-  // Poll every 60s while active (api-batch-status refreshes from Vertex and
-  // kicks the collector on terminal states).
+  /** Apply one drained batch outcome to its row (spec rule ApplyRowOutcome). */
+  const applyBatchOutcome = useCallback((job: Batch.BatchJobView, rowId: string, bitmap?: string, error?: string) => {
+    if (bitmap) {
+      updateRowById(rowId, {
+        bitmap,
+        rawSvg: undefined,
+        structuredSvg: undefined,
+        structuredSvgStatus: 'idle',
+        generationModel: job.model as GenerationModel,
+        bitmapStatus: 'completed',
+        status: 'completed',
+      });
+    } else {
+      updateRowById(rowId, { bitmapStatus: 'error', status: 'error' });
+      addLog('error', t('batch.rowError', { error: error ?? '?' }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [updateRowById, addLog]);
+
+  // Poll every 30s while active. Each tick refreshes the job (the status
+  // function kicks partial collections server-side as Vertex exports lines)
+  // and drains whatever results already landed, so pictograms appear one by
+  // one instead of all at the end.
   useEffect(() => {
     if (!activeLibraryId || !batchJob || !Batch.isActiveBatch(batchJob)) return;
     const iv = setInterval(async () => {
       try {
         const j = await Batch.fetchBatchJob(activeLibraryId);
+        if (j && Batch.isActiveBatch(j)) {
+          const pendingIds = rows
+            .filter(r => j.rowIds?.includes(r.id) && r.bitmapStatus === 'processing')
+            .map(r => r.id);
+          if (pendingIds.length > 0) {
+            await Batch.drainBatchResults(j, pendingIds, ({ rowId, bitmap, error }) =>
+              applyBatchOutcome(j, rowId, bitmap, error), { strict: false });
+          }
+        }
         setBatchJob(j);
       } catch { /* transient; next tick retries */ }
-    }, 60_000);
+    }, 30_000);
     return () => clearInterval(iv);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeLibraryId, batchJob?.state]);
+  }, [activeLibraryId, batchJob?.state, rows]);
 
   // Drain results once when the job turns terminal: fetch each per-row blob
   // and apply outcomes to rows (spec rule ApplyRowOutcome).
@@ -1601,22 +1631,8 @@ const App: React.FC<AppProps> = ({ authUser }) => {
     if (pendingIds.length === 0) return;
 
     addLog('info', t('batch.draining', { count: pendingIds.length }));
-    Batch.drainBatchResults(batchJob, pendingIds, ({ rowId, bitmap, error }) => {
-      if (bitmap) {
-        updateRowById(rowId, {
-          bitmap,
-          rawSvg: undefined,
-          structuredSvg: undefined,
-          structuredSvgStatus: 'idle',
-          generationModel: batchJob.model as GenerationModel,
-          bitmapStatus: 'completed',
-          status: 'completed',
-        });
-      } else {
-        updateRowById(rowId, { bitmapStatus: 'error', status: 'error' });
-        addLog('error', t('batch.rowError', { error: error ?? '?' }));
-      }
-    });
+    Batch.drainBatchResults(batchJob, pendingIds, ({ rowId, bitmap, error }) =>
+      applyBatchOutcome(batchJob, rowId, bitmap, error), { strict: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [batchJob?.id, batchJob?.state]);
 
@@ -1630,23 +1646,39 @@ const App: React.FC<AppProps> = ({ authUser }) => {
 
     const eligible = Batch.batchableRows(rows);
     if (eligible.length === 0) { addLog('error', t('batch.noEligible')); return; }
-    if (!window.confirm(t('batch.confirm', { count: eligible.length }))) return;
 
-    eligible.forEach(r => updateRowById(r.id, { bitmapStatus: 'processing' }));
-    try {
-      await Batch.submitLibraryBatch(activeLibraryId, eligible, config);
-      addLog('success', t('batch.submitted', { count: eligible.length }));
-      const job = await Batch.fetchBatchJob(activeLibraryId);
-      setBatchJob(job);
-    } catch (err: any) {
-      eligible.forEach(r => updateRowById(r.id, { bitmapStatus: 'idle' }));
-      if (err instanceof QuotaExceededError) {
-        setQuotaModal({ units_used: err.units_used, limit: err.limit });
-      } else {
-        addLog('error', `[LOTE] ${err.message}`);
+    // Warning dialog (same pattern as clearAll) — states cost and timing.
+    setConfirmDialog({
+      isOpen: true,
+      title: t('batch.button'),
+      message: t('batch.confirm', { count: eligible.length }),
+      onConfirm: async () => {
+        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+        eligible.forEach(r => updateRowById(r.id, { bitmapStatus: 'processing' }));
+        try {
+          await Batch.submitLibraryBatch(activeLibraryId, eligible, config);
+          addLog('success', t('batch.submitted', { count: eligible.length }));
+          const job = await Batch.fetchBatchJob(activeLibraryId);
+          setBatchJob(job);
+        } catch (err: any) {
+          eligible.forEach(r => updateRowById(r.id, { bitmapStatus: 'idle' }));
+          if (err instanceof QuotaExceededError) {
+            setQuotaModal({ units_used: err.units_used, limit: err.limit });
+          } else {
+            addLog('error', `[LOTE] ${err.message}`);
+          }
+        }
       }
-    }
+    });
   };
+
+  /** Batch progress derived from local row state (drained = no longer processing). */
+  const batchProgress = useMemo(() => {
+    if (!batchJob) return null;
+    const ids = new Set(batchJob.rowIds ?? []);
+    const pending = rows.filter(r => ids.has(r.id) && r.bitmapStatus === 'processing').length;
+    return { done: batchJob.rowCount - pending, total: batchJob.rowCount };
+  }, [batchJob, rows]);
 
   // ── Model change warning & bulk regeneration ─────────────────────────────
 
@@ -2940,30 +2972,6 @@ const App: React.FC<AppProps> = ({ authUser }) => {
             )}
             {libraryContentMode === 'pictogramas' && rows.length > 0 && (
               <div className="ml-auto flex items-center gap-3">
-                {/* Batch generation: button when idle, progress chip while a
-                    job is active (specs/batch-generation.allium, fase B3) */}
-                {batchJob && Batch.isActiveBatch(batchJob) ? (
-                  <span
-                    className="text-xs uppercase tracking-wider text-violet-700 font-semibold animate-pulse"
-                    title={t('batch.buttonTooltip')}
-                  >
-                    {batchJob.state === 'collecting'
-                      ? t('batch.chipCollecting')
-                      : (batchJob.succeededCount + batchJob.failedCount) > 0
-                        ? t('batch.chip', { done: batchJob.succeededCount + batchJob.failedCount, total: batchJob.rowCount })
-                        : t('batch.chipQueued')}
-                  </span>
-                ) : (
-                  Batch.batchableRows(rows).length > 0 && (
-                    <button
-                      onClick={startLibraryBatch}
-                      title={t('batch.buttonTooltip')}
-                      className="text-xs uppercase tracking-wider text-slate-400 hover:text-violet-700 transition-colors"
-                    >
-                      {t('batch.button')}
-                    </button>
-                  )
-                )}
                 <button
                   onClick={() => setSortBy('alphabetical')}
                   className={`text-xs uppercase tracking-wider transition-colors ${sortBy === 'alphabetical' ? 'text-slate-900 font-semibold' : 'text-slate-400 hover:text-slate-600'}`}
@@ -3521,6 +3529,36 @@ const App: React.FC<AppProps> = ({ authUser }) => {
               <Download size={14} className="text-emerald-600" /> {t('actions.downloadPictogramas', { count: pictoDownloadCount })}
             </button>
             <div className="border-t border-slate-100 my-1"></div>
+            {/* Batch generation (specs/batch-generation.allium): menu entry
+                while idle; live progress bar in the same slot while a job
+                runs. Pictograms fill in one by one as Vertex exports them. */}
+            {batchJob && Batch.isActiveBatch(batchJob) ? (
+              <div className="w-full px-4 py-3 border-b border-slate-100" title={t('batch.buttonTooltip')}>
+                <div className="flex items-center justify-between text-xs text-violet-800 font-bold mb-1.5">
+                  <span className="flex items-center gap-2">
+                    <Layers size={14} className="text-violet-700 animate-pulse" />
+                    {batchJob.state === 'collecting' ? t('batch.chipCollecting') : t('batch.chipQueued')}
+                  </span>
+                  <span className="tabular-nums">{batchProgress?.done ?? 0}/{batchProgress?.total ?? batchJob.rowCount}</span>
+                </div>
+                <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden" role="progressbar"
+                     aria-valuenow={batchProgress?.done ?? 0} aria-valuemin={0} aria-valuemax={batchProgress?.total ?? 0}>
+                  <div
+                    className="h-full bg-violet-600 rounded-full transition-all duration-700"
+                    style={{ width: `${batchProgress && batchProgress.total > 0 ? Math.round((batchProgress.done / batchProgress.total) * 100) : 4}%` }}
+                  />
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => { setShowLibraryMenu(false); startLibraryBatch(); }}
+                disabled={Batch.batchableRows(rows).length === 0}
+                title={t('batch.buttonTooltip')}
+                className="w-full text-left px-4 py-3 text-xs text-slate-700 hover:bg-violet-50 flex items-center gap-3 transition-colors disabled:opacity-40 disabled:cursor-not-allowed border-b border-slate-100"
+              >
+                <Layers size={14} className="text-violet-700" /> {t('batch.button')}
+              </button>
+            )}
             <button
               onClick={clearAll}
               disabled={rows.length === 0}

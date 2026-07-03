@@ -74,26 +74,31 @@ export interface DrainedRow {
 }
 
 /**
- * Drain the collected results of a terminal job for the given rows.
- * Fetches each per-row blob once (deleted server-side on read) and reports
- * per-row outcomes via onRow so the caller updates state incrementally.
- * Rows whose blob is missing ({pending}) are reported as errors when the
- * job is terminal — the collector guarantees explicit outcomes, so pending
- * here means the blob was already consumed or lost.
+ * Drain collected results for the given rows. Fetches each per-row blob
+ * once (deleted server-side on read) and reports outcomes via onRow so the
+ * caller updates state incrementally.
+ *
+ * strict = true (final drain, job terminal): a missing blob ({pending}) is
+ * an error — the collector guarantees explicit outcomes at the end.
+ * strict = false (partial drain, job still running): pending rows are
+ * silently skipped; they simply have not finished yet. This is what makes
+ * pictograms appear one by one while the batch runs.
  */
 export async function drainBatchResults(
     job: BatchJobView,
     rowIds: string[],
     onRow: (r: DrainedRow) => void,
+    { strict = true }: { strict?: boolean } = {},
 ): Promise<void> {
     for (const rowId of rowIds) {
         try {
             const data = await callBatchRowResult(job.id, rowId);
             if (data.bitmap) onRow({ rowId, bitmap: data.bitmap });
             else if (data.error) onRow({ rowId, error: data.error });
-            else onRow({ rowId, error: 'Resultado del lote no disponible' });
+            else if (strict) onRow({ rowId, error: 'Resultado del lote no disponible' });
+            // !strict && pending → still generating; skip silently.
         } catch (err: any) {
-            onRow({ rowId, error: err.message || 'Error al recuperar resultado del lote' });
+            if (strict) onRow({ rowId, error: err.message || 'Error al recuperar resultado del lote' });
         }
     }
 }

@@ -59,6 +59,35 @@ export const handler = async (event, context) => {
     return { statusCode: 200, headers, body: JSON.stringify({ none: true }) };
   }
 
+  /**
+   * Invoke the background collector for this library and AWAIT the 202.
+   * Awaiting matters twice over: the Lambda freezes on response (a
+   * fire-and-forget fetch may never leave the process), and the job blob
+   * must be persisted BEFORE the collector reads it — the original
+   * fire-first-save-later order was a race that stranded jobs in
+   * "collecting" with collectRequested stuck true.
+   * DEPLOY_PRIME_URL over URL: on branch deploys URL points at production,
+   * and the kick must run THIS deploy's function code.
+   */
+  const kickCollector = async (partial) => {
+    const base = process.env.DEPLOY_PRIME_URL || process.env.URL || '';
+    if (!base) return;
+    try {
+      await fetch(`${base}/.netlify/functions/api-batch-collect-background`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          // Forward the caller's Identity token so the background
+          // collector can verify it via GoTrue (_shared/identity.js).
+          Authorization: event.headers?.authorization || event.headers?.Authorization || '',
+        },
+        body: JSON.stringify({ libraryId, partial }),
+      });
+    } catch (err) {
+      console.warn(`[api-batch-status] collector kick failed: ${err.message}`);
+    }
+  };
+
   // Only refresh from Vertex while the job is in a pollable state.
   if (['submitted', 'queued', 'running'].includes(job.state)) {
     try {
@@ -68,32 +97,37 @@ export const handler = async (event, context) => {
       job.vertexState = v.state;
       job.state = mapVertexState(v.state);
 
-      // Kick the collector exactly once when the job turns collectable.
       if (job.state === 'collecting' && !job.collectRequested) {
+        // Terminal on Vertex → final collection, exactly once (self-healing
+        // below re-kicks if the collector dies without finishing).
         job.collectRequested = true;
-        // Fire-and-forget invocation of the background collector.
-        // DEPLOY_PRIME_URL over URL: on branch deploys URL points at
-        // production, and the kick must run THIS deploy's function code.
-        const base = process.env.DEPLOY_PRIME_URL || process.env.URL || '';
-        if (base) {
-          fetch(`${base}/.netlify/functions/api-batch-collect-background`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              // Forward the caller's Identity token so the background
-              // collector can verify it via GoTrue (_shared/identity.js).
-              Authorization: event.headers?.authorization || event.headers?.Authorization || '',
-            },
-            body: JSON.stringify({ libraryId }),
-          }).catch(err => console.warn(`[api-batch-status] collector kick failed: ${err.message}`));
-        }
+        job.collectKickedAt = Date.now();
+        await store.setJSON(libraryId, job);   // persist BEFORE the kick
+        await kickCollector(false);
+      } else if (job.state === 'running' && v.successfulCount > (job.partialCollected ?? 0)) {
+        // Vertex exports completed lines continuously: kick a PARTIAL
+        // collection whenever new results exist, so pictograms appear in
+        // the UI as they finish instead of all at the end.
+        job.partialCollected = v.successfulCount;
+        await store.setJSON(libraryId, job);
+        await kickCollector(true);
+      } else {
+        await store.setJSON(libraryId, job);
       }
-
-      await store.setJSON(libraryId, job);
     } catch (error) {
       // Polling failures are transient by default: report the stored state
       // and let the next poll retry. Do not fail the job from here.
       console.warn(`[api-batch-status] Vertex poll failed: ${error.message}`);
+    }
+  } else if (job.state === 'collecting') {
+    // Self-healing: if final collection was kicked but hasn't concluded in
+    // 3 minutes (collector crashed, cold-start loss, expired token), re-kick
+    // with the fresh token this poll carries.
+    const staleMs = Date.now() - (job.collectKickedAt ?? 0);
+    if (staleMs > 180_000) {
+      job.collectKickedAt = Date.now();
+      await store.setJSON(libraryId, job);
+      await kickCollector(false);
     }
   }
 

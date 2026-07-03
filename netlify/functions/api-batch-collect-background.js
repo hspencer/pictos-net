@@ -30,7 +30,7 @@ export const handler = async (event, context) => {
     console.error('[api-batch-collect] Invalid JSON body');
     return;
   }
-  const { libraryId } = body ?? {};
+  const { libraryId, partial = false } = body ?? {};
   if (!libraryId) {
     console.error('[api-batch-collect] Missing libraryId');
     return;
@@ -40,8 +40,14 @@ export const handler = async (event, context) => {
   const results = getStore('gemini-jobs');
 
   const job = await jobs.get(libraryId, { type: 'json' }).catch(() => null);
-  if (!job || job.state !== 'collecting') {
-    console.warn(`[api-batch-collect] no collectable job for library ${libraryId}`);
+  // Final collection requires the terminal "collecting" state; PARTIAL
+  // collection also runs while the Vertex job is still executing (its
+  // continuous export makes finished lines available before the end).
+  const collectable = partial
+    ? job && ['running', 'collecting'].includes(job.state)
+    : job && job.state === 'collecting';
+  if (!collectable) {
+    console.warn(`[api-batch-collect] no collectable job for library ${libraryId} (partial=${partial}, state=${job?.state})`);
     return;
   }
 
@@ -89,12 +95,21 @@ export const handler = async (event, context) => {
           const bitmap = `data:${imagePart.inlineData.mimeType};base64,${imagePart.inlineData.data}`;
           await results.setJSON(`batchrow-${job.id}-${rowId}`, { bitmap });
           outcomes.set(rowId, { ok: true });
-        } else {
+        } else if (!partial) {
+          // Per-line errors are only finalized on the FINAL pass — a line
+          // may legitimately be absent or incomplete mid-run.
           const error = (status || 'Batch line returned no image data').slice(0, 300);
           await results.setJSON(`batchrow-${job.id}-${rowId}`, { error });
           outcomes.set(rowId, { ok: false, error });
         }
       }
+    }
+
+    if (partial) {
+      // Partial pass: publish what exists and stop. No state transition,
+      // no missing-row errors, no cleanup — the final pass owns those.
+      console.log(`[api-batch-collect] job=${job.id} partial ok=${outcomes.size}/${job.rowCount}`);
+      return;
     }
 
     // Rows with no output line (job cancelled mid-run) fail explicitly —
@@ -123,10 +138,13 @@ export const handler = async (event, context) => {
     console.log(`[api-batch-collect] job=${job.id} done ok=${okCount}/${job.rowCount}`);
   } catch (error) {
     console.error(`[api-batch-collect] ${error.message}`);
-    // Leave the job in "collecting" with collectRequested reset so the next
-    // status poll can kick collection again — transient GCS failures should
-    // not strand the job.
-    job.collectRequested = false;
-    await jobs.setJSON(libraryId, job);
+    // Final pass only: leave the job in "collecting" with collectRequested
+    // reset so the next status poll re-kicks — transient GCS failures must
+    // not strand the job. Partial failures need no repair; the next partial
+    // kick or the final pass covers them.
+    if (!partial) {
+      job.collectRequested = false;
+      await jobs.setJSON(libraryId, job);
+    }
   }
 };
