@@ -25,6 +25,10 @@
   # Recraft SVG generation + fetch
   timeout = 26
 
+[functions."api-batch-create"]
+  # Batch generation: JSONL upload to GCS + Vertex batch job creation
+  timeout = 26
+
 [[redirects]]
   from = "/*"
   to = "/index.html"
