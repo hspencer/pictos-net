@@ -641,5 +641,17 @@
     "delete": "Eliminar",
     "createNew": "Crear nueva secuencia",
     "stepsCount": "{count} pasos · {complete} completos"
+  },
+  "batch": {
+    "button": "Generar en lote",
+    "buttonTooltip": "Genera todos los pictogramas listos mediante la API por lotes (50% del costo; demora minutos a horas)",
+    "confirm": "¿Enviar {{count}} pictogramas al lote? Costo: {{count}} unidades de tu cuota diaria. Los resultados pueden tardar de minutos a horas (máximo 24 h) y llegarán aunque cierres el navegador.",
+    "chip": "Lote {{done}}/{{total}}",
+    "chipQueued": "Lote en cola",
+    "chipCollecting": "Lote: recolectando…",
+    "submitted": "[LOTE] Enviado: {{count}} pictogramas. Puedes cerrar el navegador; el lote sigue en Google.",
+    "draining": "[LOTE] Recuperando {{count}} resultados del lote…",
+    "noEligible": "[LOTE] No hay pictogramas con Fase 2 completa para enviar",
+    "rowError": "[LOTE] Error en un pictograma: {{error}}"
   }
 }

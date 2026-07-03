@@ -20,6 +20,38 @@ const formatElements = (els: VisualElement[], depth = 0): string => {
 };
 
 /**
+ * Compose the full Phase 3 prompt for a Gemini image model.
+ * Single source of truth for prompt composition: used by generateImage
+ * (online path, below) and by batchService.submitLibraryBatch (batch path),
+ * so a batched pictogram and an online pictogram receive IDENTICAL text.
+ */
+export const composeGeminiPrompt = (
+    elements: VisualElement[],
+    prompt: string,
+    row: { UTTERANCE: string; NLU?: any },
+    config: GlobalConfig,
+): string => {
+    const nluContext = row.NLU && typeof row.NLU === 'object'
+        ? `\nSemantic context: ${row.NLU.visual_guidelines?.focus_actor || ''} — ${row.NLU.visual_guidelines?.action_core || ''} — ${row.NLU.visual_guidelines?.object_core || ''}`
+        : '';
+
+    return [
+        `AAC pictogram: "${row.UTTERANCE}"`,
+        nluContext,
+        '',
+        'Visual elements (hierarchy):',
+        formatElements(elements),
+        '',
+        'Spatial composition:',
+        prompt,
+        '',
+        config.visualStylePrompt || 'Flat pictogram style, no text, simple vector design, white background.',
+        '',
+        'No text. No labels. No watermarks. White background. Flat design. Square format.',
+    ].filter(s => s !== undefined).join('\n');
+};
+
+/**
  * Phase 3 (PRODUCIR): Generate a pictogram image using a Gemini model.
  *
  * @param elements  VisualElement[] from phase 2
@@ -40,24 +72,7 @@ export const generateImage = async (
     onLog?.('info', `[PRODUCIR] Iniciando generación con Gemini (${model})…`);
     onLog?.('info', `[PRODUCIR] Elementos: ${elements.length}`);
 
-    const nluContext = row.NLU && typeof row.NLU === 'object'
-        ? `\nSemantic context: ${row.NLU.visual_guidelines?.focus_actor || ''} — ${row.NLU.visual_guidelines?.action_core || ''} — ${row.NLU.visual_guidelines?.object_core || ''}`
-        : '';
-
-    let fullPrompt = [
-        `AAC pictogram: "${row.UTTERANCE}"`,
-        nluContext,
-        '',
-        'Visual elements (hierarchy):',
-        formatElements(elements),
-        '',
-        'Spatial composition:',
-        prompt,
-        '',
-        config.visualStylePrompt || 'Flat pictogram style, no text, simple vector design, white background.',
-        '',
-        'No text. No labels. No watermarks. White background. Flat design. Square format.',
-    ].filter(s => s !== undefined).join('\n');
+    const fullPrompt = composeGeminiPrompt(elements, prompt, row, config);
 
     onLog?.('info', `[PRODUCIR] Enviando prompt a Gemini (${fullPrompt.length} chars)…`);
     // onStatus: narra los reintentos del worker (429 de Vertex) en el log de

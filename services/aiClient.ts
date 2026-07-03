@@ -347,6 +347,85 @@ export async function callGemini(params: GeminiParams, onStatus?: (msg: string) 
     throw new Error('Tiempo de espera agotado tras 120s generando imagen con Gemini');
 }
 
+// ── Batch generation (specs/batch-generation.allium) ───────────────────────
+
+export interface BatchJobView {
+    id: string;
+    libraryId: string;
+    model: string;
+    state: 'submitted' | 'queued' | 'running' | 'collecting' | 'completed' | 'failed' | 'expired';
+    rowIds: string[];
+    rowCount: number;
+    succeededCount: number;
+    failedCount: number;
+    createdAt: string;
+    collectedAt?: string;
+    none?: boolean;
+}
+
+/** Shared auth headers builder for the batch endpoints. */
+async function batchHeaders(): Promise<Record<string, string>> {
+    const reqHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (!import.meta.env.DEV) {
+        const token = await getAuthToken();
+        reqHeaders['Authorization'] = `Bearer ${token}`;
+    }
+    return reqHeaders;
+}
+
+/**
+ * Create a batch job (api-batch-create). Used by batchService.
+ * Throws QuotaExceededError on 429 and Error with the server message otherwise.
+ */
+export async function callBatchCreate(body: {
+    libraryId: string;
+    model: string;
+    rows: { rowId: string; prompt: string }[];
+}): Promise<{ jobId: string; state: string; rowCount: number }> {
+    const res = await fetch('/.netlify/functions/api-batch-create', {
+        method: 'POST',
+        headers: await batchHeaders(),
+        body: JSON.stringify(body),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 429 && data.quotaExceeded) {
+        throw new QuotaExceededError(data.units_used ?? 0, data.limit ?? 100);
+    }
+    if (!res.ok) throw new Error(data.error || `Batch create failed (${res.status})`);
+    return data;
+}
+
+/**
+ * Read the library's batch job (api-batch-status). Returns null when none.
+ * Polled by App.tsx every 60s while a job is active. Used by batchService.
+ */
+export async function callBatchStatus(libraryId: string): Promise<BatchJobView | null> {
+    const res = await fetch(`/.netlify/functions/api-batch-status?libraryId=${encodeURIComponent(libraryId)}`, {
+        headers: await batchHeaders(),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `Batch status failed (${res.status})`);
+    return data.none ? null : (data as BatchJobView);
+}
+
+/**
+ * Fetch one collected batch row result through the existing gemini poll
+ * endpoint (the collector wrote one blob per row). Single GET, no loop:
+ * the blob either exists (bitmap or error; deleted on read) or the job is
+ * still collecting ({pending}). Used by batchService.drainBatchRow.
+ */
+export async function callBatchRowResult(jobId: string, rowId: string): Promise<{ bitmap?: string; error?: string; pending?: boolean }> {
+    const key = `batchrow-${jobId}-${rowId}`;
+    const res = await fetch(`/.netlify/functions/api-gemini-poll?jobId=${encodeURIComponent(key)}`, {
+        headers: await batchHeaders(),
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `Batch row fetch failed (${res.status})`);
+    }
+    return res.json();
+}
+
 export interface CheckResult {
     ok: boolean;
     latency: number;

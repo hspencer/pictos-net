@@ -17,6 +17,7 @@ import { RowData, LogEntry, StepStatus, NLUData, GlobalConfig, VOCAB, VisualElem
 import * as Claude from './services/claudeService';
 import * as Recraft from './services/recraftService';
 import * as Gemini from './services/geminiService';
+import * as Batch from './services/batchService';
 import { QuotaExceededError, callCheck } from './services/aiClient';
 import { GenerationModel, DEFAULT_GENERATION_MODEL, migrateImageModel, migrateGenerationModel, GENERATION_MODEL_LABELS, INOPERATIVE_GENERATION_MODELS, Phase3Result, getModelFamily } from './types';
 import { structureSVG } from './services/svgStructureService';
@@ -1464,6 +1465,98 @@ const App: React.FC<AppProps> = ({ authUser }) => {
     }
   };
 
+  // ── Batch generation (specs/batch-generation.allium, fase B3) ────────────
+  // The BatchJob blob in Netlify is the truth; the client keeps only this
+  // mirror and polls while the job is active. Cross-session resumption is
+  // free: on library open we read the blob and pick up where we left off.
+
+  const [batchJob, setBatchJob] = useState<Batch.BatchJobView | null>(null);
+  const batchDrainedRef = useRef<string | null>(null); // last drained job id
+
+  // Load the library's job on open/switch (resumption).
+  useEffect(() => {
+    if (!activeLibraryId) { setBatchJob(null); return; }
+    let cancelled = false;
+    Batch.fetchBatchJob(activeLibraryId)
+      .then(j => { if (!cancelled) setBatchJob(j); })
+      .catch(() => { /* no session or transient error — button stays available */ });
+    return () => { cancelled = true; };
+  }, [activeLibraryId]);
+
+  // Poll every 60s while active (api-batch-status refreshes from Vertex and
+  // kicks the collector on terminal states).
+  useEffect(() => {
+    if (!activeLibraryId || !batchJob || !Batch.isActiveBatch(batchJob)) return;
+    const iv = setInterval(async () => {
+      try {
+        const j = await Batch.fetchBatchJob(activeLibraryId);
+        setBatchJob(j);
+      } catch { /* transient; next tick retries */ }
+    }, 60_000);
+    return () => clearInterval(iv);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeLibraryId, batchJob?.state]);
+
+  // Drain results once when the job turns terminal: fetch each per-row blob
+  // and apply outcomes to rows (spec rule ApplyRowOutcome).
+  useEffect(() => {
+    if (!batchJob || Batch.isActiveBatch(batchJob) || batchJob.state === 'expired') return;
+    if (batchDrainedRef.current === batchJob.id) return;
+    batchDrainedRef.current = batchJob.id;
+
+    const pendingIds = rows
+      .filter(r => batchJob.rowIds?.includes(r.id) && r.bitmapStatus === 'processing')
+      .map(r => r.id);
+    if (pendingIds.length === 0) return;
+
+    addLog('info', t('batch.draining', { count: pendingIds.length }));
+    Batch.drainBatchResults(batchJob, pendingIds, ({ rowId, bitmap, error }) => {
+      if (bitmap) {
+        updateRowById(rowId, {
+          bitmap,
+          rawSvg: undefined,
+          structuredSvg: undefined,
+          structuredSvgStatus: 'idle',
+          generationModel: batchJob.model as GenerationModel,
+          bitmapStatus: 'completed',
+          status: 'completed',
+        });
+      } else {
+        updateRowById(rowId, { bitmapStatus: 'error', status: 'error' });
+        addLog('error', t('batch.rowError', { error: error ?? '?' }));
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [batchJob?.id, batchJob?.state]);
+
+  /**
+   * Submit all batchable rows of the active library as one batch job.
+   * Wired to the "Generar en lote" button in the library toolbar.
+   */
+  const startLibraryBatch = async () => {
+    if (!activeLibraryId) return;
+    try { await ensureAuth(); } catch { return; }
+
+    const eligible = Batch.batchableRows(rows);
+    if (eligible.length === 0) { addLog('error', t('batch.noEligible')); return; }
+    if (!window.confirm(t('batch.confirm', { count: eligible.length }))) return;
+
+    eligible.forEach(r => updateRowById(r.id, { bitmapStatus: 'processing' }));
+    try {
+      await Batch.submitLibraryBatch(activeLibraryId, eligible, config);
+      addLog('success', t('batch.submitted', { count: eligible.length }));
+      const job = await Batch.fetchBatchJob(activeLibraryId);
+      setBatchJob(job);
+    } catch (err: any) {
+      eligible.forEach(r => updateRowById(r.id, { bitmapStatus: 'idle' }));
+      if (err instanceof QuotaExceededError) {
+        setQuotaModal({ units_used: err.units_used, limit: err.limit });
+      } else {
+        addLog('error', `[LOTE] ${err.message}`);
+      }
+    }
+  };
+
   // ── Model change warning & bulk regeneration ─────────────────────────────
 
   const handleGenerationModelChange = (newModel: GenerationModel) => {
@@ -2756,6 +2849,30 @@ const App: React.FC<AppProps> = ({ authUser }) => {
             )}
             {libraryContentMode === 'pictogramas' && rows.length > 0 && (
               <div className="ml-auto flex items-center gap-3">
+                {/* Batch generation: button when idle, progress chip while a
+                    job is active (specs/batch-generation.allium, fase B3) */}
+                {batchJob && Batch.isActiveBatch(batchJob) ? (
+                  <span
+                    className="text-xs uppercase tracking-wider text-violet-700 font-semibold animate-pulse"
+                    title={t('batch.buttonTooltip')}
+                  >
+                    {batchJob.state === 'collecting'
+                      ? t('batch.chipCollecting')
+                      : (batchJob.succeededCount + batchJob.failedCount) > 0
+                        ? t('batch.chip', { done: batchJob.succeededCount + batchJob.failedCount, total: batchJob.rowCount })
+                        : t('batch.chipQueued')}
+                  </span>
+                ) : (
+                  Batch.batchableRows(rows).length > 0 && (
+                    <button
+                      onClick={startLibraryBatch}
+                      title={t('batch.buttonTooltip')}
+                      className="text-xs uppercase tracking-wider text-slate-400 hover:text-violet-700 transition-colors"
+                    >
+                      {t('batch.button')}
+                    </button>
+                  )
+                )}
                 <button
                   onClick={() => setSortBy('alphabetical')}
                   className={`text-xs uppercase tracking-wider transition-colors ${sortBy === 'alphabetical' ? 'text-slate-900 font-semibold' : 'text-slate-400 hover:text-slate-600'}`}

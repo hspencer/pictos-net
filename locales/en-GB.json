@@ -641,5 +641,17 @@
     "delete": "Delete",
     "createNew": "Create new sequence",
     "stepsCount": "{count} steps · {complete} complete"
+  },
+  "batch": {
+    "button": "Batch generate",
+    "buttonTooltip": "Generate all ready pictograms via the batch API (50% of the cost; takes minutes to hours)",
+    "confirm": "Send {{count}} pictograms as a batch? Cost: {{count}} units of your daily quota. Results may take minutes to hours (24 h max) and will arrive even if you close the browser.",
+    "chip": "Batch {{done}}/{{total}}",
+    "chipQueued": "Batch queued",
+    "chipCollecting": "Batch: collecting…",
+    "submitted": "[BATCH] Submitted: {{count}} pictograms. You can close the browser; the batch keeps running.",
+    "draining": "[BATCH] Retrieving {{count}} batch results…",
+    "noEligible": "[BATCH] No pictograms with a completed Phase 2 to send",
+    "rowError": "[BATCH] Pictogram failed: {{error}}"
   }
 }
