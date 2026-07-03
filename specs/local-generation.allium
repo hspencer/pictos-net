@@ -1,0 +1,201 @@
+-- allium: 3
+-- local-generation.allium
+
+-- Scope: Phase 3 generation against a locally hosted image backend
+--   (ComfyUI or compatible) reached directly from the browser, plus the
+--   device-scoped backend configuration and availability probing.
+-- Includes: local backend lifecycle, endpoint configuration, health probing,
+--   Phase 3 dispatch for the "local" model family, privacy and quota rules.
+-- Excludes:
+--   - Cloud Phase 3 generation (see visual-reasoning.allium, batch-generation.allium)
+--   - The ComfyUI workflow graph contents (implementation, see
+--     docs/LOCAL_GENERATION_DESIGN.md)
+--   - Phase "local puro" (model packaged inside the app) — deferred, see
+--     open question PackagedModel
+-- Dependencies: GenerationModel families (generation-config.allium),
+--   row lifecycle (visual-reasoning.allium)
+
+------------------------------------------------------------
+-- External Entities
+------------------------------------------------------------
+
+-- The user-operated generation server on their own machine or LAN.
+-- pictos.net does not install, start or update it; it only talks to it.
+external entity LocalServer {
+  endpoint: String        -- e.g. http://localhost:8188
+  engine: String          -- "comfyui" (v1); others may satisfy the same contract
+}
+
+external entity Row {
+  id: String
+  prompt: String?
+  bitmap_status: String   -- idle | processing | completed | error
+}
+
+------------------------------------------------------------
+-- Enumerations
+------------------------------------------------------------
+
+enum BackendStatus { unknown | available | unavailable }
+
+------------------------------------------------------------
+-- Entities and Variants
+------------------------------------------------------------
+
+entity LocalBackend {
+  -- Device-scoped singleton, persisted in localStorage — never inside the
+  -- library config. Exporting or sharing a library must not leak one
+  -- person's endpoint onto another person's machine.
+  endpoint: String?
+  status: BackendStatus
+  engine_version: String?  when status = available
+  last_probe_at: Timestamp?
+
+  is_configured: endpoint != null
+}
+
+------------------------------------------------------------
+-- Config
+------------------------------------------------------------
+
+config {
+  default_endpoint: String = "http://localhost:8188"
+  probe_timeout: Duration = 3.seconds
+  generation_timeout: Duration = 120.seconds
+  local_model_id: String = "local-comfyui"
+    -- registered in GenerationModel with family "local"
+}
+
+------------------------------------------------------------
+-- Rules — Backend configuration and probing
+------------------------------------------------------------
+
+rule ConfigureLocalEndpoint {
+  when: UserConfiguresLocalEndpoint(endpoint)
+  ensures:
+    backend.endpoint = endpoint
+    backend.status = unknown
+    ProbeRequested()
+}
+
+rule ProbeLocalBackend {
+  when: ProbeRequested()
+  requires: backend.is_configured
+  ensures:
+    -- probe_local is a black box: GET {endpoint}/system_stats with
+    -- probe_timeout; success means reachable AND engine identified.
+    let result = probe_local(backend.endpoint)
+    backend.last_probe_at = now
+    if result.ok:
+      backend.status = available
+      backend.engine_version = result.version
+    else:
+      backend.status = unavailable
+      backend.engine_version = null
+
+  @guidance
+    -- Fired on app load (when an endpoint is configured), whenever the user
+    -- edits the endpoint, and before enabling the local option in the model
+    -- selector. The selector shows the local model greyed out with a probe
+    -- hint while status != available, mirroring how
+    -- INOPERATIVE_GENERATION_MODELS gates broken cloud options.
+}
+
+------------------------------------------------------------
+-- Rules — Phase 3 dispatch
+------------------------------------------------------------
+
+rule LocalGenerate {
+  when: Phase3Dispatched(row, model)
+  requires: model = config.local_model_id
+  requires: backend.status = available
+  requires: row.prompt != null
+
+  ensures:
+    row.bitmap_status = "processing"
+    -- local_generate is a black box: submits the workflow (prompt injected
+    -- into the graph template, fixed seed policy left to implementation),
+    -- polls history until the image is ready or generation_timeout elapses,
+    -- fetches the PNG and returns it as a data URL.
+    let result = local_generate(backend.endpoint, row.prompt)
+    if result.ok:
+      row.bitmap_status = "completed"
+      RowBitmapProduced(row: row, model: config.local_model_id)
+    else:
+      row.bitmap_status = "error"
+      -- result.error distinguishes unreachable endpoint, workflow rejection
+      -- and timeout; the message names the local server explicitly so the
+      -- user knows the failure is on their machine, not in pictos.net.
+
+  @guidance
+    -- Direct browser → localhost fetch; no Netlify function is involved.
+    -- Requires the local endpoint to be present in the CSP connect-src and
+    -- CORS enabled on the server (see design doc). Provenance freezing
+    -- (row.generationModel) follows generation-config.allium unchanged.
+}
+
+rule LocalGenerateWhileUnavailable {
+  when: Phase3Dispatched(row, model)
+  requires: model = config.local_model_id
+  requires: backend.status != available
+  ensures:
+    row.bitmap_status = "error"
+    ProbeRequested()
+      -- re-probe so the selector reflects reality immediately
+}
+
+------------------------------------------------------------
+-- Invariants
+------------------------------------------------------------
+
+@invariant "zero quota for local generation"
+  -- Local generation consumes the user's own compute: 0 units, no
+  -- checkAndCharge call, no server-side audit record. The quota system
+  -- (usage-enforcement.allium) only ever sees cloud calls.
+
+@invariant "prompt never leaves the device for local generation"
+  -- For family "local", Phase 3 traffic goes browser → configured endpoint
+  -- only. No proxy, no telemetry. Note: Phases 1-2 remain cloud (Claude via
+  -- Netlify) — a library generated "locally" still used cloud NLU unless
+  -- those phases are also replaced (out of scope here).
+
+@invariant "endpoint is device-scoped"
+  -- LocalBackend persists outside GlobalConfig. Library export JSON never
+  -- contains an endpoint. Importing a library on a machine without a local
+  -- backend leaves rows generable by any cloud model instead.
+
+@invariant "provenance frozen like any other model"
+  -- Rows produced locally carry generationModel = local_model_id, so PDF
+  -- export, regeneration warnings and research telemetry distinguish local
+  -- output from cloud output.
+
+------------------------------------------------------------
+-- Open Questions
+------------------------------------------------------------
+
+open question WorkflowTemplate {
+  -- ComfyUI needs a workflow graph naming a checkpoint and LoRA that exist
+  -- on the user's disk. Ship one canonical template with substitutable
+  -- model names (simple, opinionated), or let advanced users paste their
+  -- own workflow JSON (flexible, harder to support)?
+}
+
+open question LocalVectorize {
+  -- Local output is raster. VTracer (Phase 4, present in the codebase but
+  -- removed from the cascade) could vectorise it in-browser, yielding a
+  -- fully local vector pipeline. Reintroduce as an opt-in toggle for local
+  -- rows, or keep local output bitmap-only in v1?
+}
+
+open question LocalRecording {
+  -- intervention-recording captures generation events for the doctoral
+  -- research. Local generations produce no server-side audit trail by
+  -- design. Should the client-side recording still capture them (locally,
+  -- exportable), and does the participant need to consent differently?
+}
+
+open question PackagedModel {
+  -- Phase "local puro": model executed inside the app (WebGPU/ONNX in the
+  -- browser, or a packaged desktop app). Deferred until the UX and the
+  -- pictographic quality of the LoRA are validated against the local API.
+}
