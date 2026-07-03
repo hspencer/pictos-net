@@ -1,0 +1,304 @@
+-- allium: 3
+-- batch-generation.allium
+
+-- Scope: Bulk Phase 3 generation of a library's pictograms via the Vertex AI
+--   Batch API (50% cost, no RPM limits, minutes-to-hours turnaround).
+-- Includes: batch job lifecycle, content-based correlation manifest,
+--   quota charging, per-row outcome application, cross-session resumption.
+-- Excludes:
+--   - Online (interactive) Phase 3 generation (see visual-reasoning.allium)
+--   - Quota model internals (see usage-enforcement.allium)
+--   - Recraft models (Recraft has no batch API; batch is Gemini-image only)
+--   - GCS bucket provisioning and IAM (operational setup, see
+--     docs/BATCH_GENERATION_DESIGN.md)
+-- Dependencies: Netlify Identity (user.email), Netlify Blobs (batch-jobs store),
+--   Vertex AI Batch API, Cloud Storage bucket, usage-enforcement quota.
+
+------------------------------------------------------------
+-- External Entities
+------------------------------------------------------------
+
+-- The Vertex batch prediction job, managed by Google. Its states are
+-- JOB_STATE_PENDING / RUNNING / SUCCEEDED / FAILED / CANCELLED / PAUSED.
+-- Completed lines are exported continuously; jobs queue up to 72h and are
+-- cancelled after 24h of running time (completed lines are still delivered).
+external entity VertexBatchJob {
+  name: String            -- projects/{p}/locations/global/batchPredictionJobs/{id}
+  state: String
+  successful_count: Integer
+  failed_count: Integer
+}
+
+-- A pictogram row of the active library (managed by visual-reasoning /
+-- library-manager specs). Only the fields batch generation touches.
+external entity Row {
+  id: String
+  prompt: String?         -- Phase 2 output; batch requires it
+  bitmap_status: String   -- idle | processing | completed | error
+}
+
+------------------------------------------------------------
+-- Value Types
+------------------------------------------------------------
+
+value BatchItem {
+  -- One manifest entry per submitted row. Correlation is content-based:
+  -- Vertex output lines carry no custom id, only an echo of the request,
+  -- so the full prompt is hashed to recover which row an output belongs to.
+  row_id: String
+  prompt_hash: String     -- sha256 of the exact prompt text sent in the JSONL line
+}
+
+value BatchOutcome {
+  -- Per-row terminal result applied when collecting.
+  row_id: String
+  ok: Boolean
+  error_msg: String?      -- Vertex per-line status when ok = false
+}
+
+------------------------------------------------------------
+-- Enumerations
+------------------------------------------------------------
+
+enum BatchState { submitted | queued | running | collecting | completed | failed | expired }
+
+------------------------------------------------------------
+-- Entities and Variants
+------------------------------------------------------------
+
+entity BatchJob {
+  -- Persisted server-side in Netlify Blobs (store "batch-jobs", key = library_id)
+  -- so the job survives browser sessions and devices.
+  id: String
+  library_id: String
+  owner_email: String     -- Identity user who submitted; only they may collect
+  model: String           -- gemini image model frozen at submission
+  vertex_job_name: String
+  state: BatchState
+  items: List<BatchItem>
+  row_count: Integer
+  succeeded_count: Integer
+  failed_count: Integer
+  created_at: Timestamp
+  collected_at: Timestamp when state = completed
+
+  transitions state {
+    submitted -> queued
+    submitted -> running
+    queued -> running
+    queued -> expired
+    running -> collecting
+    running -> failed
+    collecting -> completed
+    collecting -> failed
+    terminal: completed, failed, expired
+  }
+}
+
+------------------------------------------------------------
+-- Config
+------------------------------------------------------------
+
+config {
+  max_rows_per_batch: Number = 200   -- app-level cap; Vertex allows 200,000 but
+                                     -- collection memory and quota argue for less
+  poll_interval: Duration = 60.seconds
+  batch_models: Set<String> = { "gemini-2.5-flash-image", "gemini-3.1-flash-image" }
+  gcs_input_prefix: String = "batch/input"
+  gcs_output_prefix: String = "batch/output"
+}
+
+------------------------------------------------------------
+-- Rules — Submission
+------------------------------------------------------------
+
+rule SubmitBatch {
+  when: UserSubmitsBatch(library, rows, model)
+
+  requires: model in config.batch_models
+  requires: rows.count >= 1 and rows.count <= config.max_rows_per_batch
+  requires: rows.all(r => r.prompt != null)
+    -- every row must have completed Phase 2; batch never runs Phases 1-2
+  requires: not exists BatchJob{library_id: library.id, state: submitted}
+    and not exists BatchJob{library_id: library.id, state: queued}
+    and not exists BatchJob{library_id: library.id, state: running}
+    and not exists BatchJob{library_id: library.id, state: collecting}
+    -- one active batch per library
+
+  ensures:
+    -- Quota: rows.count units charged up-front via usage-enforcement.
+    -- Google bills only completed lines, but our quota counts generation
+    -- attempts; failed lines are not refunded (see open question).
+    QuotaCharged(email: submitter.email, units: rows.count)
+
+    let job = BatchJob.created(
+      library_id: library.id,
+      owner_email: submitter.email,
+      model: model,
+      vertex_job_name: vertex_create_batch_job(rows, model),
+        -- black box: builds JSONL (one generateContent request per row,
+        -- responseModalities IMAGE, 1:1, 1K — batch caps output at 1K),
+        -- uploads to gs://{bucket}/{gcs_input_prefix}/{job_id}.jsonl,
+        -- creates the Vertex job on the global endpoint,
+        -- output to gs://{bucket}/{gcs_output_prefix}/{job_id}/
+      state: submitted,
+      items: manifest_of(rows),
+        -- black box: [{row_id, prompt_hash: sha256(prompt_text)}]
+      row_count: rows.count,
+      succeeded_count: 0,
+      failed_count: 0,
+      created_at: now
+    )
+    for r in rows:
+      r.bitmap_status = "processing"
+
+  @guidance
+    -- Implemented by api-batch-create (Netlify background function).
+    -- Identity JWT verified via _shared/identity.js like all workers.
+    -- The BatchJob blob is the single source of truth; the client keeps
+    -- only {library_id} pointers and re-reads state via api-batch-status.
+}
+
+------------------------------------------------------------
+-- Rules — Monitoring
+------------------------------------------------------------
+
+rule PollBatch {
+  when: ClientPollsBatch(library)
+
+  let job = BatchJob{library_id: library.id}
+  requires: exists job
+  requires: job.state in {submitted, queued, running}
+
+  ensures:
+    -- vertex_get_job is a black box: GET batchPredictionJobs/{id}.
+    let v = vertex_get_job(job.vertex_job_name)
+    job.succeeded_count = v.successful_count
+    job.failed_count = v.failed_count
+    if v.state = "JOB_STATE_PENDING":
+      job.state = queued
+    else if v.state = "JOB_STATE_RUNNING":
+      job.state = running
+    else if v.state = "JOB_STATE_SUCCEEDED":
+      job.state = collecting
+      CollectRequested(job: job)
+    else if v.state in {"JOB_STATE_FAILED", "JOB_STATE_CANCELLED"}:
+      -- 24h-cancelled jobs still exported completed lines: collect partials.
+      job.state = collecting
+      CollectRequested(job: job)
+
+  @guidance
+    -- Implemented by api-batch-status (sync function). The client polls it
+    -- every poll_interval while the app is open and a job pointer exists;
+    -- on app load, any library with an unfinished BatchJob resumes polling
+    -- (cross-session resumption comes free because state lives in Blobs).
+}
+
+rule BatchExpires {
+  when: job: BatchJob.created_at + 72.hours <= now
+  requires: job.state in {submitted, queued}
+    -- Vertex discards jobs queued beyond 72h; reflect that terminally.
+  ensures:
+    job.state = expired
+    for item in job.items:
+      RowOutcomeApplied(row_id: item.row_id, ok: false, error_msg: "Batch expired in queue (72h)")
+}
+
+------------------------------------------------------------
+-- Rules — Collection
+------------------------------------------------------------
+
+rule CollectResults {
+  when: CollectRequested(job)
+
+  requires: job.state = collecting
+
+  ensures:
+    -- parse_batch_output is a black box: streams predictions*.jsonl from the
+    -- job's GCS output prefix; for each line, hashes the echoed request
+    -- prompt text, resolves row_id via job.items, and yields a BatchOutcome
+    -- (ok = line status empty AND an image part is present).
+    let outcomes = parse_batch_output(job)
+    for o in outcomes:
+      RowOutcomeApplied(row_id: o.row_id, ok: o.ok, error_msg: o.error_msg)
+    -- Rows with no output line (job cancelled mid-run) fail explicitly:
+    for item in job.items where not outcomes.any(o => o.row_id = item.row_id):
+      RowOutcomeApplied(row_id: item.row_id, ok: false, error_msg: "No result in batch output")
+    if outcomes.any(o => o.ok):
+      job.state = completed
+      job.collected_at = now
+    else:
+      job.state = failed
+    GcsArtifactsCleaned(job: job)
+      -- input JSONL and output prefix deleted after successful collection
+
+  @guidance
+    -- Implemented by api-batch-collect-background. Images are written one
+    -- blob per row into the existing gemini-jobs store keyed
+    -- "batch-{job.id}-{row_id}", so the client fetches each result through
+    -- the existing api-gemini-poll path and IndexedDB persistence applies
+    -- unchanged. This keeps function response sizes small: the collector
+    -- never returns image bytes to the client directly.
+}
+
+rule ApplyRowOutcome {
+  when: RowOutcomeApplied(row_id, ok, error_msg?)
+  let row = Row{id: row_id}
+  requires: exists row
+  ensures:
+    if ok:
+      row.bitmap_status = "completed"
+    else:
+      row.bitmap_status = "error"
+}
+
+------------------------------------------------------------
+-- Invariants
+------------------------------------------------------------
+
+invariant OneActiveBatchPerLibrary {
+  for a in BatchJobs:
+    for b in BatchJobs:
+      a != b and a.library_id = b.library_id
+        implies a.state in {completed, failed, expired}
+          or b.state in {completed, failed, expired}
+}
+
+invariant ManifestCoversAllRows {
+  for job in BatchJobs:
+    job.items.count = job.row_count
+}
+
+@invariant "batch is gemini-image only"
+  -- SubmitBatch rejects any model outside config.batch_models. Recraft and
+  -- structuring models are never batched.
+
+@invariant "quota charged exactly once per submission"
+  -- rows.count units at SubmitBatch; PollBatch and CollectResults charge 0.
+  -- A failed or expired job does not refund (open question below).
+
+@invariant "geometry of trust unchanged"
+  -- No API key or service-account credential ever reaches the browser; the
+  -- client talks only to Netlify functions, which hold GCS/Vertex access.
+
+------------------------------------------------------------
+-- Open Questions
+------------------------------------------------------------
+
+open question RefundPolicy {
+  -- Failed/expired lines charged 1 unit each. Refund on collect (units back
+  -- for ok = false), or keep charge-at-submit for simplicity and abuse
+  -- resistance? Current spec: no refund.
+}
+
+open question PromptHashCollisions {
+  -- Two rows with identical prompts hash identically; outputs become
+  -- interchangeable. Acceptable (images are equivalent), or should
+  -- SubmitBatch salt each prompt with an invisible per-row suffix?
+}
+
+open question LiveProgressGranularity {
+  -- completionStats gives counts, not per-row identity. Is "12/38" enough
+  -- for the UI, or should the collector run incrementally on partial output
+  -- so finished pictograms appear before the job ends?
+}
