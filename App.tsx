@@ -1185,6 +1185,14 @@ const App: React.FC<AppProps> = ({ authUser }) => {
           libraryService.saveLibraryConfig(newLib.id, pendingConfig);
         }
 
+        // Restore sequences from the template JSON (re-keyed to the new library id)
+        if (Array.isArray(data.sequences) && data.sequences.length > 0) {
+          const reKeyed = (data.sequences as Sequence[]).map(seq => ({ ...seq, libraryId: newLib.id }));
+          libraryService.saveLibrarySequences(newLib.id, reKeyed);
+          libraryService.updateLibraryMeta(newLib.id, { sequenceCount: reKeyed.length });
+          addLog('info', `${reKeyed.length} secuencia(s) restaurada(s)`);
+        }
+
         // Write binary data to IDB now (awaited) so bitmaps survive a page
         // reload even for large libraries whose IDB writes might not finish
         // before the browser is closed if left fire-and-forget.
@@ -1203,6 +1211,9 @@ const App: React.FC<AppProps> = ({ authUser }) => {
         // correct activeLibraryId alongside the new rows and config.
         if (pendingConfig) setConfig(prev => ({ ...prev, ...pendingConfig! }));
         setRows(typedRows);
+        if (Array.isArray(data.sequences) && data.sequences.length > 0) {
+          setSequences((data.sequences as Sequence[]).map(seq => ({ ...seq, libraryId: newLib.id })));
+        }
         setLibraryIndex(libraryService.getLibraryIndex());
         openLibrary(newLib.id, { skipRowLoad: true });
       } catch (error) {
