@@ -261,6 +261,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [showConsole, setShowConsole] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
+  const [basicConfigOpen, setBasicConfigOpen] = useState(true);
   const [showLibraryMenu, setShowLibraryMenu] = useState(false);
   const [showParticipateModal, setShowParticipateModal] = useState(false);
   const [libraryMenuPos, setLibraryMenuPos] = useState({ top: 0, left: 0 });
@@ -2190,8 +2191,26 @@ const App: React.FC<AppProps> = ({ authUser }) => {
       {showConfig && (
         <>
         <div className="fixed inset-0 z-[39]" onClick={() => setShowConfig(false)} />
-        <div id="globalSettings" className="fixed top-20 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-b shadow-2xl p-6 animate-in slide-in-from-top duration-200">
-          <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div id="globalSettings" className="fixed top-20 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-b shadow-2xl animate-in slide-in-from-top duration-200 max-h-[calc(100vh-5rem)] overflow-y-auto">
+          <div className="max-w-7xl mx-auto p-6">
+
+          {/* ── Sección básica (collapsible) ── */}
+          <button
+            type="button"
+            onClick={() => setBasicConfigOpen(o => !o)}
+            className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500 hover:text-violet-700 transition-colors w-full text-left mb-4"
+            aria-expanded={basicConfigOpen}
+          >
+            <ChevronRight
+              size={14}
+              className={`transition-transform ${basicConfigOpen ? 'rotate-90' : ''}`}
+              aria-hidden="true"
+            />
+            {t('config.configureLibrary')}
+          </button>
+
+          {basicConfigOpen && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4">
 
             {/* ── Col 1: Identidad ── */}
             <div className="flex flex-col gap-4">
@@ -2374,9 +2393,10 @@ const App: React.FC<AppProps> = ({ authUser }) => {
             </div>
 
           </div>
+          )} {/* end basicConfigOpen */}
 
           {/* ── Configuración avanzada (collapsible) ── */}
-          <div className="border-t mt-4 pt-4">
+          <div className="border-t pt-4">
             <button
               type="button"
               onClick={() => setConfig(prev => ({ ...prev, advancedConfigOpen: !prev.advancedConfigOpen }))}
@@ -2392,31 +2412,26 @@ const App: React.FC<AppProps> = ({ authUser }) => {
             </button>
 
             {config.advancedConfigOpen && (
-              <div className="mt-4 space-y-6">
+              <div className="mt-4 space-y-4">
 
-                {/* ── Modelos por fase ── */}
+                {/* ── Modelos por fase — 3-col card grid ── */}
                 <div>
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-2">
                     {t('config.pipelineModels')}
                   </p>
-                  <div className="border border-slate-200 rounded divide-y divide-slate-100">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
 
                     {/* Phase 1+2: COMPRENDER + COMPONER */}
                     {(() => {
                       const chk = connectionChecks['nlu'];
                       const currentNluModel = config.nluModel ?? DEFAULT_NLU_MODEL;
                       return (
-                        <div className="flex items-center gap-2 p-2.5">
-                          <div className="shrink-0 w-28">
-                            <FieldLabel
-                              label={t('config.nluModel')}
-                              tooltip={t('config.nluModelTooltip')}
-                            />
-                          </div>
+                        <div className="border border-slate-200 rounded p-3 flex flex-col gap-2">
+                          <FieldLabel label={t('config.nluModel')} tooltip={t('config.nluModelTooltip')} />
                           <select
                             value={currentNluModel}
                             onChange={e => setNluModel(e.target.value)}
-                            className="flex-1 text-xs border p-2 bg-slate-50 focus:bg-white transition-colors min-w-0"
+                            className="w-full text-xs border p-2 bg-slate-50 focus:bg-white transition-colors"
                           >
                             {NLU_MODELS.map(m => (
                               <option key={m.id} value={m.id}>
@@ -2428,22 +2443,17 @@ const App: React.FC<AppProps> = ({ authUser }) => {
                             type="button"
                             onClick={() => checkConnection('nlu', 'claude', currentNluModel)}
                             disabled={chk?.status === 'checking'}
-                            className="shrink-0 flex items-center gap-1.5 text-[11px] px-2.5 py-2 border border-slate-200 text-slate-500 hover:text-violet-700 hover:border-violet-300 rounded transition-colors disabled:opacity-50"
+                            className="flex items-center justify-center gap-1.5 text-[11px] px-2 py-1.5 border border-slate-200 text-slate-500 hover:text-violet-700 hover:border-violet-300 rounded transition-colors disabled:opacity-50 w-full"
                             title={chk?.status === 'error' ? chk.error : undefined}
                           >
-                            {chk?.status === 'checking'
-                              ? <RefreshCw size={11} className="animate-spin" />
-                              : chk?.status === 'ok'
-                                ? <CheckCircle2 size={11} className="text-emerald-500" />
-                                : chk?.status === 'error'
-                                  ? <XCircle size={11} className="text-rose-500" />
-                                  : <Wifi size={11} />}
-                            <span className="hidden sm:inline">
-                              {chk?.status === 'checking' ? t('config.connectionChecking')
-                                : chk?.status === 'ok' ? `${t('config.connectionOk')} ${chk.latency}ms`
-                                  : chk?.status === 'error' ? t('config.connectionError')
-                                    : t('config.checkConnection')}
-                            </span>
+                            {chk?.status === 'checking' ? <RefreshCw size={10} className="animate-spin" />
+                              : chk?.status === 'ok' ? <CheckCircle2 size={10} className="text-emerald-500" />
+                              : chk?.status === 'error' ? <XCircle size={10} className="text-rose-500" />
+                              : <Wifi size={10} />}
+                            {chk?.status === 'checking' ? t('config.connectionChecking')
+                              : chk?.status === 'ok' ? `${t('config.connectionOk')} ${chk.latency}ms`
+                              : chk?.status === 'error' ? t('config.connectionError')
+                              : t('config.checkConnection')}
                           </button>
                         </div>
                       );
@@ -2453,19 +2463,14 @@ const App: React.FC<AppProps> = ({ authUser }) => {
                     {(() => {
                       const chk = connectionChecks['generation'];
                       const currentGenModel = config.generationModel ?? DEFAULT_GENERATION_MODEL;
-                      const genService = (currentGenModel.startsWith('recraft')) ? 'recraft' : 'gemini';
+                      const genService = currentGenModel.startsWith('recraft') ? 'recraft' : 'gemini';
                       return (
-                        <div className="flex items-center gap-2 p-2.5">
-                          <div className="shrink-0 w-28">
-                            <FieldLabel
-                              label={t('config.generationModel')}
-                              tooltip={t('config.generationModelTooltip')}
-                            />
-                          </div>
+                        <div className="border border-slate-200 rounded p-3 flex flex-col gap-2">
+                          <FieldLabel label={t('config.generationModel')} tooltip={t('config.generationModelTooltip')} />
                           <select
                             value={currentGenModel}
                             onChange={e => handleGenerationModelChange(e.target.value as GenerationModel)}
-                            className="flex-1 text-xs border p-2 bg-slate-50 focus:bg-white transition-colors min-w-0"
+                            className="w-full text-xs border p-2 bg-slate-50 focus:bg-white transition-colors"
                           >
                             {(Object.keys(GENERATION_MODEL_LABELS) as GenerationModel[]).map(m => {
                               const inoperativeReason = INOPERATIVE_GENERATION_MODELS[m];
@@ -2482,22 +2487,17 @@ const App: React.FC<AppProps> = ({ authUser }) => {
                             type="button"
                             onClick={() => checkConnection('generation', genService)}
                             disabled={chk?.status === 'checking'}
-                            className="shrink-0 flex items-center gap-1.5 text-[11px] px-2.5 py-2 border border-slate-200 text-slate-500 hover:text-violet-700 hover:border-violet-300 rounded transition-colors disabled:opacity-50"
+                            className="flex items-center justify-center gap-1.5 text-[11px] px-2 py-1.5 border border-slate-200 text-slate-500 hover:text-violet-700 hover:border-violet-300 rounded transition-colors disabled:opacity-50 w-full"
                             title={chk?.status === 'error' ? chk.error : undefined}
                           >
-                            {chk?.status === 'checking'
-                              ? <RefreshCw size={11} className="animate-spin" />
-                              : chk?.status === 'ok'
-                                ? <CheckCircle2 size={11} className="text-emerald-500" />
-                                : chk?.status === 'error'
-                                  ? <XCircle size={11} className="text-rose-500" />
-                                  : <Wifi size={11} />}
-                            <span className="hidden sm:inline">
-                              {chk?.status === 'checking' ? t('config.connectionChecking')
-                                : chk?.status === 'ok' ? `${t('config.connectionOk')} ${chk.latency}ms`
-                                  : chk?.status === 'error' ? t('config.connectionError')
-                                    : t('config.checkConnection')}
-                            </span>
+                            {chk?.status === 'checking' ? <RefreshCw size={10} className="animate-spin" />
+                              : chk?.status === 'ok' ? <CheckCircle2 size={10} className="text-emerald-500" />
+                              : chk?.status === 'error' ? <XCircle size={10} className="text-rose-500" />
+                              : <Wifi size={10} />}
+                            {chk?.status === 'checking' ? t('config.connectionChecking')
+                              : chk?.status === 'ok' ? `${t('config.connectionOk')} ${chk.latency}ms`
+                              : chk?.status === 'error' ? t('config.connectionError')
+                              : t('config.checkConnection')}
                           </button>
                         </div>
                       );
@@ -2509,17 +2509,12 @@ const App: React.FC<AppProps> = ({ authUser }) => {
                       const currentP5Model = config.phase5Model ?? DEFAULT_PHASE5_MODEL;
                       const structService = currentP5Model.startsWith('claude') ? 'claude' : 'gemini';
                       return (
-                        <div className="flex items-center gap-2 p-2.5">
-                          <div className="shrink-0 w-28">
-                            <FieldLabel
-                              label={t('config.phase5Model')}
-                              tooltip={t('config.phase5ModelTooltip')}
-                            />
-                          </div>
+                        <div className="border border-slate-200 rounded p-3 flex flex-col gap-2">
+                          <FieldLabel label={t('config.phase5Model')} tooltip={t('config.phase5ModelTooltip')} />
                           <select
                             value={currentP5Model}
                             onChange={e => setPhase5Model(e.target.value)}
-                            className="flex-1 text-xs border p-2 bg-slate-50 focus:bg-white transition-colors min-w-0"
+                            className="w-full text-xs border p-2 bg-slate-50 focus:bg-white transition-colors"
                           >
                             {PHASE5_MODELS.map(m => (
                               <option key={m.id} value={m.id}>
@@ -2531,22 +2526,17 @@ const App: React.FC<AppProps> = ({ authUser }) => {
                             type="button"
                             onClick={() => checkConnection('structuring', structService, structService === 'claude' ? currentP5Model : undefined)}
                             disabled={chk?.status === 'checking'}
-                            className="shrink-0 flex items-center gap-1.5 text-[11px] px-2.5 py-2 border border-slate-200 text-slate-500 hover:text-violet-700 hover:border-violet-300 rounded transition-colors disabled:opacity-50"
+                            className="flex items-center justify-center gap-1.5 text-[11px] px-2 py-1.5 border border-slate-200 text-slate-500 hover:text-violet-700 hover:border-violet-300 rounded transition-colors disabled:opacity-50 w-full"
                             title={chk?.status === 'error' ? chk.error : undefined}
                           >
-                            {chk?.status === 'checking'
-                              ? <RefreshCw size={11} className="animate-spin" />
-                              : chk?.status === 'ok'
-                                ? <CheckCircle2 size={11} className="text-emerald-500" />
-                                : chk?.status === 'error'
-                                  ? <XCircle size={11} className="text-rose-500" />
-                                  : <Wifi size={11} />}
-                            <span className="hidden sm:inline">
-                              {chk?.status === 'checking' ? t('config.connectionChecking')
-                                : chk?.status === 'ok' ? `${t('config.connectionOk')} ${chk.latency}ms`
-                                  : chk?.status === 'error' ? t('config.connectionError')
-                                    : t('config.checkConnection')}
-                            </span>
+                            {chk?.status === 'checking' ? <RefreshCw size={10} className="animate-spin" />
+                              : chk?.status === 'ok' ? <CheckCircle2 size={10} className="text-emerald-500" />
+                              : chk?.status === 'error' ? <XCircle size={10} className="text-rose-500" />
+                              : <Wifi size={10} />}
+                            {chk?.status === 'checking' ? t('config.connectionChecking')
+                              : chk?.status === 'ok' ? `${t('config.connectionOk')} ${chk.latency}ms`
+                              : chk?.status === 'error' ? t('config.connectionError')
+                              : t('config.checkConnection')}
                           </button>
                         </div>
                       );
@@ -2636,7 +2626,10 @@ const App: React.FC<AppProps> = ({ authUser }) => {
             )}
           </div>
 
-        </div>
+          </div> {/* end max-w-7xl */}
+        </div> {/* end globalSettings */}
+        </>
+      )}
 
       {/* ── Model change warning dialog ── */}
       {modelChangeWarning && (
@@ -2681,8 +2674,6 @@ const App: React.FC<AppProps> = ({ authUser }) => {
             </div>
           </div>
         </div>
-      )}
-        </>
       )}
 
       <main id="mainContent" className="flex-1 p-8 max-w-7xl mx-auto w-full">
