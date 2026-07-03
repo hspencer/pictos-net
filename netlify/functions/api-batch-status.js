@@ -71,9 +71,10 @@ export const handler = async (event, context) => {
       // Kick the collector exactly once when the job turns collectable.
       if (job.state === 'collecting' && !job.collectRequested) {
         job.collectRequested = true;
-        // Fase B2: fire-and-forget invocation of the background collector.
-        // Until B2 lands, the flag simply parks the job in "collecting".
-        const base = process.env.URL || '';
+        // Fire-and-forget invocation of the background collector.
+        // DEPLOY_PRIME_URL over URL: on branch deploys URL points at
+        // production, and the kick must run THIS deploy's function code.
+        const base = process.env.DEPLOY_PRIME_URL || process.env.URL || '';
         if (base) {
           fetch(`${base}/.netlify/functions/api-batch-collect-background`, {
             method: 'POST',
