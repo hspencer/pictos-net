@@ -546,44 +546,16 @@ const App: React.FC<AppProps> = ({ authUser }) => {
           svgRowIdsRef.current = seeded;
 
           // ── Bitmap recovery for stale template libraries (on app startup) ──
-          // Fallback: if sourceTemplate is not tagged, match by library name.
+          // Delegado al helper compartido (mismo camino que openLibrary), que
+          // resuelve el catálogo bajo demanda y repara flags obsoletos.
           if (bitmapsMap.size === 0) {
-            const meta = index.find(l => l.id === targetId);
-            const sourceTemplate =
-              meta?.sourceTemplate ||
-              availableLibrariesRef.current.find(t => t.name === meta?.name)?.filename;
-            if (sourceTemplate) {
-              const needsBitmaps = loadedRows.some(
-                (r: RowData) => r.bitmapStatus === 'completed' && !r.rawSvg && !r.structuredSvg,
-              );
-              if (needsBitmaps) {
-                if (!meta?.sourceTemplate) {
-                  libraryService.updateLibraryMeta(targetId, { sourceTemplate });
-                }
-                fetch(`/libraries/${sourceTemplate}`)
-                  .then(res => res.ok ? res.json() : Promise.reject(res.status))
-                  .then((data: { rows?: RowData[] }) => {
-                    const templateMap = new Map<string, string>(
-                      (data.rows ?? []).filter(r => r.bitmap).map(r => [r.id, r.bitmap!]),
-                    );
-                    const entries = loadedRows
-                      .filter((r: RowData) => templateMap.has(r.id))
-                      .map((r: RowData) => ({ id: r.id, bitmap: templateMap.get(r.id)!, libraryId: targetId }));
-                    if (entries.length === 0) return;
-                    return IndexedDBService.saveBitmapsBatch(entries).then(() => {
-                      setRows(prev => prev.map(r => {
-                        const bmp = templateMap.get(r.id);
-                        return bmp ? { ...r, bitmap: bmp } : r;
-                      }));
-                      console.info(`[init] Recovered ${entries.length} bitmap(s) from ${sourceTemplate}`);
-                    });
-                  })
-                  .catch(err => console.warn('[init] Bitmap recovery failed:', err));
-              }
-            }
+            void recoverTemplateBitmaps(targetId, loadedRows);
           }
         } catch (err) {
+          // IDB colgado o bloqueado: intentar igualmente la recuperación
+          // desde la plantilla (muestra bitmaps aunque la persistencia falle).
           console.error('Failed to load binary data from IndexedDB:', err);
+          void recoverTemplateBitmaps(targetId, loadedRows);
         }
       }
     };
@@ -667,6 +639,74 @@ const App: React.FC<AppProps> = ({ authUser }) => {
     }
   }, [rows, isInitialized, config, activeLibraryId]);
 
+  /**
+   * Recupera los bitmaps de una librería derivada de plantilla cuando
+   * IndexedDB no los tiene (p. ej. tras la migración v6, que los descarta, o
+   * tras una escritura fallida). Resuelve la plantilla por meta.sourceTemplate
+   * o por nombre — obteniendo index.json bajo demanda si el catálogo aún no
+   * está cacheado (carrera del arranque) — re-descarga el JSON de la plantilla
+   * y restaura los bitmaps por id de fila, reparando también bitmapStatus
+   * obsoletos. Se utiliza en: efecto de arranque (loadData) y openLibrary.
+   */
+  const recoverTemplateBitmaps = useCallback(async (libraryId: string, candidateRows: RowData[]): Promise<void> => {
+    try {
+      const meta = libraryService.getLibraryIndex().find(l => l.id === libraryId);
+      if (!meta) return;
+
+      // Catálogo de plantillas: ref cacheada, o fetch bajo demanda si el
+      // efecto de index.json aún no terminó (evita la carrera del arranque).
+      let templates = availableLibrariesRef.current;
+      if (!templates || templates.length === 0) {
+        try {
+          const res = await fetch('/libraries/index.json');
+          if (res.ok) {
+            templates = (await res.json()).libraries ?? [];
+            availableLibrariesRef.current = templates;
+          }
+        } catch { /* sin red — no hay recuperación posible */ }
+      }
+
+      const sourceTemplate = meta.sourceTemplate
+        || templates?.find(t => t.name === meta.name)?.filename;
+      if (!sourceTemplate) return;
+      // Etiquetar para que futuras aperturas no dependan del match por nombre
+      if (!meta.sourceTemplate) {
+        libraryService.updateLibraryMeta(libraryId, { sourceTemplate });
+      }
+
+      const res = await fetch(`/libraries/${sourceTemplate}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data: { rows?: RowData[] } = await res.json();
+      const templateMap = new Map<string, string>(
+        (data.rows ?? []).filter(r => r.bitmap).map(r => [r.id, r.bitmap!]),
+      );
+      const entries = candidateRows
+        .filter(r => templateMap.has(r.id))
+        .map(r => ({ id: r.id, bitmap: templateMap.get(r.id)!, libraryId }));
+      if (entries.length === 0) {
+        console.warn(`[recovery] ${sourceTemplate}: ningún id de fila coincide con la plantilla`);
+        return;
+      }
+
+      // Persistencia best-effort: si IDB está bloqueado o falla, igual se
+      // muestran los bitmaps desde el estado; la próxima apertura reintenta.
+      await IndexedDBService.saveBitmapsBatch(entries)
+        .catch(err => console.warn('[recovery] IDB save failed (mostrando desde estado):', err));
+      setRows(prev => prev.map(r => {
+        const bmp = templateMap.get(r.id);
+        if (!bmp) return r;
+        // No pisar un bitmap más nuevo ya presente en el estado; reparar
+        // flags de estado corruptos por bugs previos.
+        return { ...r, bitmap: r.bitmap || bmp, bitmapStatus: 'completed' as const };
+      }));
+      addLog('info', `Se recuperaron ${entries.length} imagen(es) de la plantilla "${meta.name}"`);
+      console.info(`[recovery] Recovered ${entries.length} bitmap(s) from ${sourceTemplate}`);
+    } catch (err) {
+      console.warn('[recovery] Bitmap recovery failed:', err);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const openLibrary = useCallback((id: string, { skipRowLoad = false }: { skipRowLoad?: boolean } = {}) => {
     localStorage.setItem(libraryService.ACTIVE_LIBRARY_KEY, id);
 
@@ -698,48 +738,17 @@ const App: React.FC<AppProps> = ({ authUser }) => {
         svgRowIdsRef.current = seeded;
 
         // ── Bitmap recovery for stale template libraries ─────────────────────
-        // If IDB has no bitmaps but rows have bitmapStatus:'completed', the
-        // bitmaps were lost (dropped by the v4→v5 IDB migration or a previous
-        // failed save). Re-fetch from the source template JSON.
-        // Fallback: if sourceTemplate is not tagged (loaded before v2.2.2),
-        // try to match the library name against available template filenames.
+        // Delegado al helper compartido: resuelve sourceTemplate (o nombre),
+        // re-descarga la plantilla y repara bitmaps + flags de estado.
         if (bitmapsMap.size === 0) {
-          const meta = libraryService.getLibraryIndex().find(l => l.id === id);
-          const sourceTemplate =
-            meta?.sourceTemplate ||
-            availableLibrariesRef.current.find(t => t.name === meta?.name)?.filename;
-          if (sourceTemplate) {
-            const needsBitmaps = savedRows.some(
-              (r: RowData) => r.bitmapStatus === 'completed' && !r.rawSvg && !r.structuredSvg,
-            );
-            if (needsBitmaps) {
-              // Tag the library with its template so future reloads skip the fetch
-              if (!meta?.sourceTemplate) {
-                libraryService.updateLibraryMeta(id, { sourceTemplate });
-              }
-              fetch(`/libraries/${sourceTemplate}`)
-                .then(res => res.ok ? res.json() : Promise.reject(res.status))
-                .then((data: { rows?: RowData[] }) => {
-                  const templateMap = new Map<string, string>(
-                    (data.rows ?? []).filter(r => r.bitmap).map(r => [r.id, r.bitmap!]),
-                  );
-                  const entries = savedRows
-                    .filter((r: RowData) => templateMap.has(r.id))
-                    .map((r: RowData) => ({ id: r.id, bitmap: templateMap.get(r.id)!, libraryId: id }));
-                  if (entries.length === 0) return;
-                  return IndexedDBService.saveBitmapsBatch(entries).then(() => {
-                    setRows(prev => prev.map(r => {
-                      const bmp = templateMap.get(r.id);
-                      return bmp ? { ...r, bitmap: bmp } : r;
-                    }));
-                    console.info(`[openLibrary] Recovered ${entries.length} bitmap(s) from ${sourceTemplate}`);
-                  });
-                })
-                .catch(err => console.warn('[openLibrary] Bitmap recovery failed:', err));
-            }
-          }
+          void recoverTemplateBitmaps(id, savedRows);
         }
-      }).catch(err => console.error('[openLibrary] IDB load failed:', err));
+      }).catch(err => {
+        // IDB colgado o bloqueado: intentar igualmente la recuperación desde
+        // la plantilla para que los bitmaps aparezcan en pantalla.
+        console.error('[openLibrary] IDB load failed:', err);
+        void recoverTemplateBitmaps(id, savedRows);
+      });
     }
 
     setActiveLibraryId(id);

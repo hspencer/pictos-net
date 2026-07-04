@@ -3,7 +3,7 @@
 **Pictogramas generativos para la Comunicación Aumentativa y Alternativa (CAA)**
 
 * [![Netlify Status](https://api.netlify.com/api/v1/badges/24f068d3-f368-4526-a503-2f09af1def0b/deploy-status)](https://app.netlify.com/projects/pictos/deploys)
-* ![version](https://img.shields.io/badge/version-2.0.0-violet)
+* ![version](https://img.shields.io/badge/version-2.3.0-violet)
 * ![opensource](https://img.shields.io/badge/opensource--always-available-blue)
 
 PICTOS.NET transforma intenciones comunicativas expresadas en lenguaje natural en pictogramas mediante un pipeline de razonamiento semántico. Es parte de la investigación doctoral de [Herbert Spencer](https://herbertspencer.net/cc) y de **[MediaFranca](https://github.com/mediafranca)** — una iniciativa de código abierto de bien público para la CAA.
@@ -19,11 +19,11 @@ El sistema implementa un pipeline de tres fases automáticas más una de post-pr
 
 **(1) Comprender** (Claude Haiku) — Análisis lingüístico profundo basado en Natural Semantic Metalanguage (NSM): 65 primitivos semánticos universales. Usa tool use forzado para garantizar JSON válido. Produce un esquema estructurado con intención comunicativa, dominio, roles semánticos (FrameNet) e instrucciones visuales.
 
-**(2) Componer** (Claude Haiku) — Traduce el análisis NLU a una jerarquía de elementos visuales (`elements`) y una descripción de articulación espacial (`prompt`). Si el usuario edita los elementos, puede regenerar solo el prompt sin repetir toda la composición.
+**(2) Componer** (Claude Haiku) — Traduce el análisis NLU a una jerarquía de elementos visuales (`elements`) y una descripción de articulación espacial (`prompt`). Cada elemento lleva un `concept` semántico (Agent, Action, Object, Context) derivado de los roles de frame del NLU, que viaja hasta el `data-concept` del SVG final. Si el usuario edita los elementos, puede regenerar solo el prompt sin repetir toda la composición.
 
 **(3) Producir** (Recraft V4.1 Vector) — Genera el pictograma como SVG nativo a partir del contexto semántico, los elementos, el prompt espacial y el estilo visual configurado. No hay bitmap intermedio: el resultado es un SVG vectorial directamente editable.
 
-**(4) Estructurar** (Claude Sonnet, opcional) — Reorganiza los paths del SVG crudo en grupos semánticos según la jerarquía de elementos de la fase 2, embebiendo metadatos de accesibilidad según [mf-svg-schema](https://github.com/mediafranca/mf-svg-schema). Usa visión por computadora (set-of-marks) + ensamblaje local: la geometría nunca sale del navegador.
+**(4) Estructurar** (Claude Sonnet, opcional) — Reorganiza los paths del SVG crudo en grupos semánticos congruentes con la jerarquía de la fase 2, embebiendo metadatos de accesibilidad según [mf-svg-schema](https://github.com/mediafranca/mf-svg-schema). Combina medición geométrica local (anclas reales por `getBBox` + CTM, candidatos de fusión pre-calculados), una sola llamada de visión (set-of-marks con anti-colisión y líneas guía), ensamblaje local con redes de seguridad y pulido geométrico determinístico: la geometría nunca sale del navegador ni la escribe el modelo. Documentación detallada en [docs/ESTRUCTURAR.md](docs/ESTRUCTURAR.md).
 
 La cascada automática (1 → 2 → 3) se ejecuta al crear una nueva frase o presionar Play. La fase 4 es opcional y la inicia el usuario manualmente. Los pictogramas pueden evaluarse con el marco [ICAP](https://github.com/mediafranca/ICAP).
 
@@ -67,7 +67,7 @@ flowchart TD
         direction TB
         f2a["Visual Topology Node<br><i>genera elements + prompt<br>en una sola llamada</i>"]
         f2b["Spatial Articulation Node<br><i>solo en regeneración manual<br>cuando usuario edita elements</i>"]
-        f2_elem["<b>elements</b><br>VisualElement tree"]
+        f2_elem["<b>elements</b><br>VisualElement tree<br><i>concept por nodo desde<br>roles de frame NLU</i>"]
         f2_prompt["<b>prompt</b><br>composición espacial"]
     end
 
@@ -78,14 +78,16 @@ flowchart TD
         f3_out["<b>rawSvg</b><br>SVG vectorial nativo"]
     end
 
-    subgraph POST["Post-procesamiento — manual, opcional"]
+    subgraph POST["Post-procesamiento — manual, opcional · ver docs/ESTRUCTURAR.md"]
         direction TB
         subgraph F4["<b>(4) ESTRUCTURAR</b> — Claude Sonnet Vision"]
             direction TB
-            f4_marks["Set-of-marks<br>rasteriza SVG con IDs numerados"]
-            f4_vision["Claude vision<br>asigna paths a elementos<br>tool use forzado"]
-            f4_assemble["Ensamblaje local<br>geometría nunca sale del browser"]
-            f4_out["<b>structuredSvg</b><br>mf-svg-schema · grupos semánticos<br>metadatos de accesibilidad"]
+            f4_measure["Medición local<br><i>anclas reales getBBox + CTM<br>candidatos de fusión (IoU bbox)</i>"]
+            f4_marks["Set-of-marks<br><i>marcas numeradas con anti-colisión<br>y líneas guía al ancla</i>"]
+            f4_vision["Claude vision<br><i>asigna paths a elementos<br>confirma fusiones · tool use forzado</i>"]
+            f4_assemble["Ensamblaje local<br><i>uniones booleanas + redes de seguridad<br>geometría nunca sale del browser</i>"]
+            f4_polish["Pulido determinístico<br><i>refit selectivo a curvas<br>redondeo de coordenadas</i>"]
+            f4_out["<b>structuredSvg</b><br>mf-svg-schema · grupos semánticos<br>data-concept congruente con NLU<br>metadatos de accesibilidad"]
         end
     end
 
@@ -115,9 +117,9 @@ flowchart TD
     f3_merge --> f3_gen --> f3_out
 
     f3_out -.->|"usuario inicia"| POST
-    f2_elem -.->|estructura DOM| f4_vision
+    f2_elem -.->|"estructura DOM + concept"| f4_vision
     cfg_css -->|generateStylesheet| f4_assemble
-    f4_marks --> f4_vision --> f4_assemble --> f4_out
+    f4_measure --> f4_marks --> f4_vision --> f4_assemble --> f4_polish --> f4_out
 
     f1_out --> r1
     f2_elem --> r2
@@ -148,9 +150,11 @@ flowchart TD
 
     style POST fill:#f8f8ff,stroke:#999,stroke-width:1px,stroke-dasharray: 8 4
     style F4 fill:#fce7f3,stroke:#ec4899,stroke-width:2px
+    style f4_measure fill:#fdf2f8,stroke:#f9a8d4,color:#831843
     style f4_marks fill:#fdf2f8,stroke:#f9a8d4,color:#831843
     style f4_vision fill:#fdf2f8,stroke:#f9a8d4,color:#831843
     style f4_assemble fill:#fdf2f8,stroke:#f9a8d4,color:#831843
+    style f4_polish fill:#fdf2f8,stroke:#f9a8d4,color:#831843
     style f4_out fill:#fbcfe8,stroke:#ec4899,stroke-width:2px,color:#831843
 
     style ROW fill:#fafafa,stroke:#333,stroke-width:3px

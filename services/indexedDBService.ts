@@ -50,6 +50,15 @@ export const initDB = (): Promise<IDBDatabase> => {
 
     const request = indexedDB.open(DB_NAME, DB_VERSION);
 
+    // Another tab holds a connection with an older schema version: the open
+    // request stalls with neither success nor error, which used to hang every
+    // IDB consumer (and with it the bitmap recovery path) silently. Reject so
+    // callers fall back / log, instead of waiting forever.
+    request.onblocked = () => {
+      console.error('[IDB] upgrade blocked — another tab holds an older connection. Close other app tabs.');
+      reject(new Error('IndexedDB upgrade blocked by another open tab'));
+    };
+
     request.onerror = () => {
       console.error('IndexedDB error:', request.error);
       reject(request.error);
@@ -57,7 +66,15 @@ export const initDB = (): Promise<IDBDatabase> => {
 
     request.onsuccess = () => {
       dbInstance = request.result;
-      resolve(dbInstance);
+      // Counterpart of onblocked: when ANOTHER tab requests a version upgrade,
+      // close this connection so that tab's upgrade can proceed. Next call in
+      // this tab reopens at the new version.
+      dbInstance.onversionchange = () => {
+        dbInstance?.close();
+        dbInstance = null;
+      };
+      dbInstance.onclose = () => { dbInstance = null; };
+      resolve(request.result);
     };
 
     request.onupgradeneeded = (event) => {

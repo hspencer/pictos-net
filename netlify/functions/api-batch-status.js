@@ -70,8 +70,20 @@ export const handler = async (event, context) => {
    * and the kick must run THIS deploy's function code.
    */
   const kickCollector = async (partial) => {
-    const base = process.env.DEPLOY_PRIME_URL || process.env.URL || '';
-    if (!base) return;
+    // Local dev (netlify dev): DEPLOY_PRIME_URL/URL are unset or point at the
+    // DEPLOYED site, whose blob store does not contain this local job — the
+    // kick either vanished silently or ran against production and found
+    // nothing, stranding the job in "collecting" forever. Derive the base
+    // from the incoming request's Host header so the collector always runs
+    // on THIS server (and can see the local blob sandbox).
+    const host = event.headers?.host || '';
+    const base = process.env.NETLIFY_DEV === 'true' && host
+      ? `http://${host}`
+      : (process.env.DEPLOY_PRIME_URL || process.env.URL || '');
+    if (!base) {
+      console.warn('[api-batch-status] no base URL available to kick the collector');
+      return;
+    }
     try {
       await fetch(`${base}/.netlify/functions/api-batch-collect-background`, {
         method: 'POST',

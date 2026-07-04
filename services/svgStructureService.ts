@@ -32,6 +32,8 @@ import type { ClaudeResponse } from './aiClient';
 import { applyBooleanN, applySimplify } from './svgBooleanOps';
 import { findUnreachableNodeIds } from './svgTreeUtils';
 import { isMicroBlob } from './svgGeometryUtils';
+import { detectMergeCandidates } from './svgMergeCandidates';
+import { shouldSimplify, roundPathD } from './svgPathPolish';
 
 const MARK_RENDER_SIZE = 800;
 
@@ -79,6 +81,9 @@ interface PathInfo {
     fillRole: 'dark' | 'light' | 'accent' | 'unknown';
     cx: number;
     cy: number;
+    /** Real bounding box in viewBox space [x, y, w, h] — only present when
+     *  DOM measurement succeeded. Used by detectMergeCandidates. */
+    bbox?: [number, number, number, number];
     vtracerGroup: string | null;
 }
 
@@ -144,6 +149,14 @@ function getTranslateOffset(transform: string | null): [number, number] {
     return m ? [Math.round(parseFloat(m[1])), Math.round(parseFloat(m[2]))] : [0, 0];
 }
 
+/**
+ * LEGACY FALLBACK — estimates a path's centroid by averaging every number in
+ * the `d` attribute as alternating x/y pairs. Wrong for relative commands
+ * (l/c/q accumulate deltas, not positions) and arc flags/radii, so marks can
+ * land far from the actual shape. Kept only as the fallback when DOM
+ * measurement (measurePathAnchors) is unavailable or fails for a path.
+ * Used in: buildPathInventory.
+ */
 function getCentroid(d: string, tx: number, ty: number): [number, number] {
     const nums = d.match(/-?[0-9]+\.?[0-9]*/g)?.map(Number) ?? [];
     if (nums.length < 2) return [tx, ty];
@@ -153,6 +166,110 @@ function getCentroid(d: string, tx: number, ty: number): [number, number] {
         Math.round(xs.reduce((a, b) => a + b, 0) / xs.length + tx),
         Math.round(ys.reduce((a, b) => a + b, 0) / ys.length + ty),
     ];
+}
+
+/**
+ * Measures the REAL anchor point of every `path[id]` by mounting the SVG in a
+ * hidden DOM host: `getBBox()` gives the exact local bounding box (all
+ * commands, relative or absolute, arcs included) and the CTM chain maps it to
+ * viewBox space (handles translate/scale/matrix transforms, not just
+ * translate). If the bbox centre falls outside the fill (C-shapes, rings),
+ * a small grid is sampled with Path2D.isPointInPath and the inside point
+ * closest to the centre wins — so the numbered mark sits ON the shape it
+ * labels. Returns viewBox-space anchor AND bounding box per path id; paths
+ * that fail to measure are simply absent (caller falls back to getCentroid,
+ * without bbox). The bbox feeds detectMergeCandidates (double-contour pairs).
+ * Used in: buildPathInventory.
+ */
+interface MeasuredPathGeometry {
+    cx: number;
+    cy: number;
+    bbox: [number, number, number, number];
+}
+
+function measurePathAnchors(svgString: string): Map<string, MeasuredPathGeometry> {
+    const anchors = new Map<string, MeasuredPathGeometry>();
+    if (typeof document === 'undefined' || !document.body) return anchors;
+
+    const host = document.createElement('div');
+    // visibility:hidden (NOT display:none — getBBox needs a rendered layout)
+    host.style.cssText = 'position:absolute;left:-99999px;top:0;width:512px;height:512px;overflow:hidden;visibility:hidden;pointer-events:none;';
+    try {
+        host.innerHTML = svgString;
+        const svg = host.querySelector('svg') as SVGSVGElement | null;
+        if (!svg) return anchors;
+        svg.setAttribute('width', '512');
+        svg.setAttribute('height', '512');
+        document.body.appendChild(host);
+
+        const rootCTM = svg.getScreenCTM();
+        if (!rootCTM) return anchors;
+        const rootInv = rootCTM.inverse();
+        const ctx = document.createElement('canvas').getContext('2d');
+
+        svg.querySelectorAll('path[id]').forEach(el => {
+            const p = el as SVGPathElement;
+            const id = p.getAttribute('id')!;
+            try {
+                const bbox = p.getBBox();
+                if (bbox.width === 0 && bbox.height === 0) return;
+
+                // Preferred anchor in LOCAL coords: bbox centre, nudged inside
+                // the fill if the centre falls in a hole.
+                let lx = bbox.x + bbox.width / 2;
+                let ly = bbox.y + bbox.height / 2;
+                if (ctx) {
+                    const d = p.getAttribute('d') ?? '';
+                    const fillRule = (p.getAttribute('fill-rule') as CanvasFillRule) || 'nonzero';
+                    try {
+                        const path2d = new Path2D(d);
+                        if (!ctx.isPointInPath(path2d, lx, ly, fillRule)) {
+                            // 7×7 grid over the bbox: nearest inside point to centre
+                            let best: [number, number] | null = null;
+                            let bestDist = Infinity;
+                            for (let gy = 1; gy <= 7; gy++) {
+                                for (let gx = 1; gx <= 7; gx++) {
+                                    const sx = bbox.x + (bbox.width * gx) / 8;
+                                    const sy = bbox.y + (bbox.height * gy) / 8;
+                                    if (!ctx.isPointInPath(path2d, sx, sy, fillRule)) continue;
+                                    const dist = (sx - lx) ** 2 + (sy - ly) ** 2;
+                                    if (dist < bestDist) { bestDist = dist; best = [sx, sy]; }
+                                }
+                            }
+                            if (best) { lx = best[0]; ly = best[1]; }
+                        }
+                    } catch { /* Path2D parse failed — keep bbox centre */ }
+                }
+
+                // LOCAL → viewBox space through the full CTM chain.
+                const elCTM = p.getScreenCTM();
+                if (!elCTM) return;
+                const m = rootInv.multiply(elCTM);
+                const tx = (x: number, y: number): [number, number] =>
+                    [m.a * x + m.c * y + m.e, m.b * x + m.d * y + m.f];
+                // Bbox corners through the matrix (handles rotation/skew too)
+                const corners = [
+                    tx(bbox.x, bbox.y),
+                    tx(bbox.x + bbox.width, bbox.y),
+                    tx(bbox.x, bbox.y + bbox.height),
+                    tx(bbox.x + bbox.width, bbox.y + bbox.height),
+                ];
+                const xs = corners.map(c => c[0]);
+                const ys = corners.map(c => c[1]);
+                const minX = Math.min(...xs), maxX = Math.max(...xs);
+                const minY = Math.min(...ys), maxY = Math.max(...ys);
+                const [acx, acy] = tx(lx, ly);
+                anchors.set(id, {
+                    cx: Math.round(acx),
+                    cy: Math.round(acy),
+                    bbox: [Math.round(minX), Math.round(minY), Math.round(maxX - minX), Math.round(maxY - minY)],
+                });
+            } catch { /* getBBox failed for this path — fallback covers it */ }
+        });
+    } finally {
+        host.remove();
+    }
+    return anchors;
 }
 
 function offsetPathD(d: string, tx: number, ty: number): string {
@@ -274,6 +391,10 @@ export function buildPathInventory(svg: string): PathInventory {
         return inline;
     }
 
+    // Real anchors via DOM measurement (getBBox + CTM + inside-fill check);
+    // getCentroid remains the per-path fallback when measurement fails.
+    const measuredAnchors = measurePathAnchors(svg);
+
     for (const child of Array.from(svgEl.children)) {
         const tag = child.tagName.toLowerCase();
         const id = child.getAttribute('id') ?? '';
@@ -289,10 +410,11 @@ export function buildPathInventory(svg: string): PathInventory {
                 const d = p.getAttribute('d') ?? '';
                 const transform = p.getAttribute('transform') ?? '';
                 const [tx, ty] = getTranslateOffset(transform);
-                const [cx, cy] = getCentroid(d, tx, ty);
+                const measured = measuredAnchors.get(pid);
+                const [cx, cy] = measured ? [measured.cx, measured.cy] : getCentroid(d, tx, ty);
                 const pCls = p.getAttribute('class')?.trim();
                 if (pCls) pathClasses[pid] = pCls;
-                paths.push({ id: pid, fill, fillRole: getFillRole(fill), cx, cy, vtracerGroup: id });
+                paths.push({ id: pid, fill, fillRole: getFillRole(fill), cx, cy, bbox: measured?.bbox, vtracerGroup: id });
                 groupPaths.push(pid);
             }
             if (groupPaths.length > 0) vtracerGroups[id] = groupPaths;
@@ -304,10 +426,11 @@ export function buildPathInventory(svg: string): PathInventory {
             const transform = child.getAttribute('transform') ?? '';
             const [tx, ty] = getTranslateOffset(transform);
             if (isBackgroundRect(d, tx, ty, viewBox)) { backgroundPathIds.push(pid); continue; }
-            const [cx, cy] = getCentroid(d, tx, ty);
+            const measured = measuredAnchors.get(pid);
+            const [cx, cy] = measured ? [measured.cx, measured.cy] : getCentroid(d, tx, ty);
             const pCls = child.getAttribute('class')?.trim();
             if (pCls) pathClasses[pid] = pCls;
-            paths.push({ id: pid, fill, fillRole: getFillRole(fill), cx, cy, vtracerGroup: null });
+            paths.push({ id: pid, fill, fillRole: getFillRole(fill), cx, cy, bbox: measured?.bbox, vtracerGroup: null });
             standalonePathIds.push(pid);
         }
     }
@@ -346,10 +469,64 @@ async function rasterizeWithMarks(svgString: string, inventory: PathInventory): 
             ctx.drawImage(img, 0, 0, w, h);
             URL.revokeObjectURL(url);
 
-            inventory.paths.forEach((path, index) => {
-                const cx = Math.round(path.cx * scale);
-                const cy = Math.round(path.cy * scale);
-                const radius = 13;
+            const radius = 13;
+
+            // ── Anti-colisión de marcas ──────────────────────────────────────
+            // Paths concéntricos o adyacentes producen anclas casi idénticas y
+            // las marcas se tapan entre sí (números ilegibles → asignaciones
+            // erróneas). Relajación iterativa: pares más cercanos que 2r+2 se
+            // separan a lo largo de su delta; las marcas desplazadas dibujan
+            // una línea guía hasta su ancla original para no perder referencia.
+            const anchors = inventory.paths.map(p => ({
+                ax: Math.round(p.cx * scale),
+                ay: Math.round(p.cy * scale),
+            }));
+            const marks = anchors.map(a => ({ x: a.ax, y: a.ay }));
+            const minDist = radius * 2 + 2;
+            for (let iter = 0; iter < 30; iter++) {
+                let moved = false;
+                for (let i = 0; i < marks.length; i++) {
+                    for (let j = i + 1; j < marks.length; j++) {
+                        let dx = marks[j].x - marks[i].x;
+                        let dy = marks[j].y - marks[i].y;
+                        let dist = Math.hypot(dx, dy);
+                        if (dist >= minDist) continue;
+                        if (dist < 0.001) { dx = 1; dy = 0; dist = 1; } // coincidentes: separar en x
+                        const push = (minDist - dist) / 2 + 0.5;
+                        const ux = dx / dist, uy = dy / dist;
+                        marks[i].x -= ux * push; marks[i].y -= uy * push;
+                        marks[j].x += ux * push; marks[j].y += uy * push;
+                        moved = true;
+                    }
+                }
+                // Mantener las marcas dentro del lienzo
+                for (const m of marks) {
+                    m.x = Math.min(w - radius, Math.max(radius, m.x));
+                    m.y = Math.min(h - radius, Math.max(radius, m.y));
+                }
+                if (!moved) break;
+            }
+
+            // Líneas guía primero (debajo de los círculos)
+            marks.forEach((m, i) => {
+                const { ax, ay } = anchors[i];
+                if (Math.hypot(m.x - ax, m.y - ay) <= radius * 0.75) return;
+                ctx.beginPath();
+                ctx.moveTo(m.x, m.y);
+                ctx.lineTo(ax, ay);
+                ctx.strokeStyle = 'rgba(220, 38, 38, 0.9)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                // Punto en el ancla real
+                ctx.beginPath();
+                ctx.arc(ax, ay, 3, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(220, 38, 38, 0.9)';
+                ctx.fill();
+            });
+
+            marks.forEach((m, index) => {
+                const cx = Math.round(m.x);
+                const cy = Math.round(m.y);
                 ctx.beginPath();
                 ctx.arc(cx, cy, radius, 0, Math.PI * 2);
                 ctx.fillStyle = 'rgba(220, 38, 38, 0.90)';
@@ -386,6 +563,13 @@ interface NodeInfo {
     parentId: string | null;
 }
 
+/**
+ * LEGACY FALLBACK — guesses the semantic concept from the element id prefix.
+ * Only used for rows composed before Phase 2 emitted `concept` explicitly
+ * (see COMPOSE_TOOL_SCHEMA in claudeService). New rows carry the concept
+ * derived from the NLU frame roles; this string heuristic is never preferred.
+ * Used in: flattenElements, buildConceptMap.
+ */
 function guessConceptFromId(id: string): string {
     const lower = id.toLowerCase();
     if (lower === 'pictograma' || lower === 'pictogram') return 'Root';
@@ -400,13 +584,25 @@ function flattenElements(elements: VisualElement[], parentId: string | null = nu
     const result: NodeInfo[] = [];
     for (const el of elements) {
         const label = el.id.replace(/_/g, ' ');
-        const concept = guessConceptFromId(el.id);
+        // Prefer the concept composed from the NLU frame roles (Phase 2);
+        // fall back to the legacy id-prefix guess for old rows.
+        const concept = el.concept ?? guessConceptFromId(el.id);
         result.push({ id: el.id, label, concept, parentId });
         if (el.children) {
             result.push(...flattenElements(el.children, el.id));
         }
     }
     return result;
+}
+
+/**
+ * Builds a nodeId → concept map from the VisualElement tree so that render
+ * functions emit `data-concept` congruent with COMPRENDER/COMPONER instead of
+ * re-guessing from the id string.
+ * Used in: assembleFromMapping (renderGroup) and redrawSVG (renderRedrawGroup).
+ */
+function buildConceptMap(elements: VisualElement[]): Map<string, string> {
+    return new Map(flattenElements(elements).map(n => [n.id, n.concept]));
 }
 
 // ─── CSS Palette extraction ──────────────────────────────────────────────────
@@ -489,11 +685,11 @@ function buildRestructureToolSchema(nodeList: NodeInfo[]) {
 function buildSystemPrompt(hasCleanRef: boolean): string {
     const imagesSection = hasCleanRef
         ? `1. IMAGEN A — el bitmap limpio original del pictograma. Es la VERDAD visual: muestra la figura como debe verse, sin ruido.
-2. IMAGEN B — el trazado automático con un círculo numerado en rojo sobre el centroide de cada path. Aporta las COORDENADAS, pero viene sucio: ruido, motas y contornos DOBLES (cada línea trazada como su borde interno + externo).
+2. IMAGEN B — el trazado automático con un círculo numerado en rojo sobre cada path. Si dos paths estaban muy juntos, la marca se desplazó para ser legible y una línea roja fina la conecta con el punto exacto del path que etiqueta. Aporta las COORDENADAS, pero viene sucio: ruido, motas y contornos DOBLES (cada línea trazada como su borde interno + externo).
 3. El código fuente SVG en bruto (paths con sus IDs)
 4. El DOM semántico objetivo — nodos con id, concepto y etiqueta
 5. La paleta CSS de la librería — clases disponibles para estilizar`
-        : `1. Una imagen del SVG con un círculo numerado en rojo sobre el centroide de cada path
+        : `1. Una imagen del SVG con un círculo numerado en rojo sobre cada path (si dos paths estaban muy juntos, la marca se desplazó y una línea roja fina la conecta con el punto exacto que etiqueta)
 2. El código fuente SVG en bruto (paths con sus IDs)
 3. El DOM semántico objetivo — nodos con id, concepto y etiqueta
 4. La paleta CSS de la librería — clases disponibles para estilizar`;
@@ -531,7 +727,7 @@ Reglas:
 
 // ─── User Prompt ─────────────────────────────────────────────────────────────
 
-function buildUserText(rawSvg: string, nodeList: NodeInfo[], cssStyles: string, inventory: PathInventory, hasCleanRef: boolean): string {
+function buildUserText(rawSvg: string, nodeList: NodeInfo[], cssStyles: string, inventory: PathInventory, hasCleanRef: boolean, mergeCandidates: string[][] = []): string {
     const domSection = nodeList
         .map(n => `- ${n.id} [${n.concept}] "${n.label}"${n.parentId ? ` (hijo de ${n.parentId})` : ''}`)
         .join('\n');
@@ -541,6 +737,10 @@ function buildUserText(rawSvg: string, nodeList: NodeInfo[], cssStyles: string, 
     const marksSection = inventory.paths
         .map((p, i) => `  mark ${i}: id="${p.id}" fill-role="${p.fillRole}" centroide=(${p.cx},${p.cy})`)
         .join('\n');
+
+    const mergeSection = mergeCandidates.length > 0
+        ? `\nCandidatos de fusión detectados geométricamente (contornos casi concéntricos del mismo color — probables trazados dobles de la misma línea):\n${mergeCandidates.map(c => `  · [${c.join(' + ')}]`).join('\n')}\nVerifica cada candidato contra la imagen: si efectivamente son la misma forma visual, decláralos en merge.sources del grupo correspondiente; si son formas distintas (p. ej. anillo y su interior con significado propio), consérvalos por separado. También puedes proponer fusiones que no estén en esta lista.\n`
+        : '';
 
     const svgSource = rawSvg.length > 10000
         ? rawSvg.slice(0, 10000) + '\n<!-- … SVG truncado —>'
@@ -560,7 +760,7 @@ ${paletteSection}
 
 Marcas en la imagen (mark# → path-id → fill-role → centroide):
 ${marksSection}
-
+${mergeSection}
 SVG fuente:
 ${svgSource}`;
 }
@@ -581,7 +781,15 @@ async function callVisionStructuring(
     const tool = buildRestructureToolSchema(nodeList);
     const cleanRef = referenceImage ? parseDataUrl(referenceImage) : null;
     const systemPrompt = buildSystemPrompt(!!cleanRef);
-    const userText = buildUserText(rawSvg, nodeList, cssStyles, inventory, !!cleanRef);
+
+    // Candidatos de fusión detectados localmente (contornos dobles) — el
+    // modelo confirma contra la imagen en vez de tener que descubrirlos.
+    const mergeCandidates = detectMergeCandidates(inventory.paths);
+    if (mergeCandidates.length > 0 && onProgress) {
+        onProgress(`[ESTRUCTURAR] candidatos de fusión detectados: ${mergeCandidates.map(c => `[${c.join('+')}]`).join(' ')}`);
+    }
+
+    const userText = buildUserText(rawSvg, nodeList, cssStyles, inventory, !!cleanRef, mergeCandidates);
 
     // ── Console: Phase5_Console event 1 — full prompt
     if (onProgress) {
@@ -713,6 +921,7 @@ function renderGroup(
     childGroups: StructuringGroup[],
     originalPaths: Map<string, OriginalPathData>,
     pathInfoMap: Map<string, PathInfo>,
+    conceptById: Map<string, string>,
     indent = '  ',
 ): string {
     const dominantRole = getDominantFillRole(group.keep, pathInfoMap);
@@ -723,7 +932,9 @@ function renderGroup(
     if (!userHasColorClass) clsParts.push(colorCls);
     const cls = clsParts.join(' ');
     const label = escapeXmlAttr(group.label || group.nodeId);
-    const concept = escapeXmlAttr(guessConceptFromId(group.nodeId));
+    // Concept comes from the composed VisualElement tree (NLU-derived);
+    // only synthetic groups (e.g. the 'contexto' orphan bucket) fall back.
+    const concept = escapeXmlAttr(conceptById.get(group.nodeId) ?? guessConceptFromId(group.nodeId));
     const lines: string[] = [];
     lines.push(`${indent}<g id="${group.nodeId}" role="group" tabindex="0" data-concept="${concept}" aria-label="${label}" class="${cls}">`);
 
@@ -744,7 +955,7 @@ function renderGroup(
     // Nested children
     for (const child of childGroups) {
         const grandChildren = [];
-        lines.push(renderGroup(child, grandChildren, originalPaths, pathInfoMap, indent + '  '));
+        lines.push(renderGroup(child, grandChildren, originalPaths, pathInfoMap, conceptById, indent + '  '));
     }
 
     lines.push(`${indent}</g>`);
@@ -935,9 +1146,10 @@ export function assembleFromMapping(
         }
 
         // Render top-level groups (parentId = null)
+        const conceptById = buildConceptMap(input.elements);
         const topLevel = childMap.get(null) ?? [];
         const body = topLevel
-            .map(g => renderGroup(g, childMap.get(g.nodeId) ?? [], originalPaths, pathInfoMap))
+            .map(g => renderGroup(g, childMap.get(g.nodeId) ?? [], originalPaths, pathInfoMap, conceptById))
             .join('\n');
 
         // CSS
@@ -973,6 +1185,7 @@ export function assembleFromMapping(
             input.onProgress?.(`[ESTRUCTURAR] advertencia XML: ${validation.slice(0, 120)}`);
         } else {
             svgContent = deriveChildIds(svgContent);
+            svgContent = polishGeometry(svgContent, input.onProgress);
         }
 
         const groupCount = (svgContent.match(/<g /g) ?? []).length;
@@ -1045,6 +1258,55 @@ function deriveChildIds(svgContent: string): string {
     return result;
 }
 
+/**
+ * Deterministic geometry polish (local, no API). Two passes over every
+ * <path> of the assembled SVG:
+ *   1. Curve refitting — ONLY for polyline-heavy paths (tracing noise made
+ *      of dozens of tiny straight segments, see svgPathPolish.shouldSimplify).
+ *      Smooth Bezier paths (Recraft native output) are never touched, so the
+ *      polish cannot degrade clean geometry.
+ *   2. Coordinate rounding to 1 decimal (sub-0.1px in a 1024 viewBox) —
+ *      strips meaningless precision, shrinking the file.
+ * Every rewritten d is validated; on any failure the original is kept.
+ * Used in: assembleFromMapping and redrawSVG, after deriveChildIds.
+ */
+function polishGeometry(svgContent: string, onProgress?: (msg: string) => void): string {
+    try {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(svgContent, 'image/svg+xml');
+        if (doc.querySelector('parsererror')) return svgContent;
+
+        let simplifiedCount = 0;
+        doc.querySelectorAll('path').forEach(p => {
+            const d = p.getAttribute('d');
+            if (!d) return;
+            let next = d;
+            if (shouldSimplify(d)) {
+                try {
+                    const refit = applySimplify(d, 0.5);
+                    if (refit && validateMergedPath(refit)) {
+                        next = refit;
+                        simplifiedCount++;
+                    }
+                } catch { /* keep original */ }
+            }
+            const rounded = roundPathD(next, 1);
+            if (validateMergedPath(rounded)) next = rounded;
+            if (next !== d) p.setAttribute('d', next);
+        });
+
+        let out = new XMLSerializer().serializeToString(doc);
+        out = out.replace(/ xmlns="http:\/\/www\.w3\.org\/2000\/svg"/g, '');
+        out = out.replace(/<svg /, '<svg xmlns="http://www.w3.org/2000/svg" ');
+
+        const deltaKB = (svgContent.length - out.length) / 1024;
+        onProgress?.(`[ESTRUCTURAR] pulido geométrico: ${simplifiedCount} path(s) refiteado(s) a curvas, ${deltaKB >= 0 ? '-' : '+'}${Math.abs(deltaKB).toFixed(1)} KB`);
+        return out;
+    } catch {
+        return svgContent;
+    }
+}
+
 function removeEmptyGroupsFromFragment(fragment: string): string {
     let prev = '';
     let current = fragment;
@@ -1089,6 +1351,9 @@ function buildMetadataJSON(input: SVGStructureInput): object {
             expectedResponse: nlu.pragmatics?.expected_response ?? null,
         },
         visualGuidelines: { focusActor: vg?.focus_actor ?? null, actionCore: vg?.action_core ?? null, objectCore: vg?.object_core ?? null, context: vg?.context ?? null, temporal: vg?.temporal ?? null },
+        // Composed visual DOM (Phase 2) with NLU-derived concepts — the
+        // structured SVG's <g> hierarchy should be congruent with this tree.
+        visualDom: flattenElements(input.elements ?? []).map(n => ({ id: n.id, concept: n.concept, parentId: n.parentId })),
         accessibility: { cognitiveDescription: input.utterance, visualDescription: naturalDesc, lang: nlu.lang || config.lang || 'es-419' },
         provenance: { generator: 'PictoNet', generatedAt: new Date().toISOString(), sourceDataset: 'MediaFranca-PictoNet', licence: config.license || 'CC BY 4.0' },
     };
@@ -1311,11 +1576,12 @@ function renderRedrawGroup(
     group: RedrawGroup,
     childMap: Map<string | null, RedrawGroup[]>,
     paletteClasses: string[],
+    conceptById: Map<string, string>,
     indent = '  ',
 ): string {
     const semanticCls = paletteClasses.includes(group.cssClass) ? group.cssClass : (paletteClasses[0] || 'main');
     const label = escapeXmlAttr(group.label || group.nodeId);
-    const concept = escapeXmlAttr(guessConceptFromId(group.nodeId));
+    const concept = escapeXmlAttr(conceptById.get(group.nodeId) ?? guessConceptFromId(group.nodeId));
     const lines: string[] = [];
     lines.push(`${indent}<g id="${group.nodeId}" role="group" tabindex="0" data-concept="${concept}" aria-label="${label}">`);
     for (const d of group.paths) {
@@ -1323,7 +1589,7 @@ function renderRedrawGroup(
         lines.push(`${indent}  <path class="${semanticCls}" d="${escapeXmlAttr(d)}" />`);
     }
     for (const child of (childMap.get(group.nodeId) ?? [])) {
-        lines.push(renderRedrawGroup(child, childMap, paletteClasses, indent + '  '));
+        lines.push(renderRedrawGroup(child, childMap, paletteClasses, conceptById, indent + '  '));
     }
     lines.push(`${indent}</g>`);
     return lines.join('\n');
@@ -1377,8 +1643,9 @@ export async function redrawSVG(input: SVGStructureInput): Promise<SVGStructureR
             childMap.get(pid)!.push(g);
         }
         const topLevel = childMap.get(null) ?? validGroups;
+        const conceptById = buildConceptMap(input.elements);
         const body = `<desc>${escapeXmlAttr(description || input.utterance)}</desc>\n` +
-            topLevel.map(g => renderRedrawGroup(g, childMap, paletteClasses)).join('\n');
+            topLevel.map(g => renderRedrawGroup(g, childMap, paletteClasses, conceptById)).join('\n');
 
         const usedClasses = new Set<string>();
         validGroups.forEach(g => { if (paletteClasses.includes(g.cssClass)) usedClasses.add(g.cssClass); });
@@ -1393,6 +1660,7 @@ export async function redrawSVG(input: SVGStructureInput): Promise<SVGStructureR
             input.onProgress?.(`[ESTRUCTURAR] advertencia XML: ${validation.slice(0, 120)}`);
         } else {
             svgContent = deriveChildIds(svgContent);
+            svgContent = polishGeometry(svgContent, input.onProgress);
         }
 
         const pathCount = (svgContent.match(/<path /g) ?? []).length;

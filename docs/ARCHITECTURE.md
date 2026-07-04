@@ -131,41 +131,28 @@ pictos-net/
 
 ---
 
-## 4. Pipeline de generación (5 fases)
+## 4. Pipeline de generación (4 fases)
 
-La cascada automática abarca las fases (1)(2)(3). Las fases (4)(5) son opcionales e iniciadas manualmente por el usuario.
+La cascada automática abarca las fases (1)(2)(3). La fase (4) es opcional e iniciada manualmente por el usuario. La antigua fase VECTORIZAR (vtracer) fue eliminada de la cascada: Recraft V4.1 entrega SVG nativo.
 
-```
-utterance
-    │
-    ▼
-(1) COMPRENDER — Gemini 2.5 Flash
-    │  NSM Schema Engine
-    │  65 primitivos semánticos universales
-    │  → NLUData (domain, frames, nsm_explications, visual_guidelines)
-    │
-    ▼
-(2) COMPONER — Gemini 2.5 Flash
-    │  Visual Topology Node  → elements (VisualElement[])
-    │  Spatial Articulation  → prompt (descripción composición espacial)
-    │
-    ▼
-(3) PRODUCIR — Gemini Image (gemini-2.5-flash-image | gemini-3-pro-image-preview)
-    │  fullPrompt = utterance + NLU + elements + prompt + visualStylePrompt
-    │  → bitmap PNG lossless, máximo 1024×1024px
-    │  (JPEG q=0.75 solo en capa de persistencia IndexedDB)
-    │
-    ▼ (usuario inicia manualmente)
-(4) VECTORIZAR — vtracer WASM (local, sin API)
-    │  ColorImageConverter (color) / BinaryImageConverter (B&W)
-    │  Clustering jerárquico de color, spline/polygon fitting
-    │  → rawSvg (paths sin semántica)
-    │
-    ▼ (usuario inicia manualmente)
-(5) ESTRUCTURAR — Gemini 2.5 Flash (multimodal: bitmap + rawSvg + elements + CSS)
-       Agrupa paths en <g> semánticos según jerarquía de elementos
-       Aplica clases CSS, atributos ARIA, metadatos mf-svg-schema
-       → structuredSvg (autocontenido, accesible)
+```mermaid
+flowchart TD
+    UTT["utterance"] --> F1
+
+    F1["(1) COMPRENDER — Claude Haiku<br><i>NSM Schema Engine, 65 primos universales<br>tool use forzado</i>"]
+    F1 --> NLU["NLUData<br><i>domain · frames · nsm_explications<br>visual_guidelines · pragmatics</i>"]
+
+    NLU --> F2["(2) COMPONER — Claude Haiku<br><i>Visual Topology Node</i>"]
+    F2 --> ELEM["elements: VisualElement[]<br><i>concept por nodo desde roles de frame</i>"]
+    F2 --> PROMPT["prompt espacial"]
+
+    ELEM --> F3["(3) PRODUCIR — Recraft V4.1 Vector<br><i>fullPrompt = utterance + NLU<br>+ elements + prompt + visualStylePrompt</i>"]
+    PROMPT --> F3
+    F3 --> RAW["rawSvg<br><i>SVG vectorial nativo, sin bitmap intermedio</i>"]
+
+    RAW -->|usuario inicia| F4["(4) ESTRUCTURAR — Claude Sonnet Vision<br><i>medición local + set-of-marks + ensamblaje local<br>+ pulido determinístico — ver docs/ESTRUCTURAR.md</i>"]
+    ELEM -.->|"DOM objetivo + concept"| F4
+    F4 --> STRUCT["structuredSvg<br><i>mf-svg-schema · grupos semánticos<br>data-concept congruente con NLU</i>"]
 ```
 
 ### Acumulación en RowData
@@ -329,20 +316,22 @@ interface VectorizerConfig {
 
 ### svgStructureService.ts
 
-Estructuración semántica del SVG crudo. Llama a Gemini con contexto multimodal.
+Estructuración semántica del SVG crudo (fase 4). Documento de referencia completo: [ESTRUCTURAR.md](ESTRUCTURAR.md).
 
-**Input:** `{ rawSvg, bitmap, nlu, elements, utterance, config }`
+**Input:** `{ rawSvg, nlu, elements, utterance, config, referenceImage? }`
 
-**Proceso:**
-1. Construye CSS stylesheet desde `config.svgStyleDefs`
-2. Envía a Gemini: bitmap PNG + rawSvg + elements + CSS como contexto
-3. Gemini agrupa paths en `<g>` semánticos, aplica clases CSS, elimina estilos inline
-4. Output: SVG conforme a mf-svg-schema con `<title>`, `<desc>`, metadatos embebidos
+**Proceso (una sola llamada de visión; la geometría nunca la escribe el modelo):**
+1. Pre-proceso local: `ensurePathIds` → `buildPathInventory` con anclas reales (`measurePathAnchors`: getBBox + cadena CTM + isPointInPath) → `detectMergeCandidates` (contornos dobles por IoU de bbox) → `rasterizeWithMarks` (marcas numeradas con anti-colisión y líneas guía)
+2. Llamada de visión con tool use forzado (`restructure_svg`): el modelo asigna path-ids a nodos semánticos, confirma candidatos de fusión y descarta ruido
+3. Ensamblaje local: `resolveMergeGeometry` (unión Martinez + refit a curvas), redes de seguridad (huérfanos reparentados, descartes no micro-blob revertidos, fallback plano) y `renderGroup` con `data-concept` tomado del árbol compuesto en fase 2
+4. Post-proceso: CSS filtrado a clases usadas, metadata mf-svg (incluye `visualDom`), `deriveChildIds`, `polishGeometry` (refit selectivo de paths polyline-pesados + redondeo de coordenadas)
+
+**Módulos puros testeables** (sin imports, `node --test`): `svgMergeCandidates.ts`, `svgPathPolish.ts`, `svgTreeUtils.ts`, `svgGeometryUtils.ts`.
 
 **Funciones de eligibilidad:**
 ```typescript
-canVectorize({ bitmap }): EligibilityResult
-canStructureSVG({ bitmap, NLU, elements }): EligibilityResult
+canVectorize(row): EligibilityResult          // siempre inelegible — VTracer eliminado
+canStructureSVG({ rawSvg, NLU, elements }): EligibilityResult
 ```
 
 ### indexedDBService.ts

@@ -5,7 +5,7 @@
  * Phase 5 (ESTRUCTURAR / vision) lives in svgStructureService.ts.
  */
 
-import { NLUData, GlobalConfig, VisualElement, VOCAB_NSM, VOCAB, DEFAULT_NLU_MODEL } from "../types";
+import { NLUData, GlobalConfig, VisualElement, VisualConcept, VISUAL_CONCEPTS, VOCAB_NSM, VOCAB, DEFAULT_NLU_MODEL } from "../types";
 import { callClaude, extractToolUse } from "./aiClient";
 
 type LogFn = (type: 'info' | 'error' | 'success', msg: string) => void;
@@ -26,8 +26,9 @@ const formatElements = (els: VisualElement[], depth = 0): string => {
     if (!Array.isArray(els)) return '  (error: not an array)';
     return els.map(el => {
         const indent = '  '.repeat(depth);
+        const concept = el.concept ? ` [${el.concept}]` : '';
         const children = el.children?.length ? '\n' + formatElements(el.children, depth + 1) : '';
-        return `${indent}- ${el.id}${children}`;
+        return `${indent}- ${el.id}${concept}${children}`;
     }).join('\n');
 };
 
@@ -192,9 +193,14 @@ const COMPOSE_TOOL_SCHEMA = {
                 type: 'object',
                 properties: {
                     id: { type: 'string', description: 'Simple noun in utterance language, snake_case for compounds.' },
+                    concept: {
+                        type: 'string',
+                        enum: VISUAL_CONCEPTS,
+                        description: 'Semantic concept derived from the NLU frame roles: Root (only for pictograma), Agent (Agent/Experiencer/Speaker/Addressee roles), Action (the lexical_unit event), Object (Patient/Theme/Object/Instrument/Beneficiary), Context (Location/Time/scenario/background), Element (anything else). Every element, including nested children, must carry one.',
+                    },
                     children: { type: 'array', items: { type: 'object' } },
                 },
-                required: ['id'],
+                required: ['id', 'concept'],
             },
         },
         prompt: {
@@ -205,14 +211,24 @@ const COMPOSE_TOOL_SCHEMA = {
     required: ['elements', 'prompt'],
 };
 
-/** Normalize element tree from response (renames "elements" key to "children"). */
-const normalizeElements = (raw: any[]): VisualElement[] => {
+/**
+ * Normalize element tree from response (renames "elements" key to "children",
+ * validates concept against VISUAL_CONCEPTS). Invalid or missing concepts are
+ * dropped so downstream falls back to the legacy id-prefix guess.
+ * Used in: generateVisualBlueprint (Phase 2 COMPONER).
+ */
+const normalizeElements = (raw: any[], isRoot = true): VisualElement[] => {
     if (!Array.isArray(raw)) return [];
-    return raw.map(el => {
+    return raw.map((el, i) => {
         const node: VisualElement = { id: el.id || 'unknown' };
+        if (isRoot && i === 0 && (node.id === 'pictograma' || node.id === 'pictogram')) {
+            node.concept = 'Root';
+        } else if (VISUAL_CONCEPTS.includes(el.concept)) {
+            node.concept = el.concept as VisualConcept;
+        }
         const kids = el.children || el.elements;
         if (Array.isArray(kids) && kids.length > 0) {
-            node.children = normalizeElements(kids);
+            node.children = normalizeElements(kids, false);
         }
         return node;
     });
@@ -239,6 +255,15 @@ Language context: **${targetLang}**
 — Element IDs and the prompt must be in **${targetLang}**.
 — Root element must always be \`pictograma\`.
 — IDs: simple nouns in ${targetLang}, snake_case for compounds.
+
+Concept mapping (REQUIRED on every element, including nested children):
+— Derive each element's \`concept\` from the NLU frame roles, never from the ID text:
+  · Root — only the \`pictograma\` root.
+  · Agent — fillers of Agent, Experiencer, Speaker or Addressee roles (the protagonist).
+  · Action — the visual depiction of the lexical_unit / event itself (gesture, motion lines, arrows).
+  · Object — fillers of Patient, Theme, Object, Instrument or Beneficiary roles.
+  · Context — Location, Time, scenario or background elements.
+  · Element — anything that does not map to a frame role.
 
 Available CSS classes (optional suggestedClass hint only): ${availableClasses}
 

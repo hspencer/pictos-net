@@ -110,8 +110,22 @@ export interface StructuringMapping {
 
 export type SortCriteria = 'alphabetical' | 'completeness';
 
+/**
+ * Semantic concept of a visual element, derived from the NLU frame roles in
+ * Phase 2 (COMPONER). Flows through to the structured SVG as `data-concept`
+ * so the final DOM is congruent with the comprehension phase.
+ * Used in: claudeService (compose_pictogram schema) and svgStructureService
+ * (flattenElements, renderGroup, renderRedrawGroup).
+ */
+export type VisualConcept = 'Root' | 'Agent' | 'Action' | 'Object' | 'Context' | 'Element';
+
+export const VISUAL_CONCEPTS: VisualConcept[] = ['Root', 'Agent', 'Action', 'Object', 'Context', 'Element'];
+
 export interface VisualElement {
   id: string;
+  /** Semantic concept from the NLU frame roles (Phase 2). Optional for
+   *  backwards compatibility — legacy rows fall back to id-prefix guessing. */
+  concept?: VisualConcept;
   children?: VisualElement[];
 }
 

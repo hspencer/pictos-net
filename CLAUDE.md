@@ -49,6 +49,7 @@ Recraft V4.1 delivers native SVG so VTracer is no longer needed.
 - Input: NLUData + GlobalConfig
 - Method: forced tool use (`compose_pictogram`) — guaranteed JSON
 - Output: `{ elements: VisualElement[], prompt: string }`
+- Each element carries `concept` (Root/Agent/Action/Object/Context/Element) derived from NLU frame roles — flows to `data-concept` in the structured SVG; legacy rows fall back to `guessConceptFromId`
 - `generateSpatialPrompt()` regenerates only the prompt when user edits elements
 
 ### Phase 3: PRODUCIR (Recraft V4.1 Vector)
@@ -59,9 +60,10 @@ Recraft V4.1 delivers native SVG so VTracer is no longer needed.
 
 ### Phase 4: ESTRUCTURAR (Claude Sonnet, optional, user-initiated)
 - Input: rawSvg + elements + NLU + GlobalConfig
-- Method: set-of-marks rasterization → Claude Sonnet vision → local path assembly
-- Geometry never leaves the browser
-- Output: mf-svg-schema compliant SVG with semantic groups and accessibility metadata
+- Method: local measurement (real anchors via getBBox+CTM, merge candidates via bbox IoU) → set-of-marks rasterization (anti-collision + leader lines) → vision call → local path assembly (safety nets) → deterministic polish (selective curve refit + coordinate rounding)
+- Geometry never leaves the browser and is never model-authored
+- Output: mf-svg-schema compliant SVG with semantic groups, `data-concept` congruent with NLU, and accessibility metadata
+- Full reference: docs/ESTRUCTURAR.md
 - Model selectable via `GlobalConfig.phase5Model`: `claude-sonnet-4-6`, `claude-opus-4-6`, `gemini-2.5-pro`, `gemini-2.5-flash` (default). `gemini-2.0-flash` removed 2026-06-13 (404 in `pictos-vertex`, all regions). Claude models route to `api-claude`, `gemini-*` to `api-gemini-structure`.
 
 ## GlobalConfig Parameters
