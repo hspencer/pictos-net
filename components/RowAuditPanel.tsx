@@ -4,6 +4,7 @@ import { X, Copy, Trash2, Save } from 'lucide-react';
 import { RowInterventionLog } from '../types';
 import { useTranslation } from '../hooks/useTranslation';
 import { useDialogA11y } from '../hooks/useDialogA11y';
+import { sentenceCase } from '../utils/textFormat';
 
 interface Props {
   isOpen: boolean;
@@ -88,7 +89,7 @@ export const RowAuditPanel: React.FC<Props> = ({ isOpen, log, utterance, onClose
         <div className="p-6 border-b border-slate-200 flex items-start justify-between gap-4">
           <div>
             <h3 className="text-lg font-bold text-slate-900">{t('audit.title')}</h3>
-            <p className="text-xs text-slate-500 mt-1 uppercase tracking-widest">{utterance}</p>
+            <p className="text-xs text-slate-500 mt-1 tracking-widest">{sentenceCase(utterance)}</p>
             <p className="text-xs text-slate-600 mt-2">
               {isEmpty
                 ? t('audit.emptyDescription')

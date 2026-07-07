@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { Sequence, Step, RowData } from '../types';
 import { useTranslation } from '../hooks/useTranslation';
+import { sentenceCase } from '../utils/textFormat';
 
 interface SequenceEditorProps {
   sequence: Sequence;
@@ -46,6 +47,7 @@ function SortableStep({ step, onDelete, renderLinkedRow }: {
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: step.id });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 };
+  const { t } = useTranslation();
 
   const dragHandle = (
     <button
@@ -53,7 +55,7 @@ function SortableStep({ step, onDelete, renderLinkedRow }: {
       {...listeners}
       className="text-slate-300 hover:text-slate-500 cursor-grab active:cursor-grabbing touch-none"
       tabIndex={-1}
-      aria-label="Arrastrar"
+      aria-label={t('sequence.dragStep')}
     >
       <GripVertical size={14} />
     </button>
@@ -85,6 +87,7 @@ function SequenceGridCell({ step, row, onDelete }: {
 }) {
   const svg = row?.structuredSvg || row?.rawSvg;
   const bmp = row?.bitmap;
+  const { t } = useTranslation();
   // El texto del pictograma vive en row.UTTERANCE; step.utterance suele venir
   // nulo en pasos generados, por eso la grilla aparecia sin texto.
   const caption = row?.UTTERANCE || step.utterance || '';
@@ -113,7 +116,7 @@ function SequenceGridCell({ step, row, onDelete }: {
         <button
           onClick={e => { e.stopPropagation(); onDelete(); }}
           className="absolute top-2 right-2 z-10 p-1 bg-white/80 rounded text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-          aria-label="Eliminar paso"
+          aria-label={t('sequence.deleteStep')}
         >
           <X size={12} />
         </button>
@@ -121,8 +124,8 @@ function SequenceGridCell({ step, row, onDelete }: {
 
       {/* Pie — texto del pictograma, igual que PictogramGridCell (3 lineas, sin corte) */}
       <div className="p-3">
-        <p className="text-xs font-medium text-slate-900 uppercase tracking-wide text-center line-clamp-3 min-h-[4.5rem] flex items-center justify-center">
-          {caption || '...'}
+        <p className="text-xs font-medium text-slate-900 tracking-wide text-center line-clamp-3 min-h-[4.5rem] flex items-center justify-center">
+          {sentenceCase(caption) || '...'}
         </p>
       </div>
     </div>
@@ -329,7 +332,7 @@ export function SequenceEditor({
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         {viewMode === 'grid' ? (
           <SortableContext items={steps.map(s => s.id)} strategy={rectSortingStrategy}>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            <div id="sequence-steps" className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
               {steps.map(step => (
                 <SortableGridStep
                   key={step.id}
@@ -342,7 +345,7 @@ export function SequenceEditor({
           </SortableContext>
         ) : (
           <SortableContext items={steps.map(s => s.id)} strategy={verticalListSortingStrategy}>
-            <div className="space-y-2">
+            <div id="sequence-steps" className="space-y-2">
               {steps.map(step => (
                 <SortableStep
                   key={step.id}

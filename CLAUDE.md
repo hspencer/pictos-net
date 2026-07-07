@@ -10,7 +10,8 @@ React 19 + TypeScript 5.8 + Vite 6 + Tailwind 3.4 + Claude AI + Recraft V4.1 Vec
 ```bash
 npm run dev          # copy-schemas + optimize-thumbs + netlify dev (port 9001, Vite internal: 3000)
 npm run build        # copy-schemas + optimize-thumbs + vite build → dist/
-npm run lint         # tsc --noEmit
+npx tsc --noEmit     # type check (no lint script in package.json)
+npm run validate-i18n # catalog parity + t('...') keys used in code exist
 ```
 
 Access the app at **http://localhost:9001** (not 3000 — functions only available through Netlify Dev).

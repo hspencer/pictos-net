@@ -185,8 +185,9 @@
       "flash": "NanoBanana (Flash 2.5)",
       "pro": "NanoBanana Pro (Gemini 3 Pro)"
     },
-    "spaceName": "Space Name",
+    "spaceName": "Library name",
     "spaceNameTooltip": "Identify your pictogram library or collection. This name will appear as the title on the home page.",
+    "spaceNamePlaceholder": "My pictogram library",
     "license": "License",
     "geoSearch": "Search city...",
     "geoSearching": "Searching...",
@@ -204,7 +205,7 @@
       "ccByNcSa": "CC BY-NC-SA — Attribution-NonCommercial-ShareAlike"
     },
     "geoContextTooltip": "NLU processing language and geographic reference region. Affects cultural interpretation of pictograms.",
-    "visualStylePromptTooltip": "Graphic style description that Gemini will use to render all pictograms in this space.",
+    "visualStylePromptTooltip": "Graphic style description that Gemini will use to render all pictograms in this library.",
     "aspectRatioTooltip": "Aspect ratio of generated images.",
     "imageModelTooltip": "NanoBanana Flash is faster; NanoBanana Pro produces higher quality but takes longer.",
     "proportion": "Proportion",
@@ -215,6 +216,7 @@
     "paletteColors": "Colour palette",
     "paletteColorsTooltip": "Reference colours for Recraft generation. The palette guides the chromatic style of generated pictograms.",
     "addColor": "Add colour",
+    "removeColor": "Remove colour",
     "animations": "Animations",
     "animationsTooltip": "Disable animations and transitions in the interface. Recommended for accessibility (WCAG 2.3.3).",
     "animationsEnabled": "Animations enabled",
@@ -239,7 +241,9 @@
       "gemini-3.1-flash-image": "Gemini 3.1 Flash",
       "gemini-3-pro-image": "Gemini 3 Pro",
       "recraftv4_1": "Recraft (raster)",
-      "recraftv4_1_vector": "Recraft (vector)"
+      "recraftv4_1_vector": "Recraft (vector)",
+      "default": "default",
+      "unavailable": "unavailable"
     },
     "phase5Model": "Phase 4: STRUCTURE",
     "phase5ModelTooltip": "Vision model to assign semantic groups to the SVG (optional structuring step). Persisted per library.",
@@ -308,6 +312,8 @@
     "exportLibrary": "Export library (.json)",
     "exportPictograms": "Export pictograms ({count})",
     "close": "Close",
+    "options": "Options",
+    "drag": "Drag",
     "addChild": "Add child",
     "element": "element",
     "elements": "elements",
@@ -324,8 +330,18 @@
     "deleteLibraryConfirm": "Delete \"{name}\"? All generated pictograms and images will be deleted. This action cannot be undone.",
     "hideTemplate": "Hide example"
   },
+  "a11y": {
+    "toolbar": "Toolbar",
+    "mainActions": "Main actions",
+    "uiLanguage": "Interface language",
+    "changeLanguage": "Change language",
+    "pipelineStatus": "Pipeline status",
+    "focusView": "Focus view",
+    "prevStep": "Previous step",
+    "nextStep": "Next step"
+  },
   "metadata": {
-    "speechAct": "speech_act",
+    "speechAct": "speech act",
     "intent": "intent"
   },
   "placeholders": {
@@ -627,6 +643,8 @@
     "steps": "{count} steps",
     "noSequences": "No sequences yet. Create your first sequence.",
     "addStep": "Add step",
+    "deleteStep": "Delete step",
+    "dragStep": "Drag step",
     "stepPlaceholder": "Type a word or phrase...",
     "generateStep": "Generate",
     "printSequence": "Print",

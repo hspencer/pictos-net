@@ -10,6 +10,7 @@
 import { jsPDF } from 'jspdf';
 import type { RowData, GlobalConfig } from '../types';
 import { validDownstreamArtifact } from '../utils/rowArtifacts';
+import { sentenceCase } from '../utils/textFormat';
 
 // ---------- Layout constants (millimetres) ----------
 
@@ -37,7 +38,8 @@ const CUT_GUIDE_GREY = 153;       // ~60% grey (255 * 0.6)
 const FOOTER_RULE_GAP_MM = 2;
 
 // Typography — uses Lexend (loaded lazily, see loadLexendBase64). Slightly
-// larger body than v1 to read well in uppercase from print distance.
+// larger body than v1 to read well from print distance. Captions are set in
+// sentence case (mixed case word shapes are more legible than all-caps).
 const UTTERANCE_FONT_SIZE_PT = 13;
 const UTTERANCE_LINE_HEIGHT_FACTOR = 1.25;
 const HEADER_FONT_SIZE_PT = 10;
@@ -166,7 +168,8 @@ const checkAborted = (signal?: AbortSignal) => {
   if (signal?.aborted) throw new PdfExportCancelledError();
 };
 
-/** Locale-aware uppercase. Keeps Spanish diacritics (ñ → Ñ, á → Á, etc.). */
+/** Locale-aware uppercase. Keeps Spanish diacritics (ñ → Ñ, á → Á, etc.).
+ *  Used only for page furniture (header, page label, credits/license). */
 const upper = (s: string): string => (s || '').toLocaleUpperCase();
 
 /** Convert an ArrayBuffer to base64 without spreading the whole array
@@ -266,7 +269,7 @@ export async function exportLibraryToPdf(options: PdfExportOptions): Promise<Pdf
 
   const cellPlans: CellPlan[] = eligible.map(({ row, artifact }) => {
     const rawUtterance = row.UTTERANCE || '';
-    const utterance = upper(rawUtterance);
+    const utterance = sentenceCase(rawUtterance);
     const lines = utterance.length === 0
       ? ['']
       : (doc.splitTextToSize(utterance, pictoWidthMm) as string[]);

@@ -2,8 +2,8 @@
 > Mapa estructural de la interfaz. Fuente de verdad para todos los IDs semánticos.
 > Actualizar este archivo siempre que se cree, renombre o elimine una región de la UI.
 
-> Última actualización: 2026-02-26
-> Cobertura: ~88% (estimado post-tarea)
+> Última actualización: 2026-07-07
+> Cobertura: ~95% (auditoría GUI 2026-07-07)
 
 ## Estado de los IDs
 - [OK] Implementado
@@ -40,30 +40,39 @@ APP-SHELL (#app-shell) [via div.min-h-screen]
 │       └── #console-btn 
 │
 ├── #settings-panel (#globalSettings)   [fixed, top-20, z-40, condicional]
-│   └── grid 2-col simétrico
-│       ├── COL-IZQ
-│       │   ├── #field-author           [input: config.author]
-│       │   ├── #field-credits          [textarea: config.credits — NUEVO]
-│       │   ├── #field-license          [select: CC / copyright]
-│       │   └── #field-geo              [GeoAutocomplete + lang input]
-│       └── COL-DER
-│           ├── #field-visual-style     [textarea: visualStylePrompt, h-32]
-│           ├── #field-aspect-ratio     [select]
-│           ├── #field-image-model      [select]
-│           └── #field-style-editor     [button → StyleEditor modal]
-│   (eliminado: #field-annotated-context — @deprecated, fuera de UI)
+│   ├── Sección básica (colapsable, grid 3-col)
+│   │   ├── COL-1: Identidad
+│   │   │   ├── #field-author           [input: config.name]
+│   │   │   ├── #field-credits          [textarea: config.credits]
+│   │   │   ├── #field-license          [select: CC / copyright]
+│   │   │   └── #field-geo              [lang select + GeoAutocomplete]
+│   │   ├── COL-2: Estilo visual
+│   │   │   └── #field-visual-style     [textarea: visualStylePrompt]
+│   │   └── COL-3: Generación y preferencias
+│   │       ├── #field-reduce-motion    [checkbox WCAG 2.3.3]
+│   │       ├── #field-high-contrast    [checkbox WCAG 1.4.11]
+│   │       ├── #field-recording        [checkbox: auditoría]
+│   │       └── #field-tutorial         [button → OnboardingModal]
+│   └── Configuración avanzada (colapsable)
+│       ├── #field-annotated-context    [textarea: contexto NLU]
+│       ├── #field-palette              [paleta de colores Recraft]
+│       ├── #field-style-editor         [button → StyleEditor modal]
+│       └── modelos por fase            [selects NLU / generación / phase5]
+│   (eliminados: #field-aspect-ratio, #field-image-model — legacy Gemini)
 │
 ├── #main-content (#mainContent) 
 │   │
-│   ├── #sort-controls             [condicional: viewMode=list]
+│   ├── #library-home              [condicional: sin librería activa]
+│   │   ├── #library-home-toolbar    [orden: recientes / alfabético]
+│   │   └── #library-grid            [HomeActionsCard + LibraryCard × N + TemplateCard × N + CreateLibraryCard]
 │   │
-│   ├── #home-view                 [condicional: viewMode=home]
-│   │   ├── #hero-area 
-│   │   │   ├── #hero-badge          [ScreenShare pill]
-│   │   │   ├── h2 (config.author)
-│   │   │   └── p (descripción)
-│   │   ├── #import-card           [upload .txt]
-│   │   └── #example-libraries    [grid de LibraryCards]
+│   ├── #library-toolbar           [con librería activa: nombre + tabs pictogramas/secuencias + #view-switcher (#list-view/#grid-view)]
+│   │
+│   ├── #sequence-list             [condicional: tab secuencias]
+│   │   └── #sequence-grid           [SequenceCard × N + CreateSequenceCard]
+│   │
+│   ├── SequenceEditor             [condicional: secuencia abierta]
+│   │   └── #sequence-steps          [lista (space-y-2) o grilla (grid), según viewMode]
 │   │
 │   └── #list-view                 [condicional: viewMode=list]
 │       └── RowComponent [#picto-row-{id}] 
@@ -98,7 +107,7 @@ APP-SHELL (#app-shell) [via div.min-h-screen]
 ├── #console-panel (#console)       [fixed bottom-0, h-64, condicional]
 │
 └── MODALES (portales React, z-[60+])
-    ├── FocusViewModal [.focus-modal-backdrop / .focus-modal-content] 
+    ├── FocusViewModal [#focus-view-modal → .focus-modal-backdrop / .focus-modal-content] 
     │   ├── modo: nlu → SmartNLUEditor
     │   ├── modo: visual → ElementsEditor + PromptRenderer
     │   ├── modo: bitmap → imagen full
@@ -148,27 +157,25 @@ APP-SHELL (#app-shell) [via div.min-h-screen]
     │   ├── #vectorizer-controls      [w-72, panel izq: segmented controls + actions]
     │   ├── #vectorizer-original      [flex-1, imagen bitmap original]
     │   └── #vectorizer-result        [flex-1, SVG result dangerouslySetInnerHTML]
+    ├── OnboardingModal [#onboarding-modal]   [tutorial de introducción, z-[60]]
+    ├── ParticipateModal [#participate-modal] [invitación a participar, z-50]
     └── ConfirmDialog  [PENDING]              [modal genérico confirmación]
 ```
 
 ---
 
-## IDs prioritarios para implementar
+## IDs pendientes
 
-Los siguientes IDs son los más importantes para poder dar instrucciones precisas a Claude Code:
+La mayoría de los IDs prioritarios ya está implementada (auditoría 2026-07-07):
+`#brand-area`, `#search-area`, `#header-actions`, `#list-view`, `#grid-view`, `#library-dropdown`,
+`#picto-row-{id}`, `#pipeline-badges-{id}`, `#library-home`, `#library-grid`, `#sequence-list`,
+`#sequence-grid`, `#sequence-steps`, `#focus-view-modal`, `#onboarding-modal`, `#participate-modal`.
 
-| Prioridad | ID a implementar       | Ubicación en App.tsx              |
-|-----------|------------------------|-----------------------------------|
-| Alta      | `#brand-area`          | header, div con onClick home      |
-| Alta      | `#search-area`         | header, div flex-1 max-w-xl       |
-| Alta      | `#header-actions`      | header, div flex gap-2            |
-| Alta      | `#home-view`           | main, div viewMode=home           |
-| Alta      | `#list-view`           | main, div viewMode=list           |
-| Media     | `#sort-controls`       | encima del list-view              |
-| Media     | `#bitmap-preview`      | dentro de block-produce           |
-| Media     | `#library-dropdown`    | dropdown del header               |
-| Baja      | `#picto-row-{id}`      | renombrar pictogramRow-{id}       |
-| Baja      | `#pipeline-badges-{id}`| div de badges en row header       |
+| Prioridad | ID a implementar       | Ubicación                          |
+|-----------|------------------------|------------------------------------|
+| Media     | `#bitmap-preview`      | dentro de block-produce            |
+| Baja      | `#app-shell`           | div raíz min-h-screen              |
+| Baja      | ConfirmDialog          | modal genérico de confirmación     |
 
 ---
 

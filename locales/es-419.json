@@ -78,11 +78,11 @@
     "importDescription": "Define tu propio vocabulario a partir de frases personalizadas. Sube un archivo .txt con una frase por línea.",
     "activeLibrary": "Librería activa",
     "importPhrases": "Importar frases",
-    "loadLibraryWarning": "Tiene {count} pictograma(s) en su biblioteca. Cargar una nueva biblioteca sobreescribirá su trabajo actual. ¿Desea continuar?",
+    "loadLibraryWarning": "Tiene {count} pictograma(s) en su librería. Cargar una nueva librería sobreescribirá su trabajo actual. ¿Desea continuar?",
     "aboutProject": "Acerca de este proyecto",
-    "exampleLibraries": "Bibliotecas de Ejemplo",
+    "exampleLibraries": "Librerías de ejemplo",
     "exampleLibrariesDescription": "Librerías de ejemplo con diferentes estilos gráficos",
-    "loadLibrary": "Cargar biblioteca",
+    "loadLibrary": "Cargar librería",
     "items": "elementos",
     "emptyLibrary": "Tu librería está vacía",
     "emptyLibraryHint": "Escribe una frase para convertirla en pictograma",
@@ -185,8 +185,9 @@
       "flash": "NanoBanana (Flash 2.5)",
       "pro": "NanoBanana Pro (Gemini 3 Pro)"
     },
-    "spaceName": "Nombre del Espacio",
+    "spaceName": "Nombre de la librería",
     "spaceNameTooltip": "Identifica tu librería o colección de pictogramas. Este nombre aparecerá como título en la página principal.",
+    "spaceNamePlaceholder": "Mi librería de pictogramas",
     "license": "Licencia",
     "geoSearch": "Buscar ciudad...",
     "geoSearching": "Buscando...",
@@ -204,7 +205,7 @@
       "ccByNcSa": "CC BY-NC-SA — Atribución-NoComercial-CompartirIgual"
     },
     "geoContextTooltip": "Idioma de procesamiento NLU y región geográfica de referencia. Afecta la interpretación cultural de los pictogramas.",
-    "visualStylePromptTooltip": "Descripción del estilo gráfico que Gemini usará para renderizar todos los pictogramas de este espacio.",
+    "visualStylePromptTooltip": "Descripción del estilo gráfico que Gemini usará para renderizar todos los pictogramas de esta librería.",
     "aspectRatioTooltip": "Relación de aspecto de las imágenes generadas.",
     "imageModelTooltip": "NanoBanana Flash es más rápido; NanoBanana Pro produce mayor calidad pero tarda más.",
     "proportion": "Proporción",
@@ -215,6 +216,7 @@
     "paletteColors": "Paleta de colores",
     "paletteColorsTooltip": "Colores de referencia para la generación con Recraft. La paleta guía el estilo cromático de los pictogramas generados.",
     "addColor": "Agregar color",
+    "removeColor": "Eliminar color",
     "animations": "Animaciones",
     "animationsTooltip": "Desactivar animaciones y transiciones en la interfaz. Recomendado para accesibilidad (WCAG 2.3.3).",
     "animationsEnabled": "Animaciones activadas",
@@ -239,7 +241,9 @@
       "gemini-3.1-flash-image": "Gemini 3.1 Flash",
       "gemini-3-pro-image": "Gemini 3 Pro",
       "recraftv4_1": "Recraft (raster)",
-      "recraftv4_1_vector": "Recraft (vectorial)"
+      "recraftv4_1_vector": "Recraft (vectorial)",
+      "default": "predeterminado",
+      "unavailable": "no disponible"
     },
     "phase5Model": "Fase 4: ESTRUCTURAR",
     "phase5ModelTooltip": "Modelo de visión para asignar grupos semánticos al SVG (estructuración opcional). Se persiste por librería.",
@@ -308,6 +312,8 @@
     "exportLibrary": "Exportar librería (.json)",
     "exportPictograms": "Exportar pictogramas ({count})",
     "close": "Cerrar",
+    "options": "Opciones",
+    "drag": "Arrastrar",
     "addChild": "Agregar hijo",
     "element": "elemento",
     "elements": "elementos",
@@ -324,8 +330,18 @@
     "deleteLibraryConfirm": "¿Eliminar «{name}»? Se borrarán todos los pictogramas e imágenes generadas. Esta acción no se puede deshacer.",
     "hideTemplate": "Ocultar ejemplo"
   },
+  "a11y": {
+    "toolbar": "Barra de herramientas",
+    "mainActions": "Acciones principales",
+    "uiLanguage": "Idioma de la interfaz",
+    "changeLanguage": "Cambiar idioma",
+    "pipelineStatus": "Estado del pipeline",
+    "focusView": "Vista enfocada",
+    "prevStep": "Paso anterior",
+    "nextStep": "Paso siguiente"
+  },
   "metadata": {
-    "speechAct": "acto_de_habla",
+    "speechAct": "acto de habla",
     "intent": "intención"
   },
   "placeholders": {
@@ -365,7 +381,7 @@
     "nluFailed": "Fallo de nodo (NLU) para \"{utterance}\": {error}",
     "visualFailed": "Fallo de nodo (Visual) para \"{utterance}\": {error}",
     "bitmapFailed": "Fallo de nodo (Bitmap) para \"{utterance}\": {error}",
-    "svgLibraryRestored": "Biblioteca SVG restaurada: {count} pictogramas.",
+    "svgLibraryRestored": "Librería SVG restaurada: {count} pictogramas.",
     "noSvgToEdit": "No hay SVG para editar. Primero vectoriza la imagen.",
     "openingSvgEditor": "Abriendo editor SVG para: {utterance}",
     "svgUpdatedSuccess": "SVG actualizado correctamente para: {utterance}",
@@ -402,7 +418,7 @@
     "generate": "Generar SVG",
     "generating": "Procesando...",
     "download": "Descargar SVG",
-    "library": "Biblioteca SVG",
+    "library": "Librería SVG",
     "compliant": "Compatible con mf-svg-schema",
     "unavailable": "No disponible",
     "traceSvg": "Trazar",
@@ -437,7 +453,7 @@
   "svgEditor": {
     "localOverride": "Estilos locales",
     "restoreToLibrary": "Restaurar",
-    "overriddenIndicator": "Modificado respecto a biblioteca",
+    "overriddenIndicator": "Modificado respecto a librería",
     "fromInlineLabel": "Estilos inline convertidos",
     "cite": "Asignar clase",
     "uncite": "Quitar clase",
@@ -530,7 +546,7 @@
     "importSvgHint": "Sube un SVG generativo para comenzar a refinarlo",
     "chooseFile": "Elegir archivo",
     "noVisualProps": "Sin propiedades visuales",
-    "modifiedFromLibrary": "* modificado — distinto del original de biblioteca",
+    "modifiedFromLibrary": "* modificado — distinto del original de librería",
     "define": "Definir",
     "localIndicator": "local",
     "outlineMode": "Modo contorno",
@@ -557,7 +573,7 @@
     },
     "step3": {
       "title": "Explora los estilos",
-      "intro": "Las bibliotecas de ejemplo sirven para explorar cómo se presenta la misma idea en distintos estilos visuales."
+      "intro": "Las librerías de ejemplo sirven para explorar cómo se presenta la misma idea en distintos estilos visuales."
     },
     "step4": {
       "title": "Cómo empezar",
@@ -565,7 +581,7 @@
       "import": "Importar",
       "importDesc": "Cargar una lista de frases (.txt) o librería exportada (.json).",
       "explore": "Explorar",
-      "exploreDesc": "Abrir bibliotecas de ejemplo para ver resultados.",
+      "exploreDesc": "Abrir librerías de ejemplo para ver resultados.",
       "create": "Crear",
       "createDesc": "Escribir una frase en el buscador y generar un pictograma."
     }
@@ -610,14 +626,14 @@
   "participate": {
     "title": "Participar en la Investigación",
     "intro": "¡Muchas gracias por tu interés en PICTOS.net! Este es un proyecto de investigación enfocado en mejorar la accesibilidad cognitiva y explorar nuevas formas de crear herramientas generativas para la CAA.",
-    "shareLibrary": "Comparte tu biblioteca",
-    "shareInstructions": "Si has creado una biblioteca de pictogramas y quieres compartirla como ejemplo de uso de la herramienta, exporta el archivo .json y envíalo por correo electrónico.",
+    "shareLibrary": "Comparte tu librería",
+    "shareInstructions": "Si has creado una librería de pictogramas y quieres compartirla como ejemplo de uso de la herramienta, exporta el archivo .json y envíalo por correo electrónico.",
     "research": "También puedes escribirme si te interesa participar en el estudio, dar feedback, o tienes ideas sobre cómo mejorar estas tecnologías.",
     "contactSubject": "PICTOS.net - contacto web"
   },
   "modelChangeWarning": {
     "title": "¿Cambiar modelo de generación?",
-    "body": "{{n}} pictograma(s) de tu biblioteca se generaron con {{currentModel}}. Cambiar a {{newModel}} no los regenerará automáticamente. Las nuevas generaciones usarán {{newModel}}.",
+    "body": "{{n}} pictograma(s) de tu librería se generaron con {{currentModel}}. Cambiar a {{newModel}} no los regenerará automáticamente. Las nuevas generaciones usarán {{newModel}}.",
     "confirmChange": "Solo cambiar",
     "confirmChangeAndRegen": "Cambiar y regenerar todo ({{n}} unidades)",
     "cancel": "Cancelar"
@@ -627,6 +643,8 @@
     "steps": "{count} pasos",
     "noSequences": "Aún no hay secuencias. Crea tu primera secuencia.",
     "addStep": "Agregar paso",
+    "deleteStep": "Eliminar paso",
+    "dragStep": "Arrastrar paso",
     "stepPlaceholder": "Escribe una palabra o frase...",
     "generateStep": "Generar",
     "printSequence": "Imprimir",

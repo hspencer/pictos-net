@@ -101,7 +101,7 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ t, lang, onClose, onS
   return (
     <>
       {/* Overlay */}
-      <div className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm flex items-center justify-center animate-in fade-in duration-300">
+      <div id="onboarding-modal" className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm flex items-center justify-center animate-in fade-in duration-300">
         {/* Modal */}
         <div className="bg-white border border-slate-200 rounded-2xl w-[92vw] max-w-[960px] max-h-[88vh] overflow-y-auto shadow-2xl relative flex flex-col">
 

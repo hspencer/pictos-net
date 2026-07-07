@@ -190,7 +190,7 @@ function LibraryCard({ lib, isActive, onOpen, onDuplicate, onDownload, onRename,
             <button
               onClick={e => { e.stopPropagation(); setMenuOpen(m => !m); }}
               className="p-1 text-slate-400 hover:text-slate-700 rounded transition-colors"
-              aria-label="Opciones"
+              aria-label={t('actions.options')}
             >
               <MoreHorizontal size={14} />
             </button>
@@ -272,7 +272,7 @@ function TemplateCard({ tmpl, onOpen, onHide }: { tmpl: LibraryMetadata; onOpen:
             <button
               onClick={e => { e.stopPropagation(); setMenuOpen(m => !m); }}
               className="p-1 text-slate-400 hover:text-slate-700 rounded transition-colors"
-              aria-label="Opciones"
+              aria-label={t('actions.options')}
             >
               <MoreHorizontal size={14} />
             </button>
@@ -424,10 +424,10 @@ export function LibraryHome({
   const isStorageHigh = storageQuota > 0 && storageUsed / storageQuota > 0.8;
 
   return (
-    <div className="py-12 space-y-8 animate-in fade-in zoom-in-95 duration-700">
+    <div id="library-home" className="py-12 space-y-8 animate-in fade-in zoom-in-95 duration-700">
 
       {/* Toolbar: sort links (active library is shown by the highlighted card) */}
-      <div className="flex items-center justify-end gap-4">
+      <div id="library-home-toolbar" className="flex items-center justify-end gap-4">
         <div className="flex items-center gap-1 text-xs text-slate-400">
           <button
             onClick={() => onSortChange('recientes')}
@@ -446,7 +446,7 @@ export function LibraryHome({
       </div>
 
       {/* Unified grid: actions card + user libraries + example templates + create card */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div id="library-grid" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         <HomeActionsCard onImport={onImport} onImportPhrases={onImportPhrases} onBackup={onBackup} />
         {sortedLibraries.map(lib => (
           <LibraryCard

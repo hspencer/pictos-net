@@ -99,7 +99,7 @@ top-20 → posición del #settings-panel
 | Elemento              | Clases                                              |
 |-----------------------|-----------------------------------------------------|
 | Título de app (h1)    | `font-bold uppercase tracking-tight text-xl`        |
-| Utterance (input)     | `.utterance-title` → `text-base uppercase font-light tracking-wide` |
+| Utterance (input)     | `.utterance-title` → `text-base font-normal tracking-wide`, sentence case via `sentenceCase()` (`utils/textFormat.ts`) — nunca `uppercase`: altas y bajas se reconocen mejor como palabra |
 | Labels de sección     | `text-[10px] font-medium uppercase tracking-widest text-slate-400` |
 | Texto body            | `text-sm text-slate-600 leading-relaxed`            |
 | Badges / tags         | `text-[8px] font-medium uppercase tracking-widest`  |
@@ -180,7 +180,36 @@ className="animate-in slide-in-from-bottom-8 duration-500"  // lista
 
 ---
 
-## 8. Reglas de refactoring
+## 8. Internacionalización (i18n)
+
+### Regla obligatoria
+Todo texto visible por el usuario **debe pasar por `t()`** (`useTranslation()`), incluyendo:
+- Texto JSX (`<button>Cerrar</button>` → `<button>{t('actions.close')}</button>`)
+- `placeholder`, `title`, `aria-label`, `alt`
+- Mensajes de `confirm()` / `alert()` y strings por defecto
+
+### Catálogos
+- `locales/es-419.json` + `locales/en-GB.json` — siempre en paridad.
+- Una clave nueva se agrega a **ambos** catálogos (y al union `TranslationKey` en `locales/index.ts` si se usa con `TFunc` tipado).
+- `npm run validate-i18n` verifica paridad **y** que toda clave literal `t('...')` usada en el código exista en los catálogos (una clave faltante se renderiza como la clave cruda en la UI).
+
+### Terminología (es-419)
+| Concepto              | Usar          | No usar                  |
+|-----------------------|---------------|--------------------------|
+| Colección de pictogramas | «librería» | «biblioteca», «espacio»  |
+| Secuencia de pasos    | «secuencia»   | —                        |
+
+### Excepciones no traducibles
+- Endónimos de idioma: «Español», «English»
+- Marca: «PICTOS.net», «PICTOS.NET»
+- Valores técnicos: nombres de modelos, códigos de licencia, unidades
+
+### Deuda conocida
+- `VectorizerModal.tsx` (legacy, fase 4 eliminada de la cascada) no está internacionalizado.
+
+---
+
+## 9. Reglas de refactoring
 
 Al modificar UI, siempre:
 
@@ -193,7 +222,7 @@ Al modificar UI, siempre:
 
 ---
 
-## 9. Checklist antes de hacer commit de cambios UI
+## 10. Checklist antes de hacer commit de cambios UI
 
 - [ ] ¿Todas las nuevas regiones tienen ID semántico?
 - [ ] ¿Se actualizó UI_MAP.md?
@@ -201,3 +230,6 @@ Al modificar UI, siempre:
 - [ ] ¿Se respetan los IDs existentes?
 - [ ] ¿Los z-index usan las variables definidas?
 - [ ] ¿Las animaciones usan las clases de animations.css?
+- [ ] ¿Todo texto visible (incl. `aria-label`, `title`, `placeholder`) pasa por `t()`?
+- [ ] ¿Las claves nuevas están en ambos catálogos? (`npm run validate-i18n` pasa)
+- [ ] ¿La terminología es-419 usa «librería» (no «biblioteca» ni «espacio»)?

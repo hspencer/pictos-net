@@ -44,6 +44,7 @@ import { exportSequenceToPdf, sequencePdfFilename } from './services/sequencePdf
 import { RowAuditPanel } from './components/RowAuditPanel';
 import { PictogramGridCell } from './components/PictogramGridCell';
 import { injectSvgA11y } from './utils/svgAccessibility';
+import { sentenceCase } from './utils/textFormat';
 import { AuthProvider, logout, requestLogin, onLogin, ensureAuth } from './components/AuthGate';
 import { VectorizerModal } from './components/VectorizerModal';
 import type { VectorizerResult } from './services/vtracerService';
@@ -209,7 +210,7 @@ const SearchComponent: React.FC<{
                 className="p-3 text-sm text-slate-600 hover:bg-slate-50 cursor-pointer"
                 onMouseDown={() => onSearchChange(row.UTTERANCE)}
               >
-                {row.UTTERANCE}
+                {sentenceCase(row.UTTERANCE)}
               </div>
             ))
           ) : (
@@ -2303,7 +2304,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
       <a href="#mainContent" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[100] focus:bg-violet-950 focus:text-white focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:rounded">
         Saltar al contenido principal
       </a>
-      <header id="toolbar" className="h-20 bg-white border-b border-slate-200 sticky top-0 z-50 flex items-center px-8 justify-between shadow-sm" aria-label="Barra de herramientas">
+      <header id="toolbar" className="h-20 bg-white border-b border-slate-200 sticky top-0 z-50 flex items-center px-8 justify-between shadow-sm" aria-label={t('a11y.toolbar')}>
         <div id="brand-area" className="flex items-center gap-4 cursor-pointer" onClick={() => { setViewingLibraryHome(true); setShowConfig(false); }}>
           <div className="p-1.5"><LogoIcon size={44} /></div>
           <div>
@@ -2325,7 +2326,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
           />
         </div>
 
-        <nav id="header-actions" aria-label="Acciones principales" className="flex gap-2 items-center">
+        <nav id="header-actions" aria-label={t('a11y.mainActions')} className="flex gap-2 items-center">
           <input type="file" ref={importInputRef} className="hidden" accept=".json" onChange={handleImportProject} />
           <input type="file" ref={appendPhrasesInputRef} className="hidden" accept=".txt" onChange={e => e.target.files?.[0]?.text().then(processPhrases)} />
           <input
@@ -2368,7 +2369,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
             <button
               onClick={handleLangMenuToggle}
               className="p-2.5 hover:bg-slate-50 text-slate-600 border-r border-slate-100 flex items-center gap-2"
-              title="UI Language"
+              title={t('a11y.uiLanguage')}
             >
               <Globe size={18} />
               <span className="text-xs font-medium text-slate-500 hidden md:inline">
@@ -2378,7 +2379,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
             <button
               onClick={handleLangMenuToggle}
               className={`p-1.5 hover:bg-slate-50 text-slate-500 border-l border-transparent hover:text-violet-950 transition-colors ${showLangMenu ? 'bg-slate-50 text-violet-950' : ''}`}
-              aria-label="Cambiar idioma"
+              aria-label={t('a11y.changeLanguage')}
             >
               <ChevronDown size={14} aria-hidden="true" />
             </button>
@@ -2464,7 +2465,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
               className={`transition-transform ${basicConfigOpen ? 'rotate-90' : ''}`}
               aria-hidden="true"
             />
-            {t('config.configureLibrary')}
+            {t('header.configureLibrary')}
           </button>
 
           {basicConfigOpen && (
@@ -2481,7 +2482,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
                   value={config.name}
                   onChange={e => setConfig({ ...config, name: e.target.value })}
                   className="w-full text-xs border p-2.5 bg-slate-50 focus:bg-white transition-colors"
-                  placeholder="My Pictogram Library"
+                  placeholder={t('config.spaceNamePlaceholder')}
                 />
               </div>
 
@@ -2693,7 +2694,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
                           >
                             {NLU_MODELS.map(m => (
                               <option key={m.id} value={m.id}>
-                                {m.label}{m.id === DEFAULT_NLU_MODEL ? ` (${t('config.generationModels.default') || 'predeterminado'})` : ''}
+                                {m.label}{m.id === DEFAULT_NLU_MODEL ? ` (${t('config.generationModels.default')})` : ''}
                               </option>
                             ))}
                           </select>
@@ -2735,8 +2736,8 @@ const App: React.FC<AppProps> = ({ authUser }) => {
                               return (
                                 <option key={m} value={m} disabled={!!inoperativeReason}>
                                   {GENERATION_MODEL_LABELS[m]}
-                                  {m === DEFAULT_GENERATION_MODEL ? ` (${t('config.generationModels.default') || 'predeterminado'})` : ''}
-                                  {inoperativeReason ? ` — no disponible (${inoperativeReason})` : ''}
+                                  {m === DEFAULT_GENERATION_MODEL ? ` (${t('config.generationModels.default')})` : ''}
+                                  {inoperativeReason ? ` — ${t('config.generationModels.unavailable')} (${inoperativeReason})` : ''}
                                 </option>
                               );
                             })}
@@ -2776,7 +2777,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
                           >
                             {PHASE5_MODELS.map(m => (
                               <option key={m.id} value={m.id}>
-                                {m.label}{m.id === DEFAULT_PHASE5_MODEL ? ` (${t('config.generationModels.default') || 'predeterminado'})` : ''}
+                                {m.label}{m.id === DEFAULT_PHASE5_MODEL ? ` (${t('config.generationModels.default')})` : ''}
                               </option>
                             ))}
                           </select>
@@ -2847,7 +2848,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
                               setConfig(prev => ({ ...prev, paletteColors: next }));
                             }}
                             className="p-1 text-slate-300 hover:text-rose-500 rounded transition-colors"
-                            aria-label="Eliminar color"
+                            aria-label={t('config.removeColor')}
                           >
                             <X size={11} />
                           </button>
@@ -3270,18 +3271,18 @@ const App: React.FC<AppProps> = ({ authUser }) => {
       {showConsole && (
         <div id="console" className="fixed bottom-0 inset-x-0 h-64 bg-slate-950 text-slate-500 mono text-xs p-6 z-50 border-t border-slate-800 overflow-auto shadow-2xl animate-in slide-in-from-bottom duration-300">
           <div className="flex justify-between items-center mb-4 pb-2 border-b border-slate-900 font-medium tracking-widest uppercase">
-            <span className="flex items-center gap-3"><Terminal size={14} /> PICTOS Console</span>
+            <span className="flex items-center gap-3"><Terminal size={14} /> {t('console.title')}</span>
             <div className="flex items-center gap-4">
               <button
                 onClick={() => setLogs([])}
                 className="hover:text-white transition-colors"
-                aria-label="Flush console"
-              >Flush</button>
+                aria-label={t('console.flush')}
+              >{t('console.flush')}</button>
               <button
                 onClick={() => setShowConsole(false)}
                 className="hover:text-white transition-colors"
-                aria-label="Close console"
-              >Cerrar</button>
+                aria-label={t('actions.close')}
+              >{t('actions.close')}</button>
             </div>
           </div>
           {logs.slice().reverse().map(l => (
@@ -3668,14 +3669,14 @@ const RowComponent: React.FC<{
         )}
         <div className="pl-6 py-6 pr-6 flex-1 flex items-center gap-6">
           <textarea
-            value={row.UTTERANCE}
+            value={sentenceCase(row.UTTERANCE)}
             onChange={e => onUpdate({ UTTERANCE: e.target.value, nluStatus: 'outdated', visualStatus: 'outdated', bitmapStatus: 'outdated' })}
             onBlur={() => onSettleField?.()}
             onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); (e.currentTarget as HTMLTextAreaElement).blur(); } }}
             rows={1}
             ref={el => { if (el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; } }}
             onInput={e => { const el = e.target as HTMLTextAreaElement; el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }}
-            className="flex-1 w-full bg-transparent border-none outline-none focus:ring-0 utterance-title text-slate-900 uppercase font-light resize-none overflow-hidden hover:bg-amber-50 hover:cursor-text focus:bg-amber-50 transition-colors rounded self-center line-clamp-2"
+            className="flex-1 w-full bg-transparent border-none outline-none focus:ring-0 utterance-title text-slate-900 font-normal resize-none overflow-hidden hover:bg-amber-50 hover:cursor-text focus:bg-amber-50 transition-colors rounded self-center line-clamp-2"
             style={{ lineHeight: '1.5rem' }}
           />
           <div id={`cascade-ctrl-${row.id}`} className="flex gap-2 transition-all">
@@ -3689,7 +3690,7 @@ const RowComponent: React.FC<{
               </button>
             )}
           </div>
-          <div id={`pipeline-badges-${row.id}`} className="flex gap-1.5 cursor-pointer" aria-label="Estado del pipeline" onClick={() => setIsOpen(!isOpen)}>
+          <div id={`pipeline-badges-${row.id}`} className="flex gap-1.5 cursor-pointer" aria-label={t('a11y.pipelineStatus')} onClick={() => setIsOpen(!isOpen)}>
             <Badge step={1} label={t('pipeline.understand')} status={row.nluStatus} />
             <Badge step={2} label={t('pipeline.compose')} status={row.visualStatus} />
             <Badge step={3} label={t('pipeline.produce')} status={row.bitmapStatus} />
@@ -3988,6 +3989,7 @@ const RowComponent: React.FC<{
 };
 
 const StepBox: React.FC<{ id?: string; label: string; status: StepStatus; onRegen: () => void; onStop: () => void; onFocus: () => void; duration?: number; children: React.ReactNode; actionNode?: React.ReactNode; }> = ({ id, label, status, onRegen, onStop, onFocus, duration, children, actionNode }) => {
+  const { t } = useTranslation();
   const [elapsed, setElapsed] = useState(0);
   const startRef = useRef(0);
   useEffect(() => {
@@ -4021,8 +4023,8 @@ const StepBox: React.FC<{ id?: string; label: string; status: StepStatus; onRege
             <div className="flex items-center gap-3">
               {duration && <span className="text-xs text-slate-500 font-mono font-medium">{duration.toFixed(1)}s</span>}
               {actionNode}
-              <button onClick={onFocus} className="p-2 border hover:border-violet-950 text-slate-500 hover:text-violet-950 transition-all rounded-full" aria-label="Focus view"><Maximize size={14} aria-hidden="true" /></button>
-              <button onClick={onRegen} className="p-2 border hover:border-violet-950 text-slate-500 hover:text-violet-950 transition-all rounded-full" aria-label="Regenerate"><Play size={14} aria-hidden="true" /></button>
+              <button onClick={onFocus} className="p-2 border hover:border-violet-950 text-slate-500 hover:text-violet-950 transition-all rounded-full" aria-label={t('a11y.focusView')}><Maximize size={14} aria-hidden="true" /></button>
+              <button onClick={onRegen} className="p-2 border hover:border-violet-950 text-slate-500 hover:text-violet-950 transition-all rounded-full" aria-label={t('actions.regenerate')}><Play size={14} aria-hidden="true" /></button>
             </div>
           )}
         </div>
@@ -4944,14 +4946,14 @@ const FocusViewModal: React.FC<{
   }
 
   return (
-    <div className="focus-modal-backdrop animate-in fade-in duration-300" onClick={onClose}>
+    <div id="focus-view-modal" className="focus-modal-backdrop animate-in fade-in duration-300" onClick={onClose}>
       <div className="focus-modal-content animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()} {...focusDialogProps}>
         <header className="p-4 border-b bg-white flex items-center gap-3">
-          <button onClick={goToPrev} className={`p-2 hover:bg-slate-100 transition-opacity ${hasPrev ? '' : 'opacity-20 pointer-events-none'}`} aria-label="Previous step">
+          <button onClick={goToPrev} className={`p-2 hover:bg-slate-100 transition-opacity ${hasPrev ? '' : 'opacity-20 pointer-events-none'}`} aria-label={t('a11y.prevStep')}>
             <ChevronLeft size={18} />
           </button>
           <div className="flex-1 text-center min-w-0">
-            <h2 className="text-base font-semibold text-slate-800 truncate">{row.UTTERANCE}</h2>
+            <h2 className="text-base font-semibold text-slate-800 truncate">{sentenceCase(row.UTTERANCE)}</h2>
             <div className="flex items-center justify-center gap-3 mt-1">
               <span className="text-xs font-bold uppercase tracking-wider text-slate-500">{titleMap[mode]}</span>
               <div className="flex items-center gap-1.5">
@@ -4966,7 +4968,7 @@ const FocusViewModal: React.FC<{
               </div>
             </div>
           </div>
-          <button onClick={goToNext} className={`p-2 hover:bg-slate-100 transition-opacity ${hasNext ? '' : 'opacity-20 pointer-events-none'}`} aria-label="Next step">
+          <button onClick={goToNext} className={`p-2 hover:bg-slate-100 transition-opacity ${hasNext ? '' : 'opacity-20 pointer-events-none'}`} aria-label={t('a11y.nextStep')}>
             <ChevronRight size={18} />
           </button>
           <button onClick={onClose} className="p-2 hover:bg-slate-100 ml-1" aria-label={t('actions.close')}><X size={18} aria-hidden="true" /></button>

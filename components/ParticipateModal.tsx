@@ -9,7 +9,7 @@ interface ParticipateModalProps {
 
 const ParticipateModal: React.FC<ParticipateModalProps> = ({ t, onClose }) => {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+    <div id="participate-modal" className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 relative overflow-hidden animate-in zoom-in-95 duration-200">
         
         {/* Header */}
@@ -18,7 +18,7 @@ const ParticipateModal: React.FC<ParticipateModalProps> = ({ t, onClose }) => {
           <button
             onClick={onClose}
             className="text-slate-400 hover:text-slate-600 transition-colors p-1"
-            aria-label="Cerrar"
+            aria-label={t('actions.close')}
           >
             <X size={20} />
           </button>

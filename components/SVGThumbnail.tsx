@@ -86,8 +86,8 @@ export const SVGThumbnail: React.FC<SVGThumbnailProps> = ({
                     <button
                         onClick={() => setMenuOpen(!menuOpen)}
                         className="absolute top-1 right-1 p-1 bg-white/90 hover:bg-slate-100 rounded shadow-sm z-10 opacity-0 group-hover:opacity-100 transition-opacity"
-                        title="Actions"
-                        aria-label="Actions"
+                        title={t('actions.options')}
+                        aria-label={t('actions.options')}
                     >
                         <MoreVertical size={12} className="text-slate-600" aria-hidden="true" />
                     </button>

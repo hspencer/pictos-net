@@ -22,6 +22,7 @@ import type { RowData, StepStatus } from '../types';
 import { useTranslation } from '../hooks/useTranslation';
 import { injectSvgA11y } from '../utils/svgAccessibility';
 import { validRawSvg, validStructuredSvg, validBitmap } from '../utils/rowArtifacts';
+import { sentenceCase } from '../utils/textFormat';
 
 type FocusStep = 'nlu' | 'visual' | 'produce' | 'format';
 type DisplayStage = 'none' | 'bitmap' | 'trazado' | 'estructurado';
@@ -195,8 +196,8 @@ export const PictogramGridCell: React.FC<Props> = ({
                   type="button"
                   onClick={(e) => { e.stopPropagation(); onOpenEditor(stage === 'estructurado' ? 'structured' : 'raw'); }}
                   className="p-2 bg-black/60 hover:bg-black/80 text-white rounded-full shadow-lg transition-colors"
-                  title={t('svgEditor.editor')}
-                  aria-label={t('svgEditor.editor')}
+                  title={t('svg.editor')}
+                  aria-label={t('svg.editor')}
                 >
                   <Edit size={14} aria-hidden="true" />
                 </button>
@@ -219,7 +220,7 @@ export const PictogramGridCell: React.FC<Props> = ({
       <div className="p-3 flex flex-col gap-2">
         {isEditingUtterance ? (
           <textarea
-            value={row.UTTERANCE}
+            value={sentenceCase(row.UTTERANCE)}
             onChange={(e) => onUpdate({
               UTTERANCE: e.target.value,
               nluStatus: 'outdated', visualStatus: 'outdated', bitmapStatus: 'outdated',
@@ -231,15 +232,15 @@ export const PictogramGridCell: React.FC<Props> = ({
             }}
             autoFocus
             rows={3}
-            className="text-xs font-medium text-slate-900 uppercase tracking-wide bg-amber-50 border border-amber-200 rounded p-2 outline-none focus:ring-2 focus:ring-violet-300 resize-none text-center w-full min-h-[4.5rem]"
+            className="text-xs font-medium text-slate-900 tracking-wide bg-amber-50 border border-amber-200 rounded p-2 outline-none focus:ring-2 focus:ring-violet-300 resize-none text-center w-full min-h-[4.5rem]"
           />
         ) : (
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); setIsEditingUtterance(true); }}
-            className="text-xs font-medium text-slate-900 uppercase tracking-wide hover:bg-amber-50 rounded p-2 text-center line-clamp-3 cursor-text w-full min-h-[4.5rem] flex items-center justify-center"
+            className="text-xs font-medium text-slate-900 tracking-wide hover:bg-amber-50 rounded p-2 text-center line-clamp-3 cursor-text w-full min-h-[4.5rem] flex items-center justify-center"
           >
-            {row.UTTERANCE || t('library.untitled')}
+            {sentenceCase(row.UTTERANCE) || t('library.untitled')}
           </button>
         )}
 

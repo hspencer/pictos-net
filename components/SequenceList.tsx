@@ -118,7 +118,7 @@ function SequenceCard({ seq, libraryRows, onOpen, onDelete, onRename }: {
             <button
               onClick={e => { e.stopPropagation(); setMenuOpen(m => !m); }}
               className="p-1 text-slate-400 hover:text-slate-700 rounded transition-colors"
-              aria-label="Opciones"
+              aria-label={t('actions.options')}
             >
               <MoreHorizontal size={14} />
             </button>
@@ -182,11 +182,11 @@ export function SequenceList({ sequences, libraryRows, onOpen, onCreate, onDelet
   const { t } = useTranslation();
 
   return (
-    <div className="py-8 space-y-6 animate-in fade-in duration-300">
+    <div id="sequence-list" className="py-8 space-y-6 animate-in fade-in duration-300">
       {sequences.length === 0 && (
         <p className="text-sm text-slate-400 text-center py-4">{t('sequence.noSequences')}</p>
       )}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div id="sequence-grid" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {sequences.map(seq => (
           <SequenceCard
             key={seq.id}
