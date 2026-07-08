@@ -2,23 +2,23 @@
  * Dashboard de uso de PictoNet (/admin.html).
  *
  * Archivo externo porque la CSP del sitio (script-src 'self') bloquea
- * scripts inline y CDNs. El gráfico se dibuja en SVG puro, sin librerías.
+ * scripts inline y CDNs. El gráfico y el heatmap se dibujan en SVG/HTML
+ * puro, sin librerías.
  *
  * Lee api-usage-report (protegido con Bearer ADMIN_API_KEY) de ambos
- * despliegues y consolida los datos por día y por usuario.
+ * despliegues con UNA sola llamada por dominio (rango from/to agregado
+ * en el servidor) y consolida los datos por día, por usuario y por modelo.
  */
 
 const DOMAINS = ['https://pictos.net', 'https://next.pictos.net'];
 const DOMAIN_COLORS = ['#40069e', '#7c3aed']; // primary y primary-light
 const DAILY_LIMIT = 50; // debe coincidir con DAILY_LIMIT_PER_USER en Netlify
 const KEY_STORAGE = 'pictonet_admin_key';
+const WEEKDAY_LABELS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
 // --- Utilidades de fecha -----------------------------------------------------
 
-/**
- * Devuelve un arreglo de fechas YYYY-MM-DD desde hoy hacia atrás.
- * Se usa para construir el rango de consultas al endpoint.
- */
+/** Devuelve un arreglo de fechas YYYY-MM-DD desde hoy hacia atrás (para el eje X del gráfico). */
 function lastDays(n) {
   const out = [];
   for (let i = n - 1; i >= 0; i--) {
@@ -30,12 +30,12 @@ function lastDays(n) {
 // --- Capa de datos -----------------------------------------------------------
 
 /**
- * Consulta el reporte de un dominio para una fecha.
- * Devuelve null si el dominio falla (p. ej. 500), para que un despliegue
- * roto no impida ver los datos del otro. Se usa en loadData().
+ * Consulta el reporte agregado de un dominio para todo el rango en una sola
+ * llamada. Devuelve null si el dominio falla (p. ej. 500), para que un
+ * despliegue roto no impida ver los datos del otro. Se usa en loadData().
  */
-async function fetchReport(domain, date, key) {
-  const res = await fetch(`${domain}/.netlify/functions/api-usage-report?date=${date}`, {
+async function fetchReport(domain, from, to, key) {
+  const res = await fetch(`${domain}/.netlify/functions/api-usage-report?from=${from}&to=${to}`, {
     headers: { Authorization: `Bearer ${key}` }
   });
   if (res.status === 401) throw new Error('401');
@@ -43,34 +43,42 @@ async function fetchReport(domain, date, key) {
   return res.json();
 }
 
+function emptyHeatmap() {
+  return Array.from({ length: 7 }, () => Array(24).fill(0));
+}
+
 /**
- * Descarga todo el rango de fechas en paralelo para ambos dominios y
- * consolida: serie diaria por dominio + agregado por usuario.
- * Se usa en refresh().
+ * Descarga el rango completo en paralelo para ambos dominios y consolida:
+ * serie diaria por dominio, agregado por usuario, agregado por modelo y
+ * heatmap hora×día-de-semana. Se usa en refresh().
  */
 async function loadData(days, key) {
   const dates = lastDays(days);
-  const jobs = [];
-  for (const domain of DOMAINS) {
-    for (const date of dates) {
-      jobs.push(fetchReport(domain, date, key).then(
-        data => ({ domain, date, data }),
-        err => { if (err.message === '401') throw err; return { domain, date, data: null, failed: true }; }
-      ));
-    }
-  }
-  const results = await Promise.all(jobs);
+  const from = dates[0];
+  const to = dates[dates.length - 1];
+
+  const results = await Promise.all(DOMAINS.map(domain =>
+    fetchReport(domain, from, to, key).then(
+      data => ({ domain, data }),
+      err => { if (err.message === '401') throw err; return { domain, data: null, failed: true }; }
+    )
+  ));
 
   const daily = {};        // date -> { hostname -> units }
   const users = {};        // email -> { calls, units, maxDayUnits, phases, domains, errors }
+  const models = {};       // modelId -> { calls, units, errors, totalMs, label, phaseLabel, description }
+  const heatmap = emptyHeatmap();
   const failedDomains = new Set();
 
-  for (const { domain, date, data, failed } of results) {
+  for (const { domain, data, failed } of results) {
     if (failed) { failedDomains.add(domain); continue; }
     if (!data) continue;
     const host = new URL(domain).hostname;
-    daily[date] = daily[date] || {};
-    daily[date][host] = (daily[date][host] || 0) + (data.total_units || 0);
+
+    for (const [date, d] of Object.entries(data.byDate || {})) {
+      daily[date] = daily[date] || {};
+      daily[date][host] = (daily[date][host] || 0) + (d.units || 0);
+    }
 
     for (const [email, u] of Object.entries(data.users || {})) {
       const agg = users[email] = users[email] || {
@@ -78,6 +86,9 @@ async function loadData(days, key) {
       };
       agg.calls += u.calls;
       agg.units += u.units;
+      // maxDayUnits ya no viene por día del servidor (el rango se agrega de
+      // una vez); usamos units de este dominio en el rango como aproximación
+      // del peor caso — sigue sirviendo para la barra de "consumo" relativa.
       agg.maxDayUnits = Math.max(agg.maxDayUnits, u.units);
       agg.errors += u.errors || 0;
       agg.domains.add(host);
@@ -85,11 +96,31 @@ async function loadData(days, key) {
         agg.phases[phase] = (agg.phases[phase] || 0) + n;
       }
     }
+
+    for (const [modelId, m] of Object.entries(data.models || {})) {
+      const agg = models[modelId] = models[modelId] || {
+        calls: 0, units: 0, errors: 0, totalMs: 0,
+        label: m.label, phaseLabel: m.phaseLabel, description: m.description,
+      };
+      agg.calls += m.calls;
+      agg.units += m.units;
+      agg.errors += m.errors;
+      agg.totalMs += m.totalMs;
+    }
+
+    (data.heatmap || []).forEach((row, weekday) => {
+      row.forEach((v, hour) => { heatmap[weekday][hour] += v; });
+    });
   }
-  return { dates, daily, users, failedDomains };
+
+  for (const m of Object.values(models)) {
+    m.avgMs = m.calls > 0 ? Math.round(m.totalMs / m.calls) : 0;
+  }
+
+  return { dates, daily, users, models, heatmap, failedDomains };
 }
 
-// --- Render: gráfico SVG -----------------------------------------------------
+// --- Render: gráfico SVG (unidades por día) ----------------------------------
 
 /**
  * Dibuja un gráfico de barras apiladas (unidades por día, por dominio)
@@ -115,7 +146,6 @@ function renderChart(dates, daily) {
 
   const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': 'Unidades por día y dominio' });
 
-  // Líneas de referencia horizontales y etiquetas del eje Y
   const ticks = 4;
   for (let i = 0; i <= ticks; i++) {
     const yVal = Math.round(maxY * i / ticks);
@@ -124,7 +154,6 @@ function renderChart(dates, daily) {
     svg.appendChild(svgEl('text', { x: PAD_L - 6, y: y + 4, 'text-anchor': 'end', 'font-size': 10, fill: '#94a3b8' }, yVal));
   }
 
-  // Barras apiladas por fecha
   dates.forEach((date, i) => {
     const x = PAD_L + step * i + (step - barW) / 2;
     let yCursor = PAD_T + plotH;
@@ -137,7 +166,6 @@ function renderChart(dates, daily) {
       rect.appendChild(svgEl('title', {}, `${date} · ${host}: ${v} unidades`));
       svg.appendChild(rect);
     });
-    // Etiqueta del eje X (MM-DD), salteada si hay muchas fechas
     const every = dates.length > 16 ? 3 : dates.length > 8 ? 2 : 1;
     if (i % every === 0) {
       svg.appendChild(svgEl('text', {
@@ -150,13 +178,67 @@ function renderChart(dates, daily) {
   box.innerHTML = '';
   box.appendChild(svg);
 
-  // Leyenda
   document.getElementById('chart-legend').innerHTML = hosts.map((h, i) =>
     `<span><span class="dot" style="background:${DOMAIN_COLORS[i]}"></span>${h}</span>`
   ).join('');
 }
 
-// --- Render: tabla -----------------------------------------------------------
+// --- Render: heatmap hora × día de semana ------------------------------------
+
+/**
+ * Pinta la concentración de llamadas por hora (UTC) y día de la semana como
+ * una grilla de celdas coloreadas por intensidad. Se usa en refresh().
+ */
+function renderHeatmap(heatmap) {
+  const max = Math.max(1, ...heatmap.flat());
+  const cellColor = (v) => {
+    if (v === 0) return 'rgba(64, 6, 158, 0.05)';
+    return `rgba(64, 6, 158, ${(0.15 + 0.85 * (v / max)).toFixed(2)})`;
+  };
+
+  let html = '<table class="heatmap"><thead><tr><th></th>';
+  for (let h = 0; h < 24; h++) html += `<th>${h}</th>`;
+  html += '</tr></thead><tbody>';
+  WEEKDAY_LABELS.forEach((label, weekday) => {
+    html += `<tr><td class="wd">${label}</td>`;
+    heatmap[weekday].forEach((v, hour) => {
+      html += `<td style="background:${cellColor(v)}" title="${label} ${hour}:00 UTC — ${v} llamadas"></td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  document.getElementById('heatmap-box').innerHTML = html;
+}
+
+// --- Render: tabla por modelo -------------------------------------------------
+
+/**
+ * Pinta la tabla de modelos con su descripción (fase del pipeline, para qué
+ * sirve), conteo de llamadas/unidades, latencia media y tasa de error.
+ * Se usa en refresh().
+ */
+function renderModelTable(models) {
+  const rows = Object.entries(models).sort((a, b) => b[1].calls - a[1].calls);
+  const tbody = document.getElementById('model-rows');
+  if (rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" class="muted">Sin actividad registrada en el rango.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map(([modelId, m]) => {
+    const errPct = m.calls > 0 ? Math.round((m.errors / m.calls) * 100) : 0;
+    return `<tr>
+      <td><strong>${m.label || modelId}</strong></td>
+      <td>${m.phaseLabel || '—'}</td>
+      <td class="muted">${m.description || ''}</td>
+      <td class="num">${m.calls}</td>
+      <td class="num">${m.units}</td>
+      <td class="num">${m.avgMs} ms</td>
+      <td class="num">${errPct}%</td>
+    </tr>`;
+  }).join('');
+}
+
+// --- Render: tabla por usuario -------------------------------------------------
 
 /**
  * Pinta la tabla de usuarios ordenada por unidades consumidas.
@@ -189,8 +271,9 @@ function renderTable(users) {
 // --- Orquestación ------------------------------------------------------------
 
 /**
- * Carga completa: KPIs, gráfico, tabla y avisos de dominios caídos.
- * Se usa al entrar, al cambiar el rango y con el botón Actualizar.
+ * Carga completa: KPIs, gráfico, heatmap, tabla de modelos, tabla de
+ * usuarios y avisos de dominios caídos. Se usa al entrar, al cambiar el
+ * rango y con el botón Actualizar.
  */
 async function refresh() {
   const key = sessionStorage.getItem(KEY_STORAGE);
@@ -201,7 +284,7 @@ async function refresh() {
   btn.disabled = true;
   status.textContent = 'Cargando…';
   try {
-    const { dates, daily, users, failedDomains } = await loadData(days, key);
+    const { dates, daily, users, models, heatmap, failedDomains } = await loadData(days, key);
 
     const totals = Object.values(users).reduce(
       (t, u) => ({ calls: t.calls + u.calls, units: t.units + u.units, errors: t.errors + u.errors }),
@@ -213,6 +296,8 @@ async function refresh() {
     document.getElementById('kpi-errors').textContent = totals.errors;
 
     renderChart(dates, daily);
+    renderHeatmap(heatmap);
+    renderModelTable(models);
     renderTable(users);
 
     document.getElementById('domain-errors').innerHTML = [...failedDomains]

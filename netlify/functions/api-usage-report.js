@@ -1,13 +1,14 @@
 /**
  * Netlify Function: Usage Report (admin only)
  *
- * Returns daily usage summary from Netlify Blobs.
- * Restricted to the site owner.
+ * Returns usage summary from Netlify Blobs, aggregated by user and by model,
+ * plus a weekday×hour heatmap of call volume. Restricted to the site owner.
  *
- * GET /.netlify/functions/api-usage-report?date=YYYY-MM-DD
+ * GET /.netlify/functions/api-usage-report?date=YYYY-MM-DD        (single day, legacy)
+ * GET /.netlify/functions/api-usage-report?from=YYYY-MM-DD&to=YYYY-MM-DD&email=...
  */
 
-import { getDailySummary } from './_shared/usage.js';
+import { getRangeSummary } from './_shared/usage.js';
 import { connectBlobs } from './_shared/blobs.js';
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
@@ -55,26 +56,40 @@ export const handler = async (event, context) => {
     return { statusCode: 401, headers, body: JSON.stringify({ error: 'Unauthorized. Requires valid Netlify Identity token or Bearer ADMIN_API_KEY.' }) };
   }
 
-  const date = event.queryStringParameters?.date || new Date().toISOString().slice(0, 10);
+  const params = event.queryStringParameters || {};
+  const today = new Date().toISOString().slice(0, 10);
+  // `date` is a legacy single-day shorthand; `from`/`to` take precedence when present.
+  const from = params.from || params.date || today;
+  const to = params.to || params.date || today;
+  const email = params.email || null;
 
-  // Validate date format
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+  const dateFmt = /^\d{4}-\d{2}-\d{2}$/;
+  if (!dateFmt.test(from) || !dateFmt.test(to)) {
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid date format. Use YYYY-MM-DD' }) };
+  }
+  if (from > to) {
+    return { statusCode: 400, headers, body: JSON.stringify({ error: '`from` must not be after `to`' }) };
   }
 
   try {
-    const summary = await getDailySummary(date);
-    const totalCalls = Object.values(summary).reduce((s, u) => s + u.calls, 0);
-    const totalUnits = Object.values(summary).reduce((s, u) => s + u.units, 0);
+    const { users, models, heatmap, byHour, byWeekday, byDate } = await getRangeSummary({ from, to, email });
+    const totalCalls = Object.values(users).reduce((s, u) => s + u.calls, 0);
+    const totalUnits = Object.values(users).reduce((s, u) => s + u.units, 0);
 
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({
-        date,
+        from,
+        to,
         total_calls: totalCalls,
         total_units: totalUnits,
-        users: summary,
+        users,
+        models,
+        heatmap,
+        byHour,
+        byWeekday,
+        byDate,
       }),
     };
   } catch (error) {
