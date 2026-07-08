@@ -80,14 +80,12 @@ function SortableStep({ step, onDelete, renderLinkedRow }: {
 // ── SequenceGridCell ──────────────────────────────────────────────────────────
 // Compact pictogram cell used in grid view — mirrors PictogramGridCell layout.
 
-function SequenceGridCell({ step, row, onDelete }: {
+function SequenceGridCell({ step, row }: {
   step: Step;
   row?: RowData;
-  onDelete: () => void;
 }) {
   const svg = row?.structuredSvg || row?.rawSvg;
   const bmp = row?.bitmap;
-  const { t } = useTranslation();
   // El texto del pictograma vive en row.UTTERANCE; step.utterance suele venir
   // nulo en pasos generados, por eso la grilla aparecia sin texto.
   const caption = row?.UTTERANCE || step.utterance || '';
@@ -112,14 +110,6 @@ function SequenceGridCell({ step, row, onDelete }: {
         <span className="absolute top-2 left-2 z-10 text-[10px] font-bold text-slate-400 bg-white/90 rounded px-1 leading-tight tabular-nums">
           {step.position}
         </span>
-        {/* Eliminar — arriba a la derecha, al hover */}
-        <button
-          onClick={e => { e.stopPropagation(); onDelete(); }}
-          className="absolute top-2 right-2 z-10 p-1 bg-white/80 rounded text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-          aria-label={t('sequence.deleteStep')}
-        >
-          <X size={12} />
-        </button>
       </div>
 
       {/* Pie — texto del pictograma, igual que PictogramGridCell (3 lineas, sin corte) */}
@@ -133,16 +123,15 @@ function SequenceGridCell({ step, row, onDelete }: {
 }
 
 // Sortable wrapper for grid mode
-function SortableGridStep({ step, row, onDelete }: {
+function SortableGridStep({ step, row }: {
   step: Step;
   row?: RowData;
-  onDelete: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: step.id });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 };
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners} className="touch-none cursor-grab active:cursor-grabbing">
-      <SequenceGridCell step={step} row={row} onDelete={onDelete} />
+      <SequenceGridCell step={step} row={row} />
     </div>
   );
 }
@@ -338,7 +327,6 @@ export function SequenceEditor({
                   key={step.id}
                   step={step}
                   row={rows?.find(r => r.id === step.rowId)}
-                  onDelete={() => deleteStep(step.id)}
                 />
               ))}
             </div>
