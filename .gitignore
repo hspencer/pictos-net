@@ -44,3 +44,6 @@ public/libraries/index.json
 # Local Netlify folder
 .netlify
 pictos-vertex-38ff5ecd7e32.json
+
+# Vertex AI (gmail account) credentials — never commit
+vertex-gmail/
