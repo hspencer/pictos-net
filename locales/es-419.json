@@ -232,8 +232,10 @@
     "tutorial": "Tutorial",
     "tutorialTooltip": "Ver el tutorial de introducción a PICTOS.net",
     "pipelineModels": "Modelos de IA por fase",
-    "nluModel": "Fases 1+2: COMPRENDER + COMPONER",
-    "nluModelTooltip": "Modelo Claude usado para el análisis semántico (F1) y la composición visual (F2). Haiku es más rápido; Sonnet es más preciso.",
+    "comprenderModel": "Fase 1: COMPRENDER",
+    "comprenderModelTooltip": "Modelo para el análisis semántico de la utterance. Haiku y Gemini Flash son suficientes; Sonnet o Pro para casos complejos.",
+    "componerModel": "Fase 2: COMPONER",
+    "componerModelTooltip": "Modelo para la composición visual (árbol de elementos + prompt). Puede ser distinto al de la Fase 1.",
     "generationModel": "Fase 3: PRODUCIR",
     "generationModelTooltip": "Modelo de IA para la generación del pictograma. Los modelos Gemini producen bitmap; Recraft produce SVG vectorial.",
     "generationModels": {

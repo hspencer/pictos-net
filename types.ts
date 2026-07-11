@@ -57,11 +57,15 @@ export type StepStatus = 'idle' | 'processing' | 'completed' | 'error' | 'outdat
 
 export type NluModel =
   | 'claude-haiku-4-5-20251001'
-  | 'claude-sonnet-4-6';
+  | 'claude-sonnet-4-6'
+  | 'gemini-2.5-flash'
+  | 'gemini-2.5-pro';
 
 export const NLU_MODELS: { id: NluModel; label: string }[] = [
   { id: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5' },
   { id: 'claude-sonnet-4-6',         label: 'Claude Sonnet 4.6' },
+  { id: 'gemini-2.5-flash',          label: 'Gemini 2.5 Flash' },
+  { id: 'gemini-2.5-pro',            label: 'Gemini 2.5 Pro' },
 ];
 
 export const DEFAULT_NLU_MODEL: NluModel = 'claude-haiku-4-5-20251001';
@@ -360,8 +364,13 @@ export interface GlobalConfig {
   aspectRatio?: string;
   /** @deprecated v2.0 — migrated to generationModel on first load. */
   imageModel?: string;
-  /** NLU/composition model for phases 1+2 (COMPRENDER + COMPONER). Defaults to DEFAULT_NLU_MODEL. */
+  /** @deprecated Use comprenderModel + componerModel instead.
+   *  Migration fallback: if neither field is set, both phases use this value. */
   nluModel?: NluModel;
+  /** Phase 1 (COMPRENDER) model. Persisted per library. Defaults to DEFAULT_NLU_MODEL. */
+  comprenderModel?: NluModel;
+  /** Phase 2 (COMPONER) model. Persisted per library. Defaults to DEFAULT_NLU_MODEL. */
+  componerModel?: NluModel;
   /** Phase 3 generation model. Persisted in localStorage. */
   generationModel: GenerationModel;
   /** Phase 5 structuring model. Persisted in localStorage. Defaults to DEFAULT_PHASE5_MODEL. */

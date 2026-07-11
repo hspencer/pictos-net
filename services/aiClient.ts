@@ -111,6 +111,15 @@ export async function callClaude(params: ClaudeParams): Promise<ClaudeResponse> 
 }
 
 /**
+ * Call a Gemini text model via the api-gemini-nlu Netlify function.
+ * Used for Phase 1 (COMPRENDER) and Phase 2 (COMPONER) when a gemini-* model is selected.
+ * Returns a ClaudeResponse-compatible shape (translated by geminiResponseToClaude server-side).
+ */
+export async function callGeminiNlu(params: ClaudeParams): Promise<ClaudeResponse> {
+    return callProxy('api-gemini-nlu', params);
+}
+
+/**
  * Call the Phase 5 structuring model (vision + tool use).
  * claude-* → api-claude (synchronous). gemini-* → background job + poll, so
  * slow geometry-authoring (redraw) is not bound by the 90s function timeout.

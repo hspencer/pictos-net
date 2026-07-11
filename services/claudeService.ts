@@ -5,8 +5,14 @@
  * Phase 5 (ESTRUCTURAR / vision) lives in svgStructureService.ts.
  */
 
-import { NLUData, GlobalConfig, VisualElement, VisualConcept, VISUAL_CONCEPTS, VOCAB_NSM, VOCAB, DEFAULT_NLU_MODEL } from "../types";
-import { callClaude, extractToolUse } from "./aiClient";
+import { NLUData, GlobalConfig, VisualElement, VOCAB_NSM, VOCAB, DEFAULT_NLU_MODEL } from "../types";
+import { callClaude, callGeminiNlu, extractToolUse, type ClaudeParams } from "./aiClient";
+import { CHILD_CONCEPTS, normalizeElements, injectRoot } from "./visualElementUtils";
+
+/** Route a Claude-format params object to the correct NLU endpoint. */
+function callNluModel(model: string, params: ClaudeParams) {
+    return model.startsWith('gemini-') ? callGeminiNlu(params) : callClaude(params);
+}
 
 type LogFn = (type: 'info' | 'error' | 'success', msg: string) => void;
 
@@ -160,9 +166,9 @@ Reglas:
 2. Analiza semántica y pragmática profunda, no solo la superficie.
 3. Todos los campos requeridos deben estar presentes.`;
 
-    const nluModel = config?.nluModel ?? DEFAULT_NLU_MODEL;
+    const nluModel = config?.comprenderModel ?? config?.nluModel ?? DEFAULT_NLU_MODEL;
     onLog?.('info', `[NLU] Enviando a ${nluModel}…`);
-    const response = await callClaude({
+    const response = await callNluModel(nluModel, {
         model: nluModel,
         max_tokens: 4096,
         system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
@@ -188,15 +194,15 @@ const COMPOSE_TOOL_SCHEMA = {
     properties: {
         elements: {
             type: 'array',
-            description: 'Hierarchical visual DOM. Root must be pictograma. IDs are nouns in the utterance language.',
+            description: 'Semantic child elements of the pictogram. Do NOT include a root pictograma/pictogram node — that is added automatically. IDs are nouns in the utterance language.',
             items: {
                 type: 'object',
                 properties: {
                     id: { type: 'string', description: 'Simple noun in utterance language, snake_case for compounds.' },
                     concept: {
                         type: 'string',
-                        enum: VISUAL_CONCEPTS,
-                        description: 'Semantic concept derived from the NLU frame roles: Root (only for pictograma), Agent (Agent/Experiencer/Speaker/Addressee roles), Action (the lexical_unit event), Object (Patient/Theme/Object/Instrument/Beneficiary), Context (Location/Time/scenario/background), Element (anything else). Every element, including nested children, must carry one.',
+                        enum: CHILD_CONCEPTS,
+                        description: 'Semantic concept derived from the NLU frame roles: Agent (Agent/Experiencer/Speaker/Addressee roles), Action (the lexical_unit event), Object (Patient/Theme/Object/Instrument/Beneficiary), Context (Location/Time/scenario/background), Element (anything else). Every element, including nested children, must carry one.',
                     },
                     children: { type: 'array', items: { type: 'object' } },
                 },
@@ -209,29 +215,6 @@ const COMPOSE_TOOL_SCHEMA = {
         },
     },
     required: ['elements', 'prompt'],
-};
-
-/**
- * Normalize element tree from response (renames "elements" key to "children",
- * validates concept against VISUAL_CONCEPTS). Invalid or missing concepts are
- * dropped so downstream falls back to the legacy id-prefix guess.
- * Used in: generateVisualBlueprint (Phase 2 COMPONER).
- */
-const normalizeElements = (raw: any[], isRoot = true): VisualElement[] => {
-    if (!Array.isArray(raw)) return [];
-    return raw.map((el, i) => {
-        const node: VisualElement = { id: el.id || 'unknown' };
-        if (isRoot && i === 0 && (node.id === 'pictograma' || node.id === 'pictogram')) {
-            node.concept = 'Root';
-        } else if (VISUAL_CONCEPTS.includes(el.concept)) {
-            node.concept = el.concept as VisualConcept;
-        }
-        const kids = el.children || el.elements;
-        if (Array.isArray(kids) && kids.length > 0) {
-            node.children = normalizeElements(kids, false);
-        }
-        return node;
-    });
 };
 
 export const generateVisualBlueprint = async (
@@ -249,16 +232,15 @@ export const generateVisualBlueprint = async (
         : '.main, .secondary, .tertiary, .accent, .red, .green, .dashed, .glow, .anim-blink, .anim-beat, .anim-swing';
 
     const system = `You are the "Visual Topology Node" in the PictoNet graph.
-Translate the semantic NLU graph into a hierarchical visual DOM and a spatial prompt.
+Translate the semantic NLU graph into a list of visual child elements and a spatial prompt.
 
 Language context: **${targetLang}**
 — Element IDs and the prompt must be in **${targetLang}**.
-— Root element must always be \`pictograma\`.
 — IDs: simple nouns in ${targetLang}, snake_case for compounds.
+— Do NOT include a root pictograma/pictogram element — return only the semantic children.
 
 Concept mapping (REQUIRED on every element, including nested children):
 — Derive each element's \`concept\` from the NLU frame roles, never from the ID text:
-  · Root — only the \`pictograma\` root.
   · Agent — fillers of Agent, Experiencer, Speaker or Addressee roles (the protagonist).
   · Action — the visual depiction of the lexical_unit / event itself (gesture, motion lines, arrows).
   · Object — fillers of Patient, Theme, Object, Instrument or Beneficiary roles.
@@ -268,15 +250,15 @@ Concept mapping (REQUIRED on every element, including nested children):
 Available CSS classes (optional suggestedClass hint only): ${availableClasses}
 
 Prompt rules:
-— Wrap every element ID in single quotes: 'pictograma', 'persona', 'casa'.
+— Wrap every element ID in single quotes: 'persona', 'casa'.
 — Describe only TOPOLOGY (relative position, size, connections). No style.
 — 3–6 sentences maximum.
 
 You MUST invoke the compose_pictogram tool with both \`elements\` and \`prompt\`.`;
 
-    const nluModel = config?.nluModel ?? DEFAULT_NLU_MODEL;
+    const nluModel = config?.componerModel ?? config?.nluModel ?? DEFAULT_NLU_MODEL;
     onLog?.('info', `[VISUAL] Enviando NLU a ${nluModel}…`);
-    const response = await callClaude({
+    const response = await callNluModel(nluModel, {
         model: nluModel,
         max_tokens: 4096,
         system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
@@ -291,10 +273,13 @@ You MUST invoke the compose_pictogram tool with both \`elements\` and \`prompt\`
     });
 
     const raw = extractToolUse(response, 'compose_pictogram');
-    const elements = normalizeElements(raw.elements ?? []);
+    const children = normalizeElements(raw.elements ?? []);
     const prompt = typeof raw.prompt === 'string' ? raw.prompt : (Array.isArray(raw.prompt) ? raw.prompt.join(' ') : '');
 
-    onLog?.('success', `[VISUAL] Completado. Elementos: ${elements.length}, Prompt: ${prompt.substring(0, 60)}…`);
+    // Inject the root node deterministically — never delegated to the model.
+    const elements = injectRoot(children, targetLang);
+
+    onLog?.('success', `[VISUAL] Completado. Hijos: ${children.length}, Prompt: ${prompt.substring(0, 60)}…`);
     return { elements, prompt };
 };
 
@@ -319,8 +304,9 @@ Wrap every element ID in single quotes: 'pictograma', 'persona'.
 Describe only TOPOLOGY and COMPOSITION. No style. 3–6 sentences.
 Reply with plain text — no JSON, no markdown.`;
 
-    const response = await callClaude({
-        model: config?.nluModel ?? DEFAULT_NLU_MODEL,
+    const spatialModel = config?.componerModel ?? config?.nluModel ?? DEFAULT_NLU_MODEL;
+    const response = await callNluModel(spatialModel, {
+        model: spatialModel,
         max_tokens: 1024,
         system,
         messages: [{

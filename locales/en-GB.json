@@ -232,8 +232,10 @@
     "tutorial": "Tutorial",
     "tutorialTooltip": "View the PICTOS.net introductory tutorial",
     "pipelineModels": "AI models per phase",
-    "nluModel": "Phases 1+2: UNDERSTAND + COMPOSE",
-    "nluModelTooltip": "Claude model for semantic analysis (P1) and visual composition (P2). Haiku is faster; Sonnet is more precise.",
+    "comprenderModel": "Phase 1: UNDERSTAND",
+    "comprenderModelTooltip": "Model for semantic analysis of the utterance. Haiku and Gemini Flash are sufficient; Sonnet or Pro for complex cases.",
+    "componerModel": "Phase 2: COMPOSE",
+    "componerModelTooltip": "Model for visual composition (element tree + prompt). Can differ from the Phase 1 model.",
     "generationModel": "Phase 3: PRODUCE",
     "generationModelTooltip": "AI model for pictogram generation. Gemini models produce bitmaps; Recraft produces vector SVG.",
     "generationModels": {

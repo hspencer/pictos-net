@@ -364,7 +364,8 @@ const App: React.FC<AppProps> = ({ authUser }) => {
   const [loadingLibraryName, setLoadingLibraryName] = useState('');
   // Model helpers (changes persist via setConfig → localStorage)
   const setPhase5Model = (m: string) => setConfig(prev => ({ ...prev, phase5Model: m as Phase5StructuringModel }));
-  const setNluModel = (m: string) => setConfig(prev => ({ ...prev, nluModel: m as NluModel }));
+  const setComprenderModel = (m: string) => setConfig(prev => ({ ...prev, comprenderModel: m as NluModel }));
+  const setComponerModel = (m: string) => setConfig(prev => ({ ...prev, componerModel: m as NluModel }));
 
   // Connection check state per phase key ('nlu' | 'generation' | 'structuring')
   const [connectionChecks, setConnectionChecks] = useState<Record<string, {
@@ -2678,18 +2679,20 @@ const App: React.FC<AppProps> = ({ authUser }) => {
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-2">
                     {t('config.pipelineModels')}
                   </p>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
 
-                    {/* Phase 1+2: COMPRENDER + COMPONER */}
+                    {/* Phase 1: COMPRENDER */}
                     {(() => {
-                      const chk = connectionChecks['nlu'];
-                      const currentNluModel = config.nluModel ?? DEFAULT_NLU_MODEL;
+                      const chk = connectionChecks['comprender'];
+                      // Migration: fall back to legacy nluModel if per-phase field not yet set
+                      const currentModel = config.comprenderModel ?? config.nluModel ?? DEFAULT_NLU_MODEL;
+                      const service = currentModel.startsWith('gemini-') ? 'gemini' : 'claude';
                       return (
                         <div className="border border-slate-200 rounded p-3 flex flex-col gap-2">
-                          <FieldLabel label={t('config.nluModel')} tooltip={t('config.nluModelTooltip')} />
+                          <FieldLabel label={t('config.comprenderModel')} tooltip={t('config.comprenderModelTooltip')} />
                           <select
-                            value={currentNluModel}
-                            onChange={e => setNluModel(e.target.value)}
+                            value={currentModel}
+                            onChange={e => setComprenderModel(e.target.value)}
                             className="w-full text-xs border p-2 bg-slate-50 focus:bg-white transition-colors"
                           >
                             {NLU_MODELS.map(m => (
@@ -2700,7 +2703,46 @@ const App: React.FC<AppProps> = ({ authUser }) => {
                           </select>
                           <button
                             type="button"
-                            onClick={() => checkConnection('nlu', 'claude', currentNluModel)}
+                            onClick={() => checkConnection('comprender', service, currentModel)}
+                            disabled={chk?.status === 'checking'}
+                            className="flex items-center justify-center gap-1.5 text-[11px] px-2 py-1.5 border border-slate-200 text-slate-500 hover:text-violet-700 hover:border-violet-300 rounded transition-colors disabled:opacity-50 w-full"
+                            title={chk?.status === 'error' ? chk.error : undefined}
+                          >
+                            {chk?.status === 'checking' ? <RefreshCw size={10} className="animate-spin" />
+                              : chk?.status === 'ok' ? <CheckCircle2 size={10} className="text-emerald-500" />
+                              : chk?.status === 'error' ? <XCircle size={10} className="text-rose-500" />
+                              : <Wifi size={10} />}
+                            {chk?.status === 'checking' ? t('config.connectionChecking')
+                              : chk?.status === 'ok' ? `${t('config.connectionOk')} ${chk.latency}ms`
+                              : chk?.status === 'error' ? t('config.connectionError')
+                              : t('config.checkConnection')}
+                          </button>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Phase 2: COMPONER */}
+                    {(() => {
+                      const chk = connectionChecks['componer'];
+                      const currentModel = config.componerModel ?? config.nluModel ?? DEFAULT_NLU_MODEL;
+                      const service = currentModel.startsWith('gemini-') ? 'gemini' : 'claude';
+                      return (
+                        <div className="border border-slate-200 rounded p-3 flex flex-col gap-2">
+                          <FieldLabel label={t('config.componerModel')} tooltip={t('config.componerModelTooltip')} />
+                          <select
+                            value={currentModel}
+                            onChange={e => setComponerModel(e.target.value)}
+                            className="w-full text-xs border p-2 bg-slate-50 focus:bg-white transition-colors"
+                          >
+                            {NLU_MODELS.map(m => (
+                              <option key={m.id} value={m.id}>
+                                {m.label}{m.id === DEFAULT_NLU_MODEL ? ` (${t('config.generationModels.default')})` : ''}
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            type="button"
+                            onClick={() => checkConnection('componer', service, currentModel)}
                             disabled={chk?.status === 'checking'}
                             className="flex items-center justify-center gap-1.5 text-[11px] px-2 py-1.5 border border-slate-200 text-slate-500 hover:text-violet-700 hover:border-violet-300 rounded transition-colors disabled:opacity-50 w-full"
                             title={chk?.status === 'error' ? chk.error : undefined}
