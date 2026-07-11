@@ -25,12 +25,67 @@ export function claudeContentToGeminiParts(content) {
   });
 }
 
+/**
+ * Recursively strip JSON Schema keywords that Gemini's function calling
+ * does not support (OpenAPI 3.0 subset only).
+ *
+ * Unsupported: minProperties, maxProperties, additionalProperties,
+ *   patternProperties, $schema, $ref, $defs, cache_control (Anthropic-only).
+ *
+ * Objects typed with ONLY additionalProperties (dynamic maps, e.g. the NLU
+ * `roles` field) are converted to type:'string' with a description hint.
+ * Gemini cannot generate arbitrary keys from schema alone, but it CAN return
+ * a JSON-encoded string which api-gemini-nlu.js then parses back to an object.
+ */
+export function sanitizeSchemaForGemini(schema) {
+  if (!schema || typeof schema !== 'object' || Array.isArray(schema)) return schema;
+
+  // Strip Anthropic/unsupported keywords
+  const {
+    minProperties, maxProperties,
+    additionalProperties, patternProperties,
+    $schema, $ref, $defs,
+    cache_control,
+    ...rest
+  } = schema;
+
+  // Dynamic-map object (additionalProperties only, no explicit properties):
+  // collapse to string so Gemini can return a JSON-encoded map.
+  if (rest.type === 'object' && !rest.properties && additionalProperties) {
+    return {
+      type: 'string',
+      description: [
+        rest.description,
+        'Encode as a JSON object string mapping role names (Agent, Patient, Theme, etc.) to their filler objects.',
+      ].filter(Boolean).join(' '),
+    };
+  }
+
+  const out = {};
+  for (const [k, v] of Object.entries(rest)) {
+    if (v && typeof v === 'object' && !Array.isArray(v)) {
+      out[k] = sanitizeSchemaForGemini(v);
+    } else if (k === 'items' || k === 'not') {
+      out[k] = sanitizeSchemaForGemini(v);
+    } else {
+      out[k] = v;
+    }
+  }
+  // Recurse into properties map
+  if (out.properties) {
+    out.properties = Object.fromEntries(
+      Object.entries(out.properties).map(([pk, pv]) => [pk, sanitizeSchemaForGemini(pv)])
+    );
+  }
+  return out;
+}
+
 /** Translate a Claude tool (input_schema) to a Gemini functionDeclaration. */
 export function claudeToolToGeminiFunctionDeclaration(tool) {
   return {
     name: tool.name,
     description: tool.description ?? '',
-    parameters: tool.input_schema ?? {},
+    parameters: sanitizeSchemaForGemini(tool.input_schema ?? {}),
   };
 }
 

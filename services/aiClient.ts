@@ -27,8 +27,15 @@ export async function getAuthToken(): Promise<string> {
     if (!user) {
         user = await requestLogin();
     }
+    // Proactively refresh when the token expires within 2 minutes.
+    // Background functions call GoTrue to verify the JWT after a small delay
+    // (cold start + setup), so tokens right at the expiry boundary get rejected
+    // even though they looked valid client-side when the request was sent.
+    const expiresAt: number | undefined = (user as any).token?.expires_at;
+    const nearExpiry = expiresAt !== undefined && (expiresAt - Date.now()) < 120_000;
     try {
-        return await user.jwt();
+        // Pass true to force-refresh when close to expiry; undefined = normal.
+        return await (user as any).jwt(nearExpiry ? true : undefined);
     } catch {
         // GoTrue token-refresh failure (e.g. "401 status code (no body)" from an
         // expired session). Clear the stale session and prompt re-login once.

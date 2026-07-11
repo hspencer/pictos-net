@@ -13,6 +13,7 @@
  */
 
 const IDENTITY_TIMEOUT_MS = 5000;
+const IDENTITY_RETRY_DELAY_MS = 1000;
 
 /**
  * Verify the request's Netlify Identity JWT and return the user, or null.
@@ -45,18 +46,41 @@ export async function verifyIdentityUser(event, context) {
     return null;
   }
 
-  try {
-    const res = await fetch(`${siteUrl}/.netlify/identity/user`, {
-      headers: { Authorization: authHeader },
-      signal: AbortSignal.timeout(IDENTITY_TIMEOUT_MS),
-    });
-    if (!res.ok) {
-      console.warn(`[identity] token rejected by GoTrue (${res.status})`);
+  const identityUrl = `${siteUrl}/.netlify/identity/user`;
+  const headers = { Authorization: authHeader };
+
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const res = await fetch(identityUrl, {
+        headers,
+        signal: AbortSignal.timeout(IDENTITY_TIMEOUT_MS),
+      });
+      if (res.status === 401 || res.status === 403) {
+        // Definitive rejection — no point retrying.
+        console.warn(`[identity] token rejected by GoTrue (${res.status})`);
+        return null;
+      }
+      if (!res.ok) {
+        // 5xx or unexpected — retry once before giving up.
+        if (attempt === 0) {
+          console.warn(`[identity] GoTrue returned ${res.status}, retrying…`);
+          await new Promise(r => setTimeout(r, IDENTITY_RETRY_DELAY_MS));
+          continue;
+        }
+        console.warn(`[identity] GoTrue returned ${res.status} on retry`);
+        return null;
+      }
+      return await res.json();
+    } catch (err) {
+      // Timeout or network error — retry once.
+      if (attempt === 0) {
+        console.warn(`[identity] verification error (${err.message}), retrying…`);
+        await new Promise(r => setTimeout(r, IDENTITY_RETRY_DELAY_MS));
+        continue;
+      }
+      console.error('[identity] verification failed after retry:', err.message);
       return null;
     }
-    return await res.json();
-  } catch (err) {
-    console.error('[identity] verification failed:', err.message);
-    return null;
   }
+  return null;
 }

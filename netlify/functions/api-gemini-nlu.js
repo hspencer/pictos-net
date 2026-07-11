@@ -132,6 +132,24 @@ async function handleRequest(event, context) {
     return { statusCode: 500, headers, body: JSON.stringify({ error: parsed.error }) };
   }
 
+  // Post-process: sanitizeSchemaForGemini converts additionalProperties maps to
+  // type:'string' so Gemini can generate arbitrary keys. Parse those strings back
+  // to objects here (frame.roles is the main case).
+  const responseBody = parsed.response;
+  try {
+    const toolBlock = responseBody?.content?.find(b => b.type === 'tool_use');
+    if (toolBlock?.input?.frames) {
+      for (const frame of toolBlock.input.frames) {
+        if (typeof frame.roles === 'string') {
+          try { frame.roles = JSON.parse(frame.roles); } catch { frame.roles = {}; }
+        }
+        frame.roles = frame.roles && typeof frame.roles === 'object' ? frame.roles : {};
+      }
+    }
+  } catch (e) {
+    console.warn('[api-gemini-nlu] roles post-processing skipped:', e.message);
+  }
+
   await logCall({
     email, phase: 'gemini-nlu', model, units_charged: 0,
     ms, tokens_in: usage.promptTokenCount ?? 0, tokens_out: usage.candidatesTokenCount ?? 0,
@@ -140,7 +158,7 @@ async function handleRequest(event, context) {
 
   console.log(`[api-gemini-nlu] user=${email} model=${model} ms=${ms} in=${usage.promptTokenCount ?? '?'} out=${usage.candidatesTokenCount ?? '?'}`);
 
-  return { statusCode: 200, headers, body: JSON.stringify(parsed.response) };
+  return { statusCode: 200, headers, body: JSON.stringify(responseBody) };
 }
 
 export const handler = async (event, context) => {
