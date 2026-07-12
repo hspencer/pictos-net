@@ -69,56 +69,59 @@ export async function verifyIdentityUser(event, context, bodyToken = null) {
     console.warn('[identity] Authorization header absent — using bodyToken fallback');
   }
 
-  const siteUrl = process.env.URL;
-  if (!siteUrl) {
-    console.error('[identity] process.env.URL not set; cannot verify token');
+  // Candidate GoTrue base URLs, tried in order. The custom domain
+  // (process.env.URL, e.g. https://next.pictos.net) works for EXTERNAL
+  // requests but a function's own outbound fetch to it does NOT reach the
+  // Identity addon — Netlify's edge returns a plain "Not Found" 404. The
+  // canonical *.netlify.app origin routes /.netlify/identity/* reliably from
+  // inside a function, so try it first, then fall back to the others.
+  const bases = [];
+  if (process.env.SITE_NAME) bases.push(`https://${process.env.SITE_NAME}.netlify.app`);
+  if (process.env.DEPLOY_PRIME_URL) bases.push(process.env.DEPLOY_PRIME_URL);
+  if (process.env.URL) bases.push(process.env.URL);
+  const uniqueBases = [...new Set(bases)];
+
+  if (uniqueBases.length === 0) {
+    console.error('[identity] no site URL env (SITE_NAME/DEPLOY_PRIME_URL/URL); cannot verify');
+    lastDiagnostic = 'no site URL env available';
     return null;
   }
 
-  // Cache-bust to prevent Netlify CDN from serving a stale 401 response:
-  // the CDN does not vary on Authorization for this endpoint.
-  const identityUrl = `${siteUrl}/.netlify/identity/user?_cb=${Date.now()}`;
   const headers = { Authorization: authHeader };
+  const diagnostics = [];
 
-  for (let attempt = 0; attempt < 2; attempt++) {
+  for (const base of uniqueBases) {
+    const host = (() => { try { return new URL(base).host; } catch { return base; } })();
+    // Cache-bust: the CDN does not vary on Authorization for this endpoint.
+    const identityUrl = `${base}/.netlify/identity/user?_cb=${Date.now()}`;
     try {
       const res = await fetch(identityUrl, {
         headers,
         signal: AbortSignal.timeout(IDENTITY_TIMEOUT_MS),
       });
       if (res.status === 401 || res.status === 403) {
-        // Definitive rejection — no point retrying.
+        // GoTrue reached and it rejected the token — definitive, stop here.
         const body = await res.text().catch(() => '');
-        console.warn(`[identity] token rejected by GoTrue (${res.status}): ${body.slice(0, 200)}`);
+        console.warn(`[identity] token rejected by GoTrue (${res.status}) @ ${host}: ${body.slice(0, 200)}`);
+        lastDiagnostic = `rejected ${res.status} @ ${host}`;
         return null;
       }
-      if (!res.ok) {
-        // Diagnostic: capture host + body to distinguish a routing/URL 404
-        // (HTML "Not Found") from a GoTrue user-not-found 404 (JSON msg).
-        const diagBody = await res.text().catch(() => '');
-        let diagHost = 'invalid';
-        try { diagHost = new URL(identityUrl).host; } catch {}
-        // 5xx or unexpected — retry once before giving up.
-        if (attempt === 0) {
-          console.warn(`[identity] GoTrue ${res.status} host=${diagHost} body=${diagBody.slice(0, 200)}; retrying…`);
-          await new Promise(r => setTimeout(r, IDENTITY_RETRY_DELAY_MS));
-          continue;
-        }
-        console.warn(`[identity] GoTrue ${res.status} host=${diagHost} body=${diagBody.slice(0, 200)} on retry`);
-        lastDiagnostic = `GoTrue ${res.status} host=${diagHost} body=${diagBody.slice(0, 120)}`;
-        return null;
+      if (res.ok) {
+        return await res.json();
       }
-      return await res.json();
+      // 404/5xx — this host did not route to GoTrue; try the next candidate.
+      const body = await res.text().catch(() => '');
+      const note = `${res.status} @ ${host} body=${body.slice(0, 80)}`;
+      console.warn(`[identity] ${note}; trying next host`);
+      diagnostics.push(note);
     } catch (err) {
-      // Timeout or network error — retry once.
-      if (attempt === 0) {
-        console.warn(`[identity] verification error (${err.message}), retrying…`);
-        await new Promise(r => setTimeout(r, IDENTITY_RETRY_DELAY_MS));
-        continue;
-      }
-      console.error('[identity] verification failed after retry:', err.message);
-      return null;
+      const note = `error @ ${host}: ${err.message}`;
+      console.warn(`[identity] ${note}; trying next host`);
+      diagnostics.push(note);
     }
   }
+
+  lastDiagnostic = `all hosts failed: ${diagnostics.join(' | ')}`;
+  console.error(`[identity] verification failed — ${lastDiagnostic}`);
   return null;
 }
