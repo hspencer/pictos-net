@@ -85,13 +85,18 @@ export async function verifyIdentityUser(event, context, bodyToken = null) {
         return null;
       }
       if (!res.ok) {
+        // Diagnostic: capture host + body to distinguish a routing/URL 404
+        // (HTML "Not Found") from a GoTrue user-not-found 404 (JSON msg).
+        const diagBody = await res.text().catch(() => '');
+        let diagHost = 'invalid';
+        try { diagHost = new URL(identityUrl).host; } catch {}
         // 5xx or unexpected — retry once before giving up.
         if (attempt === 0) {
-          console.warn(`[identity] GoTrue returned ${res.status}, retrying…`);
+          console.warn(`[identity] GoTrue ${res.status} host=${diagHost} body=${diagBody.slice(0, 200)}; retrying…`);
           await new Promise(r => setTimeout(r, IDENTITY_RETRY_DELAY_MS));
           continue;
         }
-        console.warn(`[identity] GoTrue returned ${res.status} on retry`);
+        console.warn(`[identity] GoTrue ${res.status} host=${diagHost} body=${diagBody.slice(0, 200)} on retry`);
         return null;
       }
       return await res.json();
