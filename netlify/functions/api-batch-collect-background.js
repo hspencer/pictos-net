@@ -15,7 +15,7 @@
  */
 
 import { getBlobStore as getStore, connectBlobs } from './_shared/blobs.js';
-import { verifyIdentityUser } from './_shared/identity.js';
+import { consumeAuthGrant } from './_shared/identity.js';
 import {
   promptHash, listGcsObjects, downloadGcsObject, deleteGcsObject,
 } from './_shared/vertexBatch.js';
@@ -51,14 +51,15 @@ export const handler = async (event, context) => {
     return;
   }
 
-  // Background functions get no verified clientContext: verify the forwarded
-  // Identity JWT via GoTrue, and only the submitter may collect.
-  const user = await verifyIdentityUser(event, context);
+  // Background functions get no verified clientContext and cannot reach
+  // GoTrue (loopback fetch hits a Netlify edge 404). Consume the single-use
+  // grant deposited by api-batch-status, and only the submitter may collect.
+  const user = await consumeAuthGrant(`batch-${libraryId}`);
   if (!user || (user.email !== job.ownerEmail && user.email !== 'dev')) {
     console.warn('[api-batch-collect] Unauthorized collect attempt');
-    // Reset the kick flag: the next status poll carries a fresh client
-    // token and will re-kick collection. An expired token must not strand
-    // the job in "collecting" forever.
+    // Reset the kick flag: the next status poll deposits a fresh grant and
+    // will re-kick collection. A stale grant must not strand the job in
+    // "collecting" forever.
     job.collectRequested = false;
     await jobs.setJSON(libraryId, job);
     return;

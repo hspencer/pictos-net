@@ -85,14 +85,20 @@ export const handler = async (event, context) => {
       return;
     }
     try {
+      // Deposit a single-use grant for the collector BEFORE kicking it. The
+      // collector is a background function and cannot verify a JWT itself
+      // (Authorization stripped; loopback fetch to /.netlify/identity/user
+      // hits a Netlify edge 404). This synchronous function already holds a
+      // signature-verified clientContext.user, so it vouches via the blob.
+      const grants = getStore('auth-grants');
+      await grants.setJSON(`batch-${libraryId}`, {
+        email: isLocalDev ? 'dev' : user.email,
+        roles: user?.app_metadata?.roles ?? [],
+        exp: Date.now() + 120000,
+      });
       await fetch(`${base}/.netlify/functions/api-batch-collect-background`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          // Forward the caller's Identity token so the background
-          // collector can verify it via GoTrue (_shared/identity.js).
-          Authorization: event.headers?.authorization || event.headers?.Authorization || '',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ libraryId, partial }),
       });
     } catch (err) {
