@@ -29,6 +29,10 @@
   # Batch generation: JSONL upload to GCS + Vertex batch job creation
   timeout = 26
 
+[functions."api-pipeline-batch-create"]
+  # Full-pipeline batch gate: writes grant blob + awaits 202 from background worker
+  timeout = 26
+
 [[redirects]]
   from = "/*"
   to = "/index.html"

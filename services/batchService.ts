@@ -11,7 +11,11 @@
 
 import type { RowData, GlobalConfig, VisualElement } from '../types';
 import { composeGeminiPrompt } from './geminiService';
-import { callBatchCreate, callBatchStatus, callBatchRowResult, type BatchJobView } from './aiClient';
+import {
+    callBatchCreate, callBatchStatus, callBatchRowResult, type BatchJobView,
+    callPipelineBatchCreate, callPipelineBatchPoll, callPipelineRowResult,
+    type PipelineBatchJob, type PipelineRowResult,
+} from './aiClient';
 
 /** Defensive elements accessor (same contract as App.tsx's local helper). */
 function elementsOf(row: RowData): VisualElement[] {
@@ -20,8 +24,11 @@ function elementsOf(row: RowData): VisualElement[] {
 
 export type { BatchJobView };
 
-/** Batch supports Gemini image models only (Recraft has no batch API). */
+/** Vertex batch supports Gemini image models only (Recraft has no Vertex batch API). */
 export const BATCH_MODELS = ['gemini-2.5-flash-image', 'gemini-3.1-flash-image'];
+
+/** Pipeline batch works with any provider config. Max 25 rows (15-min budget). */
+export const PIPELINE_BATCH_MAX_ROWS = 25;
 
 /** True while the job still needs polling or draining. */
 export function isActiveBatch(job: BatchJobView | null): boolean {
@@ -65,6 +72,86 @@ export async function submitLibraryBatch(
 /** Current batch job of a library, or null. */
 export async function fetchBatchJob(libraryId: string): Promise<BatchJobView | null> {
     return callBatchStatus(libraryId);
+}
+
+// ── Pipeline batch — full Phase 1→2→3 per row ────────────────────────────────
+
+export type { PipelineBatchJob, PipelineRowResult };
+
+/** True while the pipeline batch is still running. */
+export function isActivePipelineBatch(job: PipelineBatchJob | null): boolean {
+    return !!job && job.state === 'running';
+}
+
+/**
+ * Rows eligible for pipeline batch: any row with an utterance that is not
+ * currently mid-generation. Unlike the Vertex batch, Phase 2 is NOT required.
+ */
+export function pipelineBatchableRows(rows: RowData[]): RowData[] {
+    return rows.filter(r => !!r.UTTERANCE?.trim() && r.bitmapStatus !== 'processing');
+}
+
+/**
+ * Submit a pipeline batch job. Sends raw utterances; the server runs the full
+ * Phase 1→2→3 pipeline for each row. Returns { jobId, rowCount }.
+ * Throws QuotaExceededError on 429, Error otherwise.
+ */
+export async function submitPipelineBatch(
+    libraryId: string,
+    rows: RowData[],
+    config: GlobalConfig,
+): Promise<{ jobId: string; rowCount: number }> {
+    const eligible = pipelineBatchableRows(rows).slice(0, PIPELINE_BATCH_MAX_ROWS);
+    if (eligible.length === 0) throw new Error('No hay pictogramas con enunciados para enviar al lote');
+
+    return callPipelineBatchCreate({
+        libraryId,
+        rows: eligible.map(r => ({ rowId: r.id, utterance: r.UTTERANCE })),
+        config: {
+            lang: config.lang,
+            geoContext: config.geoContext,
+            annotatedContext: config.annotatedContext,
+            comprenderModel: config.comprenderModel,
+            componerModel: config.componerModel,
+            generationModel: config.generationModel,
+            visualStylePrompt: config.visualStylePrompt,
+            svgStyleDefs: config.svgStyleDefs,
+            paletteColors: (config as any).paletteColors,
+        },
+    });
+}
+
+/** Current pipeline batch job of a library, or null. */
+export async function fetchPipelineBatchJob(libraryId: string): Promise<PipelineBatchJob | null> {
+    return callPipelineBatchPoll(libraryId);
+}
+
+export interface PipelineDrainedRow {
+    rowId: string;
+    nluData?: any;
+    elements?: any[];
+    prompt?: string;
+    svg?: string;
+    bitmap?: string;
+    error?: string;
+    pending?: boolean;
+}
+
+/**
+ * Drain one pipeline batch row result. Returns { pending: true } when the row
+ * has not completed yet. Callers should skip pending rows and retry next poll.
+ */
+export async function drainPipelineRow(
+    libraryId: string,
+    jobId: string,
+    rowId: string,
+): Promise<PipelineDrainedRow> {
+    try {
+        const result = await callPipelineRowResult(libraryId, jobId, rowId);
+        return { rowId, ...result };
+    } catch (err: any) {
+        return { rowId, error: err.message || 'Error al recuperar resultado' };
+    }
 }
 
 export interface DrainedRow {

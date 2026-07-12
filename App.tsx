@@ -1607,6 +1607,98 @@ const App: React.FC<AppProps> = ({ authUser }) => {
     return () => { cancelled = true; };
   }, [activeLibraryId]);
 
+  // ── Pipeline batch (full Phase 1→2→3 per row) ─────────────────────────────
+
+  const [pipelineBatchJob, setPipelineBatchJob] = useState<Batch.PipelineBatchJob | null>(null);
+  const pipelineBatchDrainedRef = useRef<string | null>(null);
+
+  // Resume pipeline batch on library open.
+  useEffect(() => {
+    if (!activeLibraryId) { setPipelineBatchJob(null); return; }
+    let cancelled = false;
+    Batch.fetchPipelineBatchJob(activeLibraryId)
+      .then(j => { if (!cancelled) setPipelineBatchJob(j); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [activeLibraryId]);
+
+  /** Apply one drained pipeline row to the store (NLU + Compose + Phase 3). */
+  const applyPipelineRowOutcome = useCallback((
+    jobModel: string,
+    rowId: string,
+    result: Batch.PipelineRowResult,
+  ) => {
+    if (result.error) {
+      updateRowById(rowId, { bitmapStatus: 'error', status: 'error' });
+      addLog('error', `[LOTE] ${result.error.slice(0, 120)}`);
+      return;
+    }
+    const update: Record<string, any> = {};
+    if (result.nluData) update.NLU = result.nluData;
+    if (Array.isArray(result.elements)) update.elements = result.elements;
+    if (result.prompt) update.prompt = result.prompt;
+    if (result.svg) {
+      update.rawSvg = result.svg;
+      update.bitmap = undefined;
+      update.structuredSvg = undefined;
+      update.structuredSvgStatus = 'idle';
+    } else if (result.bitmap) {
+      update.bitmap = result.bitmap;
+      update.rawSvg = undefined;
+    }
+    if (result.svg || result.bitmap) {
+      update.generationModel = jobModel;
+      update.bitmapStatus = 'completed';
+      update.status = 'completed';
+    }
+    updateRowById(rowId, update);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [updateRowById, addLog]);
+
+  // Poll every 10s while a pipeline batch is running; drain completed rows
+  // incrementally so pictograms appear as they finish.
+  useEffect(() => {
+    if (!activeLibraryId || !pipelineBatchJob || !Batch.isActivePipelineBatch(pipelineBatchJob)) return;
+    const iv = setInterval(async () => {
+      try {
+        const j = await Batch.fetchPipelineBatchJob(activeLibraryId);
+        if (j) {
+          const pendingIds = rows
+            .filter(r => j.rowIds?.includes(r.id) && r.bitmapStatus === 'processing')
+            .map(r => r.id);
+          for (const rowId of pendingIds) {
+            const res = await Batch.drainPipelineRow(activeLibraryId, j.id, rowId);
+            if (!res.pending) applyPipelineRowOutcome(j.model, rowId, res);
+          }
+        }
+        setPipelineBatchJob(j);
+      } catch { /* transient; next tick retries */ }
+    }, 10_000);
+    return () => clearInterval(iv);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeLibraryId, pipelineBatchJob?.state, rows]);
+
+  // Final drain when the pipeline batch reaches a terminal state.
+  useEffect(() => {
+    if (!pipelineBatchJob || Batch.isActivePipelineBatch(pipelineBatchJob)) return;
+    if (pipelineBatchDrainedRef.current === pipelineBatchJob.id) return;
+    pipelineBatchDrainedRef.current = pipelineBatchJob.id;
+
+    const pendingIds = rows
+      .filter(r => pipelineBatchJob.rowIds?.includes(r.id) && r.bitmapStatus === 'processing')
+      .map(r => r.id);
+    if (pendingIds.length === 0) return;
+
+    addLog('info', t('batch.draining', { count: pendingIds.length }));
+    (async () => {
+      for (const rowId of pendingIds) {
+        const res = await Batch.drainPipelineRow(activeLibraryId!, pipelineBatchJob.id, rowId);
+        applyPipelineRowOutcome(pipelineBatchJob.model, rowId, res);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pipelineBatchJob?.id, pipelineBatchJob?.state]);
+
   /** Apply one drained batch outcome to its row (spec rule ApplyRowOutcome). */
   const applyBatchOutcome = useCallback((job: Batch.BatchJobView, rowId: string, bitmap?: string, error?: string) => {
     if (bitmap) {
@@ -1670,17 +1762,17 @@ const App: React.FC<AppProps> = ({ authUser }) => {
   }, [batchJob?.id, batchJob?.state]);
 
   /**
-   * Submit all batchable rows of the active library as one batch job.
+   * Submit all eligible rows as a full-pipeline batch (Phase 1→2→3 per row).
+   * Works with any provider config; accepts rows with or without Phase 2 done.
    * Wired to the "Generar en lote" button in the library toolbar.
    */
   const startLibraryBatch = async () => {
     if (!activeLibraryId) return;
     try { await ensureAuth(); } catch { return; }
 
-    const eligible = Batch.batchableRows(rows);
+    const eligible = Batch.pipelineBatchableRows(rows).slice(0, Batch.PIPELINE_BATCH_MAX_ROWS);
     if (eligible.length === 0) { addLog('error', t('batch.noEligible')); return; }
 
-    // Warning dialog (same pattern as clearAll) — states cost and timing.
     setConfirmDialog({
       isOpen: true,
       title: t('batch.button'),
@@ -1689,10 +1781,10 @@ const App: React.FC<AppProps> = ({ authUser }) => {
         setConfirmDialog(prev => ({ ...prev, isOpen: false }));
         eligible.forEach(r => updateRowById(r.id, { bitmapStatus: 'processing' }));
         try {
-          await Batch.submitLibraryBatch(activeLibraryId, eligible, config);
+          await Batch.submitPipelineBatch(activeLibraryId, eligible, config);
           addLog('success', t('batch.submitted', { count: eligible.length }));
-          const job = await Batch.fetchBatchJob(activeLibraryId);
-          setBatchJob(job);
+          const job = await Batch.fetchPipelineBatchJob(activeLibraryId);
+          setPipelineBatchJob(job);
         } catch (err: any) {
           eligible.forEach(r => updateRowById(r.id, { bitmapStatus: 'idle' }));
           if (err instanceof QuotaExceededError) {
@@ -1712,6 +1804,13 @@ const App: React.FC<AppProps> = ({ authUser }) => {
     const pending = rows.filter(r => ids.has(r.id) && r.bitmapStatus === 'processing').length;
     return { done: batchJob.rowCount - pending, total: batchJob.rowCount };
   }, [batchJob, rows]);
+
+  const pipelineBatchProgress = useMemo(() => {
+    if (!pipelineBatchJob) return null;
+    const ids = new Set(pipelineBatchJob.rowIds ?? []);
+    const pending = rows.filter(r => ids.has(r.id) && r.bitmapStatus === 'processing').length;
+    return { done: pipelineBatchJob.rowCount - pending, total: pipelineBatchJob.rowCount };
+  }, [pipelineBatchJob, rows]);
 
   // ── Model change warning & bulk regeneration ─────────────────────────────
 
@@ -3606,30 +3705,37 @@ const App: React.FC<AppProps> = ({ authUser }) => {
               <Download size={14} className="text-emerald-600" /> {t('actions.downloadPictogramas', { count: pictoDownloadCount })}
             </button>
             <div className="border-t border-slate-100 my-1"></div>
-            {/* Batch generation (specs/batch-generation.allium): menu entry
-                while idle; live progress bar in the same slot while a job
-                runs. Pictograms fill in one by one as Vertex exports them. */}
-            {batchJob && Batch.isActiveBatch(batchJob) ? (
+            {/* Batch generation: progress chip while a job runs, button when idle. */}
+            {(pipelineBatchJob && Batch.isActivePipelineBatch(pipelineBatchJob)) || (batchJob && Batch.isActiveBatch(batchJob)) ? (
               <div className="w-full px-4 py-3 border-b border-slate-100" title={t('batch.buttonTooltip')}>
                 <div className="flex items-center justify-between text-xs text-violet-800 font-bold mb-1.5">
                   <span className="flex items-center gap-2">
                     <Layers size={14} className="text-violet-700 animate-pulse" />
-                    {batchJob.state === 'collecting' ? t('batch.chipCollecting') : t('batch.chipQueued')}
+                    {batchJob && Batch.isActiveBatch(batchJob) && batchJob.state === 'collecting'
+                      ? t('batch.chipCollecting')
+                      : t('batch.chipQueued')}
                   </span>
-                  <span className="tabular-nums">{batchProgress?.done ?? 0}/{batchProgress?.total ?? batchJob.rowCount}</span>
+                  {pipelineBatchJob && Batch.isActivePipelineBatch(pipelineBatchJob) ? (
+                    <span className="tabular-nums">{pipelineBatchProgress?.done ?? 0}/{pipelineBatchProgress?.total ?? pipelineBatchJob.rowCount}</span>
+                  ) : (
+                    <span className="tabular-nums">{batchProgress?.done ?? 0}/{batchProgress?.total ?? batchJob?.rowCount ?? 0}</span>
+                  )}
                 </div>
                 <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden" role="progressbar"
-                     aria-valuenow={batchProgress?.done ?? 0} aria-valuemin={0} aria-valuemax={batchProgress?.total ?? 0}>
-                  <div
-                    className="h-full bg-violet-600 rounded-full transition-all duration-700"
-                    style={{ width: `${batchProgress && batchProgress.total > 0 ? Math.round((batchProgress.done / batchProgress.total) * 100) : 4}%` }}
-                  />
+                     aria-valuenow={(pipelineBatchProgress ?? batchProgress)?.done ?? 0}
+                     aria-valuemin={0}
+                     aria-valuemax={(pipelineBatchProgress ?? batchProgress)?.total ?? 0}>
+                  {(() => {
+                    const p = pipelineBatchProgress ?? batchProgress;
+                    const pct = p && p.total > 0 ? Math.round((p.done / p.total) * 100) : 4;
+                    return <div className="h-full bg-violet-600 rounded-full transition-all duration-700" style={{ width: `${pct}%` }} />;
+                  })()}
                 </div>
               </div>
             ) : (
               <button
                 onClick={() => { setShowLibraryMenu(false); startLibraryBatch(); }}
-                disabled={Batch.batchableRows(rows).length === 0}
+                disabled={Batch.pipelineBatchableRows(rows).length === 0}
                 title={t('batch.buttonTooltip')}
                 className="w-full text-left px-4 py-3 text-xs text-slate-700 hover:bg-violet-50 flex items-center gap-3 transition-colors disabled:opacity-40 disabled:cursor-not-allowed border-b border-slate-100"
               >

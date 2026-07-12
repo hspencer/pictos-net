@@ -472,6 +472,97 @@ export async function callBatchRowResult(jobId: string, rowId: string): Promise<
     return res.json();
 }
 
+// ── Pipeline batch (full Phase 1→2→3 per row) ─────────────────────────────
+
+export interface PipelineBatchRow {
+    rowId: string;
+    utterance: string;
+}
+
+export interface PipelineBatchJob {
+    id: string;
+    libraryId: string;
+    state: 'running' | 'completed' | 'failed';
+    model: string;
+    rowCount: number;
+    rowIds: string[];
+    succeededCount: number;
+    failedCount: number;
+    startedAt?: string;
+    completedAt?: string;
+    none?: boolean;
+}
+
+export interface PipelineRowResult {
+    nluData?: any;
+    elements?: any[];
+    prompt?: string;
+    svg?: string;
+    bitmap?: string;
+    error?: string;
+    pending?: boolean;
+}
+
+/**
+ * Create a full-pipeline batch job (api-pipeline-batch-create).
+ * Accepts raw utterances; server runs Phase 1→2→3 for each row.
+ * Works with any provider config (Claude/Gemini NLU, Recraft/Gemini image).
+ * Max 25 rows.
+ */
+export async function callPipelineBatchCreate(body: {
+    libraryId: string;
+    rows: PipelineBatchRow[];
+    config: object;
+}): Promise<{ jobId: string; rowCount: number }> {
+    const isLocalDev = import.meta.env.DEV;
+    const reqHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (!isLocalDev) {
+        const token = await getAuthToken();
+        reqHeaders['Authorization'] = `Bearer ${token}`;
+    }
+    const res = await fetch('/.netlify/functions/api-pipeline-batch-create', {
+        method: 'POST',
+        headers: reqHeaders,
+        body: JSON.stringify(body),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 429 && data.quotaExceeded) throw new QuotaExceededError(data.units_used ?? 0, data.limit ?? 100);
+    if (!res.ok) throw new Error(data.error || `Pipeline batch create failed (${res.status})`);
+    return data;
+}
+
+/** Poll the pipeline batch job state for a library. */
+export async function callPipelineBatchPoll(libraryId: string): Promise<PipelineBatchJob | null> {
+    const res = await fetch(
+        `/.netlify/functions/api-pipeline-batch-poll?libraryId=${encodeURIComponent(libraryId)}`,
+        { headers: await batchHeaders() },
+    );
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `Pipeline batch poll failed (${res.status})`);
+    return data.none ? null : (data as PipelineBatchJob);
+}
+
+/**
+ * Fetch a single row's result from the pipeline batch (consumed on read).
+ * Returns { pending: true } when the row has not completed yet.
+ */
+export async function callPipelineRowResult(
+    libraryId: string,
+    jobId: string,
+    rowId: string,
+): Promise<PipelineRowResult> {
+    const params = new URLSearchParams({ libraryId, jobId, rowId });
+    const res = await fetch(
+        `/.netlify/functions/api-pipeline-batch-poll?${params}`,
+        { headers: await batchHeaders() },
+    );
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `Pipeline row fetch failed (${res.status})`);
+    }
+    return res.json();
+}
+
 export interface CheckResult {
     ok: boolean;
     latency: number;
