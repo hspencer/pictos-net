@@ -35,12 +35,16 @@ export async function getAuthToken(): Promise<string> {
     const nearExpiry = expiresAt !== undefined && (expiresAt - Date.now()) < 120_000;
     try {
         // Pass true to force-refresh when close to expiry; undefined = normal.
-        return await (user as any).jwt(nearExpiry ? true : undefined);
+        const token = await (user as any).jwt(nearExpiry ? true : undefined);
+        if (!token || typeof token !== 'string') throw new Error('jwt() devolvió un token vacío');
+        return token;
     } catch {
         // GoTrue token-refresh failure (e.g. "401 status code (no body)" from an
-        // expired session). Clear the stale session and prompt re-login once.
+        // expired session, or a suspended Google OAuth project). Prompt re-login.
         user = await requestLogin();
-        return user.jwt();
+        const token = await user.jwt();
+        if (!token || typeof token !== 'string') throw new Error('Sesión expirada — por favor inicia sesión de nuevo');
+        return token;
     }
 }
 
@@ -147,15 +151,16 @@ async function callStructuringBackground(params: ClaudeParams): Promise<ClaudeRe
     const jobId = 'struct-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9);
     const isLocalDev = import.meta.env.DEV;
     const reqHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+    let authToken: string | null = null;
     if (!isLocalDev) {
-        const token = await getAuthToken();
-        reqHeaders['Authorization'] = `Bearer ${token}`;
+        authToken = await getAuthToken();
+        reqHeaders['Authorization'] = `Bearer ${authToken}`;
     }
 
     const startRes = await fetch('/.netlify/functions/api-gemini-structure-background', {
         method: 'POST',
         headers: reqHeaders,
-        body: JSON.stringify({ ...params, jobId }),
+        body: JSON.stringify({ ...params, jobId, ...(authToken ? { _authToken: authToken } : {}) }),
     });
     if (!startRes.ok && startRes.status !== 202) {
         throw new Error(`Fallo al iniciar el trabajo de estructurado: ${startRes.statusText}`);
@@ -239,16 +244,19 @@ export async function callRecraft(params: RecraftParams, onStatus?: (msg: string
     const jobId = 'job-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9);
     const isLocalDev = import.meta.env.DEV;
     const reqHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+    let authToken: string | null = null;
     if (!isLocalDev) {
-        const token = await getAuthToken();
-        reqHeaders['Authorization'] = `Bearer ${token}`;
+        authToken = await getAuthToken();
+        reqHeaders['Authorization'] = `Bearer ${authToken}`;
     }
 
-    // 1. Iniciar el worker en segundo plano
+    // 1. Iniciar el worker en segundo plano.
+    // _authToken is included in the body as a fallback in case the Netlify
+    // routing layer strips the Authorization header for background functions.
     const startRes = await fetch('/.netlify/functions/api-recraft-worker-background', {
         method: 'POST',
         headers: reqHeaders,
-        body: JSON.stringify({ ...params, jobId }),
+        body: JSON.stringify({ ...params, jobId, ...(authToken ? { _authToken: authToken } : {}) }),
     });
 
     // Netlify Background Functions devuelven 202 Accepted.
@@ -312,15 +320,16 @@ export async function callGemini(params: GeminiParams, onStatus?: (msg: string) 
     const jobId = 'gemini-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9);
     const isLocalDev = import.meta.env.DEV;
     const reqHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+    let authToken: string | null = null;
     if (!isLocalDev) {
-        const token = await getAuthToken();
-        reqHeaders['Authorization'] = `Bearer ${token}`;
+        authToken = await getAuthToken();
+        reqHeaders['Authorization'] = `Bearer ${authToken}`;
     }
 
     const startRes = await fetch('/.netlify/functions/api-gemini-worker-background', {
         method: 'POST',
         headers: reqHeaders,
-        body: JSON.stringify({ ...params, jobId }),
+        body: JSON.stringify({ ...params, jobId, ...(authToken ? { _authToken: authToken } : {}) }),
     });
 
     if (!startRes.ok && startRes.status !== 202) {

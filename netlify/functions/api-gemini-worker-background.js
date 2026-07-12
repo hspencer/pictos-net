@@ -29,7 +29,7 @@ export const handler = async (event, context) => {
     return;
   }
 
-  const { prompt, model, jobId } = bodyPayload;
+  const { prompt, model, jobId, _authToken } = bodyPayload;
   if (!jobId || !prompt || !model) {
     console.error('[api-gemini-worker] Missing jobId, prompt, or model');
     return;
@@ -44,7 +44,9 @@ export const handler = async (event, context) => {
   await store.setJSON(jobId, { pending: true });
 
   // Verify the Identity JWT signature via GoTrue (never trust a decoded payload).
-  const user = await verifyIdentityUser(event, context);
+  // _authToken from the body is a fallback in case the Authorization header is
+  // stripped by the Netlify routing layer for background function invocations.
+  const user = await verifyIdentityUser(event, context, _authToken ?? null);
   if (!user) {
     await store.setJSON(jobId, { error: 'Unauthorized' });
     return;

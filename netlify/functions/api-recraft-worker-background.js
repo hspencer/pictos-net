@@ -22,7 +22,7 @@ export const handler = async (event, context) => {
     return;
   }
 
-  const { prompt, colors, jobId, model = 'recraftv4_1_vector' } = bodyPayload;
+  const { prompt, colors, jobId, model = 'recraftv4_1_vector', _authToken } = bodyPayload;
   if (!jobId || !prompt) {
     console.error('[api-recraft-worker] Missing jobId or prompt');
     return;
@@ -42,7 +42,9 @@ export const handler = async (event, context) => {
   await store.setJSON(jobId, { pending: true });
 
   // Verify the Identity JWT signature via GoTrue (never trust a decoded payload).
-  const user = await verifyIdentityUser(event, context);
+  // _authToken from the body is a fallback in case the Authorization header is
+  // stripped by the Netlify routing layer for background function invocations.
+  const user = await verifyIdentityUser(event, context, _authToken ?? null);
   if (!user) {
     await store.setJSON(jobId, { error: 'Unauthorized' });
     return;
