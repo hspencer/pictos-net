@@ -147,6 +147,24 @@ export async function callStructuringModel(params: ClaudeParams): Promise<Claude
  * Start a Gemini structuring background job and poll for the result.
  * Long-poll (up to ~6 min) because authoring geometry can take minutes.
  */
+/**
+ * Authorize a background job. Background functions can't verify the Identity
+ * JWT (their Authorization header is stripped and a loopback fetch to GoTrue
+ * returns a Netlify edge 404), so this synchronous endpoint verifies the user
+ * via clientContext and deposits a single-use grant keyed by jobId that the
+ * worker consumes. Must be called before invoking any background worker.
+ */
+async function authorizeJob(jobId: string, reqHeaders: Record<string, string>): Promise<void> {
+    const res = await fetch('/.netlify/functions/api-authorize', {
+        method: 'POST',
+        headers: reqHeaders,
+        body: JSON.stringify({ jobId }),
+    });
+    if (!res.ok) {
+        throw new Error('No autorizado — por favor inicia sesión de nuevo');
+    }
+}
+
 async function callStructuringBackground(params: ClaudeParams): Promise<ClaudeResponse> {
     const jobId = 'struct-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9);
     const isLocalDev = import.meta.env.DEV;
@@ -155,6 +173,7 @@ async function callStructuringBackground(params: ClaudeParams): Promise<ClaudeRe
     if (!isLocalDev) {
         authToken = await getAuthToken();
         reqHeaders['Authorization'] = `Bearer ${authToken}`;
+        await authorizeJob(jobId, reqHeaders);
     }
 
     const startRes = await fetch('/.netlify/functions/api-gemini-structure-background', {
@@ -248,6 +267,7 @@ export async function callRecraft(params: RecraftParams, onStatus?: (msg: string
     if (!isLocalDev) {
         authToken = await getAuthToken();
         reqHeaders['Authorization'] = `Bearer ${authToken}`;
+        await authorizeJob(jobId, reqHeaders);
     }
 
     // 1. Iniciar el worker en segundo plano.
@@ -324,6 +344,7 @@ export async function callGemini(params: GeminiParams, onStatus?: (msg: string) 
     if (!isLocalDev) {
         authToken = await getAuthToken();
         reqHeaders['Authorization'] = `Bearer ${authToken}`;
+        await authorizeJob(jobId, reqHeaders);
     }
 
     const startRes = await fetch('/.netlify/functions/api-gemini-worker-background', {

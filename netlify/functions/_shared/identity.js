@@ -13,8 +13,39 @@
  * signature and expiry are valid, so it acts as the source of truth.
  */
 
+import { getBlobStore } from './blobs.js';
+
 const IDENTITY_TIMEOUT_MS = 5000;
 const IDENTITY_RETRY_DELAY_MS = 1000;
+const AUTH_GRANTS_STORE = 'auth-grants';
+
+/**
+ * Consume a single-use authorization grant written by the synchronous
+ * api-authorize gate. Background functions cannot verify a JWT themselves
+ * (Authorization header stripped; a loopback fetch to /.netlify/identity/user
+ * hits a Netlify edge 404), so a synchronous function verifies the user via
+ * context.clientContext.user and deposits a grant in the blob store keyed by
+ * jobId. Only functions can write blobs, so a forged token cannot mint one.
+ *
+ * Returns a user-like object ({ email, app_metadata }) or null.
+ * Requires connectBlobs(event) to have been called first.
+ */
+export async function consumeAuthGrant(jobId) {
+  if (process.env.NETLIFY_DEV === 'true') return { email: 'dev', app_metadata: {} };
+  if (!jobId) return null;
+  try {
+    const store = getBlobStore(AUTH_GRANTS_STORE);
+    const grant = await store.get(jobId, { type: 'json' });
+    if (grant && typeof grant.exp === 'number' && grant.exp > Date.now()) {
+      await store.delete(jobId).catch(() => {}); // single-use: prevent replay
+      return { email: grant.email, app_metadata: { roles: grant.roles ?? [] } };
+    }
+    console.warn(`[identity] ${grant ? 'expired' : 'missing'} auth grant for job ${jobId}`);
+  } catch (err) {
+    console.warn('[identity] consumeAuthGrant error:', err.message);
+  }
+  return null;
+}
 
 // Diagnostic breadcrumb from the last verifyIdentityUser() call that failed.
 // Set within a single invocation and read by the caller to surface the real

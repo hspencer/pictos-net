@@ -8,7 +8,7 @@
 
 import { checkAndCharge, logCall } from './_shared/usage.js';
 import { getBlobStore as getStore, connectBlobs } from './_shared/blobs.js';
-import { verifyIdentityUser, getLastIdentityDiagnostic } from './_shared/identity.js';
+import { consumeAuthGrant } from './_shared/identity.js';
 import { getVertexAccessToken, vertexModelUrl } from './_shared/vertex.js';
 import { fetchWithRetry, describeFetchError } from './_shared/httpRetry.js';
 
@@ -43,12 +43,11 @@ export const handler = async (event, context) => {
   const store = getStore('gemini-jobs');
   await store.setJSON(jobId, { pending: true });
 
-  // Verify the Identity JWT signature via GoTrue (never trust a decoded payload).
-  // _authToken from the body is a fallback in case the Authorization header is
-  // stripped by the Netlify routing layer for background function invocations.
-  const user = await verifyIdentityUser(event, context, _authToken ?? null);
+  // Consume the single-use grant deposited by the synchronous api-authorize
+  // gate (background functions cannot verify a JWT — see consumeAuthGrant).
+  const user = await consumeAuthGrant(jobId);
   if (!user) {
-    await store.setJSON(jobId, { error: `Unauthorized [${getLastIdentityDiagnostic() ?? 'no-diag'}]` });
+    await store.setJSON(jobId, { error: 'Unauthorized (no valid authorization grant)' });
     return;
   }
   const email = user.email ?? 'dev';

@@ -7,7 +7,7 @@
 
 import { checkAndCharge, logCall } from './_shared/usage.js';
 import { getBlobStore as getStore, connectBlobs } from './_shared/blobs.js';
-import { verifyIdentityUser, getLastIdentityDiagnostic } from './_shared/identity.js';
+import { consumeAuthGrant } from './_shared/identity.js';
 import { fetchWithRetry, describeFetchError } from './_shared/httpRetry.js';
 
 const RECRAFT_API_URL = 'https://external.api.recraft.ai/v1/images/generations';
@@ -41,12 +41,11 @@ export const handler = async (event, context) => {
   // Set initial status to pending so poller knows it started
   await store.setJSON(jobId, { pending: true });
 
-  // Verify the Identity JWT signature via GoTrue (never trust a decoded payload).
-  // _authToken from the body is a fallback in case the Authorization header is
-  // stripped by the Netlify routing layer for background function invocations.
-  const user = await verifyIdentityUser(event, context, _authToken ?? null);
+  // Consume the single-use grant deposited by the synchronous api-authorize
+  // gate (background functions cannot verify a JWT — see consumeAuthGrant).
+  const user = await consumeAuthGrant(jobId);
   if (!user) {
-    await store.setJSON(jobId, { error: `Unauthorized [${getLastIdentityDiagnostic() ?? 'no-diag'}]` });
+    await store.setJSON(jobId, { error: 'Unauthorized (no valid authorization grant)' });
     return;
   }
   const email = user.email ?? 'dev';
