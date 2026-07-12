@@ -8,7 +8,7 @@
 
 import { checkAndCharge, logCall } from './_shared/usage.js';
 import { getBlobStore as getStore, connectBlobs } from './_shared/blobs.js';
-import { verifyIdentityUser } from './_shared/identity.js';
+import { verifyIdentityUser, getLastIdentityDiagnostic } from './_shared/identity.js';
 import { getVertexAccessToken, vertexModelUrl } from './_shared/vertex.js';
 import { fetchWithRetry, describeFetchError } from './_shared/httpRetry.js';
 
@@ -48,7 +48,7 @@ export const handler = async (event, context) => {
   // stripped by the Netlify routing layer for background function invocations.
   const user = await verifyIdentityUser(event, context, _authToken ?? null);
   if (!user) {
-    await store.setJSON(jobId, { error: 'Unauthorized' });
+    await store.setJSON(jobId, { error: `Unauthorized [${getLastIdentityDiagnostic() ?? 'no-diag'}]` });
     return;
   }
   const email = user.email ?? 'dev';

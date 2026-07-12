@@ -16,6 +16,14 @@
 const IDENTITY_TIMEOUT_MS = 5000;
 const IDENTITY_RETRY_DELAY_MS = 1000;
 
+// Diagnostic breadcrumb from the last verifyIdentityUser() call that failed.
+// Set within a single invocation and read by the caller to surface the real
+// GoTrue reason (status/host/body) in the user-facing error. Temporary.
+let lastDiagnostic = null;
+export function getLastIdentityDiagnostic() {
+  return lastDiagnostic;
+}
+
 /**
  * Verify the request's Netlify Identity JWT and return the user, or null.
  *
@@ -97,6 +105,7 @@ export async function verifyIdentityUser(event, context, bodyToken = null) {
           continue;
         }
         console.warn(`[identity] GoTrue ${res.status} host=${diagHost} body=${diagBody.slice(0, 200)} on retry`);
+        lastDiagnostic = `GoTrue ${res.status} host=${diagHost} body=${diagBody.slice(0, 120)}`;
         return null;
       }
       return await res.json();
