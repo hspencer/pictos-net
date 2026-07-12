@@ -2539,7 +2539,10 @@ const App: React.FC<AppProps> = ({ authUser }) => {
                         src={authUser.user_metadata.avatar_url}
                         alt={authUser.user_metadata?.full_name || authUser.email}
                         className="absolute inset-0 w-7 h-7 rounded-full object-cover"
-                        onError={e => { e.currentTarget.style.display = 'none'; }}
+                        onError={e => {
+                          console.warn(`[avatar] failed to load ${e.currentTarget.src} — check CSP img-src / URL reachability`);
+                          e.currentTarget.style.display = 'none';
+                        }}
                       />
                     )}
                   </div>
