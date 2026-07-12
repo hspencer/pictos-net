@@ -7,7 +7,7 @@ import {
   Play, BookOpen, Search, FileDown, Square, Settings,
   X, Code, Plus, FileText, Maximize, Copy, BrainCircuit, PlusCircle, CornerDownRight, Image as ImageIcon,
   Library, ScreenShare, Globe, HelpCircle, ExternalLink, Palette, GripVertical, Edit,
-  ChevronLeft, ChevronRight, ArrowUp, FileCode, Layers, UserRound, History,
+  ChevronLeft, ChevronRight, ArrowUp, FileCode, Layers, UserRound, LogOut, History,
   List, LayoutGrid, Clock, Scan, CheckCircle2, XCircle, Wifi
 } from 'lucide-react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
@@ -399,6 +399,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
   const [vectorizerState, setVectorizerState] = useState<{ isOpen: boolean; rowId: string | null }>({ isOpen: false, rowId: null });
 
   const [quotaModal, setQuotaModal] = useState<{ units_used: number; limit: number } | null>(null);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   const closeConfirmDialog = useCallback(() => setConfirmDialog(prev => ({ ...prev, isOpen: false })), []);
   const { dialogProps: confirmDialogProps } = useDialogA11y({ isOpen: confirmDialog.isOpen, onClose: closeConfirmDialog, label: confirmDialog.title || 'Confirm' });
@@ -2524,29 +2525,57 @@ const App: React.FC<AppProps> = ({ authUser }) => {
             <>
               <div className="w-px h-8 bg-slate-200 mx-1"></div>
               {authUser ? (
-                <button
-                  onClick={() => logout()}
-                  className="p-1 hover:bg-slate-50 border border-transparent hover:border-slate-200 rounded-full transition-all"
-                  title={`${t('header.logout')} (${authUser.email})`}
-                  aria-label={t('header.logout')}
-                >
-                  <div className="relative w-7 h-7">
-                    <div className="absolute inset-0 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-xs font-medium select-none">
-                      {(authUser.user_metadata?.full_name || authUser.email || '?').charAt(0).toUpperCase()}
+                <div className="relative">
+                  <button
+                    onClick={() => setUserMenuOpen(o => !o)}
+                    className="p-1 hover:bg-slate-50 border border-transparent hover:border-slate-200 rounded-full transition-all"
+                    title={authUser.email}
+                    aria-label={authUser.email}
+                    aria-haspopup="menu"
+                    aria-expanded={userMenuOpen}
+                  >
+                    <div className="relative w-7 h-7">
+                      <div className="absolute inset-0 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-xs font-medium select-none">
+                        {(authUser.user_metadata?.full_name || authUser.email || '?').charAt(0).toUpperCase()}
+                      </div>
+                      {authUser.user_metadata?.avatar_url && (
+                        <img
+                          src={authUser.user_metadata.avatar_url}
+                          alt={authUser.user_metadata?.full_name || authUser.email}
+                          className="absolute inset-0 w-7 h-7 rounded-full object-cover"
+                          onError={e => {
+                            console.warn(`[avatar] failed to load ${e.currentTarget.src} — check CSP img-src / URL reachability`);
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                      )}
                     </div>
-                    {authUser.user_metadata?.avatar_url && (
-                      <img
-                        src={authUser.user_metadata.avatar_url}
-                        alt={authUser.user_metadata?.full_name || authUser.email}
-                        className="absolute inset-0 w-7 h-7 rounded-full object-cover"
-                        onError={e => {
-                          console.warn(`[avatar] failed to load ${e.currentTarget.src} — check CSP img-src / URL reachability`);
-                          e.currentTarget.style.display = 'none';
-                        }}
-                      />
-                    )}
-                  </div>
-                </button>
+                  </button>
+                  {userMenuOpen && (
+                    <>
+                      <div className="fixed inset-0 z-[49]" onClick={() => setUserMenuOpen(false)} />
+                      <div
+                        className="absolute right-0 top-full mt-2 w-64 bg-white border border-slate-200 rounded-lg shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-150"
+                        role="menu"
+                      >
+                        <div className="px-4 py-3 border-b border-slate-100">
+                          {authUser.user_metadata?.full_name && (
+                            <p className="text-sm font-medium text-slate-900 truncate">{authUser.user_metadata.full_name}</p>
+                          )}
+                          <p className="text-xs text-slate-500 truncate">{authUser.email}</p>
+                        </div>
+                        <button
+                          onClick={() => { setUserMenuOpen(false); logout(); }}
+                          className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-red-600 transition-colors"
+                          role="menuitem"
+                        >
+                          <LogOut size={15} aria-hidden="true" />
+                          {t('header.logout')}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
               ) : (
                 <button
                   onClick={() => requestLogin()}
