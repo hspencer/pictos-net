@@ -7,7 +7,7 @@ import {
   Play, BookOpen, Search, FileDown, Square, Settings,
   X, Code, Plus, FileText, Maximize, Copy, BrainCircuit, PlusCircle, CornerDownRight, Image as ImageIcon,
   Library, ScreenShare, Globe, HelpCircle, ExternalLink, Palette, GripVertical, Edit,
-  ChevronLeft, ChevronRight, ArrowUp, FileCode, Layers, LogOut, LogIn, History,
+  ChevronLeft, ChevronRight, ArrowUp, FileCode, Layers, UserRound, History,
   List, LayoutGrid, Clock, Scan, CheckCircle2, XCircle, Wifi
 } from 'lucide-react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
@@ -2526,11 +2526,21 @@ const App: React.FC<AppProps> = ({ authUser }) => {
               {authUser ? (
                 <button
                   onClick={() => logout()}
-                  className="p-2.5 hover:bg-slate-50 text-slate-400 hover:text-rose-500 border border-transparent hover:border-slate-200 rounded-md transition-all"
+                  className="p-1 hover:bg-slate-50 border border-transparent hover:border-slate-200 rounded-full transition-all"
                   title={`${t('header.logout')} (${authUser.email})`}
                   aria-label={t('header.logout')}
                 >
-                  <LogOut size={16} aria-hidden="true" />
+                  {authUser.user_metadata?.avatar_url ? (
+                    <img
+                      src={authUser.user_metadata.avatar_url}
+                      alt={authUser.user_metadata?.full_name || authUser.email}
+                      className="w-7 h-7 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-7 h-7 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-xs font-medium select-none">
+                      {(authUser.user_metadata?.full_name || authUser.email || '?').charAt(0).toUpperCase()}
+                    </div>
+                  )}
                 </button>
               ) : (
                 <button
@@ -2539,7 +2549,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
                   title={t('header.login')}
                   aria-label={t('header.login')}
                 >
-                  <LogIn size={16} aria-hidden="true" />
+                  <UserRound size={16} aria-hidden="true" />
                 </button>
               )}
             </>

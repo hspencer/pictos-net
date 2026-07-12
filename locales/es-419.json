@@ -612,7 +612,7 @@
     "title": "Límite diario alcanzado",
     "message": "Has generado {count} pictogramas hoy, el máximo permitido para participantes del proyecto. El límite se restablece a medianoche (UTC).",
     "contact": "Si necesitas más acceso, escríbele al investigador:",
-    "contactLink": "contact@pictos.net",
+    "contactLink": "herbert.spencer@gmail.com",
     "close": "Entendido"
   },
   "footer": {

@@ -612,7 +612,7 @@
     "title": "Daily limit reached",
     "message": "You have generated {count} pictograms today, which is the maximum allowed for project participants. The limit resets at midnight UTC.",
     "contact": "If you need additional access, please contact the researcher:",
-    "contactLink": "contact@pictos.net",
+    "contactLink": "herbert.spencer@gmail.com",
     "close": "Got it"
   },
   "footer": {
