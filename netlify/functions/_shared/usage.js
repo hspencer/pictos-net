@@ -20,11 +20,6 @@ import { getBlobStore as getStore } from './blobs.js';
 const DAILY_LIMIT = parseInt(process.env.DAILY_LIMIT_PER_USER ?? '50', 10);
 const STORE_NAME = 'pictonet-usage';
 
-// Emails that always bypass quota — set SUPERUSER_EMAILS=a@b.com,c@d.com in Netlify env.
-const SUPERUSER_EMAILS = new Set(
-  (process.env.SUPERUSER_EMAILS ?? '').split(',').map(e => e.trim()).filter(Boolean)
-);
-
 /**
  * Friendly label + description + pipeline phase for every model id that
  * logCall() has ever recorded (see grep across api-claude.js,
@@ -95,8 +90,8 @@ export async function checkAndCharge(email, units = 1, roles = []) {
     return { allowed: true, units_used: 0, limit: DAILY_LIMIT };
   }
 
-  // Superusers bypass the daily quota entirely (role-based or env-var email list)
-  if (SUPERUSER_EMAILS.has(email) || (Array.isArray(roles) && roles.includes('superuser'))) {
+  // Superusers bypass the daily quota entirely
+  if (Array.isArray(roles) && roles.includes('superuser')) {
     return { allowed: true, units_used: 0, limit: Infinity };
   }
 
