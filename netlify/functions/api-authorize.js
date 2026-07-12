@@ -15,6 +15,7 @@
  * Only functions can write blobs, so a forged token cannot mint a grant.
  */
 import { getBlobStore as getStore, connectBlobs } from './_shared/blobs.js';
+import { fetchFreshRoles } from './_shared/identity.js';
 
 const ALLOWED_ORIGINS = [
   'https://pictos.net',
@@ -60,7 +61,10 @@ export const handler = async (event, context) => {
   }
 
   const email = isLocalDev ? 'dev' : user.email;
-  const roles = user?.app_metadata?.roles ?? [];
+  // Roles inside the JWT are a snapshot from token-issue time (up to 1h old).
+  // Read them live from GoTrue so a role assigned in the Identity panel
+  // (e.g. 'superuser') takes effect immediately; fall back to the snapshot.
+  const roles = (await fetchFreshRoles(event)) ?? (user?.app_metadata?.roles ?? []);
 
   try {
     const store = getStore('auth-grants');

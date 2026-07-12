@@ -73,6 +73,9 @@ rule QuotaUnitsPerCall {
   if function = api-claude:
     units_to_charge = 0      -- haiku (phases 1+2) and sonnet (phase 5) both free
 
+  if function = api-batch-create OR function = api-pipeline-batch-create:
+    units_to_charge = rows.length   -- charged up-front, refunded if the batch never starts
+
   if email = "dev" (local dev bypass) OR units_to_charge = 0:
     quota check skipped entirely — request always allowed
 
@@ -135,6 +138,39 @@ rule EnforceQuotaBefore {
   @invariant "check before call"
     -- The upstream API (Anthropic / Recraft) is never called if quota is exhausted.
     -- HTTP 429 is returned before any external cost is incurred.
+}
+
+rule SuperuserBypass {
+  -- Users carrying the Netlify Identity role 'superuser' are never blocked
+  -- and never charged: checkAndCharge returns allowed with limit = Infinity.
+
+  when: quota is checked for a user whose roles include "superuser"
+
+  ensures: request allowed regardless of QuotaRecord.units
+  ensures: QuotaRecord not incremented (superuser usage is audit-logged but not charged)
+
+  @invariant "roles are read live, not from the JWT snapshot"
+    -- app_metadata.roles inside a JWT reflect token-ISSUE time; the Identity
+    -- widget caches tokens up to 1h, so a freshly assigned role would be
+    -- invisible until re-login. At quota-decision points (api-authorize grant
+    -- minting, batch create gates) roles are fetched live from GoTrue /user
+    -- via fetchFreshRoles(); the JWT snapshot is only a fallback when the
+    -- live lookup fails. Background workers receive roles via the auth grant,
+    -- which api-authorize mints from the live lookup.
+
+  @invariant "roles are per-site"
+    -- prod (pictos.net) and preview (next.pictos.net) run separate Identity
+    -- instances; the role must be assigned on each site independently.
+}
+
+rule RefundOnFailedStart {
+  -- Up-front batch charges are returned when no work actually ran.
+
+  when: a batch create gate charged units AND the batch worker failed to start
+        (background kick failed, or Vertex job creation threw)
+
+  ensures: refundUnits(email, rows.length) decrements the QuotaRecord, floored at 0
+  ensures: refund failures are logged and swallowed — never alter the error response
 }
 
 rule LogAfterCall {
@@ -254,10 +290,12 @@ invariant AuditCompleteness {
 }
 
 invariant QuotaMonotonicity {
-  -- A user's daily unit count never decreases within a calendar day.
-  -- (Absent manual admin intervention on Blobs.)
+  -- A user's daily unit count never decreases within a calendar day,
+  -- EXCEPT via RefundOnFailedStart (batch charged but never ran) or manual
+  -- admin intervention on Blobs.
   for each QuotaRecord:
-    QuotaRecord.units is non-decreasing across successive reads on the same date
+    QuotaRecord.units is non-decreasing across successive reads on the same date,
+    modulo refunds for batches that never started
 }
 
 invariant AdminAccessControl {

@@ -51,9 +51,10 @@ export const handler = async (event, context) => {
     return;
   }
   const email = user.email ?? 'dev';
+  const roles = user.app_metadata?.roles ?? [];
 
   // Quota check — 1 unit per image generation call (usage-enforcement.allium)
-  const quota = await checkAndCharge(email, 1);
+  const quota = await checkAndCharge(email, 1, roles);
   if (!quota.allowed) {
     console.warn(`[api-gemini-worker] quota exceeded for ${email} (${quota.units_used}/${quota.limit})`);
     await store.setJSON(jobId, {

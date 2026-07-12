@@ -131,6 +131,28 @@ export async function checkAndCharge(email, units = 1, roles = []) {
 }
 
 /**
+ * Return previously charged units when work never actually ran (e.g. a batch
+ * worker failed to start after an up-front charge). Floor at 0; failures are
+ * logged and swallowed — a missed refund must never break the error path.
+ */
+export async function refundUnits(email, units) {
+  if (!email || email === 'dev' || !(units > 0)) return;
+  const store = getStore(STORE_NAME);
+  const key = `quota/${email}/${today()}`;
+  try {
+    const current = await store.get(key, { type: 'json' });
+    if (!current) return;
+    await store.set(key, JSON.stringify({
+      ...current,
+      units: Math.max(0, (current.units ?? 0) - units),
+      last_call: new Date().toISOString(),
+    }));
+  } catch (err) {
+    console.error(`[usage] refund failed for ${email}:`, err.message);
+  }
+}
+
+/**
  * Record an API call for audit purposes.
  * Non-blocking — failures are logged but never thrown.
  *
