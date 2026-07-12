@@ -253,7 +253,7 @@ function getDefaultStylePrompt(lang: string): string {
 }
 
 interface AppProps {
-  authUser?: { email: string; user_metadata?: { full_name?: string } } | null;
+  authUser?: { email: string; user_metadata?: { full_name?: string; avatar_url?: string } } | null;
 }
 
 const App: React.FC<AppProps> = ({ authUser }) => {
@@ -2530,17 +2530,19 @@ const App: React.FC<AppProps> = ({ authUser }) => {
                   title={`${t('header.logout')} (${authUser.email})`}
                   aria-label={t('header.logout')}
                 >
-                  {authUser.user_metadata?.avatar_url ? (
-                    <img
-                      src={authUser.user_metadata.avatar_url}
-                      alt={authUser.user_metadata?.full_name || authUser.email}
-                      className="w-7 h-7 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-7 h-7 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-xs font-medium select-none">
+                  <div className="relative w-7 h-7">
+                    <div className="absolute inset-0 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-xs font-medium select-none">
                       {(authUser.user_metadata?.full_name || authUser.email || '?').charAt(0).toUpperCase()}
                     </div>
-                  )}
+                    {authUser.user_metadata?.avatar_url && (
+                      <img
+                        src={authUser.user_metadata.avatar_url}
+                        alt={authUser.user_metadata?.full_name || authUser.email}
+                        className="absolute inset-0 w-7 h-7 rounded-full object-cover"
+                        onError={e => { e.currentTarget.style.display = 'none'; }}
+                      />
+                    )}
+                  </div>
                 </button>
               ) : (
                 <button
@@ -5182,7 +5184,7 @@ const FocusViewModal: React.FC<{
 };
 
 const AppWithAuth: React.FC = () => {
-  const [authUser, setAuthUser] = useState<{ email: string; user_metadata?: { full_name?: string } } | null>(null);
+  const [authUser, setAuthUser] = useState<{ email: string; user_metadata?: { full_name?: string; avatar_url?: string } } | null>(null);
   return (
     <AuthProvider onUserChange={setAuthUser}>
       <App authUser={authUser} />
