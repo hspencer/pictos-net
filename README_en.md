@@ -3,7 +3,7 @@
 **Generative Pictograms for Augmentative and Alternative Communication (AAC)**
 
 * [![Netlify Status](https://api.netlify.com/api/v1/badges/24f068d3-f368-4526-a503-2f09af1def0b/deploy-status)](https://app.netlify.com/projects/pictos/deploys)
-* ![version](https://img.shields.io/badge/version-2.3.10-violet)
+* ![version](https://img.shields.io/badge/version-2.3.11-violet)
 * ![opensource](https://img.shields.io/badge/opensource--always-available-blue)
 
 PICTOS.NET transforms communicative intentions expressed in natural language into pictograms using a semantic reasoning pipeline. It is part of the doctoral research of [Herbert Spencer](https://herbertspencer.net/cc) and **[MediaFranca](https://github.com/mediafranca)** — a public good open-source initiative for AAC.
