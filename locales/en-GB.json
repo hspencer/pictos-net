@@ -312,6 +312,7 @@
     "importPhrases": "Import phrases (.txt)",
     "importLibrary": "Import library (.json)",
     "exportLibrary": "Export library (.json)",
+    "exportPhrases": "Export phrases (.txt)",
     "exportPictograms": "Export pictograms ({count})",
     "close": "Close",
     "options": "Options",
@@ -401,7 +402,8 @@
     "cascadeStoppedAtStep": "[CASCADE] Stopped by user at step {step}",
     "cascadeComplete": "[CASCADE] Pipeline complete in {duration}s total for \"{utterance}\"",
     "cascadeFailed": "[CASCADE] Failed at step {step}: {error}",
-    "libraryImportWarning": "Warning: Loading a library will REPLACE all current pictograms and settings (name, prompt, geolocation, etc.). Do you want to continue?"
+    "libraryImportWarning": "Warning: Loading a library will REPLACE all current pictograms and settings (name, prompt, geolocation, etc.). Do you want to continue?",
+    "exportPhrasesSuccess": "Exported {count} phrases to a text file."
   },
   "status": {
     "idle": "Idle",

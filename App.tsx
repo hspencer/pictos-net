@@ -1065,6 +1065,20 @@ const App: React.FC<AppProps> = ({ authUser }) => {
     addLog('success', t('messages.exportSuccess'));
   };
 
+  /** Export all utterances as plain text, one phrase per line — the mirror of Importar frases (.txt). */
+  const exportPhrases = () => {
+    const phrases = rows.map(r => (r.UTTERANCE ?? '').trim()).filter(Boolean);
+    const blob = new Blob([phrases.join('\n') + '\n'], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const safeFilename = config.name.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'pictonet';
+    a.download = `${safeFilename}_frases.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    addLog('success', t('messages.exportPhrasesSuccess', { count: phrases.length }));
+  };
+
   /**
    * Migrate a parsed library JSON forward to the current export schema.
    * Idempotent: passing a v2 document through it is a no-op.
@@ -3717,6 +3731,13 @@ const App: React.FC<AppProps> = ({ authUser }) => {
               className="w-full text-left px-4 py-3 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <Download size={14} className="text-slate-500" /> {t('actions.exportLibrary')}
+            </button>
+            <button
+              onClick={() => { exportPhrases(); setShowLibraryMenu(false); }}
+              disabled={rows.length === 0}
+              className="w-full text-left px-4 py-3 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Download size={14} className="text-violet-950" /> {t('actions.exportPhrases')}
             </button>
             <button
               onClick={() => { handleExportPdf(); setShowLibraryMenu(false); }}

@@ -312,6 +312,7 @@
     "importPhrases": "Importar frases (.txt)",
     "importLibrary": "Importar librería (.json)",
     "exportLibrary": "Exportar librería (.json)",
+    "exportPhrases": "Exportar frases (.txt)",
     "exportPictograms": "Exportar pictogramas ({count})",
     "close": "Cerrar",
     "options": "Opciones",
@@ -401,7 +402,8 @@
     "cascadeStoppedAtStep": "[CASCADA] Detenida por usuario en paso {step}",
     "cascadeComplete": "[CASCADA] Pipeline completo en {duration}s total para \"{utterance}\"",
     "cascadeFailed": "[CASCADA] Fallo en paso {step}: {error}",
-    "libraryImportWarning": "Advertencia: Al cargar una librería, se REEMPLAZARÁN todos los pictogramas actuales y la configuración (nombre, prompt, geolocalización, etc.). ¿Deseas continuar?"
+    "libraryImportWarning": "Advertencia: Al cargar una librería, se REEMPLAZARÁN todos los pictogramas actuales y la configuración (nombre, prompt, geolocalización, etc.). ¿Deseas continuar?",
+    "exportPhrasesSuccess": "Exportadas {count} frases a un archivo de texto."
   },
   "status": {
     "idle": "Inactivo",
