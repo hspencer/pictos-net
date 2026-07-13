@@ -24,7 +24,7 @@ import { getVertexAccessToken, vertexModelUrl } from './_shared/vertex.js';
 import { fetchWithRetry, describeFetchError } from './_shared/httpRetry.js';
 
 const RECRAFT_API_URL = 'https://external.api.recraft.ai/v1/images/generations';
-const RECRAFT_MODELS = new Set(['recraftv4_1_vector', 'recraftv4_1']);
+const RECRAFT_MODELS = new Set(['recraftv4_1_vector', 'recraftv4_1', 'recraftv4_1_utility_vector', 'recraftv4_1_pro_vector']);
 const GEMINI_IMAGE_MODELS = new Set(['gemini-2.5-flash-image', 'gemini-3.1-flash-image', 'gemini-3-pro-image']);
 
 // ── Phase 3 runners ───────────────────────────────────────────────────────────
@@ -67,7 +67,7 @@ async function phase3Recraft(elements, prompt, utterance, nluData, config, email
   const ms = Date.now() - startMs;
   await logCall({ email, phase: 'recraft-batch', model, units_charged: 0, ms, tokens_in: 0, tokens_out: 0, ok: true });
 
-  if (model === 'recraftv4_1_vector') {
+  if (model.endsWith('_vector')) {
     const svg = await imageRes.text();
     if (!svg.includes('<svg')) throw new Error('Recraft response is not valid SVG');
     return { svg };

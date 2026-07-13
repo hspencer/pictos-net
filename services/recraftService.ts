@@ -6,7 +6,7 @@
  * This SVG (rawSvg) feeds directly into phase 5 (ESTRUCTURAR).
  */
 
-import { GlobalConfig, VisualElement, Phase3Result, getModelFamily } from "../types";
+import { GlobalConfig, VisualElement, Phase3Result, GenerationModel, getModelFamily } from "../types";
 import { callRecraft } from "./aiClient";
 
 /**
@@ -62,8 +62,8 @@ export const generateImage = async (
     config: GlobalConfig,
     onLog?: LogFn,
 ): Promise<Phase3Result> => {
-    const model = (config.generationModel === 'recraftv4_1' || config.generationModel === 'recraftv4_1_vector')
-        ? config.generationModel
+    const model = config.generationModel?.startsWith('recraft')
+        ? (config.generationModel as Extract<GenerationModel, `recraft${string}`>)
         : 'recraftv4_1_vector';
 
     onLog?.('info', `[PRODUCIR] Iniciando generación con Recraft (${model})…`);

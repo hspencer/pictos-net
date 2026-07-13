@@ -319,6 +319,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
   // Populate credits field on first login (name + email or just email)
   useEffect(() => {
     return onLogin((user) => {
+      console.log('AuthGate user object:', user);
       setConfig(prev => {
         if (prev.credits) return prev; // don't overwrite user-set credits
         const name = user.user_metadata?.full_name;
@@ -1853,7 +1854,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
           structuredSvgStatus: 'idle',
         });
         try {
-          const p3Result: Phase3Result = (newModel === 'recraftv4_1_vector' || newModel === 'recraftv4_1')
+          const p3Result: Phase3Result = newModel.startsWith('recraft')
             ? await Recraft.generateImage(ensureElementsArray(row.elements), row.prompt || "", row, configWithNewModel, addLog)
             : await Gemini.generateImage(ensureElementsArray(row.elements), row.prompt || "", row, configWithNewModel, addLog);
           const isVector = !!p3Result.svg;
@@ -1919,7 +1920,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
       } else if (step === 'produce') {
         // Phase 3: PRODUCIR — dispatch to correct service based on generationModel
         const model = config.generationModel ?? DEFAULT_GENERATION_MODEL;
-        if (model === 'recraftv4_1_vector' || model === 'recraftv4_1') {
+        if (model.startsWith('recraft')) {
           result = await Recraft.generateImage(ensureElementsArray(row.elements), row.prompt || "", row, config, addLog);
         } else {
           result = await Gemini.generateImage(ensureElementsArray(row.elements), row.prompt || "", row, config, addLog);
@@ -2060,7 +2061,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
       updateRowById(rowId, { visualStatus: 'completed', visualDuration: finalUpdates.visualDuration, elements: visualResult.elements, prompt: visualResult.prompt, bitmapStatus: 'processing' });
       const bitmapStartTime = Date.now();
       const p3Model = config.generationModel ?? DEFAULT_GENERATION_MODEL;
-      const p3Result: Phase3Result = (p3Model === 'recraftv4_1_vector' || p3Model === 'recraftv4_1')
+      const p3Result: Phase3Result = p3Model.startsWith('recraft')
         ? await Recraft.generateImage(ensureElementsArray(visualResult.elements), visualResult.prompt || "", row, config, addLog)
         : await Gemini.generateImage(ensureElementsArray(visualResult.elements), visualResult.prompt || "", row, config, addLog);
       if (stopFlags.current[row.id]) {

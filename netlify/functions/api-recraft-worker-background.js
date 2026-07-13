@@ -30,7 +30,7 @@ export const handler = async (event, context) => {
 
   const store = getStore('recraft-jobs');
 
-  const ALLOWED_MODELS = ['recraftv4_1', 'recraftv4_1_vector'];
+  const ALLOWED_MODELS = ['recraftv4_1', 'recraftv4_1_vector', 'recraftv4_1_utility_vector', 'recraftv4_1_pro_vector'];
   if (!ALLOWED_MODELS.includes(model)) {
     console.error(`[api-recraft-worker] Disallowed model: ${model}`);
     await store.setJSON(jobId, { error: `Model not allowed: ${model}` });
@@ -160,7 +160,7 @@ export const handler = async (event, context) => {
 
     const ms = Date.now() - startMs;
 
-    if (model === 'recraftv4_1_vector') {
+    if (model.endsWith('_vector')) {
       // Vector model: fetch and validate SVG text
       const svgContent = await imageRes.text();
       if (!svgContent.trim().startsWith('<') && !svgContent.includes('<svg')) {

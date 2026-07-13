@@ -114,7 +114,13 @@ export const handler = async (event, context) => {
         tokens_in: 0, tokens_out: 0, ok: false,
         error_msg: `Gemini ${geminiRes.status}: ${errText.slice(0, 300)}`,
       });
-      await store.setJSON(jobId, { error: `Gemini error: ${errText.slice(0, 200)}` });
+      // 429 after retries = the Google project's daily quota for this model is
+      // exhausted (gemini-3-pro-image has a low allowance). Surface a clear,
+      // actionable message instead of the raw RESOURCE_EXHAUSTED payload.
+      const userError = geminiRes.status === 429
+        ? `Cuota diaria de Google agotada para ${model}. Intenta más tarde o elige otro modelo en Fase 3.`
+        : `Gemini error: ${errText.slice(0, 200)}`;
+      await store.setJSON(jobId, { error: userError });
       return;
     }
 

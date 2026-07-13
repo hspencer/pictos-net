@@ -38,6 +38,8 @@ export const MODEL_CATALOG = {
   'gemini-3-pro-image': { label: 'Gemini 3 Pro', phaseLabel: 'Producir', description: 'Generación de imagen (fase 3), cuota diaria baja' },
   'recraftv4_1': { label: 'Recraft (raster)', phaseLabel: 'Producir', description: 'Generación de imagen bitmap (fase 3)' },
   'recraftv4_1_vector': { label: 'Recraft (vector)', phaseLabel: 'Producir', description: 'Generación de SVG nativo (fase 3), default' },
+  'recraftv4_1_utility_vector': { label: 'Recraft Utility (vector)', phaseLabel: 'Producir', description: 'SVG nativo, variante simple y predecible (fase 3)' },
+  'recraftv4_1_pro_vector': { label: 'Recraft Pro (vector)', phaseLabel: 'Producir', description: 'SVG nativo de mayor resolución (fase 3)' },
 };
 
 function modelInfo(model) {

@@ -225,11 +225,11 @@ export interface RecraftParams {
     /** Preferred colors in hex format (max 10). Sent as controls.colors to Recraft. */
     colors?: string[];
     /** Recraft model to use. Defaults to recraftv4_1_vector. */
-    model?: 'recraftv4_1' | 'recraftv4_1_vector';
+    model?: 'recraftv4_1' | 'recraftv4_1_vector' | 'recraftv4_1_utility_vector' | 'recraftv4_1_pro_vector';
 }
 
 export interface RecraftResponse {
-    svg?: string;    // present for recraftv4_1_vector
+    svg?: string;    // present for *_vector models
     bitmap?: string; // present for recraftv4_1 (base64 PNG data URL)
 }
 
