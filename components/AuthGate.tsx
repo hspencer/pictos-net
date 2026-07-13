@@ -92,22 +92,71 @@ function _notifyLogin(user: IdentityUser) {
 }
 
 /**
- * Start login and return a Promise that resolves with the user.
- *
- * Google-only auth: the widget's own login modal is not used because its
- * email/password signup path is unsupported (confirmation emails proved
- * unreliable) and the modal cannot be customised to hide it. Instead we
- * navigate straight to GoTrue's external-provider flow. The page unloads;
- * on return, widget.init() consumes the #access_token hash and fires
- * 'login', so AuthProvider restores the session on the fresh page load —
- * the returned Promise intentionally never settles in that case.
+ * Inject a spam warning banner into the Netlify Identity widget modal.
+ * The widget renders into a container with class "netlifyIdentityButton" or
+ * creates an iframe. We watch for the modal to appear and prepend our notice.
+ */
+/**
+ * Show a fixed banner above the Identity widget iframe.
+ * The widget renders inside an iframe we can't modify, so we overlay our own notice.
+ */
+function showSpamNotice() {
+    const NOTICE_ID = 'pictos-identity-notice';
+    if (document.getElementById(NOTICE_ID)) return;
+
+    const notice = document.createElement('div');
+    notice.id = NOTICE_ID;
+    notice.style.cssText = `
+        position: fixed; top: 0; left: 0; right: 0; z-index: 99999;
+        background: #fef3c7; border-bottom: 2px solid #f59e0b;
+        padding: 12px 20px; font-size: 13px; color: #92400e;
+        line-height: 1.5; text-align: center;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    `;
+    notice.innerHTML = `
+        <strong>Importante:</strong> Si creas una cuenta con correo,
+        recibiras un email de <code style="background:#fde68a;padding:2px 5px;border-radius:3px;">no-reply@netlify.com</code>
+        para confirmar. <strong>Revisa tu carpeta de SPAM.</strong>
+        &mdash; Recomendamos usar <strong>Iniciar sesion con Google</strong>.
+    `;
+    document.body.appendChild(notice);
+}
+
+function removeSpamNotice() {
+    document.getElementById('pictos-identity-notice')?.remove();
+}
+
+/**
+ * Open login and return a Promise that resolves with the user once they log in.
+ * Rejects cleanly if the user closes the dialog without logging in.
  */
 export function requestLogin(): Promise<IdentityUser> {
-    return new Promise(async (resolve) => {
+    return new Promise(async (resolve, reject) => {
         const widget = await ensureWidget();
         const current = widget.currentUser();
         if (current) { resolve(current); return; }
-        window.location.assign(`${window.location.origin}/.netlify/identity/authorize?provider=google`);
+
+        let settled = false;
+
+        const onLoginHandler = (u?: IdentityUser) => {
+            if (settled) return;
+            settled = true;
+            removeSpamNotice();
+            if (u) resolve(u);
+            else reject(new Error('Login cancelled'));
+        };
+
+        const onCloseHandler = () => {
+            if (settled) return;
+            settled = true;
+            removeSpamNotice();
+            reject(new Error('Login cancelled'));
+        };
+
+        widget.on('login', onLoginHandler);
+        widget.on('close', onCloseHandler);
+        showSpamNotice();
+        widget.open('login');
     });
 }
 
