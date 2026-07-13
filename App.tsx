@@ -3169,27 +3169,8 @@ const App: React.FC<AppProps> = ({ authUser }) => {
               {t('library.contentToggleSecuencias')}
             </button>
 
-            {/* View toggle — pushed right; for pictogramas: sort+list/grid; for sequences: list/grid only when inside one */}
-            {libraryContentMode === 'secuencias' && activeSequenceId !== null && (
-              <div className="ml-auto flex items-center gap-1">
-                <button
-                  onClick={() => setSequenceViewMode('list')}
-                  title={t('library.viewList')}
-                  aria-pressed={sequenceViewMode === 'list'}
-                  className={`transition-colors ${sequenceViewMode === 'list' ? 'text-violet-700' : 'text-slate-300 hover:text-slate-500'}`}
-                >
-                  <List size={14} aria-hidden="true" />
-                </button>
-                <button
-                  onClick={() => setSequenceViewMode('grid')}
-                  title={t('library.viewGrid')}
-                  aria-pressed={sequenceViewMode === 'grid'}
-                  className={`transition-colors ${sequenceViewMode === 'grid' ? 'text-violet-700' : 'text-slate-300 hover:text-slate-500'}`}
-                >
-                  <LayoutGrid size={14} aria-hidden="true" />
-                </button>
-              </div>
-            )}
+            {/* Sort toggle — pushed right. The sequence list/grid toggle lives
+                inside SequenceEditor's own header, next to Imprimir/Descargar. */}
             {libraryContentMode === 'pictogramas' && rows.length > 0 && (
               <div className="ml-auto flex items-center gap-3">
                 <button
