@@ -34,13 +34,6 @@ function resolveAvatarUrl(user: any): string | undefined {
 function normalizeUser(raw: any): IdentityUser | null {
     if (!raw) return null;
     const avatar_url = resolveAvatarUrl(raw);
-    console.log('[AuthGate] user object keys:', Object.keys(raw));
-    console.log('[AuthGate] avatar resolution:', {
-        email: raw.email,
-        'user_metadata': raw?.user_metadata,
-        'identities': raw?.identities,
-        resolved_avatar: avatar_url,
-    });
     return {
         ...raw,
         user_metadata: { ...raw.user_metadata, avatar_url },
