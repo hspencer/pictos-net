@@ -967,13 +967,15 @@ const App: React.FC<AppProps> = ({ authUser }) => {
     return () => clearTimeout(timer);
   }, [openRowId]);
 
-  // Auto-cascade: when a new row with real text is added, start the pipeline
+  // Auto-cascade: when a new row with real text is added, start the pipeline.
+  // Guard against empty utterance here so auth is never requested for blank rows.
   useEffect(() => {
     const targetId = autoCascadeRef.current;
     if (!targetId) return;
-    if (!rows.some(r => r.id === targetId)) return;
+    const target = rows.find(r => r.id === targetId);
+    if (!target) return;
     autoCascadeRef.current = null;
-    processCascade(targetId);
+    if (target.UTTERANCE.trim()) processCascade(targetId);
   }, [rows]);
 
   const addLog = (type: 'info' | 'error' | 'success', message: string) => {
@@ -2001,16 +2003,16 @@ const App: React.FC<AppProps> = ({ authUser }) => {
   };
 
   const processCascade = async (rowId: string) => {
-    // Pre-flight: garantizar sesión antes de tocar estado de UI.
+    const row = rows.find(r => r.id === rowId);
+    if (!row || !row.UTTERANCE.trim()) return;
+
+    // Pre-flight: garantizar sesión sólo cuando hay algo que generar.
     // Si el usuario cancela el login, salir silenciosamente.
     try {
       await ensureAuth();
     } catch {
       return;
     }
-
-    const row = rows.find(r => r.id === rowId);
-    if (!row || !row.UTTERANCE.trim()) return;
 
     stopFlags.current[row.id] = false;
     addLog('info', t('messages.cascadeStarted', { utterance: row.UTTERANCE }));
