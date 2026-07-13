@@ -5,7 +5,45 @@ const isDev = (import.meta as any).env?.DEV;
 interface IdentityUser {
     email: string;
     user_metadata?: { full_name?: string; avatar_url?: string };
+    identities?: Array<{ provider: string; identity_data?: Record<string, string> }>;
     jwt: () => Promise<string>;
+}
+
+/**
+ * Extract the profile photo URL from wherever GoTrue stored it.
+ * GoTrue/Netlify Identity places it in different fields depending on
+ * whether the account was created via OAuth or email, and which version
+ * of the GoTrue daemon is running:
+ *   1. user_metadata.avatar_url  — standard Google OAuth signup path
+ *   2. identities[].identity_data.avatar_url — raw OAuth provider data
+ *   3. identities[].identity_data.picture    — alternate Google field name
+ */
+function resolveAvatarUrl(user: any): string | undefined {
+    const meta = user?.user_metadata;
+    if (meta?.avatar_url) return meta.avatar_url;
+    const identities: any[] = user?.identities ?? [];
+    for (const id of identities) {
+        const d = id?.identity_data;
+        if (d?.avatar_url) return d.avatar_url;
+        if (d?.picture) return d.picture;
+    }
+    return undefined;
+}
+
+/** Normalize raw GoTrue user, ensuring avatar_url is always in user_metadata. */
+function normalizeUser(raw: any): IdentityUser | null {
+    if (!raw) return null;
+    const avatar_url = resolveAvatarUrl(raw);
+    console.debug('[AuthGate] user fields:', {
+        email: raw.email,
+        'user_metadata.avatar_url': raw?.user_metadata?.avatar_url,
+        'identities': raw?.identities?.map((i: any) => ({ provider: i.provider, data: i.identity_data })),
+        resolved_avatar: avatar_url,
+    });
+    return {
+        ...raw,
+        user_metadata: { ...raw.user_metadata, avatar_url },
+    };
 }
 
 interface IdentityWidget {
@@ -154,13 +192,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, onUserChan
 
         ensureWidget().then(widget => {
             // Notify parent of initial state
-            const current = widget.currentUser();
+            const current = normalizeUser(widget.currentUser());
             onUserChange?.(current);
 
             widget.on('login', (u) => {
                 widget.close();
-                onUserChange?.(u ?? null);
-                if (u) _notifyLogin(u);
+                const normalized = normalizeUser(u ?? null);
+                onUserChange?.(normalized);
+                if (normalized) _notifyLogin(normalized);
             });
             widget.on('logout', () => {
                 onUserChange?.(null);
