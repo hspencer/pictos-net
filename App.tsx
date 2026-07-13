@@ -5218,8 +5218,25 @@ const FocusViewModal: React.FC<{
   )
 };
 
+async function gravatarUrl(email: string): Promise<string> {
+  const data = new TextEncoder().encode(email.trim().toLowerCase());
+  const buf = await crypto.subtle.digest('SHA-256', data);
+  const hex = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+  return `https://www.gravatar.com/avatar/${hex}?s=56&d=404`;
+}
+
 const AppWithAuth: React.FC = () => {
   const [authUser, setAuthUser] = useState<{ email: string; user_metadata?: { full_name?: string; avatar_url?: string } } | null>(null);
+
+  // Resolve avatar: use GoTrue's avatar_url when present, else try Gravatar.
+  // The <img onError> in App.tsx falls back to initials if Gravatar 404s.
+  useEffect(() => {
+    if (!authUser || authUser.user_metadata?.avatar_url) return;
+    gravatarUrl(authUser.email).then(url => {
+      setAuthUser(prev => prev ? { ...prev, user_metadata: { ...prev.user_metadata, avatar_url: url } } : prev);
+    });
+  }, [authUser?.email]);
+
   return (
     <AuthProvider onUserChange={setAuthUser}>
       <App authUser={authUser} />
