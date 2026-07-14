@@ -351,19 +351,21 @@ function HomeActionsCard({
 }) {
   const { t } = useTranslation();
   const actions = [
-    { icon: <FileText size={16} />, label: t('home.importPhrases'), onClick: onImportPhrases },
-    { icon: <Upload size={16} />, label: t('home.importLibraryFile'), onClick: onImport },
-    { icon: <Download size={16} />, label: t('actions.backupLibraries'), onClick: onBackup },
+    { icon: <FileText size={13} />, label: t('home.importPhrases'), onClick: onImportPhrases },
+    { icon: <Upload size={13} />, label: t('home.importLibraryFile'), onClick: onImport },
+    { icon: <Download size={13} />, label: t('actions.backupLibraries'), onClick: onBackup },
   ];
   return (
-    <div className="bg-violet-950 rounded-xl p-6 flex flex-col gap-5 min-h-[160px] shadow-xl">
-      <PictosMark size={48} />
-      <div className="flex flex-col gap-1">
+    // Compact action list: the card must not outgrow the row and stretch its
+    // sibling cards, so the actions stay xs-sized and tightly packed.
+    <div className="bg-violet-950 rounded-xl p-5 flex flex-col gap-3 min-h-[160px] shadow-xl">
+      <PictosMark size={40} />
+      <div className="flex flex-col gap-0.5">
         {actions.map(a => (
           <button
             key={a.label}
             onClick={a.onClick}
-            className="flex items-center gap-2.5 py-1.5 text-sm font-medium text-violet-200 hover:text-white transition-colors text-left"
+            className="flex items-center gap-2 py-0.5 text-xs font-medium text-violet-200 hover:text-white transition-colors text-left"
           >
             <span className="shrink-0">{a.icon}</span>
             <span className="truncate">{a.label}</span>
@@ -373,9 +375,9 @@ function HomeActionsCard({
           href="/tutorial.pdf"
           target="_blank"
           rel="noopener"
-          className="flex items-center gap-2.5 py-1.5 text-sm font-medium text-violet-200 hover:text-white transition-colors text-left"
+          className="flex items-center gap-2 py-0.5 text-xs font-medium text-violet-200 hover:text-white transition-colors text-left"
         >
-          <span className="shrink-0"><BookOpen size={16} /></span>
+          <span className="shrink-0"><BookOpen size={13} /></span>
           <span className="truncate">{t('home.tutorialPdf')}</span>
         </a>
       </div>
