@@ -6,7 +6,7 @@
   "config": {
     "lang": "es-419",
     "generationModel": "gemini-3.1-flash-image",
-    "name": "Trámites Mineduc",
+    "name": "Trámites MINEDUC",
     "credits": "Herbert Spencer González (e[ad] PUCV), investigación doctoral Pictos.net. Corpus original: Ana María Torres, Coordinación Institucional Ley Autismo y Sordera, Secretaría Ministerial de Educación Región de Valparaíso, Ministerio de Educación de Chile.",
     "license": "CC BY-SA 4.0",
     "visualStylePrompt": "Estilo de pictograma SAAC (Comunicación Aumentativa y Alternativa): contornos negros gruesos y uniformes, colores planos y sólidos, alto contraste, formas geométricas simples, fondo blanco puro y liso. Una única escena focal clara por imagen. \n\nEl personaje principal es completamente negro mientras que los demás personajes tienen línea de contorno.\n\nPROHIBIDO INCLUIR TEXTO: No debe contener letras, palabras, números ni caracteres de ningún tipo dentro de la imagen.\n\nSin degradados, sin sombras, sin detalles decorativos innecesarios. \n\nMárgenes blancos generosos, sin bordes negros ni marcos de ningún tipo, perspectiva totalmente frontal. \n\nDiseñado bajo la convención visual estricta de los conjuntos de símbolos de comunicación accesible.",

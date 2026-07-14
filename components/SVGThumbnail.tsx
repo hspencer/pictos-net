@@ -68,7 +68,7 @@ export const SVGThumbnail: React.FC<SVGThumbnailProps> = ({
         ? 'bg-amber-500 text-white'
         : 'bg-emerald-600 text-white';
 
-    const badgeLabel = type === 'raw' ? 'Raw' : 'Structured';
+    const badgeLabel = type === 'raw' ? t('svgThumbnail.raw') : t('svgThumbnail.structured');
 
     return (
         <div className="relative group flex flex-col items-center" role="img" aria-label={utterance}>
@@ -135,7 +135,7 @@ export const SVGThumbnail: React.FC<SVGThumbnailProps> = ({
                         className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 transition-colors"
                     >
                         <RefreshCw size={14} aria-hidden="true" />
-                        <span>Retrace</span>
+                        <span>{t('svgThumbnail.retrace')}</span>
                     </button>
 
                     {/* Process (only for raw SVGs) */}
@@ -148,7 +148,7 @@ export const SVGThumbnail: React.FC<SVGThumbnailProps> = ({
                             className="w-full flex items-center gap-2 px-3 py-2 text-xs text-violet-600 hover:bg-violet-50 transition-colors border-t border-slate-100"
                         >
                             <FileCode size={14} aria-hidden="true" />
-                            <span>Process</span>
+                            <span>{t('svgThumbnail.process')}</span>
                         </button>
                     )}
                 </div>

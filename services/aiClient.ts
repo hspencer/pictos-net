@@ -420,6 +420,38 @@ async function batchHeaders(): Promise<Record<string, string>> {
 }
 
 /**
+ * Passive variant of getAuthToken: returns the JWT when a session already
+ * exists, null otherwise. NEVER opens the login modal.
+ *
+ * For status/poll reads that fire automatically on library open (batch
+ * resumption): an anonymous visitor must be able to browse libraries without
+ * being asked to log in — and cannot own an active batch anyway.
+ */
+async function getAuthTokenPassive(): Promise<string | null> {
+    const user = getCurrentUser();
+    if (!user) return null;
+    try {
+        const token = await (user as any).jwt();
+        return typeof token === 'string' && token ? token : null;
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Headers for passive status reads. Returns null when there is no session —
+ * the caller should short-circuit to its "no job" result without a request.
+ */
+async function passiveBatchHeaders(): Promise<Record<string, string> | null> {
+    const reqHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (import.meta.env.DEV) return reqHeaders;
+    const token = await getAuthTokenPassive();
+    if (!token) return null;
+    reqHeaders['Authorization'] = `Bearer ${token}`;
+    return reqHeaders;
+}
+
+/**
  * Create a batch job (api-batch-create). Used by batchService.
  * Throws QuotaExceededError on 429 and Error with the server message otherwise.
  */
@@ -446,8 +478,10 @@ export async function callBatchCreate(body: {
  * Polled by App.tsx every 60s while a job is active. Used by batchService.
  */
 export async function callBatchStatus(libraryId: string): Promise<BatchJobView | null> {
+    const headers = await passiveBatchHeaders();
+    if (!headers) return null; // anonymous: no session, no batch — never prompt login
     const res = await fetch(`/.netlify/functions/api-batch-status?libraryId=${encodeURIComponent(libraryId)}`, {
-        headers: await batchHeaders(),
+        headers,
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || `Batch status failed (${res.status})`);
@@ -461,9 +495,11 @@ export async function callBatchStatus(libraryId: string): Promise<BatchJobView |
  * still collecting ({pending}). Used by batchService.drainBatchRow.
  */
 export async function callBatchRowResult(jobId: string, rowId: string): Promise<{ bitmap?: string; error?: string; pending?: boolean }> {
+    const headers = await passiveBatchHeaders();
+    if (!headers) throw new Error('Sesión requerida'); // unreachable without a job; never prompt
     const key = `batchrow-${jobId}-${rowId}`;
     const res = await fetch(`/.netlify/functions/api-gemini-poll?jobId=${encodeURIComponent(key)}`, {
-        headers: await batchHeaders(),
+        headers,
     });
     if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -533,9 +569,11 @@ export async function callPipelineBatchCreate(body: {
 
 /** Poll the pipeline batch job state for a library. */
 export async function callPipelineBatchPoll(libraryId: string): Promise<PipelineBatchJob | null> {
+    const headers = await passiveBatchHeaders();
+    if (!headers) return null; // anonymous: no session, no batch — never prompt login
     const res = await fetch(
         `/.netlify/functions/api-pipeline-batch-poll?libraryId=${encodeURIComponent(libraryId)}`,
-        { headers: await batchHeaders() },
+        { headers },
     );
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || `Pipeline batch poll failed (${res.status})`);
@@ -551,10 +589,12 @@ export async function callPipelineRowResult(
     jobId: string,
     rowId: string,
 ): Promise<PipelineRowResult> {
+    const headers = await passiveBatchHeaders();
+    if (!headers) throw new Error('Sesión requerida'); // unreachable without a job; never prompt
     const params = new URLSearchParams({ libraryId, jobId, rowId });
     const res = await fetch(
         `/.netlify/functions/api-pipeline-batch-poll?${params}`,
-        { headers: await batchHeaders() },
+        { headers },
     );
     if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -579,12 +619,10 @@ export async function callCheck(service: string, model?: string): Promise<CheckR
     const isLocalDev = import.meta.env.DEV;
     const reqHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
     if (!isLocalDev) {
-        try {
-            const token = await getAuthToken();
-            reqHeaders['Authorization'] = `Bearer ${token}`;
-        } catch (e) {
-            return { ok: false, latency: 0, error: 'No autenticado' };
-        }
+        // Passive: a diagnostic ping must not open the login modal.
+        const token = await getAuthTokenPassive();
+        if (!token) return { ok: false, latency: 0, error: 'No autenticado' };
+        reqHeaders['Authorization'] = `Bearer ${token}`;
     }
     const t0 = Date.now();
     try {

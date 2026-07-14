@@ -10,6 +10,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import type { StructuringMapping, StructuringGroup } from '../types';
+import { useTranslation } from '../hooks/useTranslation';
 
 // ── Timer calculation ─────────────────────────────────────────────────────────
 
@@ -40,6 +41,7 @@ interface Phase5ReviewPanelProps {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function Phase5ReviewPanel({ mapping, onConfirm }: Phase5ReviewPanelProps) {
+    const { t } = useTranslation();
     const timerMs = useRef(computeTimerMs(mapping));
     const [remaining, setRemaining] = useState(timerMs.current);
     const [selections, setSelections] = useState<Map<string, boolean>>(() => {
@@ -133,7 +135,7 @@ export function Phase5ReviewPanel({ mapping, onConfirm }: Phase5ReviewPanelProps
     return (
         <div className="phase5-review-panel">
             <div className="phase5-review-header">
-                <span className="phase5-review-title">Revisar estructura</span>
+                <span className="phase5-review-title">{t('phase5.reviewStructure')}</span>
                 <span className="phase5-review-desc">{mapping.description}</span>
             </div>
 
@@ -141,7 +143,7 @@ export function Phase5ReviewPanel({ mapping, onConfirm }: Phase5ReviewPanelProps
                 {topLevel.map(g => renderGroup(g))}
                 {mapping.discard?.length > 0 && (
                     <div className="phase5-review-discard">
-                        <span className="phase5-review-discard-label">Descartados ({mapping.discard.length}):</span>
+                        <span className="phase5-review-discard-label">{t('phase5.discarded', { count: mapping.discard.length })}</span>
                         <span className="phase5-review-discard-ids">{mapping.discard.join(', ')}</span>
                     </div>
                 )}
@@ -153,13 +155,13 @@ export function Phase5ReviewPanel({ mapping, onConfirm }: Phase5ReviewPanelProps
                 </div>
                 <div className="phase5-review-footer-row">
                     <span className="phase5-review-timer-text">{totalSec}s</span>
-                    <span className="phase5-review-count">{selectedCount}/{mapping.groups.length} nodos</span>
+                    <span className="phase5-review-count">{t('phase5.nodes', { selected: selectedCount, total: mapping.groups.length })}</span>
                     <button
                         className="phase5-review-confirm-btn"
                         onClick={handleConfirm}
                         type="button"
                     >
-                        Confirmar
+                        {t('phase5.confirm')}
                     </button>
                 </div>
             </div>

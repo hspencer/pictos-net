@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   Plus, MoreHorizontal, Globe, Download, Copy, Trash2, Edit,
-  FolderOpen, HardDrive, Upload, FileText, EyeOff,
+  FolderOpen, HardDrive, Upload, FileText, EyeOff, BookOpen,
 } from 'lucide-react';
 import { LibraryMeta } from '../types';
 import { useTranslation } from '../hooks/useTranslation';
@@ -351,24 +351,35 @@ function HomeActionsCard({
 }) {
   const { t } = useTranslation();
   const actions = [
-    { icon: <FileText size={16} />, label: t('home.importPhrases'), onClick: onImportPhrases },
-    { icon: <Upload size={16} />, label: t('home.importLibraryFile'), onClick: onImport },
-    { icon: <Download size={16} />, label: t('actions.backupLibraries'), onClick: onBackup },
+    { icon: <FileText size={13} />, label: t('home.importPhrases'), onClick: onImportPhrases },
+    { icon: <Upload size={13} />, label: t('home.importLibraryFile'), onClick: onImport },
+    { icon: <Download size={13} />, label: t('actions.backupLibraries'), onClick: onBackup },
   ];
   return (
-    <div className="bg-violet-950 rounded-xl p-6 flex flex-col gap-5 min-h-[160px] shadow-xl">
-      <PictosMark size={48} />
-      <div className="flex flex-col gap-1">
+    // Compact action list: the card must not outgrow the row and stretch its
+    // sibling cards, so the actions stay xs-sized and tightly packed.
+    <div className="bg-violet-950 rounded-xl p-5 flex flex-col gap-3 min-h-[160px] shadow-xl">
+      <PictosMark size={40} />
+      <div className="flex flex-col gap-0.5">
         {actions.map(a => (
           <button
             key={a.label}
             onClick={a.onClick}
-            className="flex items-center gap-2.5 py-1.5 text-sm font-medium text-violet-200 hover:text-white transition-colors text-left"
+            className="flex items-center gap-2 py-0.5 text-xs font-medium text-violet-200 hover:text-white transition-colors text-left"
           >
             <span className="shrink-0">{a.icon}</span>
             <span className="truncate">{a.label}</span>
           </button>
         ))}
+        <a
+          href="/tutorial.pdf"
+          target="_blank"
+          rel="noopener"
+          className="flex items-center gap-2 py-0.5 text-xs font-medium text-violet-200 hover:text-white transition-colors text-left"
+        >
+          <span className="shrink-0"><BookOpen size={13} /></span>
+          <span className="truncate">{t('home.tutorialPdf')}</span>
+        </a>
       </div>
     </div>
   );
@@ -423,65 +434,97 @@ export function LibraryHome({
 
   const isStorageHigh = storageQuota > 0 && storageUsed / storageQuota > 0.8;
 
+  // Community sort is independent of the workspace sort: each section header
+  // carries its own control. 'recientes' keeps the stock (curation) order.
+  const [templateSort, setTemplateSort] = useState<'recientes' | 'alfabetico'>('recientes');
+  const sortedTemplates = templateSort === 'alfabetico'
+    ? [...templates].sort((a, b) => a.name.localeCompare(b.name))
+    : templates;
+
   return (
-    <div id="library-home" className="py-12 space-y-8 animate-in fade-in zoom-in-95 duration-700">
+    <div id="library-home" className="py-12 space-y-10 animate-in fade-in zoom-in-95 duration-700">
 
-      {/* Toolbar: sort links (active library is shown by the highlighted card) */}
-      <div id="library-home-toolbar" className="flex items-center justify-end gap-4">
-        <div className="flex items-center gap-1 text-xs text-slate-400">
-          <button
-            onClick={() => onSortChange('recientes')}
-            className={`transition-colors ${sort === 'recientes' ? 'text-violet-700 font-semibold' : 'hover:text-slate-700'}`}
-          >
-            {t('library.recent')}
-          </button>
-          <span className="mx-1">·</span>
-          <button
-            onClick={() => onSortChange('alfabetico')}
-            className={`transition-colors ${sort === 'alfabetico' ? 'text-violet-700 font-semibold' : 'hover:text-slate-700'}`}
-          >
-            {t('library.alphabetical')}
-          </button>
+      {/* ── Own zone: pictos actions + create + the user's libraries.
+             Opening a community template always forks an own copy here, so the
+             'current' library always lives in this section. ── */}
+      <section aria-labelledby="workspace-title">
+        <div id="library-home-toolbar" className="flex items-center justify-between mb-5">
+          <h2 id="workspace-title" className="text-xs font-semibold uppercase tracking-wider text-slate-900">
+            {t('home.workspaceSection')}
+          </h2>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => onSortChange('recientes')}
+              className={`text-xs uppercase tracking-wider transition-colors ${sort === 'recientes' ? 'text-slate-900 font-semibold' : 'text-slate-400 hover:text-slate-600'}`}
+            >
+              {t('library.recent')}
+            </button>
+            <button
+              onClick={() => onSortChange('alfabetico')}
+              className={`text-xs uppercase tracking-wider transition-colors ${sort === 'alfabetico' ? 'text-slate-900 font-semibold' : 'text-slate-400 hover:text-slate-600'}`}
+            >
+              {t('library.alphabetical')}
+            </button>
+          </div>
         </div>
-      </div>
-
-      {/* Unified grid: actions card + user libraries + example templates + create card */}
-      <div id="library-grid" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        <HomeActionsCard onImport={onImport} onImportPhrases={onImportPhrases} onBackup={onBackup} />
-        {sortedLibraries.map(lib => (
-          <LibraryCard
-            key={lib.id}
-            lib={lib}
-            isActive={lib.id === activeLibraryId}
-            onOpen={onOpen}
-            onDuplicate={onDuplicate}
-            onDownload={onDownload}
-            onRename={onRename}
-            onDelete={onDelete}
-          />
-        ))}
-        {templates.map(tmpl => (
-          <TemplateCard
-            key={tmpl.filename}
-            tmpl={tmpl}
-            onOpen={() => onOpenTemplate(tmpl.filename)}
-            onHide={() => onHideTemplate(tmpl.filename)}
-          />
-        ))}
-        <CreateLibraryCard onCreate={onCreate} />
-      </div>
-
-      {/* Restore link for hidden example templates */}
-      {hiddenTemplateCount > 0 && (
-        <div className="flex justify-end">
-          <button
-            onClick={onRestoreTemplates}
-            className="text-xs text-slate-400 hover:text-violet-700 transition-colors"
-          >
-            {t('home.showHiddenTemplates', { count: hiddenTemplateCount })}
-          </button>
+        <div id="library-grid" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <HomeActionsCard onImport={onImport} onImportPhrases={onImportPhrases} onBackup={onBackup} />
+          <CreateLibraryCard onCreate={onCreate} />
+          {sortedLibraries.map(lib => (
+            <LibraryCard
+              key={lib.id}
+              lib={lib}
+              isActive={lib.id === activeLibraryId}
+              onOpen={onOpen}
+              onDuplicate={onDuplicate}
+              onDownload={onDownload}
+              onRename={onRename}
+              onDelete={onDelete}
+            />
+          ))}
         </div>
-      )}
+      </section>
+
+      {/* ── Community zone: the stock templates shipped with the app ── */}
+      <section aria-labelledby="community-title">
+        <div className="flex items-center justify-between mb-5">
+          <h2 id="community-title" className="text-xs font-semibold uppercase tracking-wider text-slate-900">
+            {t('home.communitySection')}
+          </h2>
+          <div className="flex items-center gap-3">
+            {hiddenTemplateCount > 0 && (
+              <button
+                onClick={onRestoreTemplates}
+                className="text-xs text-slate-400 hover:text-violet-700 transition-colors mr-2"
+              >
+                {t('home.showHiddenTemplates', { count: hiddenTemplateCount })}
+              </button>
+            )}
+            <button
+              onClick={() => setTemplateSort('recientes')}
+              className={`text-xs uppercase tracking-wider transition-colors ${templateSort === 'recientes' ? 'text-slate-900 font-semibold' : 'text-slate-400 hover:text-slate-600'}`}
+            >
+              {t('library.recent')}
+            </button>
+            <button
+              onClick={() => setTemplateSort('alfabetico')}
+              className={`text-xs uppercase tracking-wider transition-colors ${templateSort === 'alfabetico' ? 'text-slate-900 font-semibold' : 'text-slate-400 hover:text-slate-600'}`}
+            >
+              {t('library.alphabetical')}
+            </button>
+          </div>
+        </div>
+        <div id="community-grid" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {sortedTemplates.map(tmpl => (
+            <TemplateCard
+              key={tmpl.filename}
+              tmpl={tmpl}
+              onOpen={() => onOpenTemplate(tmpl.filename)}
+              onHide={() => onHideTemplate(tmpl.filename)}
+            />
+          ))}
+        </div>
+      </section>
 
       {/* Bottom bar: storage indicator (import/backup actions live in the actions card) */}
       <div className="flex items-center justify-between gap-4 pt-4 border-t border-slate-100">

@@ -1,15 +1,3 @@
-/**
- * VectorizerModal — full-screen bitmap-to-SVG preview and parameter tuning.
- *
- * Uses the official vtracer WASM (visioncortex) with:
- * - Progressive rendering: WASM writes paths directly to a visible <svg> element
- * - Auto-retrace: config changes debounce-trigger retrace (~500ms)
- * - Presets: B&W, Pictogram, Poster, Photo
- * - Hierarchical modes: Stacked / Cutout (color mode only)
- *
- * Region ID: #vectorizer-modal
- */
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { X, Download, Check, AlertTriangle, Loader2, ChevronDown, ChevronRight, Scan } from 'lucide-react';
 import { useDialogA11y } from '../hooks/useDialogA11y';
@@ -23,6 +11,7 @@ import {
     type VectorizerResult,
 } from '../services/vtracerService';
 import { parsePathToNodes } from '../utils/pathParser';
+import { useTranslation } from '../hooks/useTranslation';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -201,6 +190,7 @@ interface SegmentGroupProps<T extends string> {
 function SegmentGroup<T extends string>({
     label, value, options, onChange, disabled
 }: SegmentGroupProps<T>) {
+    const { t } = useTranslation();
     return (
         <div className="mb-4">
             <p className="text-xs font-medium uppercase tracking-widest text-slate-500 mb-1.5">{label}</p>
@@ -240,9 +230,10 @@ const PRESET_LABELS: { key: string; label: string }[] = [
 function PresetChips({
     onSelect, disabled
 }: { onSelect: (config: Partial<VectorizerConfig>) => void; disabled?: boolean }) {
+    const { t } = useTranslation();
     return (
         <div className="mb-4">
-            <p className="text-xs font-medium uppercase tracking-widest text-slate-500 mb-1.5">Presets</p>
+            <p className="text-xs font-medium uppercase tracking-widest text-slate-500 mb-1.5">{t('vectorizer.presets')}</p>
             <div className="flex flex-wrap gap-1.5">
                 {PRESET_LABELS.map(({ key, label }) => (
                     <button
@@ -251,7 +242,7 @@ function PresetChips({
                         onClick={() => onSelect(PRESETS[key])}
                         className="px-3 py-1 text-xs font-medium bg-white border border-slate-200 text-slate-600 rounded hover:border-violet-300 hover:text-violet-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                     >
-                        {label}
+                        {t(`vectorizer.${key}` as any, { defaultValue: label })}
                     </button>
                 ))}
             </div>
@@ -271,6 +262,7 @@ export const VectorizerModal: React.FC<VectorizerModalProps> = ({
     onClose,
     onApply,
 }) => {
+    const { t } = useTranslation();
     const { dialogProps } = useDialogA11y({ isOpen, onClose, label: `Vectorizer — ${utterance}` });
 
     const [config, setConfig] = useState<VectorizerConfig>({
@@ -505,7 +497,7 @@ export const VectorizerModal: React.FC<VectorizerModalProps> = ({
             {/* Header */}
             <header className="flex items-center justify-between px-6 h-14 border-b border-slate-200 shrink-0 bg-white">
                 <div className="flex items-center gap-3 min-w-0">
-                    <span className="text-slate-900 font-bold text-sm uppercase tracking-widest">Vectorizer</span>
+                    <span className="text-slate-900 font-bold text-sm uppercase tracking-widest">{t('vectorizer.title')}</span>
                     <span className="text-slate-500 text-sm truncate">— "{utterance}"</span>
                     {traceState === 'done' && result && (
                         <span className="text-xs font-mono text-slate-500 ml-2">
@@ -540,24 +532,24 @@ export const VectorizerModal: React.FC<VectorizerModalProps> = ({
 
                         {/* Curve mode */}
                         <SegmentGroup
-                            label="Curve Mode"
+                            label={t('vectorizer.curveMode')}
                             value={mode as 'polygon' | 'spline'}
                             disabled={isTracing}
                             options={[
-                                { label: 'Polygon', value: 'polygon' as const, title: 'Sharp corners, geometric shapes' },
-                                { label: 'Spline', value: 'spline' as const, title: 'Smooth curves' },
+                                { label: t('vectorizer.polygon'), value: 'polygon' as const, title: 'Sharp corners, geometric shapes' },
+                                { label: t('vectorizer.spline'), value: 'spline' as const, title: 'Smooth curves' },
                             ]}
                             onChange={v => updateConfig({ mode: v })}
                         />
 
                         {/* Color mode */}
                         <SegmentGroup
-                            label="Color Mode"
+                            label={t('vectorizer.colorMode')}
                             value={colorMode as 'color' | 'bw'}
                             disabled={isTracing}
                             options={[
-                                { label: 'Color', value: 'color' as const, title: 'Multi-color hierarchical clustering' },
-                                { label: 'B&W', value: 'bw' as const, title: 'Single black binary trace' },
+                                { label: t('vectorizer.color'), value: 'color' as const, title: 'Multi-color hierarchical clustering' },
+                                { label: t('vectorizer.bw'), value: 'bw' as const, title: 'Single black binary trace' },
                             ]}
                             onChange={v => updateConfig({ colorMode: v })}
                         />
@@ -566,30 +558,30 @@ export const VectorizerModal: React.FC<VectorizerModalProps> = ({
                         {colorMode === 'color' && (
                             <>
                                 <SegmentGroup
-                                    label="Hierarchical"
+                                    label={t('vectorizer.hierarchical')}
                                     value={(config.hierarchical ?? 'stacked') as 'stacked' | 'cutout'}
                                     disabled={isTracing}
                                     options={[
-                                        { label: 'Stacked', value: 'stacked' as const, title: 'Layered overlapping shapes' },
-                                        { label: 'Cutout', value: 'cutout' as const, title: 'Non-overlapping shapes' },
+                                        { label: t('vectorizer.stacked'), value: 'stacked' as const, title: 'Layered overlapping shapes' },
+                                        { label: t('vectorizer.cutout'), value: 'cutout' as const, title: 'Non-overlapping shapes' },
                                     ]}
                                     onChange={v => updateConfig({ hierarchical: v })}
                                 />
                                 <LabeledSlider
-                                    label="Color Precision"
+                                    label={t('vectorizer.colorPrecision')}
                                     value={config.colorPrecision ?? 6}
                                     min={1} max={8} step={1}
-                                    leftLabel="Fewer colors"
-                                    rightLabel="More colors"
+                                    leftLabel={t('vectorizer.fewerColors')}
+                                    rightLabel={t('vectorizer.moreColors')}
                                     disabled={isTracing}
                                     onChange={v => updateConfig({ colorPrecision: v })}
                                 />
                                 <LabeledSlider
-                                    label="Layer Difference"
+                                    label={t('vectorizer.layerDifference')}
                                     value={config.layerDifference ?? 16}
                                     min={0} max={128} step={4}
-                                    leftLabel="More layers"
-                                    rightLabel="Fewer layers"
+                                    leftLabel={t('vectorizer.moreLayers')}
+                                    rightLabel={t('vectorizer.fewerLayers')}
                                     disabled={isTracing}
                                     onChange={v => updateConfig({ layerDifference: v })}
                                 />
@@ -602,53 +594,53 @@ export const VectorizerModal: React.FC<VectorizerModalProps> = ({
                             className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-widest text-slate-500 hover:text-slate-600 transition-colors mt-1 mb-3 w-full"
                         >
                             {advancedOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-                            Advanced
+                            {t('vectorizer.advanced')}
                         </button>
 
                         {advancedOpen && (
                             <div className="border-t border-slate-200 pt-4">
                                 <LabeledSlider
-                                    label="Noise Removal"
+                                    label={t('vectorizer.noiseRemoval')}
                                     value={config.filterSpeckle ?? 4}
                                     min={0} max={16} step={1}
-                                    leftLabel="Keep detail"
-                                    rightLabel="Remove specks"
+                                    leftLabel={t('vectorizer.keepDetail')}
+                                    rightLabel={t('vectorizer.removeSpecks')}
                                     disabled={isTracing}
                                     onChange={v => updateConfig({ filterSpeckle: v })}
                                 />
                                 <LabeledSlider
-                                    label="Corner Sharpness"
+                                    label={t('vectorizer.cornerSharpness')}
                                     value={config.cornerThreshold ?? 60}
                                     min={10} max={180} step={5}
-                                    leftLabel="Smooth"
-                                    rightLabel="Sharp corners"
+                                    leftLabel={t('vectorizer.smooth')}
+                                    rightLabel={t('vectorizer.sharpCorners')}
                                     disabled={isTracing}
                                     onChange={v => updateConfig({ cornerThreshold: v })}
                                 />
                                 <LabeledSlider
-                                    label="Path Detail"
+                                    label={t('vectorizer.pathDetail')}
                                     value={config.lengthThreshold ?? 4}
                                     min={1} max={10} step={0.5}
-                                    leftLabel="More detail"
-                                    rightLabel="Simplified"
+                                    leftLabel={t('vectorizer.moreDetail')}
+                                    rightLabel={t('vectorizer.simplified')}
                                     disabled={isTracing}
                                     onChange={v => updateConfig({ lengthThreshold: v })}
                                 />
                                 <LabeledSlider
-                                    label="Path Joining"
+                                    label={t('vectorizer.pathJoining')}
                                     value={config.spliceThreshold ?? 45}
                                     min={10} max={90} step={5}
-                                    leftLabel="Keep separate"
-                                    rightLabel="Join paths"
+                                    leftLabel={t('vectorizer.keepSeparate')}
+                                    rightLabel={t('vectorizer.joinPaths')}
                                     disabled={isTracing}
                                     onChange={v => updateConfig({ spliceThreshold: v })}
                                 />
                                 <LabeledSlider
-                                    label="Coordinate Precision"
+                                    label={t('vectorizer.coordinatePrecision')}
                                     value={config.pathPrecision ?? 8}
                                     min={1} max={8} step={1}
-                                    leftLabel="Compact"
-                                    rightLabel="Precise"
+                                    leftLabel={t('vectorizer.compact')}
+                                    rightLabel={t('vectorizer.precise')}
                                     disabled={isTracing}
                                     onChange={v => updateConfig({ pathPrecision: v })}
                                 />
@@ -664,7 +656,7 @@ export const VectorizerModal: React.FC<VectorizerModalProps> = ({
                             className="w-full flex items-center justify-center gap-2 border border-slate-200 text-slate-600 hover:border-slate-400 hover:text-slate-900 bg-white px-4 py-2 text-xs font-bold uppercase tracking-widest rounded transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                             <Download size={12} aria-hidden="true" />
-                            Download SVG
+                            {t('vectorizer.download')}
                         </button>
 
                         <button
@@ -673,7 +665,7 @@ export const VectorizerModal: React.FC<VectorizerModalProps> = ({
                             className="w-full flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 text-white px-4 py-2.5 text-xs font-bold uppercase tracking-widest rounded transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                             <Check size={12} aria-hidden="true" />
-                            Apply
+                            {t('vectorizer.apply')}
                         </button>
                     </div>
                 </div>
@@ -725,7 +717,7 @@ export const VectorizerModal: React.FC<VectorizerModalProps> = ({
                             className="flex-1 flex flex-col overflow-hidden border-r border-slate-200"
                         >
                             <p className="text-xs font-medium uppercase tracking-widest text-slate-500 px-4 py-2 border-b border-slate-200 shrink-0 bg-slate-50">
-                                Original
+                                {t('vectorizer.original')}
                             </p>
                             <div className="flex-1 flex items-center justify-center p-6 overflow-auto bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2016%2016%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Crect%20width%3D%228%22%20height%3D%228%22%20fill%3D%22%23f1f5f9%22%2F%3E%3Crect%20x%3D%228%22%20y%3D%228%22%20width%3D%228%22%20height%3D%228%22%20fill%3D%22%23f1f5f9%22%2F%3E%3C%2Fsvg%3E')]">
                                 <canvas
@@ -742,7 +734,7 @@ export const VectorizerModal: React.FC<VectorizerModalProps> = ({
                         >
                             <div className="flex items-center justify-between px-4 py-2 border-b border-slate-200 shrink-0 bg-slate-50">
                                 <p className="text-xs font-medium uppercase tracking-widest text-slate-500">
-                                    SVG Result
+                                    {t('vectorizer.result')}
                                 </p>
                                 {resultSvgHtml && (
                                     <button
@@ -752,10 +744,10 @@ export const VectorizerModal: React.FC<VectorizerModalProps> = ({
                                                 ? 'bg-amber-400 text-amber-900'
                                                 : 'text-slate-500 hover:bg-slate-200 hover:text-slate-700'
                                         }`}
-                                        title="Outline mode"
+                                        title={t('vectorizer.outline')}
                                     >
                                         <Scan size={12} aria-hidden="true" />
-                                        Outline
+                                        {t('vectorizer.outline')}
                                     </button>
                                 )}
                             </div>
@@ -774,14 +766,14 @@ export const VectorizerModal: React.FC<VectorizerModalProps> = ({
                                         }}
                                     />
                                 ) : traceState === 'idle' ? (
-                                    <p className="absolute text-xs text-slate-500">Starting...</p>
+                                    <p className="absolute text-xs text-slate-500">{t('vectorizer.starting')}</p>
                                 ) : traceState === 'tracing' ? (
                                     <Loader2 size={32} className="animate-spin text-violet-300" />
                                 ) : null}
                                 {traceState === 'error' && (
                                     <div className="absolute flex flex-col items-center gap-3 text-slate-500">
                                         <AlertTriangle size={32} className="text-red-400" />
-                                        <p className="text-xs text-red-500">Trace failed — adjust settings and retry</p>
+                                        <p className="text-xs text-red-500">{t('vectorizer.traceFailed')}</p>
                                     </div>
                                 )}
                             </div>

@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 
+import { translations, type Locale } from '../locales';
+
 const isDev = (import.meta as any).env?.DEV;
 
 interface IdentityUser {
@@ -101,6 +103,24 @@ function _notifyLogin(user: IdentityUser) {
  * The widget renders inside an iframe we can't modify, so we overlay our own notice.
  */
 function showSpamNotice() {
+    const lang = (localStorage.getItem('pictonet_v19_uiLang') as Locale | null) || 'es-419';
+    const t = (key: string) => {
+        const keys = key.split('.');
+        let value: any = translations[lang];
+        for (const k of keys) {
+            value = value?.[k];
+            if (!value) break;
+        }
+        if (typeof value !== 'string') {
+            value = translations['es-419'];
+            for (const k of keys) {
+                value = value?.[k];
+                if (!value) break;
+            }
+        }
+        return typeof value === 'string' ? value : key;
+    };
+
     const NOTICE_ID = 'pictos-identity-notice';
     if (document.getElementById(NOTICE_ID)) return;
 
@@ -114,10 +134,10 @@ function showSpamNotice() {
         box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     `;
     notice.innerHTML = `
-        <strong>Importante:</strong> Si creas una cuenta con correo,
-        recibiras un email de <code style="background:#fde68a;padding:2px 5px;border-radius:3px;">no-reply@netlify.com</code>
-        para confirmar. <strong>Revisa tu carpeta de SPAM.</strong>
-        &mdash; Recomendamos usar <strong>Iniciar sesion con Google</strong>.
+        <strong>${t('auth.important')}:</strong> ${t('auth.spamNotice.line1')}
+        <code style="background:#fde68a;padding:2px 5px;border-radius:3px;">no-reply@netlify.com</code>
+        ${t('auth.spamNotice.line2')} <strong>${t('auth.spamNotice.line3')}</strong>
+        &mdash; ${t('auth.spamNotice.line4')} <strong>${t('auth.spamNotice.line5')}</strong>.
     `;
     document.body.appendChild(notice);
 }
