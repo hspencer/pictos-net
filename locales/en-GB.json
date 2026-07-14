@@ -680,5 +680,75 @@
     "draining": "[BATCH] Retrieving {{count}} batch results…",
     "noEligible": "[BATCH] No pictograms with a completed Phase 2 to send",
     "rowError": "[BATCH] Pictogram failed: {{error}}"
+  },
+  "auth": {
+    "important": "Important",
+    "spamNotice": {
+      "line1": "If you create an account with email, you will receive an email from",
+      "line2": "to confirm.",
+      "line3": "Check your SPAM folder.",
+      "line4": "We recommend using",
+      "line5": "Sign in with Google"
+    }
+  },
+  "vectorizer": {
+    "title": "Vectorizer",
+    "presets": "Presets",
+    "starting": "Starting...",
+    "advanced": "Advanced",
+    "curveMode": "Curve Mode",
+    "polygon": "Polygon",
+    "spline": "Spline",
+    "colorMode": "Color Mode",
+    "color": "Color",
+    "bw": "B&W",
+    "hierarchical": "Hierarchical",
+    "stacked": "Stacked",
+    "cutout": "Cutout",
+    "colorPrecision": "Color Precision",
+    "fewerColors": "Fewer colors",
+    "moreColors": "More colors",
+    "layerDifference": "Layer Difference",
+    "moreLayers": "More layers",
+    "fewerLayers": "Fewer layers",
+    "noiseRemoval": "Noise Removal",
+    "keepDetail": "Keep detail",
+    "removeSpecks": "Remove specks",
+    "cornerSharpness": "Corner Sharpness",
+    "smooth": "Smooth",
+    "sharpCorners": "Sharp corners",
+    "pathDetail": "Path Detail",
+    "moreDetail": "More detail",
+    "simplified": "Simplified",
+    "pathJoining": "Path Joining",
+    "keepSeparate": "Keep separate",
+    "joinPaths": "Join paths",
+    "coordinatePrecision": "Coordinate Precision",
+    "compact": "Compact",
+    "precise": "Precise",
+    "download": "Download SVG",
+    "apply": "Apply",
+    "original": "Original",
+    "result": "SVG Result",
+    "outline": "Outline",
+    "traceFailed": "Trace failed — adjust settings and retry",
+    "pictogram": "Pictogram",
+    "poster": "Poster",
+    "photo": "Photo"
+  },
+  "svgThumbnail": {
+    "retrace": "Retrace",
+    "process": "Process",
+    "raw": "Raw",
+    "structured": "Structured"
+  },
+  "phase5": {
+    "reviewStructure": "Review structure",
+    "discarded": "Discarded ({count}):",
+    "nodes": "{selected}/{total} nodes",
+    "confirm": "Confirm"
+  },
+  "svgGenerator": {
+    "unavailable": "SVG Generation Unavailable"
   }
 }

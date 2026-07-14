@@ -376,7 +376,7 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
         return (
             <div className="flex flex-col items-center justify-center h-full p-6 bg-slate-50 border border-slate-100 rounded text-center opacity-75">
                 <AlertCircle size={24} className="text-slate-500 mb-2" />
-                <p className="text-xs text-slate-500 font-medium mb-1">SVG Generation Unavailable</p>
+                <p className="text-xs text-slate-500 font-medium mb-1">{t('svgGenerator.unavailable')}</p>
                 <p className="text-xs text-slate-500 font-mono">
                     {structureEligibility.reason || "Requirements not met"}
                 </p>

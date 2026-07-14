@@ -434,7 +434,10 @@ export function LibraryHome({
 
   const isStorageHigh = storageQuota > 0 && storageUsed / storageQuota > 0.8;
 
-  const sortedTemplates = sort === 'alfabetico'
+  // Community sort is independent of the workspace sort: each section header
+  // carries its own control. 'recientes' keeps the stock (curation) order.
+  const [templateSort, setTemplateSort] = useState<'recientes' | 'alfabetico'>('recientes');
+  const sortedTemplates = templateSort === 'alfabetico'
     ? [...templates].sort((a, b) => a.name.localeCompare(b.name))
     : templates;
 
@@ -488,14 +491,28 @@ export function LibraryHome({
           <h2 id="community-title" className="text-xs font-semibold uppercase tracking-wider text-slate-900">
             {t('home.communitySection')}
           </h2>
-          {hiddenTemplateCount > 0 && (
+          <div className="flex items-center gap-3">
+            {hiddenTemplateCount > 0 && (
+              <button
+                onClick={onRestoreTemplates}
+                className="text-xs text-slate-400 hover:text-violet-700 transition-colors mr-2"
+              >
+                {t('home.showHiddenTemplates', { count: hiddenTemplateCount })}
+              </button>
+            )}
             <button
-              onClick={onRestoreTemplates}
-              className="text-xs text-slate-400 hover:text-violet-700 transition-colors"
+              onClick={() => setTemplateSort('recientes')}
+              className={`text-xs uppercase tracking-wider transition-colors ${templateSort === 'recientes' ? 'text-slate-900 font-semibold' : 'text-slate-400 hover:text-slate-600'}`}
             >
-              {t('home.showHiddenTemplates', { count: hiddenTemplateCount })}
+              {t('library.recent')}
             </button>
-          )}
+            <button
+              onClick={() => setTemplateSort('alfabetico')}
+              className={`text-xs uppercase tracking-wider transition-colors ${templateSort === 'alfabetico' ? 'text-slate-900 font-semibold' : 'text-slate-400 hover:text-slate-600'}`}
+            >
+              {t('library.alphabetical')}
+            </button>
+          </div>
         </div>
         <div id="community-grid" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {sortedTemplates.map(tmpl => (

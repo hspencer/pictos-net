@@ -680,5 +680,75 @@
     "draining": "[LOTE] Recuperando {{count}} resultados del lote…",
     "noEligible": "[LOTE] No hay pictogramas con Fase 2 completa para enviar",
     "rowError": "[LOTE] Error en un pictograma: {{error}}"
+  },
+  "auth": {
+    "important": "Importante",
+    "spamNotice": {
+      "line1": "Si creas una cuenta con correo, recibiras un email de",
+      "line2": "para confirmar.",
+      "line3": "Revisa tu carpeta de SPAM.",
+      "line4": "Recomendamos usar",
+      "line5": "Iniciar sesion con Google"
+    }
+  },
+  "vectorizer": {
+    "title": "Vectorizador",
+    "presets": "Preajustes",
+    "starting": "Iniciando...",
+    "advanced": "Avanzado",
+    "curveMode": "Modo de curva",
+    "polygon": "Polígono",
+    "spline": "Curva",
+    "colorMode": "Modo de color",
+    "color": "Color",
+    "bw": "B/N",
+    "hierarchical": "Jerárquico",
+    "stacked": "Apilado",
+    "cutout": "Recorte",
+    "colorPrecision": "Precisión de color",
+    "fewerColors": "Menos colores",
+    "moreColors": "Más colores",
+    "layerDifference": "Diferencia de capa",
+    "moreLayers": "Más capas",
+    "fewerLayers": "Menos capas",
+    "noiseRemoval": "Eliminación de ruido",
+    "keepDetail": "Mantener detalle",
+    "removeSpecks": "Eliminar manchas",
+    "cornerSharpness": "Nitidez de esquina",
+    "smooth": "Suave",
+    "sharpCorners": "Esquinas afiladas",
+    "pathDetail": "Detalle de trazado",
+    "moreDetail": "Más detalle",
+    "simplified": "Simplificado",
+    "pathJoining": "Unión de trazado",
+    "keepSeparate": "Mantener separado",
+    "joinPaths": "Unir trazados",
+    "coordinatePrecision": "Precisión de coordenadas",
+    "compact": "Compacto",
+    "precise": "Preciso",
+    "download": "Descargar SVG",
+    "apply": "Aplicar",
+    "original": "Original",
+    "result": "Resultado SVG",
+    "outline": "Contorno",
+    "traceFailed": "Falló el trazado — ajusta la configuración y reintenta",
+    "pictogram": "Pictograma",
+    "poster": "Póster",
+    "photo": "Foto"
+  },
+  "svgThumbnail": {
+    "retrace": "Re-trazar",
+    "process": "Procesar",
+    "raw": "Crudo",
+    "structured": "Estructurado"
+  },
+  "phase5": {
+    "reviewStructure": "Revisar estructura",
+    "discarded": "Descartados ({count}):",
+    "nodes": "{selected}/{total} nodos",
+    "confirm": "Confirmar"
+  },
+  "svgGenerator": {
+    "unavailable": "Generación de SVG no disponible"
   }
 }
