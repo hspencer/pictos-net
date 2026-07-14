@@ -780,6 +780,25 @@ const App: React.FC<AppProps> = ({ authUser }) => {
   const pendingStepRowsRef = useRef<Map<string, { sequenceId: string; stepId: string }>>(new Map());
   const [librarySort, setLibrarySort] = useState<'recientes' | 'alfabetico'>('recientes');
 
+  // When the inline list/grid switcher scrolls under the sticky header, a
+  // fixed copy appears at the left edge so the view toggle stays reachable.
+  const viewSwitcherRef = useRef<HTMLDivElement | null>(null);
+  const [viewSwitcherOffscreen, setViewSwitcherOffscreen] = useState(false);
+
+  useEffect(() => {
+    const el = viewSwitcherRef.current;
+    if (!el) { setViewSwitcherOffscreen(false); return; }
+    const headerH = document.getElementById('toolbar')?.getBoundingClientRect().height ?? 80;
+    const io = new IntersectionObserver(
+      ([entry]) => setViewSwitcherOffscreen(!entry.isIntersecting),
+      // Shrink the viewport top by the sticky header height: sliding UNDER
+      // the header counts as off-screen even though it still overlaps it.
+      { rootMargin: `-${Math.round(headerH)}px 0px 0px 0px`, threshold: 0 }
+    );
+    io.observe(el);
+    return () => { io.disconnect(); setViewSwitcherOffscreen(false); };
+  }, [activeLibraryId, viewingLibraryHome, libraryContentMode, rows.length > 0]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Load sequences when active library changes
   useEffect(() => {
     if (!activeLibraryId) { setSequences([]); setActiveSequenceId(null); return; }
@@ -3151,7 +3170,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
                 {t('library.contentTogglePictogramas')}
               </button>
               {libraryContentMode === 'pictogramas' && rows.length > 0 && (
-                <div id="view-switcher" className="flex items-center gap-1">
+                <div id="view-switcher" ref={viewSwitcherRef} className="flex items-center gap-1">
                   <button
                     onClick={() => setConfig(prev => ({ ...prev, libraryViewMode: 'list' }))}
                     title={t('library.viewList')}
@@ -3201,6 +3220,35 @@ const App: React.FC<AppProps> = ({ authUser }) => {
                 </button>
               </div>
             )}
+          </div>
+        )}
+        {/* Floating view switcher — appears when the inline one scrolls under
+            the sticky header, pinned to the left edge (stacked vertically). */}
+        {viewSwitcherOffscreen && activeLibraryId !== null && !viewingLibraryHome
+          && libraryContentMode === 'pictogramas' && rows.length > 0 && (
+          <div
+            className="fixed left-3 top-24 z-40 flex flex-col gap-1 bg-white/95 backdrop-blur-sm border border-slate-200 rounded-md shadow-md p-1.5 animate-in fade-in slide-in-from-left-2 duration-150"
+            role="group"
+            aria-label={t('library.viewList') + ' / ' + t('library.viewGrid')}
+          >
+            <button
+              onClick={() => setConfig(prev => ({ ...prev, libraryViewMode: 'list' }))}
+              title={t('library.viewList')}
+              aria-label={t('library.viewList')}
+              aria-pressed={(config.libraryViewMode ?? 'list') === 'list'}
+              className={`p-1 transition-colors ${(config.libraryViewMode ?? 'list') === 'list' ? 'text-violet-700' : 'text-slate-300 hover:text-slate-500'}`}
+            >
+              <List size={14} aria-hidden="true" />
+            </button>
+            <button
+              onClick={() => setConfig(prev => ({ ...prev, libraryViewMode: 'grid' }))}
+              title={t('library.viewGrid')}
+              aria-label={t('library.viewGrid')}
+              aria-pressed={config.libraryViewMode === 'grid'}
+              className={`p-1 transition-colors ${config.libraryViewMode === 'grid' ? 'text-violet-700' : 'text-slate-300 hover:text-slate-500'}`}
+            >
+              <LayoutGrid size={14} aria-hidden="true" />
+            </button>
           </div>
         )}
         {(activeLibraryId === null || viewingLibraryHome) ? (
