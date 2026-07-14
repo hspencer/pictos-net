@@ -94,7 +94,10 @@
     "libraries": "Librerías",
     "useTemplate": "Usar",
     "libraryItemCount": "{pictograms} pictogramas · {sequences} secuencias",
-    "showHiddenTemplates": "Mostrar {{count}} ejemplos ocultos"
+    "showHiddenTemplates": "Mostrar {{count}} ejemplos ocultos",
+    "workspaceSection": "Área de trabajo",
+    "communitySection": "Librerías de la comunidad",
+    "tutorialPdf": "Tutorial (PDF)"
   },
   "pipeline": {
     "understand": "Comprender",
