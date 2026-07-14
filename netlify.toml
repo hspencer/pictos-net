@@ -55,7 +55,9 @@
     # *.googleusercontent.com — Google profile photos for the logged-in user
     # avatar. Google serves them from several subdomains (lh3-lh6, regional
     # variants), so a single-host allowance intermittently breaks the avatar.
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.googleusercontent.com; font-src 'self'; connect-src 'self' https://nominatim.openstreetmap.org https://pictos.net https://next.pictos.net; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'"
+    # fonts.googleapis.com + fonts.gstatic.com — netlify-identity-widget loads
+    # Fira Code from Google Fonts and injects the <link> into the host page.
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https://*.googleusercontent.com https://www.gravatar.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://nominatim.openstreetmap.org https://pictos.net https://next.pictos.net; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'"
 
 [[headers]]
   for = "/assets/*.js"

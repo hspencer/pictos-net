@@ -38,6 +38,8 @@ export const MODEL_CATALOG = {
   'gemini-3-pro-image': { label: 'Gemini 3 Pro', phaseLabel: 'Producir', description: 'Generación de imagen (fase 3), cuota diaria baja' },
   'recraftv4_1': { label: 'Recraft (raster)', phaseLabel: 'Producir', description: 'Generación de imagen bitmap (fase 3)' },
   'recraftv4_1_vector': { label: 'Recraft (vector)', phaseLabel: 'Producir', description: 'Generación de SVG nativo (fase 3), default' },
+  'recraftv4_1_utility_vector': { label: 'Recraft Utility (vector)', phaseLabel: 'Producir', description: 'SVG nativo, variante simple y predecible (fase 3)' },
+  'recraftv4_1_pro_vector': { label: 'Recraft Pro (vector)', phaseLabel: 'Producir', description: 'SVG nativo de mayor resolución (fase 3)' },
 };
 
 function modelInfo(model) {
@@ -128,6 +130,28 @@ export async function checkAndCharge(email, units = 1, roles = []) {
   }
 
   return { allowed: true, units_used: updated.units, limit: DAILY_LIMIT };
+}
+
+/**
+ * Return previously charged units when work never actually ran (e.g. a batch
+ * worker failed to start after an up-front charge). Floor at 0; failures are
+ * logged and swallowed — a missed refund must never break the error path.
+ */
+export async function refundUnits(email, units) {
+  if (!email || email === 'dev' || !(units > 0)) return;
+  const store = getStore(STORE_NAME);
+  const key = `quota/${email}/${today()}`;
+  try {
+    const current = await store.get(key, { type: 'json' });
+    if (!current) return;
+    await store.set(key, JSON.stringify({
+      ...current,
+      units: Math.max(0, (current.units ?? 0) - units),
+      last_call: new Date().toISOString(),
+    }));
+  } catch (err) {
+    console.error(`[usage] refund failed for ${email}:`, err.message);
+  }
 }
 
 /**

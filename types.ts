@@ -268,19 +268,21 @@ import type { StyleDefinition, KeyframeDefinition } from './lib/style-editor/lib
 
 // ── Generation Model ─────────────────────────────────────────────────────────
 
-/** The five Phase 3 generation models, by stable API identifier. */
+/** The Phase 3 generation models, by stable API identifier. */
 export type GenerationModel =
   | 'gemini-2.5-flash-image'
   | 'gemini-3.1-flash-image'
   | 'gemini-3-pro-image'
   | 'recraftv4_1'
-  | 'recraftv4_1_vector';
+  | 'recraftv4_1_vector'
+  | 'recraftv4_1_utility_vector'
+  | 'recraftv4_1_pro_vector';
 
-/** Output type classification: 'vector' only for recraftv4_1_vector; all others are 'bitmap'. */
+/** Output type classification: Recraft *_vector models are 'vector'; all others are 'bitmap'. */
 export type ModelFamily = 'bitmap' | 'vector';
 
 export function getModelFamily(model: GenerationModel): ModelFamily {
-  return model === 'recraftv4_1_vector' ? 'vector' : 'bitmap';
+  return model.endsWith('_vector') ? 'vector' : 'bitmap';
 }
 
 export const DEFAULT_GENERATION_MODEL: GenerationModel = 'gemini-2.5-flash-image';
@@ -292,6 +294,10 @@ export const GENERATION_MODEL_LABELS: Record<GenerationModel, string> = {
   'gemini-3-pro-image': 'Gemini 3 Pro',
   'recraftv4_1': 'Recraft (raster)',
   'recraftv4_1_vector': 'Recraft (vector)',
+  // Utility: Recraft's variant tuned for "flat lighting, front-facing
+  // composition, and simple scenes" — closest fit to AAC pictogram style.
+  'recraftv4_1_utility_vector': 'Recraft Utility (vector)',
+  'recraftv4_1_pro_vector': 'Recraft Pro (vector)',
 };
 
 /**
@@ -308,10 +314,12 @@ export const GENERATION_MODEL_LABELS: Record<GenerationModel, string> = {
  * intermitente; el cliente debe degradar con un mensaje claro en ese caso.
  */
 export const INOPERATIVE_GENERATION_MODELS: Partial<Record<GenerationModel, string>> = {
-  // Low daily quota → 429 RESOURCE_EXHAUSTED intermittently. Disabled in the
-  // selector; stored configs are migrated to gemini-3.1-flash-image. Remove this
-  // entry (and the remap in migrateGenerationModel) when the quota recovers.
-  'gemini-3-pro-image': 'cuota diaria agotada',
+  // Re-verificado 2026-07-12 (en vivo): gemini-3-pro-image responde 200 y
+  // genera imagen. Su cuota diaria en el proyecto Google es baja y puede
+  // agotarse de forma intermitente, pero eso ahora se maneja en runtime (el
+  // worker devuelve un mensaje claro en el 429) en lugar de deshabilitar el
+  // modelo permanentemente aquí. Reservar este mapa para modelos realmente
+  // rotos (404, retirados).
 };
 
 /** Migrates a legacy imageModel string to the canonical GenerationModel value. */
@@ -325,17 +333,14 @@ export function migrateImageModel(imageModel: string | undefined): GenerationMod
 
 const VALID_GENERATION_MODELS: readonly GenerationModel[] = [
   'gemini-2.5-flash-image', 'gemini-3.1-flash-image', 'gemini-3-pro-image',
-  'recraftv4_1', 'recraftv4_1_vector',
+  'recraftv4_1', 'recraftv4_1_vector', 'recraftv4_1_utility_vector', 'recraftv4_1_pro_vector',
 ];
 
 /** Migrates a stored generationModel string — maps removed -preview IDs to stable IDs. */
 export function migrateGenerationModel(model: string | undefined): GenerationModel {
   if (!model) return DEFAULT_GENERATION_MODEL;
   if (model === 'gemini-3.1-flash-image-preview') return 'gemini-3.1-flash-image';
-  // gemini-3-pro-image has a low daily quota and 429s (RESOURCE_EXHAUSTED)
-  // intermittently, so stored configs are moved onto 2.5 Flash. Revert this
-  // (and the INOPERATIVE_GENERATION_MODELS entry) when the quota recovers.
-  if (model === 'gemini-3-pro-image' || model === 'gemini-3-pro-image-preview') return 'gemini-2.5-flash-image';
+  if (model === 'gemini-3-pro-image-preview') return 'gemini-3-pro-image';
   if ((VALID_GENERATION_MODELS as readonly string[]).includes(model)) return model as GenerationModel;
   return DEFAULT_GENERATION_MODEL;
 }

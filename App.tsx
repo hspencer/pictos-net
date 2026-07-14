@@ -7,7 +7,7 @@ import {
   Play, BookOpen, Search, FileDown, Square, Settings,
   X, Code, Plus, FileText, Maximize, Copy, BrainCircuit, PlusCircle, CornerDownRight, Image as ImageIcon,
   Library, ScreenShare, Globe, HelpCircle, ExternalLink, Palette, GripVertical, Edit,
-  ChevronLeft, ChevronRight, ArrowUp, FileCode, Layers, UserRound, History,
+  ChevronLeft, ChevronRight, ArrowUp, FileCode, Layers, UserRound, LogOut, History,
   List, LayoutGrid, Clock, Scan, CheckCircle2, XCircle, Wifi
 } from 'lucide-react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
@@ -253,7 +253,7 @@ function getDefaultStylePrompt(lang: string): string {
 }
 
 interface AppProps {
-  authUser?: { email: string; user_metadata?: { full_name?: string } } | null;
+  authUser?: { email: string; user_metadata?: { full_name?: string; avatar_url?: string } } | null;
 }
 
 const App: React.FC<AppProps> = ({ authUser }) => {
@@ -319,6 +319,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
   // Populate credits field on first login (name + email or just email)
   useEffect(() => {
     return onLogin((user) => {
+      console.log('AuthGate user object:', user);
       setConfig(prev => {
         if (prev.credits) return prev; // don't overwrite user-set credits
         const name = user.user_metadata?.full_name;
@@ -399,6 +400,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
   const [vectorizerState, setVectorizerState] = useState<{ isOpen: boolean; rowId: string | null }>({ isOpen: false, rowId: null });
 
   const [quotaModal, setQuotaModal] = useState<{ units_used: number; limit: number } | null>(null);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   const closeConfirmDialog = useCallback(() => setConfirmDialog(prev => ({ ...prev, isOpen: false })), []);
   const { dialogProps: confirmDialogProps } = useDialogA11y({ isOpen: confirmDialog.isOpen, onClose: closeConfirmDialog, label: confirmDialog.title || 'Confirm' });
@@ -778,6 +780,25 @@ const App: React.FC<AppProps> = ({ authUser }) => {
   const pendingStepRowsRef = useRef<Map<string, { sequenceId: string; stepId: string }>>(new Map());
   const [librarySort, setLibrarySort] = useState<'recientes' | 'alfabetico'>('recientes');
 
+  // When the inline list/grid switcher scrolls under the sticky header, a
+  // fixed copy appears at the left edge so the view toggle stays reachable.
+  const viewSwitcherRef = useRef<HTMLDivElement | null>(null);
+  const [viewSwitcherOffscreen, setViewSwitcherOffscreen] = useState(false);
+
+  useEffect(() => {
+    const el = viewSwitcherRef.current;
+    if (!el) { setViewSwitcherOffscreen(false); return; }
+    const headerH = document.getElementById('toolbar')?.getBoundingClientRect().height ?? 80;
+    const io = new IntersectionObserver(
+      ([entry]) => setViewSwitcherOffscreen(!entry.isIntersecting),
+      // Shrink the viewport top by the sticky header height: sliding UNDER
+      // the header counts as off-screen even though it still overlaps it.
+      { rootMargin: `-${Math.round(headerH)}px 0px 0px 0px`, threshold: 0 }
+    );
+    io.observe(el);
+    return () => { io.disconnect(); setViewSwitcherOffscreen(false); };
+  }, [activeLibraryId, viewingLibraryHome, libraryContentMode, rows.length > 0]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Load sequences when active library changes
   useEffect(() => {
     if (!activeLibraryId) { setSequences([]); setActiveSequenceId(null); return; }
@@ -965,13 +986,15 @@ const App: React.FC<AppProps> = ({ authUser }) => {
     return () => clearTimeout(timer);
   }, [openRowId]);
 
-  // Auto-cascade: when a new row with real text is added, start the pipeline
+  // Auto-cascade: when a new row with real text is added, start the pipeline.
+  // Guard against empty utterance here so auth is never requested for blank rows.
   useEffect(() => {
     const targetId = autoCascadeRef.current;
     if (!targetId) return;
-    if (!rows.some(r => r.id === targetId)) return;
+    const target = rows.find(r => r.id === targetId);
+    if (!target) return;
     autoCascadeRef.current = null;
-    processCascade(targetId);
+    if (target.UTTERANCE.trim()) processCascade(targetId);
   }, [rows]);
 
   const addLog = (type: 'info' | 'error' | 'success', message: string) => {
@@ -1059,6 +1082,20 @@ const App: React.FC<AppProps> = ({ authUser }) => {
     a.click();
     URL.revokeObjectURL(url);
     addLog('success', t('messages.exportSuccess'));
+  };
+
+  /** Export all utterances as plain text, one phrase per line — the mirror of Importar frases (.txt). */
+  const exportPhrases = () => {
+    const phrases = rows.map(r => (r.UTTERANCE ?? '').trim()).filter(Boolean);
+    const blob = new Blob([phrases.join('\n') + '\n'], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const safeFilename = config.name.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'pictonet';
+    a.download = `${safeFilename}_frases.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    addLog('success', t('messages.exportPhrasesSuccess', { count: phrases.length }));
   };
 
   /**
@@ -1852,7 +1889,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
           structuredSvgStatus: 'idle',
         });
         try {
-          const p3Result: Phase3Result = (newModel === 'recraftv4_1_vector' || newModel === 'recraftv4_1')
+          const p3Result: Phase3Result = newModel.startsWith('recraft')
             ? await Recraft.generateImage(ensureElementsArray(row.elements), row.prompt || "", row, configWithNewModel, addLog)
             : await Gemini.generateImage(ensureElementsArray(row.elements), row.prompt || "", row, configWithNewModel, addLog);
           const isVector = !!p3Result.svg;
@@ -1918,7 +1955,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
       } else if (step === 'produce') {
         // Phase 3: PRODUCIR — dispatch to correct service based on generationModel
         const model = config.generationModel ?? DEFAULT_GENERATION_MODEL;
-        if (model === 'recraftv4_1_vector' || model === 'recraftv4_1') {
+        if (model.startsWith('recraft')) {
           result = await Recraft.generateImage(ensureElementsArray(row.elements), row.prompt || "", row, config, addLog);
         } else {
           result = await Gemini.generateImage(ensureElementsArray(row.elements), row.prompt || "", row, config, addLog);
@@ -1999,16 +2036,16 @@ const App: React.FC<AppProps> = ({ authUser }) => {
   };
 
   const processCascade = async (rowId: string) => {
-    // Pre-flight: garantizar sesión antes de tocar estado de UI.
+    const row = rows.find(r => r.id === rowId);
+    if (!row || !row.UTTERANCE.trim()) return;
+
+    // Pre-flight: garantizar sesión sólo cuando hay algo que generar.
     // Si el usuario cancela el login, salir silenciosamente.
     try {
       await ensureAuth();
     } catch {
       return;
     }
-
-    const row = rows.find(r => r.id === rowId);
-    if (!row || !row.UTTERANCE.trim()) return;
 
     stopFlags.current[row.id] = false;
     addLog('info', t('messages.cascadeStarted', { utterance: row.UTTERANCE }));
@@ -2059,7 +2096,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
       updateRowById(rowId, { visualStatus: 'completed', visualDuration: finalUpdates.visualDuration, elements: visualResult.elements, prompt: visualResult.prompt, bitmapStatus: 'processing' });
       const bitmapStartTime = Date.now();
       const p3Model = config.generationModel ?? DEFAULT_GENERATION_MODEL;
-      const p3Result: Phase3Result = (p3Model === 'recraftv4_1_vector' || p3Model === 'recraftv4_1')
+      const p3Result: Phase3Result = p3Model.startsWith('recraft')
         ? await Recraft.generateImage(ensureElementsArray(visualResult.elements), visualResult.prompt || "", row, config, addLog)
         : await Gemini.generateImage(ensureElementsArray(visualResult.elements), visualResult.prompt || "", row, config, addLog);
       if (stopFlags.current[row.id]) {
@@ -2524,24 +2561,57 @@ const App: React.FC<AppProps> = ({ authUser }) => {
             <>
               <div className="w-px h-8 bg-slate-200 mx-1"></div>
               {authUser ? (
-                <button
-                  onClick={() => logout()}
-                  className="p-1 hover:bg-slate-50 border border-transparent hover:border-slate-200 rounded-full transition-all"
-                  title={`${t('header.logout')} (${authUser.email})`}
-                  aria-label={t('header.logout')}
-                >
-                  {authUser.user_metadata?.avatar_url ? (
-                    <img
-                      src={authUser.user_metadata.avatar_url}
-                      alt={authUser.user_metadata?.full_name || authUser.email}
-                      className="w-7 h-7 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-7 h-7 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-xs font-medium select-none">
-                      {(authUser.user_metadata?.full_name || authUser.email || '?').charAt(0).toUpperCase()}
+                <div className="relative">
+                  <button
+                    onClick={() => setUserMenuOpen(o => !o)}
+                    className="p-1 hover:bg-slate-50 border border-transparent hover:border-slate-200 rounded-full transition-all"
+                    title={authUser.email}
+                    aria-label={authUser.email}
+                    aria-haspopup="menu"
+                    aria-expanded={userMenuOpen}
+                  >
+                    <div className="relative w-7 h-7">
+                      <div className="absolute inset-0 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-xs font-medium select-none">
+                        {(authUser.user_metadata?.full_name || authUser.email || '?').charAt(0).toUpperCase()}
+                      </div>
+                      {authUser.user_metadata?.avatar_url && (
+                        <img
+                          src={authUser.user_metadata.avatar_url}
+                          alt={authUser.user_metadata?.full_name || authUser.email}
+                          className="absolute inset-0 w-7 h-7 rounded-full object-cover"
+                          onError={e => {
+                            console.warn(`[avatar] failed to load ${e.currentTarget.src} — check CSP img-src / URL reachability`);
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                      )}
                     </div>
+                  </button>
+                  {userMenuOpen && (
+                    <>
+                      <div className="fixed inset-0 z-[49]" onClick={() => setUserMenuOpen(false)} />
+                      <div
+                        className="absolute right-0 top-full mt-2 w-64 bg-white border border-slate-200 rounded-lg shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-150"
+                        role="menu"
+                      >
+                        <div className="px-4 py-3 border-b border-slate-100">
+                          {authUser.user_metadata?.full_name && (
+                            <p className="text-sm font-medium text-slate-900 truncate">{authUser.user_metadata.full_name}</p>
+                          )}
+                          <p className="text-xs text-slate-500 truncate">{authUser.email}</p>
+                        </div>
+                        <button
+                          onClick={() => { setUserMenuOpen(false); logout(); }}
+                          className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-red-600 transition-colors"
+                          role="menuitem"
+                        >
+                          <LogOut size={15} aria-hidden="true" />
+                          {t('header.logout')}
+                        </button>
+                      </div>
+                    </>
                   )}
-                </button>
+                </div>
               ) : (
                 <button
                   onClick={() => requestLogin()}
@@ -3100,7 +3170,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
                 {t('library.contentTogglePictogramas')}
               </button>
               {libraryContentMode === 'pictogramas' && rows.length > 0 && (
-                <div id="view-switcher" className="flex items-center gap-1">
+                <div id="view-switcher" ref={viewSwitcherRef} className="flex items-center gap-1">
                   <button
                     onClick={() => setConfig(prev => ({ ...prev, libraryViewMode: 'list' }))}
                     title={t('library.viewList')}
@@ -3132,27 +3202,8 @@ const App: React.FC<AppProps> = ({ authUser }) => {
               {t('library.contentToggleSecuencias')}
             </button>
 
-            {/* View toggle — pushed right; for pictogramas: sort+list/grid; for sequences: list/grid only when inside one */}
-            {libraryContentMode === 'secuencias' && activeSequenceId !== null && (
-              <div className="ml-auto flex items-center gap-1">
-                <button
-                  onClick={() => setSequenceViewMode('list')}
-                  title={t('library.viewList')}
-                  aria-pressed={sequenceViewMode === 'list'}
-                  className={`transition-colors ${sequenceViewMode === 'list' ? 'text-violet-700' : 'text-slate-300 hover:text-slate-500'}`}
-                >
-                  <List size={14} aria-hidden="true" />
-                </button>
-                <button
-                  onClick={() => setSequenceViewMode('grid')}
-                  title={t('library.viewGrid')}
-                  aria-pressed={sequenceViewMode === 'grid'}
-                  className={`transition-colors ${sequenceViewMode === 'grid' ? 'text-violet-700' : 'text-slate-300 hover:text-slate-500'}`}
-                >
-                  <LayoutGrid size={14} aria-hidden="true" />
-                </button>
-              </div>
-            )}
+            {/* Sort toggle — pushed right. The sequence list/grid toggle lives
+                inside SequenceEditor's own header, next to Imprimir/Descargar. */}
             {libraryContentMode === 'pictogramas' && rows.length > 0 && (
               <div className="ml-auto flex items-center gap-3">
                 <button
@@ -3169,6 +3220,35 @@ const App: React.FC<AppProps> = ({ authUser }) => {
                 </button>
               </div>
             )}
+          </div>
+        )}
+        {/* Floating view switcher — appears when the inline one scrolls under
+            the sticky header, pinned to the left edge (stacked vertically). */}
+        {viewSwitcherOffscreen && activeLibraryId !== null && !viewingLibraryHome
+          && libraryContentMode === 'pictogramas' && rows.length > 0 && (
+          <div
+            className="fixed left-3 top-24 z-40 flex flex-col gap-1 bg-white/95 backdrop-blur-sm border border-slate-200 rounded-md shadow-md p-1.5 animate-in fade-in slide-in-from-left-2 duration-150"
+            role="group"
+            aria-label={t('library.viewList') + ' / ' + t('library.viewGrid')}
+          >
+            <button
+              onClick={() => setConfig(prev => ({ ...prev, libraryViewMode: 'list' }))}
+              title={t('library.viewList')}
+              aria-label={t('library.viewList')}
+              aria-pressed={(config.libraryViewMode ?? 'list') === 'list'}
+              className={`p-1 transition-colors ${(config.libraryViewMode ?? 'list') === 'list' ? 'text-violet-700' : 'text-slate-300 hover:text-slate-500'}`}
+            >
+              <List size={14} aria-hidden="true" />
+            </button>
+            <button
+              onClick={() => setConfig(prev => ({ ...prev, libraryViewMode: 'grid' }))}
+              title={t('library.viewGrid')}
+              aria-label={t('library.viewGrid')}
+              aria-pressed={config.libraryViewMode === 'grid'}
+              className={`p-1 transition-colors ${config.libraryViewMode === 'grid' ? 'text-violet-700' : 'text-slate-300 hover:text-slate-500'}`}
+            >
+              <LayoutGrid size={14} aria-hidden="true" />
+            </button>
           </div>
         )}
         {(activeLibraryId === null || viewingLibraryHome) ? (
@@ -3699,6 +3779,13 @@ const App: React.FC<AppProps> = ({ authUser }) => {
               className="w-full text-left px-4 py-3 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <Download size={14} className="text-slate-500" /> {t('actions.exportLibrary')}
+            </button>
+            <button
+              onClick={() => { exportPhrases(); setShowLibraryMenu(false); }}
+              disabled={rows.length === 0}
+              className="w-full text-left px-4 py-3 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Download size={14} className="text-violet-950" /> {t('actions.exportPhrases')}
             </button>
             <button
               onClick={() => { handleExportPdf(); setShowLibraryMenu(false); }}
@@ -5181,8 +5268,25 @@ const FocusViewModal: React.FC<{
   )
 };
 
+async function gravatarUrl(email: string): Promise<string> {
+  const data = new TextEncoder().encode(email.trim().toLowerCase());
+  const buf = await crypto.subtle.digest('SHA-256', data);
+  const hex = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+  return `https://www.gravatar.com/avatar/${hex}?s=56&d=404`;
+}
+
 const AppWithAuth: React.FC = () => {
-  const [authUser, setAuthUser] = useState<{ email: string; user_metadata?: { full_name?: string } } | null>(null);
+  const [authUser, setAuthUser] = useState<{ email: string; user_metadata?: { full_name?: string; avatar_url?: string } } | null>(null);
+
+  // Resolve avatar: use GoTrue's avatar_url when present, else try Gravatar.
+  // The <img onError> in App.tsx falls back to initials if Gravatar 404s.
+  useEffect(() => {
+    if (!authUser || authUser.user_metadata?.avatar_url) return;
+    gravatarUrl(authUser.email).then(url => {
+      setAuthUser(prev => prev ? { ...prev, user_metadata: { ...prev.user_metadata, avatar_url: url } } : prev);
+    });
+  }, [authUser?.email]);
+
   return (
     <AuthProvider onUserChange={setAuthUser}>
       <App authUser={authUser} />

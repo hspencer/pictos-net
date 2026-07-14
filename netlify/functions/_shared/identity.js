@@ -100,6 +100,39 @@ export async function verifyIdentityUser(event, context, bodyToken = null) {
     console.warn('[identity] Authorization header absent — using bodyToken fallback');
   }
 
+  return goTrueUserLookup(authHeader);
+}
+
+/**
+ * Fetch the user's CURRENT roles from GoTrue, bypassing the JWT snapshot.
+ *
+ * Why: app_metadata.roles inside a JWT (and therefore inside
+ * context.clientContext.user) reflect the moment the token was ISSUED. The
+ * Identity widget caches tokens for up to an hour, so a role assigned in the
+ * Netlify admin panel ("superuser") is invisible to quota checks until the
+ * user happens to re-login. GoTrue's /user endpoint reads the live user
+ * record, so roles administered in the panel apply immediately.
+ *
+ * Returns a roles array, or null when the live lookup could not be performed
+ * (no token, GoTrue unreachable) — callers should fall back to the JWT
+ * snapshot in that case: `(await fetchFreshRoles(event)) ?? jwtRoles`.
+ */
+export async function fetchFreshRoles(event, bodyToken = null) {
+  if (process.env.NETLIFY_DEV === 'true') return [];
+  const headerAuth = event.headers?.authorization || event.headers?.Authorization;
+  const authHeader = headerAuth || (bodyToken ? `Bearer ${bodyToken}` : null);
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
+  const user = await goTrueUserLookup(authHeader);
+  if (!user) return null;
+  return Array.isArray(user.app_metadata?.roles) ? user.app_metadata.roles : [];
+}
+
+/**
+ * Resolve a Bearer token against GoTrue's /user endpoint, trying each
+ * candidate site origin in order. Returns the live GoTrue user record
+ * (signature + expiry validated server-side) or null.
+ */
+async function goTrueUserLookup(authHeader) {
   // Candidate GoTrue base URLs, tried in order. The custom domain
   // (process.env.URL, e.g. https://next.pictos.net) works for EXTERNAL
   // requests but a function's own outbound fetch to it does NOT reach the

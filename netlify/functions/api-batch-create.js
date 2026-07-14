@@ -15,8 +15,9 @@
  * job, enforcing one active batch per library and cross-session resumption.
  */
 
-import { checkAndCharge, logCall } from './_shared/usage.js';
+import { checkAndCharge, refundUnits, logCall } from './_shared/usage.js';
 import { getBlobStore as getStore, connectBlobs } from './_shared/blobs.js';
+import { fetchFreshRoles } from './_shared/identity.js';
 import {
   buildBatchJsonl, uploadToGcs, createBatchPredictionJob, batchBucket,
   isActiveBatchState,
@@ -57,7 +58,9 @@ export const handler = async (event, context) => {
     return { statusCode: 401, headers, body: JSON.stringify({ error: 'Unauthorized' }) };
   }
   const email = user?.email ?? 'dev';
-  const roles = user?.app_metadata?.roles ?? [];
+  // Live roles from GoTrue — the JWT snapshot can be up to 1h stale, which
+  // made freshly assigned 'superuser' roles miss the quota bypass.
+  const roles = (await fetchFreshRoles(event)) ?? (user?.app_metadata?.roles ?? []);
 
   let body;
   try {
@@ -149,6 +152,8 @@ export const handler = async (event, context) => {
     return { statusCode: 200, headers, body: JSON.stringify({ jobId, state: job.state, rowCount: job.rowCount }) };
   } catch (error) {
     console.error(`[api-batch-create] ${error.message}`);
+    // The Vertex job never started — return the up-front charge.
+    await refundUnits(email, rows.length);
     await logCall({
       email, phase: 'gemini-batch', model, units_charged: rows.length,
       ms: Date.now() - startMs, tokens_in: 0, tokens_out: 0, ok: false,

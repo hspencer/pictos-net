@@ -1,9 +1,15 @@
+**For English Speakers**
+
+This document is in Spanish. For a complete English version, please see [the English README](./README_en.md).
+
+---
+
 # [PICTOS.NET](https://pictos.net)
 
 **Pictogramas generativos para la Comunicación Aumentativa y Alternativa (CAA)**
 
 * [![Netlify Status](https://api.netlify.com/api/v1/badges/24f068d3-f368-4526-a503-2f09af1def0b/deploy-status)](https://app.netlify.com/projects/pictos/deploys)
-* ![version](https://img.shields.io/badge/version-2.3.0-violet)
+* ![version](https://img.shields.io/badge/version-2.3.11-violet)
 * ![opensource](https://img.shields.io/badge/opensource--always-available-blue)
 
 PICTOS.NET transforma intenciones comunicativas expresadas en lenguaje natural en pictogramas mediante un pipeline de razonamiento semántico. Es parte de la investigación doctoral de [Herbert Spencer](https://herbertspencer.net/cc) y de **[MediaFranca](https://github.com/mediafranca)** — una iniciativa de código abierto de bien público para la CAA.

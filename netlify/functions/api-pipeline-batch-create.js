@@ -14,8 +14,9 @@
  *   5. Return { jobId, rowCount } — client polls via api-pipeline-batch-poll.
  */
 
-import { checkAndCharge, logCall } from './_shared/usage.js';
+import { checkAndCharge, refundUnits, logCall } from './_shared/usage.js';
 import { getBlobStore as getStore, connectBlobs } from './_shared/blobs.js';
+import { fetchFreshRoles } from './_shared/identity.js';
 
 const MAX_ROWS = 25;
 const GRANT_TTL_MS = 120_000; // 2 min — sufficient for background cold start
@@ -52,7 +53,9 @@ export const handler = async (event, context) => {
   }
 
   const email = user?.email ?? 'dev';
-  const roles = user?.app_metadata?.roles ?? [];
+  // Live roles from GoTrue — the JWT snapshot can be up to 1h stale, which
+  // made freshly assigned 'superuser' roles miss the quota bypass.
+  const roles = (await fetchFreshRoles(event)) ?? (user?.app_metadata?.roles ?? []);
 
   let body;
   try { body = JSON.parse(event.body); } catch {
@@ -123,8 +126,10 @@ export const handler = async (event, context) => {
   }
 
   if (!kickOk) {
-    // Clean up the grant so it doesn't linger.
+    // Clean up the grant so it doesn't linger, and return the up-front charge —
+    // no pictograms were generated.
     await grants.delete(`pipeline-${jobId}`).catch(() => {});
+    await refundUnits(email, rows.length);
     return {
       statusCode: 502, headers,
       body: JSON.stringify({ error: 'Failed to start pipeline batch worker' }),
