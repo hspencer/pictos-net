@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   DndContext, closestCenter, PointerSensor, KeyboardSensor,
   useSensor, useSensors, DragEndEvent,
@@ -19,8 +19,8 @@ interface SequenceEditorProps {
   sequence: Sequence;
   onSave: (seq: Sequence) => void;
   onBack: () => void;
-  /** App.tsx creates a blank RowData + returns a Step already linked to it. */
-  onAddStep: () => Step;
+  /** App.tsx creates a RowData pre-filled with `utterance` + returns a linked Step. */
+  onAddStep: (utterance: string) => Step;
   onPrint: (seq: Sequence) => void;
   onDownloadZip: (seq: Sequence) => void;
   /** Renders every step; receives the step, drag handle, 1-based position, and
@@ -38,16 +38,28 @@ interface SequenceEditorProps {
 }
 
 // ── SortableStep ──────────────────────────────────────────────────────────────
-// Thin sortable wrapper — all step content is delegated to renderLinkedRow.
+// When a step is linked (rowId set) → delegates to renderLinkedRow.
+// When unlinked → shows an autocomplete input that matches existing library rows.
 
-function SortableStep({ step, onDelete, renderLinkedRow }: {
+function SortableStep({ step, onDelete, onUpdate, onGenerateNew, libraryRows, renderLinkedRow }: {
   step: Step;
   onDelete: () => void;
+  onUpdate: (s: Step) => void;
+  onGenerateNew: (utterance: string) => void;
+  libraryRows: RowData[];
   renderLinkedRow: SequenceEditorProps['renderLinkedRow'];
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: step.id });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 };
   const { t } = useTranslation();
+  const [inputValue, setInputValue] = useState(step.utterance ?? '');
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  const filteredRows = useMemo(() => {
+    if (!inputValue.trim()) return [];
+    const q = inputValue.toLowerCase();
+    return libraryRows.filter(r => r.UTTERANCE.toLowerCase().includes(q)).slice(0, 8);
+  }, [inputValue, libraryRows]);
 
   const dragHandle = (
     <button
@@ -61,18 +73,68 @@ function SortableStep({ step, onDelete, renderLinkedRow }: {
     </button>
   );
 
+  // Linked step — delegate to renderLinkedRow
+  if (step.rowId && renderLinkedRow) {
+    return (
+      <div ref={setNodeRef} style={style}>
+        {renderLinkedRow(step, dragHandle, step.position, onDelete)}
+      </div>
+    );
+  }
+
+  // Unlinked step — autocomplete input
+  const submit = (utterance: string) => {
+    if (!utterance.trim()) return;
+    setShowDropdown(false);
+    onGenerateNew(utterance.trim());
+  };
+
   return (
     <div ref={setNodeRef} style={style}>
-      {renderLinkedRow
-        ? renderLinkedRow(step, dragHandle, step.position, onDelete)
-        : (
-          <div className="flex items-center gap-2 p-3 border border-dashed border-slate-200 rounded text-xs text-slate-400">
-            {dragHandle}
-            <span className="flex-1">Paso {step.position}</span>
-            <button onClick={onDelete} className="p-1 hover:text-red-500"><X size={12} /></button>
-          </div>
-        )
-      }
+      <div className="relative flex items-center gap-2 p-3 border border-dashed border-violet-300 rounded-lg bg-violet-50/40">
+        {dragHandle}
+        <div className="flex-1 relative">
+          <input
+            value={inputValue}
+            autoFocus
+            onChange={e => { setInputValue(e.target.value); setShowDropdown(true); }}
+            onKeyDown={e => {
+              if (e.key === 'Enter') submit(inputValue);
+              if (e.key === 'Escape') setShowDropdown(false);
+            }}
+            onFocus={() => inputValue.trim() && setShowDropdown(true)}
+            onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
+            placeholder={t('sequence.stepPlaceholder')}
+            className="w-full text-sm bg-transparent border-none outline-none focus:ring-0 text-slate-700 placeholder:text-slate-400"
+          />
+          {showDropdown && filteredRows.length > 0 && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto">
+              {filteredRows.map(r => (
+                <button
+                  key={r.id}
+                  className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-violet-50 transition-colors"
+                  onMouseDown={() => {
+                    onUpdate({ ...step, utterance: r.UTTERANCE, rowId: r.id, state: 'complete' });
+                    setShowDropdown(false);
+                  }}
+                >
+                  {sentenceCase(r.UTTERANCE)}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        <button
+          onClick={() => submit(inputValue)}
+          disabled={!inputValue.trim()}
+          className="text-xs text-violet-600 hover:text-violet-800 disabled:opacity-30 font-medium transition-colors shrink-0"
+        >
+          {t('sequence.generateStep')}
+        </button>
+        <button onClick={onDelete} className="p-1 text-slate-400 hover:text-red-500 transition-colors shrink-0">
+          <X size={12} />
+        </button>
+      </div>
     </div>
   );
 }
@@ -206,9 +268,18 @@ export function SequenceEditor({
     );
   }, []);
 
+  const updateStep = useCallback((updated: Step) => {
+    setSteps(prev => prev.map(s => s.id === updated.id ? updated : s));
+  }, []);
+
   const addStep = () => {
-    const newStep = onAddStep();
-    setSteps(prev => [...prev, { ...newStep, position: prev.length + 1 }]);
+    setSteps(prev => [...prev, {
+      id: crypto.randomUUID(),
+      position: prev.length + 1,
+      utterance: null,
+      rowId: null,
+      state: 'blank' as const,
+    }]);
   };
 
   const commitName = () => {
@@ -339,6 +410,12 @@ export function SequenceEditor({
                   key={step.id}
                   step={step}
                   onDelete={() => deleteStep(step.id)}
+                  onUpdate={updateStep}
+                  onGenerateNew={utterance => {
+                    const linked = onAddStep(utterance);
+                    updateStep({ ...step, rowId: linked.rowId, utterance, state: 'complete' });
+                  }}
+                  libraryRows={rows ?? []}
                   renderLinkedRow={renderLinkedRow}
                 />
               ))}

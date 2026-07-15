@@ -2348,18 +2348,18 @@ const App: React.FC<AppProps> = ({ authUser }) => {
 
   /** Creates a blank RowData and returns a Step already linked to it.
    *  Called by SequenceEditor when the user clicks "Añadir paso". */
-  const handleAddSequenceStep = useCallback((): Step => {
+  const handleAddSequenceStep = useCallback((utterance: string): Step => {
     const rowId = `R_SEQ_${Date.now()}`;
     const newRow: RowData = {
       id: rowId,
-      UTTERANCE: '',
+      UTTERANCE: utterance,
       status: 'idle', nluStatus: 'idle', visualStatus: 'idle', bitmapStatus: 'idle',
     };
     setRows(prev => [...prev, newRow]);
     return {
       id: crypto.randomUUID(),
-      position: 0,   // SequenceEditor will set the final 1-based position
-      utterance: null,
+      position: 0,
+      utterance,
       rowId,
       state: 'complete',
     };
