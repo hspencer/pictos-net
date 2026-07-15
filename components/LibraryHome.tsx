@@ -437,9 +437,19 @@ export function LibraryHome({
   // Community sort is independent of the workspace sort: each section header
   // carries its own control. 'recientes' keeps the stock (curation) order.
   const [templateSort, setTemplateSort] = useState<'recientes' | 'alfabetico'>('recientes');
-  const sortedTemplates = templateSort === 'alfabetico'
-    ? [...templates].sort((a, b) => a.name.localeCompare(b.name))
-    : templates;
+  const [templateSearch, setTemplateSearch] = useState('');
+  const sortedTemplates = (() => {
+    const base = templateSort === 'alfabetico'
+      ? [...templates].sort((a, b) => a.name.localeCompare(b.name))
+      : templates;
+    if (!templateSearch.trim()) return base;
+    const q = templateSearch.toLowerCase();
+    return base.filter(t =>
+      t.name.toLowerCase().includes(q) ||
+      t.location.toLowerCase().includes(q) ||
+      t.language.toLowerCase().includes(q)
+    );
+  })();
 
   return (
     <div id="library-home" className="py-12 space-y-10 animate-in fade-in zoom-in-95 duration-700">
@@ -487,15 +497,24 @@ export function LibraryHome({
 
       {/* ── Community zone: the stock templates shipped with the app ── */}
       <section aria-labelledby="community-title">
-        <div className="flex items-center justify-between mb-5">
-          <h2 id="community-title" className="text-xs font-semibold uppercase tracking-wider text-slate-900">
+        <div className="flex items-center gap-4 mb-5">
+          <h2 id="community-title" className="text-xs font-semibold uppercase tracking-wider text-slate-900 shrink-0">
             {t('home.communitySection')}
           </h2>
-          <div className="flex items-center gap-3">
+          <div className="flex-1 flex justify-center">
+            <input
+              type="search"
+              value={templateSearch}
+              onChange={e => setTemplateSearch(e.target.value)}
+              placeholder={t('home.communitySearchPlaceholder')}
+              className="w-full max-w-xs text-xs border border-slate-200 rounded px-2.5 py-1.5 bg-slate-50 focus:bg-white focus:outline-none focus:border-slate-400 transition-colors"
+            />
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
             {hiddenTemplateCount > 0 && (
               <button
                 onClick={onRestoreTemplates}
-                className="text-xs text-slate-400 hover:text-violet-700 transition-colors mr-2"
+                className="text-xs text-slate-400 hover:text-violet-700 transition-colors"
               >
                 {t('home.showHiddenTemplates', { count: hiddenTemplateCount })}
               </button>

@@ -97,6 +97,7 @@
     "showHiddenTemplates": "Show {{count}} hidden examples",
     "workspaceSection": "Workspace",
     "communitySection": "Community libraries",
+    "communitySearchPlaceholder": "Search by name or location…",
     "tutorialPdf": "Tutorial (PDF)"
   },
   "pipeline": {

@@ -110,7 +110,7 @@ export async function submitPipelineBatch(
         config: {
             lang: config.lang,
             geoContext: config.geoContext,
-            annotatedContext: config.annotatedContext,
+
             comprenderModel: config.comprenderModel,
             componerModel: config.componerModel,
             generationModel: config.generationModel,
