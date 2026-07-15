@@ -10,7 +10,7 @@
 import { jsPDF } from 'jspdf';
 import type { RowData, GlobalConfig } from '../types';
 import { validDownstreamArtifact } from '../utils/rowArtifacts';
-import { sentenceCase } from '../utils/textFormat';
+import { sentenceCase, sanitizeFilename } from '../utils/textFormat';
 
 // ---------- Layout constants (millimetres) ----------
 
@@ -118,15 +118,7 @@ export class PdfExportCancelledError extends Error {
 const mmToPt = (mm: number) => (mm * 72) / MM_PER_INCH;
 const ptToMm = (pt: number) => (pt * MM_PER_INCH) / 72;
 
-const sanitizeFilename = (text: string, maxLength: number = 30): string =>
-  text
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .replace(/[^a-z0-9]/gi, '_')
-    .replace(/_+/g, '_')
-    .replace(/^_|_$/g, '')
-    .substring(0, maxLength)
-    .toLowerCase();
+
 
 const parseAspectRatio = (ratio: string): number => {
   const [w, h] = (ratio || '1:1').split(':').map(Number);

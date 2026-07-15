@@ -44,7 +44,7 @@ import { exportSequenceToPdf, sequencePdfFilename } from './services/sequencePdf
 import { RowAuditPanel } from './components/RowAuditPanel';
 import { PictogramGridCell } from './components/PictogramGridCell';
 import { injectSvgA11y } from './utils/svgAccessibility';
-import { sentenceCase } from './utils/textFormat';
+import { sentenceCase, sanitizeFilename } from './utils/textFormat';
 import { AuthProvider, logout, requestLogin, onLogin, ensureAuth } from './components/AuthGate';
 import { VectorizerModal } from './components/VectorizerModal';
 import type { VectorizerResult } from './services/vtracerService';
@@ -142,16 +142,6 @@ async function rasterizeToThumbnail(row: RowData, size = 300): Promise<string> {
 }
 
 // Helper function to sanitize filename for downloads
-const sanitizeFilename = (text: string, maxLength: number = 30): string => {
-  return text
-    .normalize('NFD') // Decompose accented characters
-    .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
-    .replace(/[^a-z0-9]/gi, '_') // Replace non-alphanumeric with underscore
-    .replace(/_+/g, '_') // Collapse multiple underscores
-    .replace(/^_|_$/g, '') // Remove leading/trailing underscores
-    .substring(0, maxLength)
-    .toLowerCase();
-};
 
 const LogoIcon = ({ size = 32 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 45.9 45.9" xmlns="http://www.w3.org/2000/svg">

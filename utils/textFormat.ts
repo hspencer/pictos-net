@@ -1,3 +1,14 @@
+/** Slug-safe filename: strips diacritics, lowercases, replaces non-alphanumeric with `_`. */
+export const sanitizeFilename = (text: string, maxLength = 30): string =>
+  text
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]/gi, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_|_$/g, '')
+    .substring(0, maxLength)
+    .toLowerCase();
+
 /**
  * Sentence case for utterance display: capitalize only the first letter,
  * preserving the rest as typed (proper nouns, acronyms, diacritics).

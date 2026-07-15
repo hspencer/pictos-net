@@ -13,17 +13,7 @@ import type { SVGPictogram, SVGLibraryState } from '../types/svg';
 /** localStorage key for SVG library */
 const SVG_LIBRARY_KEY = 'pictonet_svg_lib';
 
-/** Helper function to sanitize filename for downloads */
-const sanitizeFilename = (text: string, maxLength: number = 30): string => {
-  return text
-    .normalize('NFD') // Decompose accented characters
-    .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
-    .replace(/[^a-z0-9]/gi, '_') // Replace non-alphanumeric with underscore
-    .replace(/_+/g, '_') // Collapse multiple underscores
-    .replace(/^_|_$/g, '') // Remove leading/trailing underscores
-    .substring(0, maxLength)
-    .toLowerCase();
-};
+import { sanitizeFilename } from '../utils/textFormat';
 
 /**
  * Custom hook for managing the SVG pictogram library
