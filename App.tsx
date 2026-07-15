@@ -53,8 +53,7 @@ import { SequenceList } from './components/SequenceList';
 import { SequenceEditor } from './components/SequenceEditor';
 
 
-const STORAGE_KEY = 'pictonet_v19_storage';
-const CONFIG_KEY = 'pictonet_v19_config';
+
 const APP_VERSION = packageJson.version;
 /**
  * Library export schema version. Increment when the shape of the
@@ -320,7 +319,6 @@ const App: React.FC<AppProps> = ({ authUser }) => {
   // Populate credits field on first login (name + email or just email)
   useEffect(() => {
     return onLogin((user) => {
-      console.log('AuthGate user object:', user);
       setConfig(prev => {
         if (prev.credits) return prev; // don't overwrite user-set credits
         const name = user.user_metadata?.full_name;
@@ -943,20 +941,13 @@ const App: React.FC<AppProps> = ({ authUser }) => {
   useEffect(() => {
     const loadLibraries = async () => {
       try {
-        console.log('[LIBRARIES] Fetching index from /libraries/index.json...');
         const response = await fetch('/libraries/index.json');
-        if (!response.ok) {
-          console.warn('[LIBRARIES] Index not found, status:', response.status);
-          setAvailableLibraries([]);
-          return;
-        }
+        if (!response.ok) { setAvailableLibraries([]); return; }
 
         const index = await response.json();
-        console.log('[LIBRARIES] Index loaded:', index);
         const libs = index.libraries || [];
         setAvailableLibraries(libs);
         availableLibrariesRef.current = libs;
-        console.log(`[LIBRARIES] ✅ ${index.libraries.length} libraries ready to display`);
       } catch (error) {
         console.error('[LIBRARIES] Failed to load index:', error);
         setAvailableLibraries([]);
@@ -1298,7 +1289,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
         setRows([]);
         setLogs([]);
         clearLibrary();
-        localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(libraryService.LEGACY_STORAGE_KEY);
 
         // Clear all IndexedDB data (rows, bitmaps, svgs)
         try {

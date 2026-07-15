@@ -112,7 +112,7 @@ export interface StructuringMapping {
   discard: string[];
 }
 
-export type SortCriteria = 'alphabetical' | 'completeness';
+
 
 /**
  * Semantic concept of a visual element, derived from the NLU frame roles in
@@ -402,7 +402,7 @@ export interface GlobalConfig {
   paletteColors?: string[];
 }
 
-export type LibraryViewMode = 'list' | 'grid';
+
 
 export const VOCAB = {
   speech_act: ['assertive', 'directive', 'commissive', 'expressive', 'declarative', 'interrogative'],
