@@ -55,6 +55,7 @@ import { SequenceEditor } from './components/SequenceEditor';
 
 
 const APP_VERSION = packageJson.version;
+const newId = () => Array.from(crypto.getRandomValues(new Uint8Array(4)), b => b.toString(16).padStart(2, '0')).join('');
 /**
  * Library export schema version. Increment when the shape of the
  * exported JSON changes in a non-additive way. Importers branch on
@@ -433,15 +434,6 @@ const App: React.FC<AppProps> = ({ authUser }) => {
   const sanitizeInterventionLog = (log: any): RowInterventionLog | undefined => {
     if (!log || !Array.isArray(log.sessions)) return undefined;
     const orphanCutoff = new Date().toISOString();
-    const newId = (): string => {
-      const bytes = new Uint8Array(4);
-      if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
-        crypto.getRandomValues(bytes);
-      } else {
-        for (let i = 0; i < 4; i++) bytes[i] = Math.floor(Math.random() * 256);
-      }
-      return Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
-    };
     const migrateEvent = (e: any) => {
       if (!e || typeof e !== 'object') return e;
       // Lift modelId out of legacy context, then drop the context wrapper.
@@ -1111,17 +1103,6 @@ const App: React.FC<AppProps> = ({ authUser }) => {
     }
 
     // v1 events carried a context object and lacked stable ids.
-    // Strip the redundant context (library config carries it) and assign
-    // a fresh short id to any event missing one.
-    const newId = (): string => {
-      const bytes = new Uint8Array(4);
-      if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
-        crypto.getRandomValues(bytes);
-      } else {
-        for (let i = 0; i < 4; i++) bytes[i] = Math.floor(Math.random() * 256);
-      }
-      return Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
-    };
     if (Array.isArray(raw.rows)) {
       for (const row of raw.rows) {
         const log = row?.interventionLog;

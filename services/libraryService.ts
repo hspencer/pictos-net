@@ -56,9 +56,6 @@ function stripBinaryFields(rows: RowData[]): RowData[] {
   return rows.map(({ bitmap: _b, rawSvg: _r, structuredSvg: _s, ...meta }) => meta as RowData);
 }
 
-function getDateString(): string {
-  return new Date().toISOString().slice(0, 10);
-}
 
 // ── Index CRUD ──────────────────────────────────────────────────────────────
 
@@ -266,7 +263,7 @@ export async function backupAllLibraries(): Promise<Blob> {
 }
 
 export function backupFilename(): string {
-  return `PICTOS-Libraries-${getDateString()}.zip`;
+  return `PICTOS-Libraries-${new Date().toISOString().slice(0, 10)}.zip`;
 }
 
 // ── Migration ────────────────────────────────────────────────────────────────
