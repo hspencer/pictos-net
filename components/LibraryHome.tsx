@@ -446,9 +446,9 @@ export function LibraryHome({
     if (!templateSearch.trim()) return base;
     const q = templateSearch.toLowerCase();
     return base.filter(t =>
-      t.name.toLowerCase().includes(q) ||
-      t.location.toLowerCase().includes(q) ||
-      t.language.toLowerCase().includes(q) ||
+      (t.name ?? '').toLowerCase().includes(q) ||
+      (t.location ?? '').toLowerCase().includes(q) ||
+      (t.language ?? '').toLowerCase().includes(q) ||
       (t.credits ?? '').toLowerCase().includes(q)
     );
   })();
