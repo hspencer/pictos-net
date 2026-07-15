@@ -257,8 +257,7 @@
     "connectionChecking": "Checking…",
     "connectionOk": "OK",
     "connectionError": "Error",
-    "advancedConfig": "Advanced configuration",
-
+    "advancedConfig": "Advanced configuration"
   },
   "console": {
     "title": "PICTOS Console",
