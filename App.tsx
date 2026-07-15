@@ -3883,7 +3883,7 @@ const RowComponent: React.FC<{
 
       {isOpen && (
         <>
-          <div id={`row-detail-${row.id}`} className="p-8 border-t bg-slate-50/30 grid grid-cols-1 lg:grid-cols-3 gap-10 animate-in slide-in-from-top-2 max-h-[calc(100vh-7.5rem)] overflow-y-auto lg:overflow-y-hidden snap-y snap-mandatory lg:snap-none">
+          <div id={`row-detail-${row.id}`} className="p-8 border-t bg-slate-50/30 grid grid-cols-1 lg:grid-cols-3 gap-10 max-h-[calc(100vh-7.5rem)] overflow-y-auto lg:overflow-y-hidden snap-y snap-mandatory lg:snap-none">
             <StepBox id="block-nlu" label={t('pipeline.understand')} status={row.nluStatus} onRegen={() => onProcess('nlu')} onStop={onStop} onFocus={() => onFocus('nlu')} duration={row.nluDuration}>
               <SmartNLUEditor
                 data={row.NLU}
