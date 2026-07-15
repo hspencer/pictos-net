@@ -1,0 +1,184 @@
+{
+  "generated": "2026-07-15T20:48:48.515Z",
+  "count": 18,
+  "libraries": [
+    {
+      "filename": "a-mano.json",
+      "name": "A mano",
+      "location": "Quilpué, Región de Valparaíso, Chile",
+      "language": "es",
+      "items": 6,
+      "credits": "Pictos / MediaFranca",
+      "description": "pictonet_graph_dump",
+      "filesize": 2131888
+    },
+    {
+      "filename": "blake.json",
+      "name": "Blake",
+      "location": "Viña del Mar, Región de Valparaíso, Chile",
+      "language": "es",
+      "items": 22,
+      "credits": "Pictos / MediaFranca",
+      "description": "pictonet_graph_dump",
+      "filesize": 35312724
+    },
+    {
+      "filename": "escena-descriptiva.json",
+      "name": "Escena descriptiva",
+      "location": "Viña del Mar, Valparaiso Region, Chile",
+      "language": "es",
+      "items": 8,
+      "credits": "Pictos / MediaFranca",
+      "description": "pictonet_graph_dump",
+      "filesize": 6609133
+    },
+    {
+      "filename": "expresiones-cotidianas.json",
+      "name": "Expresiones Cotidianas",
+      "location": "Viña del Mar, Región de Valparaíso, Chile",
+      "language": "es-419",
+      "items": 200,
+      "credits": "Pictos / MediaFranca",
+      "description": "pictonet_graph_dump",
+      "filesize": 54373500
+    },
+    {
+      "filename": "icap.json",
+      "name": "ICAP 50 V2",
+      "location": "Viña del Mar, Valparaiso Region, Chile",
+      "language": "es",
+      "items": 50,
+      "credits": "Pictos / MediaFranca",
+      "description": "pictonet_graph_dump",
+      "filesize": 24317566
+    },
+    {
+      "filename": "idiomatic.json",
+      "name": "Idiomatic",
+      "location": "Auckland, Auckland, Nueva Zelanda",
+      "language": "en-GB",
+      "items": 278,
+      "credits": "Pictos / MediaFranca",
+      "description": "pictonet_graph_dump",
+      "filesize": 75255926
+    },
+    {
+      "filename": "ilustracion-moderna.json",
+      "name": "Ilustración moderna",
+      "location": "Viña del Mar, Valparaiso Region, Chile",
+      "language": "es",
+      "items": 6,
+      "credits": "Pictos / MediaFranca",
+      "description": "pictonet_graph_dump",
+      "filesize": 2884920
+    },
+    {
+      "filename": "inclusion-laboral.json",
+      "name": "Inclusión Laboral",
+      "location": "Quilpué, Región de Valparaíso, Chile",
+      "language": "es",
+      "items": 20,
+      "credits": "Pictos / MediaFranca",
+      "description": "pictonet_graph_dump",
+      "filesize": 17601811
+    },
+    {
+      "filename": "kitchen.json",
+      "name": "Kitchen",
+      "location": "Dunedin, Otago, Nueva Zelanda",
+      "language": "en",
+      "items": 6,
+      "description": "pictonet_graph_dump",
+      "filesize": 374781
+    },
+    {
+      "filename": "mordillo.json",
+      "name": "Mordillo",
+      "location": "Quilpué, Región de Valparaíso, Chile",
+      "language": "es-419",
+      "items": 10,
+      "credits": "Pictos / MediaFranca",
+      "description": "pictonet_graph_dump",
+      "filesize": 1322263
+    },
+    {
+      "filename": "picmil.json",
+      "name": "PICMIL",
+      "location": "Viña del Mar, Región de Valparaíso, Chile",
+      "language": "es",
+      "items": 22,
+      "credits": "Pictos / MediaFranca",
+      "description": "pictonet_graph_dump",
+      "filesize": 6016780
+    },
+    {
+      "filename": "pictos-color.json",
+      "name": "PICTOS - Color",
+      "location": "Viña del Mar, Región de Valparaíso, Chile",
+      "language": "es",
+      "items": 22,
+      "credits": "Pictos / MediaFranca",
+      "description": "pictonet_graph_dump",
+      "filesize": 7155185
+    },
+    {
+      "filename": "pictos-iso.json",
+      "name": "Pictos - ISO",
+      "location": "Viña del Mar, Región de Valparaíso, Chile",
+      "language": "es",
+      "items": 22,
+      "credits": "Pictos / MediaFranca",
+      "description": "pictonet_graph_dump",
+      "filesize": 34524294
+    },
+    {
+      "filename": "pictos-tramites.json",
+      "name": "PICTOS - Trámites",
+      "location": "Santiago, Región Metropolitana de Santiago, Chile",
+      "language": "es-419",
+      "items": 10,
+      "description": "pictonet_graph_dump",
+      "filesize": 3102781
+    },
+    {
+      "filename": "senaletica-color.json",
+      "name": "Señalética Color",
+      "location": "Viña del Mar, Valparaiso Region, Chile",
+      "language": "es",
+      "items": 6,
+      "credits": "Pictos / MediaFranca",
+      "description": "pictonet_graph_dump",
+      "filesize": 2586463
+    },
+    {
+      "filename": "simplex.json",
+      "name": "Simplex",
+      "location": "Quilpué, Región de Valparaíso, Chile",
+      "language": "es",
+      "items": 6,
+      "credits": "Pictos / MediaFranca",
+      "description": "pictonet_graph_dump",
+      "filesize": 350327
+    },
+    {
+      "filename": "tramites-mineduc.json",
+      "name": "Trámites MINEDUC",
+      "location": "Región de Valparaíso, Chile",
+      "language": "es-419",
+      "items": 38,
+      "credits": "Herbert Spencer González (e[ad] PUCV), investigación doctoral Pictos.net. Corpus original: Ana María Torres, Coordinación Institucional Ley Autismo y Sordera, Secretaría Ministerial de Educación Región de Valparaíso, Ministerio de Educación de Chile.",
+      "description": "pictonet_graph_dump",
+      "filesize": 4276856
+    },
+    {
+      "filename": "transporte.json",
+      "name": "Transporte",
+      "location": "Viña del Mar, Región de Valparaíso, Chile",
+      "language": "es",
+      "items": 22,
+      "credits": "Pictos / MediaFranca",
+      "description": "pictonet_graph_dump",
+      "filesize": 6521578
+    }
+  ]
+}

@@ -75,6 +75,7 @@ interface LibraryMetadata {
   location: string;
   language: string;
   items: number;
+  credits?: string;
   description?: string;
 }
 

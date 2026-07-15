@@ -84,6 +84,7 @@ async function generateIndex() {
           location: data.config?.geoContext?.region || 'Unknown',
           language: data.config?.lang || 'es',
           items: data.rows?.length || 0,
+          credits: data.config?.credits || undefined,
           description: data.type || 'PictoNet library',
           filesize: fs.statSync(filepath).size
         };
