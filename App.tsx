@@ -2478,12 +2478,12 @@ const App: React.FC<AppProps> = ({ authUser }) => {
 
         <nav id="header-actions" aria-label={t('a11y.mainActions')} className="flex gap-2 items-center">
           <input type="file" ref={importInputRef} className="hidden" accept=".json" onChange={handleImportProject} />
-          <input type="file" ref={appendPhrasesInputRef} className="hidden" accept=".txt" onChange={e => e.target.files?.[0]?.text().then(processPhrases)} />
+          <input type="file" ref={appendPhrasesInputRef} className="hidden" accept=".txt,text/plain" onChange={e => e.target.files?.[0]?.text().then(processPhrases)} />
           <input
             type="file"
             ref={homeImportRef}
             className="hidden"
-            accept=".txt"
+            accept=".txt,text/plain"
             onChange={async e => {
               const file = e.target.files?.[0];
               if (!file) return;
