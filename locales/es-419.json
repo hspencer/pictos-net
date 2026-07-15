@@ -208,7 +208,7 @@
       "ccByNcSa": "CC BY-NC-SA — Atribución-NoComercial-CompartirIgual"
     },
     "geoContextTooltip": "Idioma de procesamiento NLU y región geográfica de referencia. Afecta la interpretación cultural de los pictogramas.",
-    "visualStylePromptTooltip": "Descripción del estilo gráfico que Gemini usará para renderizar todos los pictogramas de esta librería.",
+    "visualStylePromptTooltip": "Descripción del estilo gráfico y contexto comunicativo de la librería. Se inyecta en el análisis NLU (Fase 1) y en la generación visual (Fase 3).",
     "aspectRatioTooltip": "Relación de aspecto de las imágenes generadas.",
     "imageModelTooltip": "NanoBanana Flash es más rápido; NanoBanana Pro produce mayor calidad pero tarda más.",
     "proportion": "Proporción",
@@ -257,9 +257,7 @@
     "connectionOk": "OK",
     "connectionError": "Error",
     "advancedConfig": "Configuración avanzada",
-    "annotatedContext": "Contexto adicional",
-    "annotatedContextTooltip": "Texto libre inyectado en el análisis NLU (Fase 1). Útil para especificar contexto cultural, regional o comunicativo.",
-    "annotatedContextPlaceholder": "Ej.: comunidad escolar, adultos mayores, contexto clínico…"
+
   },
   "console": {
     "title": "Consola PICTOS",

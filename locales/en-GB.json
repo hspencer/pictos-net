@@ -208,7 +208,7 @@
       "ccByNcSa": "CC BY-NC-SA — Attribution-NonCommercial-ShareAlike"
     },
     "geoContextTooltip": "NLU processing language and geographic reference region. Affects cultural interpretation of pictograms.",
-    "visualStylePromptTooltip": "Graphic style description that Gemini will use to render all pictograms in this library.",
+    "visualStylePromptTooltip": "Graphic style and communicative context for this library. Injected into NLU analysis (Phase 1) and visual generation (Phase 3).",
     "aspectRatioTooltip": "Aspect ratio of generated images.",
     "imageModelTooltip": "NanoBanana Flash is faster; NanoBanana Pro produces higher quality but takes longer.",
     "proportion": "Proportion",
@@ -257,9 +257,7 @@
     "connectionOk": "OK",
     "connectionError": "Error",
     "advancedConfig": "Advanced configuration",
-    "annotatedContext": "Additional context",
-    "annotatedContextTooltip": "Free text injected into NLU analysis (Phase 1). Useful for specifying cultural, regional, or communicative context.",
-    "annotatedContextPlaceholder": "E.g.: school community, elderly users, clinical context…"
+
   },
   "console": {
     "title": "PICTOS Console",

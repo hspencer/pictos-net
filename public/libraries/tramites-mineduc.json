@@ -6531,5 +6531,327 @@
       "bitmapDuration": 14.223
     }
   ],
-  "svgs": []
+  "svgs": [],
+  "sequences": [
+    {
+      "id": "seq-certificacion",
+      "libraryId": "placeholder",
+      "name": "Entrevista: certificación de estudios",
+      "createdAt": "2026-07-03T12:00:00.000Z",
+      "modifiedAt": "2026-07-03T12:00:00.000Z",
+      "steps": [
+        {
+          "id": "st-cert-1",
+          "position": 1,
+          "utterance": "¿Cuál fue el último curso que usted aprobó en el colegio?",
+          "rowId": "r-cert-q1",
+          "state": "complete"
+        },
+        {
+          "id": "st-cert-2",
+          "position": 2,
+          "utterance": "¿En qué año aprobó usted su último curso en el colegio?",
+          "rowId": "r-cert-q2",
+          "state": "complete"
+        },
+        {
+          "id": "st-cert-3",
+          "position": 3,
+          "utterance": "¿Cómo se llama el colegio donde usted estudió?",
+          "rowId": "r-cert-q3",
+          "state": "complete"
+        },
+        {
+          "id": "st-cert-4",
+          "position": 4,
+          "utterance": "¿Iba usted al colegio a clases todos los días?",
+          "rowId": "r-cert-q4",
+          "state": "complete"
+        },
+        {
+          "id": "st-cert-5",
+          "position": 5,
+          "utterance": "¿Estudió usted en una sede social de su barrio?",
+          "rowId": "r-cert-q5",
+          "state": "complete"
+        },
+        {
+          "id": "st-cert-6",
+          "position": 6,
+          "utterance": "¿Rindió usted exámenes libres, sin ir a clases?",
+          "rowId": "r-cert-q6",
+          "state": "complete"
+        },
+        {
+          "id": "st-cert-7",
+          "position": 7,
+          "utterance": "¿Rindió usted exámenes de estudios para conseguir un trabajo?",
+          "rowId": "r-cert-q7",
+          "state": "complete"
+        }
+      ]
+    },
+    {
+      "id": "seq-registros",
+      "libraryId": "placeholder",
+      "name": "Información: búsqueda de registros escolares",
+      "createdAt": "2026-07-03T12:00:00.000Z",
+      "modifiedAt": "2026-07-03T12:00:00.000Z",
+      "steps": [
+        {
+          "id": "st-reg-1",
+          "position": 1,
+          "utterance": "No encontramos sus documentos de estudios en nuestro sistema.",
+          "rowId": "r-reg-i1",
+          "state": "complete"
+        },
+        {
+          "id": "st-reg-2",
+          "position": 2,
+          "utterance": "El Ministerio de Educación va a llamar a su colegio para pedir su información escolar.",
+          "rowId": "r-reg-i2",
+          "state": "complete"
+        },
+        {
+          "id": "st-reg-3",
+          "position": 3,
+          "utterance": "El colegio le va a informar al Ministerio de Educación qué cursos aprobó usted.",
+          "rowId": "r-reg-i3",
+          "state": "complete"
+        },
+        {
+          "id": "st-reg-4",
+          "position": 4,
+          "utterance": "El Ministerio de Educación le va a avisar a usted cuando tenga la respuesta.",
+          "rowId": "r-reg-i4",
+          "state": "complete"
+        }
+      ]
+    },
+    {
+      "id": "seq-superintendencia",
+      "libraryId": "placeholder",
+      "name": "Derivación: reclamo por vulneración de derechos",
+      "createdAt": "2026-07-03T12:00:00.000Z",
+      "modifiedAt": "2026-07-03T12:00:00.000Z",
+      "steps": [
+        {
+          "id": "st-sup-1",
+          "position": 1,
+          "utterance": "Alguien no respetó sus derechos en el colegio.",
+          "rowId": "r-sup-d1",
+          "state": "complete"
+        },
+        {
+          "id": "st-sup-2",
+          "position": 2,
+          "utterance": "La Superintendencia de Educación atiende este tipo de problemas.",
+          "rowId": "r-sup-d2",
+          "state": "complete"
+        },
+        {
+          "id": "st-sup-3",
+          "position": 3,
+          "utterance": "Usted debe ir a la oficina de la Superintendencia de Educación en Viña del Mar.",
+          "rowId": "r-sup-d3",
+          "state": "complete"
+        },
+        {
+          "id": "st-sup-4",
+          "position": 4,
+          "utterance": "La oficina de la Superintendencia de Educación está en calle Limache 3405, piso 3, oficina 38, sector El Salto, Viña del Mar.",
+          "rowId": "r-sup-d4",
+          "state": "complete"
+        },
+        {
+          "id": "st-sup-5",
+          "position": 5,
+          "utterance": "En la oficina de la Superintendencia de Educación, una persona va a recibir su reclamo.",
+          "rowId": "r-sup-d5",
+          "state": "complete"
+        }
+      ]
+    },
+    {
+      "id": "seq-sae",
+      "libraryId": "placeholder",
+      "name": "Procedimiento: postulación al Sistema de Admisión Escolar",
+      "createdAt": "2026-07-03T12:00:00.000Z",
+      "modifiedAt": "2026-07-03T12:00:00.000Z",
+      "steps": [
+        {
+          "id": "st-sae-1",
+          "position": 1,
+          "utterance": "Usted quiere matricular a un estudiante en un colegio.",
+          "rowId": "r-sae-s1",
+          "state": "complete"
+        },
+        {
+          "id": "st-sae-2",
+          "position": 2,
+          "utterance": "Usted no debe ir al colegio a pedir la matrícula.",
+          "rowId": "r-sae-s2",
+          "state": "complete"
+        },
+        {
+          "id": "st-sae-3",
+          "position": 3,
+          "utterance": "Usted debe postular por internet, en la página del Sistema de Admisión Escolar.",
+          "rowId": "r-sae-s3",
+          "state": "complete"
+        },
+        {
+          "id": "st-sae-4",
+          "position": 4,
+          "utterance": "Entre a la página web sistemadeadmisionescolar.cl.",
+          "rowId": "r-sae-s4",
+          "state": "complete"
+        },
+        {
+          "id": "st-sae-5",
+          "position": 5,
+          "utterance": "En la página web del Sistema de Admisión Escolar, haga clic en el botón que dice 'Ingresa aquí'.",
+          "rowId": "r-sae-s5",
+          "state": "complete"
+        },
+        {
+          "id": "st-sae-6",
+          "position": 6,
+          "utterance": "Si usted no tiene una cuenta en la página del Sistema de Admisión Escolar, haga clic en 'Regístrate aquí' y cree su cuenta.",
+          "rowId": "r-sae-s6",
+          "state": "complete"
+        },
+        {
+          "id": "st-sae-7",
+          "position": 7,
+          "utterance": "Complete la información que le pide la página del Sistema de Admisión Escolar.",
+          "rowId": "r-sae-s7",
+          "state": "complete"
+        },
+        {
+          "id": "st-sae-8",
+          "position": 8,
+          "utterance": "En la página del Sistema de Admisión Escolar, haga clic en 'Añadir estudiante' y escriba los datos del estudiante.",
+          "rowId": "r-sae-s8",
+          "state": "complete"
+        },
+        {
+          "id": "st-sae-9",
+          "position": 9,
+          "utterance": "En la página del Sistema de Admisión Escolar, haga clic en 'Agregar establecimiento' y elija los colegios que usted prefiere.",
+          "rowId": "r-sae-s9",
+          "state": "complete"
+        },
+        {
+          "id": "st-sae-10",
+          "position": 10,
+          "utterance": "Espere el resultado de la postulación en la página web del Sistema de Admisión Escolar.",
+          "rowId": "r-sae-s10",
+          "state": "complete"
+        }
+      ]
+    },
+    {
+      "id": "seq-nee",
+      "libraryId": "placeholder",
+      "name": "Derecho: apoyos educativos para el estudiante",
+      "createdAt": "2026-07-03T12:00:00.000Z",
+      "modifiedAt": "2026-07-03T12:00:00.000Z",
+      "steps": [
+        {
+          "id": "st-nee-1",
+          "position": 1,
+          "utterance": "Todos los colegios que reciben dinero del Estado deben aceptar a estudiantes que necesitan apoyos.",
+          "rowId": "r-nee-n1",
+          "state": "complete"
+        },
+        {
+          "id": "st-nee-2",
+          "position": 2,
+          "utterance": "El colegio debe darle apoyos al estudiante, aunque el colegio no tenga Programa de Integración Escolar.",
+          "rowId": "r-nee-n2",
+          "state": "complete"
+        },
+        {
+          "id": "st-nee-3",
+          "position": 3,
+          "utterance": "Si el colegio no le da los apoyos, usted puede reclamar en la Superintendencia de Educación.",
+          "rowId": "r-nee-n3",
+          "state": "complete"
+        }
+      ]
+    },
+    {
+      "id": "seq-respuestas",
+      "libraryId": "placeholder",
+      "name": "Tablero: respuestas de la persona usuaria",
+      "createdAt": "2026-07-03T12:00:00.000Z",
+      "modifiedAt": "2026-07-03T12:00:00.000Z",
+      "steps": [
+        {
+          "id": "st-usr-1",
+          "position": 1,
+          "utterance": "Sí.",
+          "rowId": "r-usr-u1",
+          "state": "complete"
+        },
+        {
+          "id": "st-usr-2",
+          "position": 2,
+          "utterance": "No.",
+          "rowId": "r-usr-u2",
+          "state": "complete"
+        },
+        {
+          "id": "st-usr-3",
+          "position": 3,
+          "utterance": "Yo no me acuerdo.",
+          "rowId": "r-usr-u3",
+          "state": "complete"
+        },
+        {
+          "id": "st-usr-4",
+          "position": 4,
+          "utterance": "Yo no entiendo. Repita, por favor.",
+          "rowId": "r-usr-u4",
+          "state": "complete"
+        },
+        {
+          "id": "st-usr-5",
+          "position": 5,
+          "utterance": "Yo necesito más tiempo para responder.",
+          "rowId": "r-usr-u5",
+          "state": "complete"
+        },
+        {
+          "id": "st-usr-6",
+          "position": 6,
+          "utterance": "Yo quiero responder con ayuda de una persona de apoyo.",
+          "rowId": "r-usr-u6",
+          "state": "complete"
+        },
+        {
+          "id": "st-usr-7",
+          "position": 7,
+          "utterance": "Yo aprobé hasta la educación básica.",
+          "rowId": "r-usr-u7",
+          "state": "complete"
+        },
+        {
+          "id": "st-usr-8",
+          "position": 8,
+          "utterance": "Yo aprobé hasta la educación media.",
+          "rowId": "r-usr-u8",
+          "state": "complete"
+        },
+        {
+          "id": "st-usr-9",
+          "position": 9,
+          "utterance": "Yo estudié en otro país.",
+          "rowId": "r-usr-u9",
+          "state": "complete"
+        }
+      ]
+    }
+  ]
 }

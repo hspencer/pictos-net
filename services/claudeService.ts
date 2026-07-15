@@ -134,8 +134,8 @@ export const generateNLU = async (
     const nsmPrimesBlock = buildNSMPrimesBlock(lang);
     const domainList = VOCAB.domain.join(', ');
 
-    const annotatedContext = config?.annotatedContext?.trim()
-        ? `\n- Contexto anotado: "${config.annotatedContext.trim()}"`
+    const annotatedContext = config?.visualStylePrompt?.trim()
+        ? `\n- Contexto visual: "${config.visualStylePrompt.trim()}"`
         : '';
 
     const explicLang = isEs

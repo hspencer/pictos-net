@@ -364,7 +364,7 @@ export interface GlobalConfig {
     lng: string;
     region: string;
   };
-  annotatedContext?: string;
+
   /** @deprecated v2.0 — was Gemini Image aspect ratio; Recraft V4.1 uses fixed size. Kept for persistence compatibility. */
   aspectRatio?: string;
   /** @deprecated v2.0 — migrated to generationModel on first load. */

@@ -287,7 +287,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
     license: 'CC BY 4.0',
     visualStylePrompt: getDefaultStylePrompt('es-419'),
     geoContext: { lat: '-33.0245', lng: '-71.5518', region: 'Viña del Mar, CL' },
-    annotatedContext: '',
+
     svgStyleDefs: INITIAL_STYLES,
     svgKeyframes: INITIAL_KEYFRAMES,
     recording: { enabled: false },
@@ -1072,6 +1072,10 @@ const App: React.FC<AppProps> = ({ authUser }) => {
       // The previous double-encoding was an accident — JSON.stringify
       // of dataToExport will serialize the nested array natively.
       svgs,
+      // Las secuencias viven en un estado/clave de localStorage aparte
+      // (pictonet_lib_{id}_seqs). Sin esta línea el graph dump las
+      // omitía y se perdían al exportar/importar la librería.
+      sequences,
     };
     const blob = new Blob([JSON.stringify(dataToExport, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -1209,6 +1213,14 @@ const App: React.FC<AppProps> = ({ authUser }) => {
             const count = importSVGs(parsed.svgs);
             if (count > 0) addLog('success', t('messages.svgLibraryRestored', { count }));
           }
+          // Restaura las secuencias del dump, re-asignándolas a la
+          // librería activa (mismo patrón que la importación de plantillas).
+          if (Array.isArray(parsed.sequences)) {
+            const reKeyedSeqs = activeLibraryId
+              ? (parsed.sequences as Sequence[]).map(seq => ({ ...seq, libraryId: activeLibraryId }))
+              : (parsed.sequences as Sequence[]);
+            setSequences(reKeyedSeqs);
+          }
           addLog('success', t('messages.graphRestored', { count: sanitized.length }));
         } else {
           throw new Error(t('messages.fileFormatError'));
@@ -1334,7 +1346,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
         // effect would write the template config to the previously active library.
         let pendingConfig: GlobalConfig | null = null;
         if (data.config) {
-          pendingConfig = { ...config, ...data.config } as GlobalConfig;
+          pendingConfig = { ...data.config } as GlobalConfig;
           if (!pendingConfig.name && (data.config as any).author) {
             pendingConfig.name = (data.config as any).author;
           }
@@ -3027,20 +3039,6 @@ const App: React.FC<AppProps> = ({ authUser }) => {
 
                 {/* ── Resto de la configuración avanzada ── */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-
-                  {/* field-annotated-context */}
-                  <div id="field-annotated-context">
-                    <FieldLabel
-                      label={t('config.annotatedContext')}
-                      tooltip={t('config.annotatedContextTooltip')}
-                    />
-                    <textarea
-                      value={config.annotatedContext || ''}
-                      onChange={e => setConfig(prev => ({ ...prev, annotatedContext: e.target.value }))}
-                      placeholder={t('config.annotatedContextPlaceholder')}
-                      className="w-full text-xs border p-2.5 bg-slate-50 focus:bg-white transition-colors h-16 resize-none"
-                    />
-                  </div>
 
                   {/* field-palette */}
                   <div id="field-palette">
