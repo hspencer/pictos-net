@@ -1,6 +1,6 @@
 {
-  "generated": "2026-07-15T20:48:48.515Z",
-  "count": 18,
+  "generated": "2026-07-15T22:52:32.798Z",
+  "count": 19,
   "libraries": [
     {
       "filename": "a-mano.json",
@@ -139,6 +139,16 @@
       "items": 10,
       "description": "pictonet_graph_dump",
       "filesize": 3102781
+    },
+    {
+      "filename": "pictos.json",
+      "name": "PICTOS",
+      "location": "Viña del Mar, Región de Valparaíso, Chile",
+      "language": "es",
+      "items": 29,
+      "credits": "Pictos / MediaFranca",
+      "description": "pictonet_graph_dump",
+      "filesize": 2262956
     },
     {
       "filename": "senaletica-color.json",
