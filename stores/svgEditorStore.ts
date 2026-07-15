@@ -53,6 +53,12 @@ const FIT_PADDING = 40;
 
 const clampZoom = (z: number) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z));
 
+const purgeEmptyGroups = (root: Element) => {
+    Array.from(root.querySelectorAll('g')).reverse().forEach(g => {
+        if (!Array.from(g.childNodes).some(n => n.nodeType === Node.ELEMENT_NODE)) g.remove();
+    });
+};
+
 const DEFAULT_VIEWPORT: Viewport = {
     zoom: 1,
     panX: 0,
@@ -712,19 +718,6 @@ export const useSVGEditorStore = create<EditorState>((set, get) => {
             }
             group.remove();
 
-            // Remove empty <g> elements left behind (e.g. sub-groups that had
-            // no shape children, or groups whose only children were text nodes)
-            const purgeEmptyGroups = (root: Element) => {
-                // Iterate bottom-up: process children before parents
-                Array.from(root.querySelectorAll('g')).reverse().forEach(g => {
-                    // A <g> is considered empty if it has no element children
-                    // (text nodes / comment nodes are not visual content)
-                    const hasElementChildren = Array.from(g.childNodes).some(
-                        node => node.nodeType === Node.ELEMENT_NODE
-                    );
-                    if (!hasElementChildren) g.remove();
-                });
-            };
             const svgEl = doc.querySelector('svg');
             if (svgEl) purgeEmptyGroups(svgEl);
 
@@ -853,15 +846,6 @@ export const useSVGEditorStore = create<EditorState>((set, get) => {
             // Insert the new path at the Base's z-position.
             svgRoot.insertBefore(surviving, insertReference);
 
-            // Clean up groups that became empty after removing operands.
-            const purgeEmptyGroups = (root: Element) => {
-                Array.from(root.querySelectorAll('g')).reverse().forEach(g => {
-                    const hasElementChildren = Array.from(g.childNodes).some(
-                        node => node.nodeType === Node.ELEMENT_NODE
-                    );
-                    if (!hasElementChildren) g.remove();
-                });
-            };
             purgeEmptyGroups(svgRoot);
 
             const serialized = new XMLSerializer().serializeToString(doc);

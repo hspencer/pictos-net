@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
 import { KeyframeDefinition } from '../types';
 import { Plus, Trash2, Edit2, Check, X } from 'lucide-react';
+import { generateId } from '../constants';
 
 interface Props {
   keyframes: KeyframeDefinition[];
   onUpdate: (keyframes: KeyframeDefinition[]) => void;
 }
-
-const generateId = () => Math.random().toString(36).substr(2, 9);
 
 const KeyframeEditor: React.FC<Props> = ({ keyframes, onUpdate }) => {
   const [editingId, setEditingId] = useState<string | null>(null);

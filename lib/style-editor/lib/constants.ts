@@ -1,7 +1,7 @@
 import { StyleDefinition } from './types';
 
 // Simple ID generator to avoid external dependencies in this specific output format
-const generateId = () => Math.random().toString(36).substr(2, 9);
+export const generateId = () => Math.random().toString(36).substr(2, 9);
 
 export const INITIAL_STYLES: StyleDefinition[] = [
   {

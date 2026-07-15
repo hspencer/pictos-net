@@ -3,6 +3,7 @@ import { X, Plus, Trash2, Square, Circle, Triangle, Slash, Activity, Heart } fro
 import { StyleDefinition, CssRule, ShapeType, KeyframeDefinition } from '../types';
 import { SVG_CSS_PROPERTIES } from '../utils/svgProperties';
 import { useDialogA11y } from '../../../../hooks/useDialogA11y';
+import { generateId } from '../constants';
 
 interface Props {
   styleDef: StyleDefinition | null;
@@ -13,8 +14,6 @@ interface Props {
   currentShape?: ShapeType;
   keyframes?: KeyframeDefinition[];
 }
-
-const generateId = () => Math.random().toString(36).substr(2, 9);
 
 const UNITS = ['px', '%', 'em', 'rem', 'pt', 'pc', 'vh', 'vw', 'deg', ''];
 const COLOR_PROPS = ['fill', 'stroke', 'color', 'stop-color', 'flood-color', 'lighting-color'];

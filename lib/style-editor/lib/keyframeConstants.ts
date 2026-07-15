@@ -1,6 +1,5 @@
 import { KeyframeDefinition } from './types';
-
-const generateId = () => Math.random().toString(36).substr(2, 9);
+import { generateId } from './constants';
 
 /**
  * All keyframes use individual CSS transform properties (translate, rotate, scale)
