@@ -759,6 +759,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
   const [activeSequenceId, setActiveSequenceId] = useState<string | null>(null);
   const [sequenceViewMode, setSequenceViewMode] = useState<'list' | 'grid'>('list');
   const pendingStepRowsRef = useRef<Map<string, { sequenceId: string; stepId: string }>>(new Map());
+  const savedActiveLibraryIdRef = useRef<string | null>(null);
   const [librarySort, setLibrarySort] = useState<'recientes' | 'alfabetico'>('recientes');
 
   // When the inline list/grid switcher scrolls under the sticky header, a
@@ -787,9 +788,16 @@ const App: React.FC<AppProps> = ({ authUser }) => {
     setActiveSequenceId(null);
   }, [activeLibraryId]);
 
-  // Save sequences whenever they change
+  // Save sequences whenever they change — but skip the first fire after a
+  // library switch: at that point `sequences` still holds the previous
+  // library's data (load effect hasn't flushed yet) and would corrupt the
+  // new library's storage key.
   useEffect(() => {
     if (!activeLibraryId || !isInitialized) return;
+    if (savedActiveLibraryIdRef.current !== activeLibraryId) {
+      savedActiveLibraryIdRef.current = activeLibraryId;
+      return;
+    }
     libraryService.saveLibrarySequences(activeLibraryId, sequences);
     libraryService.updateLibraryMeta(activeLibraryId, {
       sequenceCount: sequences.length,
