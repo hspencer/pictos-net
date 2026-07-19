@@ -163,7 +163,8 @@ entity VisualReasoning {
 
   -- Phase 5 model comes from GlobalConfig.phase5Model (persisted per library).
   -- Allowed: claude-sonnet-4-6, claude-opus-4-6, gemini-2.5-pro, gemini-2.5-flash
-  -- Default: gemini-2.5-flash  (gemini-2.0-flash removed 2026-06-13: 404 on all regions)
+  -- Default: claude-sonnet-4-6  (since 2026-07-18; was gemini-2.5-flash.
+  --   gemini-2.0-flash removed 2026-06-13: 404 on all regions)
 }
 
 ------------------------------------------------------------

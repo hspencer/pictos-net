@@ -302,11 +302,19 @@ function offsetPathD(d: string, tx: number, ty: number): string {
 }
 
 function extractFill(el: Element): string {
-    const fillAttr = el.getAttribute('fill');
-    if (fillAttr && fillAttr !== 'none') return fillAttr.trim();
-    const style = el.getAttribute('style') ?? '';
-    const m = style.match(/fill:\s*([^;]+)/);
-    return m?.[1]?.trim() ?? '#000000';
+    // Effective fill: own attr/style, else nearest ancestor's (SVG paint is
+    // inherited — re-parenting into semantic groups loses it unless baked in).
+    // 'none' is preserved AS none: a stroke-only outline mapped to black
+    // renders as a solid blob (this alone caused double-digit fidelity loss).
+    let cur: Element | null = el;
+    while (cur && cur.tagName.toLowerCase() !== 'svg') {
+        const attr = cur.getAttribute('fill');
+        if (attr) return attr.trim();
+        const m = (cur.getAttribute('style') ?? '').match(/fill:\s*([^;]+)/);
+        if (m) return m[1].trim();
+        cur = cur.parentElement;
+    }
+    return '#000000';
 }
 
 function isBackgroundRect(d: string, tx: number, ty: number, viewBox: string): boolean {
@@ -608,11 +616,22 @@ function buildConceptMap(elements: VisualElement[]): Map<string, string> {
 // ─── CSS Palette extraction ──────────────────────────────────────────────────
 
 function extractPaletteClasses(cssString: string): string {
+    // Report each rule's CANONICAL (first) class. Matching the class glued to
+    // '{' would report the LAST alias instead — ".main, .primary, .foreground"
+    // was being advertised to the model as "foreground", a name the assembler's
+    // colour check does not recognise.
+    // @keyframes blocks are stripped first so their percentage steps are not
+    // read as rules. The palette is capped at 30 rules and colour classes are
+    // ordered first (see INITIAL_STYLES), so animations fall outside the cut —
+    // intentional: structuring assigns semantics and colour, not motion.
+    const withoutKeyframes = cssString.replace(/@keyframes[^{]*\{(?:[^{}]*\{[^}]*\})*[^{}]*\}/g, '');
     const lines: string[] = [];
-    const ruleRe = /\.([a-zA-Z][\w-]*)\s*\{([^}]+)\}/g;
+    const ruleRe = /([^{}]+)\{([^}]+)\}/g;
     let m: RegExpExecArray | null;
-    while ((m = ruleRe.exec(cssString)) !== null) {
-        const cls = m[1];
+    while ((m = ruleRe.exec(withoutKeyframes)) !== null) {
+        const firstCls = m[1].match(/\.([a-zA-Z][\w-]*)/);
+        if (!firstCls) continue;
+        const cls = firstCls[1];
         const decls = m[2].trim().replace(/\s+/g, ' ').slice(0, 120);
         lines.push(`.${cls} { ${decls} }`);
         if (lines.length >= 30) break;
@@ -721,7 +740,7 @@ Reglas:
 1. Trabaja desde la evidencia visual de las imágenes — no asumas contenido semántico a partir de los nombres de nodos
 2. Cada path que no sea fondo debe aparecer en exactamente un keep de grupo, o en discard
 3. Usa solo los valores de cssClass listados en la paleta
-4. "k" = agente/actor (personaje principal), "f" = objeto o acción, "accent" = acento de color
+4. Las clases son de COLOR, no de semántica (la semántica va en data-concept, derivada del DOM). Elige según el fill-role que aparece en la lista de marcas: "k" = formas negras/oscuras, "f" = formas blancas (huecos, luces), "accent" = paths ya coloreados. Nunca recolorees: si el path es negro no le pongas "f" ni "accent"
 5. parentId debe ser null para nodos de nivel superior, o un nodeId válido para nodos hijo`;
 }
 
@@ -891,6 +910,14 @@ interface OriginalPathData {
     otherAttrs: string;
 }
 
+// Presentation attributes that SVG inherits through <g> ancestors. Re-parenting
+// a path into a semantic group severs that inheritance, so the effective value
+// must be baked onto the path itself or strokes/opacity silently vanish.
+const INHERITED_PRESENTATION_ATTRS = [
+    'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin',
+    'stroke-dasharray', 'stroke-opacity', 'fill-rule', 'fill-opacity', 'opacity',
+];
+
 function extractOriginalPaths(rawSvg: string): Map<string, OriginalPathData> {
     const parser = new DOMParser();
     const doc = parser.parseFromString(rawSvg, 'image/svg+xml');
@@ -900,12 +927,35 @@ function extractOriginalPaths(rawSvg: string): Map<string, OriginalPathData> {
         if (!id) return;
         const fill = extractFill(p);
         const d = p.getAttribute('d') ?? '';
-        const transform = p.getAttribute('transform') ?? '';
         const className = p.getAttribute('class')?.trim() ?? '';
+
+        // Bake the ancestor transform chain (outermost first — SVG composes
+        // parent-to-child) so geometry survives re-parenting.
+        const chain: string[] = [];
+        let anc = p.parentElement;
+        while (anc && anc.tagName.toLowerCase() !== 'svg') {
+            const t = anc.getAttribute('transform');
+            if (t) chain.unshift(t.trim());
+            anc = anc.parentElement;
+        }
+        const ownT = p.getAttribute('transform')?.trim() ?? '';
+        const transform = [...chain, ownT].filter(Boolean).join(' ');
+
         const skipAttrs = new Set(['id', 'd', 'transform', 'fill', 'style', 'class']);
         const otherParts: string[] = [];
+        const present = new Set<string>();
         for (const attr of Array.from(p.attributes)) {
-            if (!skipAttrs.has(attr.name)) otherParts.push(`${attr.name}="${attr.value}"`);
+            if (skipAttrs.has(attr.name)) continue;
+            present.add(attr.name);
+            otherParts.push(`${attr.name}="${attr.value}"`);
+        }
+        // Inherit missing presentation attrs from the nearest ancestor.
+        for (const name of INHERITED_PRESENTATION_ATTRS) {
+            if (present.has(name)) continue;
+            for (let a = p.parentElement; a && a.tagName.toLowerCase() !== 'svg'; a = a.parentElement) {
+                const v = a.getAttribute(name);
+                if (v) { otherParts.push(`${name}="${v}"`); break; }
+            }
         }
         map.set(id, { d, transform, fill, className, otherAttrs: otherParts.join(' ') });
     });
@@ -927,10 +977,24 @@ function renderGroup(
     const dominantRole = getDominantFillRole(group.keep, pathInfoMap);
     const colorCls = fillRoleToColorClass(dominantRole);
     const semanticCls = group.cssClass || 'f';
-    const userHasColorClass = ['k', 'f', 'w', 'main', 'accent'].includes(semanticCls);
-    const clsParts = [semanticCls];
-    if (!userHasColorClass) clsParts.push(colorCls);
-    const cls = clsParts.join(' ');
+    // The class must agree with the ORIGINAL colour of the paths (fillRole,
+    // measured locally). The model picks semantics among compatible classes
+    // (k vs f for dark shapes) but never recolours — assigning 'accent' to an
+    // originally-black arrow painted it red. Incompatible → derived from role.
+    // k = black (CMYK key), f = white (#FFF) — both are COLOUR classes, so each
+    // belongs to the fill-role group matching its own colour. Semantics are
+    // carried by data-concept, not by the class.
+    const ROLE_CLASSES: Record<string, string[]> = { dark: ['k', 'main'], light: ['f', 'w'], accent: ['accent'] };
+    const knownColorClasses = ['k', 'f', 'w', 'main', 'accent'];
+    let cls: string;
+    if (!knownColorClasses.includes(semanticCls)) {
+        cls = `${semanticCls} ${colorCls}`; // custom palette class + derived colour
+    } else if (dominantRole === 'unknown' || ROLE_CLASSES[dominantRole]?.includes(semanticCls)) {
+        cls = semanticCls;
+    } else {
+        console.warn(`[assemble] ${group.nodeId}: clase '${semanticCls}' incompatible con color original (${dominantRole}) — usando '${colorCls}'`);
+        cls = colorCls;
+    }
     const label = escapeXmlAttr(group.label || group.nodeId);
     // Concept comes from the composed VisualElement tree (NLU-derived);
     // only synthetic groups (e.g. the 'contexto' orphan bucket) fall back.
@@ -980,6 +1044,7 @@ function renderGroup(
 function resolveMergeGeometry(
     groups: StructuringGroup[],
     originalPaths: Map<string, OriginalPathData>,
+    pathInfoMap: Map<string, PathInfo>,
     onProgress?: (msg: string) => void,
 ): StructuringGroup[] {
     return groups.map(g => {
@@ -987,6 +1052,23 @@ function resolveMergeGeometry(
         if (sources.length < 2) {
             if (g.merge) return { ...g, keep: [...(g.keep ?? []), ...sources], merge: null };
             return g;
+        }
+
+        // Gate: only union sources that the LOCAL double-contour detector
+        // itself would pair (bbox IoU ≥ 0.7, similar area, same fill role —
+        // detectMergeCandidates, tested). A model-proposed merge of
+        // geometrically distinct shapes (an arm + the torso) deforms the
+        // figure; keeping them as separate paths is always visually safe.
+        const infos = sources
+            .map(id => pathInfoMap.get(id))
+            .filter((p): p is PathInfo => !!p);
+        const clusters = detectMergeCandidates(infos);
+        const compatible = infos.length === sources.length
+            && clusters.length === 1
+            && clusters[0].length === infos.length;
+        if (!compatible) {
+            onProgress?.(`[ESTRUCTURAR] merge ${g.nodeId}: fuentes no concéntricas [${sources.join(', ')}] — se conservan como paths separados`);
+            return { ...g, keep: [...(g.keep ?? []), ...sources], merge: null };
         }
 
         const absDs: string[] = [];
@@ -1045,7 +1127,7 @@ export function assembleFromMapping(
 
         // Compute real geometric unions for proposed merges (double-contour
         // cleanup) — the model only proposed source ids, never path data.
-        effectiveGroups = resolveMergeGeometry(effectiveGroups, originalPaths, input.onProgress);
+        effectiveGroups = resolveMergeGeometry(effectiveGroups, originalPaths, pathInfoMap, input.onProgress);
 
         // Build parent → children map
         const childMap = new Map<string | null, StructuringGroup[]>();
@@ -1673,6 +1755,77 @@ export async function redrawSVG(input: SVGStructureInput): Promise<SVGStructureR
     }
 }
 
+// ─── Fidelity verification (Phase5_FidelityCheck) ────────────────────────────
+
+// Fraction of the RAW drawing's inked area that may change before the
+// structured result is rejected. Relative to ink (not canvas) so small
+// pictograms on a large viewBox are judged at the same sensitivity.
+// ponytail: single global knob; per-element thresholds if ever needed.
+const FIDELITY_DIFF_LIMIT = 0.05;
+const FIDELITY_RASTER_SIZE = 256;
+
+/** Rasterize an SVG to a binary ink mask (1 = clearly darker than paper).
+ *  Colour-tolerant on purpose: palette mapping may shift hues, but the
+ *  guarantee is that INK STAYS WHERE IT WAS — holes not filled, shapes not
+ *  deformed, elements not dropped. */
+async function rasterizeInkMask(svg: string, size: number): Promise<Uint8Array | null> {
+    const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
+    try {
+        const img = new Image();
+        await new Promise<void>((res, rej) => { img.onload = () => res(); img.onerror = () => rej(new Error('img load failed')); img.src = url; });
+        const canvas = document.createElement('canvas');
+        canvas.width = size; canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return null;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, size, size);
+        ctx.drawImage(img, 0, 0, size, size);
+        const data = ctx.getImageData(0, 0, size, size).data;
+        const mask = new Uint8Array(size * size);
+        for (let i = 0; i < mask.length; i++) {
+            const lum = (0.299 * data[i * 4] + 0.587 * data[i * 4 + 1] + 0.114 * data[i * 4 + 2]) / 255;
+            mask[i] = lum < 0.75 ? 1 : 0;
+        }
+        return mask;
+    } catch {
+        return null;
+    } finally {
+        URL.revokeObjectURL(url);
+    }
+}
+
+/** Compare raw vs structured ink coverage. All fractions are relative to the
+ *  raw drawing's inked area. `added` = ink the structure invented (filled
+ *  holes, solid blobs); `removed` = ink it lost (dropped shapes, background).
+ *  Unmeasurable (canvas failure) → ok, don't flag. */
+export async function verifyFidelity(rawSvg: string, structuredSvg: string): Promise<{ ok: boolean; diffFraction: number; added: number; removed: number }> {
+    const [a, b] = await Promise.all([
+        rasterizeInkMask(rawSvg, FIDELITY_RASTER_SIZE),
+        rasterizeInkMask(structuredSvg, FIDELITY_RASTER_SIZE),
+    ]);
+    if (!a || !b) return { ok: true, diffFraction: 0, added: 0, removed: 0 };
+    let ink = 0, added = 0, removed = 0;
+    for (let i = 0; i < a.length; i++) {
+        if (a[i]) ink++;
+        if (!a[i] && b[i]) added++;
+        else if (a[i] && !b[i]) removed++;
+    }
+    const denom = Math.max(ink, 1);
+    const diffFraction = (added + removed) / denom;
+    return { ok: diffFraction <= FIDELITY_DIFF_LIMIT, diffFraction, added: added / denom, removed: removed / denom };
+}
+
+/** Demote every proposed merge to plain keeps (union skipped, geometry
+ *  untouched) — the fidelity-fail retry path. */
+function stripMerges(mapping: StructuringMapping): StructuringMapping {
+    return {
+        ...mapping,
+        groups: mapping.groups.map(g => g.merge?.sources?.length
+            ? { ...g, keep: [...(g.keep ?? []), ...g.merge.sources], merge: null }
+            : g),
+    };
+}
+
 // ─── Main structuring function ────────────────────────────────────────────────
 
 export async function structureSVG(input: SVGStructureInput): Promise<SVGStructureResult> {
@@ -1696,6 +1849,15 @@ export async function structureSVG(input: SVGStructureInput): Promise<SVGStructu
         }
 
         input.onProgress?.(`[ESTRUCTURAR] Inventario: ${inventory.paths.length} paths, ${Object.keys(inventory.vtracerGroups).length} grupos, ${inventory.backgroundPathIds.length} fondo excluido`);
+
+        // The pipeline only understands <path>; other primitives would be
+        // silently dropped from the output. Surface it instead of hiding it.
+        // ponytail: detection only — convert primitives to paths if this warning
+        // ever fires on real rows.
+        const nonPathCount = (input.rawSvg.match(/<(rect|circle|ellipse|polygon|polyline|line)\b/g) ?? []).length;
+        if (nonPathCount > 0) {
+            input.onProgress?.(`[ESTRUCTURAR] advertencia: ${nonPathCount} elemento(s) no-path (rect/circle/…) en el SVG crudo — no serán incluidos en la estructura`);
+        }
 
         input.onProgress?.('[ESTRUCTURAR] Renderizando marcas numeradas…');
         const image = await rasterizeWithMarks(rawSvgWithIds, inventory);
@@ -1727,8 +1889,33 @@ export async function structureSVG(input: SVGStructureInput): Promise<SVGStructu
             return { svg: '', success: true, mapping, pendingReview: true };
         }
 
-        // Immediate assembly
-        return assembleFromMapping(mapping, input);
+        // Immediate assembly + fidelity measurement. NEVER blocks: a structured
+        // result with issues beats no result (user decision 2026-07-18). When
+        // the diff exceeds the threshold, the merge-free variant is also
+        // assembled and whichever alters the drawing LESS is delivered; the
+        // measurement is surfaced as a warning with an added/removed breakdown
+        // so the source of the difference can be diagnosed from the log.
+        let result = assembleFromMapping(mapping, input);
+        if (!result.success) return result;
+
+        let fidelity = await verifyFidelity(rawSvgWithIds, result.svg);
+        if (!fidelity.ok) {
+            const noMerge = assembleFromMapping(stripMerges(mapping), input);
+            if (noMerge.success) {
+                const nmFidelity = await verifyFidelity(rawSvgWithIds, noMerge.svg);
+                if (nmFidelity.diffFraction < fidelity.diffFraction) {
+                    input.onProgress?.(`[ESTRUCTURAR] variante sin fusiones es más fiel (${(nmFidelity.diffFraction * 100).toFixed(1)}% vs ${(fidelity.diffFraction * 100).toFixed(1)}%) — usando esa`);
+                    result = noMerge;
+                    fidelity = nmFidelity;
+                }
+            }
+        }
+        if (!fidelity.ok) {
+            input.onProgress?.(`[ESTRUCTURAR] aviso de fidelidad: ${(fidelity.diffFraction * 100).toFixed(1)}% del área dibujada difiere (+${(fidelity.added * 100).toFixed(1)}% tinta añadida, -${(fidelity.removed * 100).toFixed(1)}% tinta perdida) — revisa el resultado`);
+        } else {
+            input.onProgress?.(`[ESTRUCTURAR] fidelidad: ${(fidelity.diffFraction * 100).toFixed(1)}% de diferencia — OK`);
+        }
+        return result;
 
     } catch (error) {
         return {

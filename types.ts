@@ -87,7 +87,9 @@ export const PHASE5_MODELS: { id: Phase5StructuringModel; label: string }[] = [
   { id: 'gemini-2.5-flash',   label: 'Gemini 2.5 Flash' },
 ];
 
-export const DEFAULT_PHASE5_MODEL: Phase5StructuringModel = 'gemini-2.5-flash';
+// Structuring is the finest visual-judgment task in the pipeline and runs
+// manually at low volume — default to the most capable model, not the fastest.
+export const DEFAULT_PHASE5_MODEL: Phase5StructuringModel = 'claude-sonnet-4-6';
 
 export interface MergedPath {
   // Computed locally (exact geometric union via svgBooleanOps) — the model

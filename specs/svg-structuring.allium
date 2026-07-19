@@ -231,6 +231,20 @@ rule PreserveUserStyles {
     -- When checking whether to apply auto-color class:
     -- Look up user classes in cssFillMap. If ANY user class defines
     -- a fill, skip the auto-color class entirely for that group.
+
+  @invariant "inherited presentation survives re-parenting"
+    -- SVG paint and geometry are inherited through <g> ancestors, and
+    -- assembly re-parents every path into new semantic groups. The
+    -- EFFECTIVE inherited values must therefore be baked onto each path
+    -- at extraction time:
+    --   - fill: own value, else nearest ancestor's; fill="none" is
+    --     preserved AS none (per-id rule) — a stroke-only outline must
+    --     never become a solid shape
+    --   - transform: the full ancestor chain composed outermost-first
+    --   - stroke*, opacity, fill-rule: inherited from the nearest
+    --     ancestor when absent on the path
+    -- Non-path primitives (rect, circle, …) are not yet structured;
+    -- their presence is surfaced as a warning, never silently dropped.
 }
 
 -- === SVG assembly (local) ===
@@ -265,6 +279,37 @@ rule MergeEvenoddPaths {
   -- Dark path provides the fill color
   -- All path d strings concatenated (with transform offsets baked in)
   -- This handles light "holes" nested inside dark shapes
+}
+
+rule MergeCompatibilityGate {
+  -- The model only PROPOSES merge sources; whether they are actually
+  -- double contours is decided locally, by the same geometric predicate
+  -- that detects merge candidates (bbox IoU >= 0.7, similar area, same
+  -- fill role). The model's judgment is never sufficient on its own.
+  when: a proposed merge is about to be resolved into a geometric union
+
+  requires: every source path passes the double-contour predicate
+    against every other source (one transitive cluster)
+  ensures: on failure, sources are kept as separate untouched paths
+    -- keeping paths separate is always visually safe; a wrong union
+    -- deforms the figure (an arm welded to the torso, a filled hole)
+}
+
+rule ColorClassFromOriginalFill {
+  -- The CSS class assigned to a group must agree with the ORIGINAL
+  -- colour of its paths (fillRole, measured locally). The model chooses
+  -- semantics among compatible classes (k vs f for dark shapes) but can
+  -- never recolour — e.g. an originally-black arrow must not become
+  -- 'accent' red because the model judges it "urgent".
+  when: a group's CSS class is emitted during assembly
+
+  ensures: class in { k, f, main } when dominant fillRole = dark
+  ensures: class = w when dominant fillRole = light
+  ensures: class = accent when dominant fillRole = accent
+  ensures: incompatible model class replaced by the fillRole-derived
+    class, with a warning
+  -- Custom (non-colour) palette classes pass through with the derived
+  -- colour class appended, as before.
 }
 
 -- === Post-processing (local) ===
@@ -335,8 +380,24 @@ invariant PathCompleteness {
 invariant GeometryIntegrity {
   -- Path geometry (d attribute) in structured SVG must be identical
   -- to the original rawSvg. No modification by Gemini.
+  -- Exception: gated merges (MergeCompatibilityGate) and the local
+  -- deterministic polish — both locally computed, never model-authored.
   for path in StructuredSVG.paths:
     path.d = RawSVG.getPath(path.id).d
+}
+
+invariant VisualFidelity {
+  -- The structured SVG, rasterized, should keep ink where the raw SVG had
+  -- it: no filled holes, no deformed shapes, no dropped elements.
+  -- Measured locally after assembly by comparing binary ink masks
+  -- (colour-tolerant: palette mapping may shift hues, coverage may not).
+  -- NON-BLOCKING (user decision 2026-07-18): a structured result with
+  -- issues beats no result. Above 5% of the raw drawing's inked area:
+  --   - the merge-free variant is also assembled and the LESS-altering
+  --     of the two is delivered
+  --   - the measurement is surfaced as a warning with an added/removed
+  --     ink breakdown, for diagnosis from the progress log
+  -- The measurement is never a reason to withhold the result.
 }
 
 invariant UserStylePreservation {

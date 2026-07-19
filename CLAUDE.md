@@ -65,7 +65,7 @@ Recraft V4.1 delivers native SVG so VTracer is no longer needed.
 - Geometry never leaves the browser and is never model-authored
 - Output: mf-svg-schema compliant SVG with semantic groups, `data-concept` congruent with NLU, and accessibility metadata
 - Full reference: docs/ESTRUCTURAR.md
-- Model selectable via `GlobalConfig.phase5Model`: `claude-sonnet-4-6`, `claude-opus-4-6`, `gemini-2.5-pro`, `gemini-2.5-flash` (default). `gemini-2.0-flash` removed 2026-06-13 (404 in `pictos-vertex`, all regions). Claude models route to `api-claude`, `gemini-*` to `api-gemini-structure`.
+- Model selectable via `GlobalConfig.phase5Model`: `claude-sonnet-4-6` (default since 2026-07-18 — finest visual judgment in the pipeline, low volume), `claude-opus-4-6`, `gemini-2.5-pro`, `gemini-2.5-flash`. `gemini-2.0-flash` removed 2026-06-13 (404 in `pictos-vertex`, all regions). Claude models route to `api-claude`, `gemini-*` to `api-gemini-structure`.
 
 ## GlobalConfig Parameters
 
@@ -79,7 +79,7 @@ Recraft V4.1 delivers native SVG so VTracer is no longer needed.
 | `svgStyleDefs` | 2, 4 | Active | CSS definitions for SVG editor + structuring |
 | `svgKeyframes` | 4 | Active | Animation keyframes for structured SVG |
 | `generationModel` | 3 | Active | Phase 3 model: `gemini-2.5-flash-image` (default), `gemini-3.1-flash-image`, `gemini-3-pro-image`, `recraftv4_1`, `recraftv4_1_vector`, `recraftv4_1_utility_vector`, `recraftv4_1_pro_vector` |
-| `phase5Model` | 4 | Active | Phase 4 structuring model: `claude-sonnet-4-6`, `claude-opus-4-6`, `gemini-2.5-pro`, `gemini-2.5-flash` (default) |
+| `phase5Model` | 4 | Active | Phase 4 structuring model: `claude-sonnet-4-6` (default), `claude-opus-4-6`, `gemini-2.5-pro`, `gemini-2.5-flash` |
 | `aspectRatio` | — | Inactive | Was Gemini Image aspect ratio; Recraft uses fixed size |
 | `imageModel` | — | Inactive | Legacy; migrated to `generationModel` on first load |
 
