@@ -275,6 +275,14 @@ rule Phase2_Componer {
   @invariant "DOM validated before continuing"
     -- VisualDOM is validated against mf-svg-schema before phase2Status
     -- transitions to completed. Validation failure is treated as tool-use failure.
+
+  @invariant "no phantom elements"
+    -- Every node in VisualDOM has a real id sourced from the model.
+    -- The tool schema requires id + concept on elements and their children.
+    -- Any node that still arrives without a usable id is DROPPED during
+    --   normalisation — never fabricated into an 'unknown' placeholder.
+    -- This holds on every regeneration of the step, not just the first, so
+    --   repeated COMPONER runs cannot accrete phantom nodes.
 }
 
 rule Phase2_Failure {
@@ -282,6 +290,38 @@ rule Phase2_Failure {
 
   ensures: full error detail logged to console
   ensures: phase 2 indicator shown as failed in UI
+}
+
+-- === Phase 2: spatial prompt regeneration ===
+
+rule Phase2_RegenerateSpatialPrompt {
+  -- Triggered when the user has manually edited the element tree and asks
+  -- to rebuild only the spatial prompt (visualPrompt) — the tree itself is
+  -- not re-derived. See element-tree.allium for the edit events that arm this.
+  when: user triggers spatial prompt regeneration for a VisualReasoning
+
+  requires: VisualReasoning.nluData is present
+  requires: VisualReasoning.visualDom has at least one element
+
+  ensures: a plain-text prompt is generated from the CURRENT element tree
+    -- the model is given the current tree verbatim; no prior prompt is reused
+    -- prompt describes only topology and composition, in the NLU language,
+    --   with every element id wrapped in single quotes
+  ensures: VisualReasoning.visualPrompt = the regenerated prompt
+  ensures: VisualReasoning.bitmapStatus = outdated
+    -- the produced pictogram (Phase 3) no longer reflects its inputs
+
+  @invariant "every element is referenced"
+    -- The regenerated prompt references EVERY element id in the current tree
+    --   (root and all nested children), none omitted and none invented.
+    -- This is verified after generation, not merely requested of the model:
+    --   ids missing from the prompt trigger one corrective retry naming them;
+    --   any still missing after the retry are surfaced as an error in the log.
+
+  @invariant "tree and prompt are the Phase 3 inputs"
+    -- Phase 3 (PRODUCIR) consumes BOTH the element tree and visualPrompt.
+    -- Every element referenced in the prompt therefore has a counterpart in
+    --   the tree handed to generation, keeping the two inputs congruent.
 }
 
 -- === Phase 3: PRODUCIR ===

@@ -128,10 +128,25 @@ test('normalizeElements accepts el.elements alias for children (legacy key)', ()
     assert.equal(result[0].children![0].id, 'cara');
 });
 
-test('normalizeElements uses unknown as fallback id when el.id is missing', () => {
-    const raw = [{ concept: 'Agent' }];
+test('normalizeElements drops nodes without a usable id (never fabricates unknown)', () => {
+    const raw = [
+        { concept: 'Agent' },              // no id → dropped
+        { id: '   ', concept: 'Object' },  // blank id → dropped
+        { id: 'perro', concept: 'Agent' }, // valid → kept
+    ];
     const result = normalizeElements(raw);
-    assert.equal(result[0].id, 'unknown');
+    assert.equal(result.length, 1);
+    assert.equal(result[0].id, 'perro');
+});
+
+test('normalizeElements drops id-less children too', () => {
+    const raw = [{
+        id: 'nina', concept: 'Agent',
+        children: [{ concept: 'Element' }, { id: 'cara', concept: 'Element' }],
+    }];
+    const result = normalizeElements(raw);
+    assert.equal(result[0].children?.length, 1);
+    assert.equal(result[0].children![0].id, 'cara');
 });
 
 // ── injectRoot — single-root invariant ───────────────────────────────────────

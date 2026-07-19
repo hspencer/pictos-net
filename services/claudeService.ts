@@ -189,6 +189,18 @@ Reglas:
 
 // ── Phase 2: COMPONER ────────────────────────────────────────────────────────
 
+// Concept description shared by every level of the element schema.
+const CONCEPT_PROP = {
+    type: 'string' as const,
+    enum: CHILD_CONCEPTS,
+    description: 'Semantic concept derived from the NLU frame roles: Agent (Agent/Experiencer/Speaker/Addressee roles), Action (the lexical_unit event), Object (Patient/Theme/Object/Instrument/Beneficiary), Context (Location/Time/scenario/background), Element (anything else). Every element, including nested children, must carry one.',
+};
+const ID_PROP = { type: 'string' as const, description: 'Simple noun in utterance language, snake_case for compounds.' };
+
+// Two levels of nesting are spelled out concretely (no $ref) so the model gets
+// a fully-guided schema and always emits id + concept, including for children —
+// this is where empty/id-less trees came from. Deeper nesting is left lenient
+// and any residual id-less node is dropped by normalizeElements.
 const COMPOSE_TOOL_SCHEMA = {
     type: 'object' as const,
     properties: {
@@ -198,13 +210,20 @@ const COMPOSE_TOOL_SCHEMA = {
             items: {
                 type: 'object',
                 properties: {
-                    id: { type: 'string', description: 'Simple noun in utterance language, snake_case for compounds.' },
-                    concept: {
-                        type: 'string',
-                        enum: CHILD_CONCEPTS,
-                        description: 'Semantic concept derived from the NLU frame roles: Agent (Agent/Experiencer/Speaker/Addressee roles), Action (the lexical_unit event), Object (Patient/Theme/Object/Instrument/Beneficiary), Context (Location/Time/scenario/background), Element (anything else). Every element, including nested children, must carry one.',
+                    id: ID_PROP,
+                    concept: CONCEPT_PROP,
+                    children: {
+                        type: 'array',
+                        items: {
+                            type: 'object',
+                            properties: {
+                                id: ID_PROP,
+                                concept: CONCEPT_PROP,
+                                children: { type: 'array', items: { type: 'object' } },
+                            },
+                            required: ['id', 'concept'],
+                        },
                     },
-                    children: { type: 'array', items: { type: 'object' } },
                 },
                 required: ['id', 'concept'],
             },
@@ -285,6 +304,25 @@ You MUST invoke the compose_pictogram tool with both \`elements\` and \`prompt\`
 
 // ── Spatial prompt regen (prompt-only, user-initiated) ───────────────────────
 
+// Collect every element id in the tree (root + all nested children).
+const collectIds = (els: VisualElement[]): string[] => {
+    const ids: string[] = [];
+    const walk = (list: VisualElement[]) => {
+        for (const el of list) {
+            if (el?.id) ids.push(el.id);
+            if (el.children?.length) walk(el.children);
+        }
+    };
+    walk(Array.isArray(els) ? els : []);
+    return ids;
+};
+
+// ponytail: substring check — a shorter id contained in a longer one reads as
+// present. Acceptable for a warn/retry heuristic; tighten to word-boundary if
+// element ids start colliding.
+const missingIds = (prompt: string, ids: string[]): string[] =>
+    ids.filter(id => !prompt.includes(id));
+
 export const generateSpatialPrompt = async (
     nlu: NLUData,
     elements: VisualElement[],
@@ -293,6 +331,7 @@ export const generateSpatialPrompt = async (
 ): Promise<string> => {
     if (!nlu) throw new Error('NLU data is required — run COMPRENDER first');
     const targetLang = nlu.lang || config?.lang || 'es-419';
+    const allIds = collectIds(elements);
 
     onLog?.('info', `[PROMPT] Regenerando prompt espacial (${targetLang})…`);
 
@@ -300,23 +339,36 @@ export const generateSpatialPrompt = async (
 Generate a spatial composition prompt for the given visual elements.
 
 Language: **${targetLang}** — write the prompt in ${targetLang}.
-Wrap every element ID in single quotes: 'pictograma', 'persona'.
+You MUST reference EVERY element ID from the tree, each wrapped in single quotes
+(e.g. 'pictograma', 'persona'). Do not omit any element and do not invent ids
+that are not in the tree.
 Describe only TOPOLOGY and COMPOSITION. No style. 3–6 sentences.
 Reply with plain text — no JSON, no markdown.`;
 
     const spatialModel = config?.componerModel ?? config?.nluModel ?? DEFAULT_NLU_MODEL;
-    const response = await callNluModel(spatialModel, {
-        model: spatialModel,
-        max_tokens: 1024,
-        system,
-        messages: [{
-            role: 'user',
-            content: `NLU:\n${JSON.stringify(nlu, null, 2)}\n\nElements:\n${formatElements(elements)}\n\nGenerate the spatial prompt.`,
-        }],
-    });
+    const ask = async (extra = ''): Promise<string> => {
+        const response = await callNluModel(spatialModel, {
+            model: spatialModel,
+            max_tokens: 1024,
+            system,
+            messages: [{
+                role: 'user',
+                content: `NLU:\n${JSON.stringify(nlu, null, 2)}\n\nElements:\n${formatElements(elements)}\n\n${extra}Generate the spatial prompt.`,
+            }],
+        });
+        return response.content?.find(b => b.type === 'text')?.text?.trim() || '';
+    };
 
-    const textBlock = response.content?.find(b => b.type === 'text');
-    const prompt = textBlock?.text?.trim() || '';
+    let prompt = await ask();
+    let missing = missingIds(prompt, allIds);
+    if (missing.length) {
+        onLog?.('info', `[PROMPT] Faltan elementos (${missing.join(', ')}); reintentando…`);
+        const retry = await ask(`Your previous attempt omitted these element ids: ${missing.map(id => `'${id}'`).join(', ')}. Rewrite so EVERY element id appears.\n\n`);
+        if (retry) { prompt = retry; missing = missingIds(prompt, allIds); }
+    }
+    if (missing.length) {
+        onLog?.('error', `[PROMPT] El prompt no referencia: ${missing.join(', ')}`);
+    }
     onLog?.('success', `[PROMPT] Prompt generado: ${prompt.substring(0, 80)}…`);
     return prompt;
 };

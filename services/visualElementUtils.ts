@@ -26,6 +26,9 @@ export const CHILD_CONCEPTS: VisualConcept[] = VISUAL_CONCEPTS.filter(c => c !==
  *   root (old behaviour or cache miss), unwrap it transparently.
  * - Strip any 'Root' concept that leaks through (model non-compliance).
  * - Recurse into children.
+ * - Drop any node without a usable id. An id-less element cannot be cited,
+ *   produced, or reasoned about downstream, so it is discarded rather than
+ *   fabricated into an 'unknown' phantom that corrupts the stepwise pipeline.
  */
 export function normalizeElements(raw: any[]): VisualElement[] {
     if (!Array.isArray(raw)) return [];
@@ -34,16 +37,19 @@ export function normalizeElements(raw: any[]): VisualElement[] {
         const kids = raw[0].children || raw[0].elements;
         raw = Array.isArray(kids) ? kids : [];
     }
-    return raw.map(el => {
-        const node: VisualElement = { id: el.id || 'unknown' };
+    return raw.flatMap(el => {
+        const id = typeof el?.id === 'string' ? el.id.trim() : '';
+        if (!id) return [];
+        const node: VisualElement = { id };
         if ((CHILD_CONCEPTS as string[]).includes(el.concept)) {
             node.concept = el.concept as VisualConcept;
         }
         const kids = el.children || el.elements;
         if (Array.isArray(kids) && kids.length > 0) {
-            node.children = normalizeElements(kids);
+            const normKids = normalizeElements(kids);
+            if (normKids.length > 0) node.children = normKids;
         }
-        return node;
+        return [node];
     });
 }
 
