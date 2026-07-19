@@ -239,4 +239,11 @@ export const INITIAL_KEYFRAMES: KeyframeDefinition[] = [
   100% { opacity: 1; }`,
     description: 'Simple fade in',
   },
+  {
+    id: generateId(),
+    name: 'kf-fade-out',
+    keyframes: `0% { opacity: 1; }
+  100% { opacity: 0; }`,
+    description: 'Simple fade out (disappearance, negation)',
+  },
 ];
