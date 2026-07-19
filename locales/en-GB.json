@@ -366,6 +366,7 @@
     "importLegacyPlural": "Imported {count} nodes (Legacy Format).",
     "exportSuccess": "Project exported successfully (images included).",
     "importError": "Failed to import graph. Check the format.",
+    "storageWriteFailed": "Could not save changes: browser storage is full. Export the library so you don't lose work, then free up space.",
     "processingError": "Error processing phrase list.",
     "fileFormatError": "File format not recognised",
     "graphRestored": "Graph restored: {count} nodes.",

@@ -366,6 +366,7 @@
     "importLegacyPlural": "Importados {count} nodos (Formato Legacy).",
     "exportSuccess": "Proyecto exportado correctamente (imágenes incluidas).",
     "importError": "Fallo al importar grafo. Verifique el formato.",
+    "storageWriteFailed": "No se pudieron guardar los cambios: el almacenamiento del navegador está lleno. Exporte la librería para no perder trabajo y libere espacio.",
     "processingError": "Error al procesar el listado de frases.",
     "fileFormatError": "Formato de archivo no reconocido",
     "graphRestored": "Grafo restaurado: {count} nodos.",

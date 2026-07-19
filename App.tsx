@@ -243,6 +243,32 @@ function getDefaultStylePrompt(lang: string): string {
   return DEFAULT_STYLE_PROMPTS[lang] || DEFAULT_STYLE_PROMPTS['es-419'];
 }
 
+/**
+ * Baseline config every library starts from.
+ *
+ * A library's stored config is merged OVER this, never over the previously
+ * active config: libraryService.createLibrary only persists a few fields
+ * (lang, license, visualStylePrompt, name), so merging over `prev` left every
+ * unstored field — svgStyleDefs among them — inherited from whichever library
+ * happened to be open before. New libraries silently adopted the previous
+ * library's palette. Merging over this constant keeps libraries self-contained.
+ */
+const DEFAULT_APP_CONFIG: GlobalConfig = {
+  lang: 'es-419',
+  generationModel: DEFAULT_GENERATION_MODEL,
+  name: 'PICTOS.NET',
+  credits: '',
+  license: 'CC BY 4.0',
+  visualStylePrompt: getDefaultStylePrompt('es-419'),
+  geoContext: { lat: '-33.0245', lng: '-71.5518', region: 'Viña del Mar, CL' },
+
+  svgStyleDefs: INITIAL_STYLES,
+  svgKeyframes: INITIAL_KEYFRAMES,
+  recording: { enabled: false },
+  paletteColors: DEFAULT_PALETTE,
+  advancedConfigOpen: false,
+};
+
 interface AppProps {
   authUser?: { email: string; user_metadata?: { full_name?: string; avatar_url?: string } } | null;
 }
@@ -270,21 +296,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
   const [viewingLibraryHome, setViewingLibraryHome] = useState(true);
   const [libraryIndex, setLibraryIndex] = useState<LibraryMeta[]>([]);
   const [sortBy, setSortBy] = useState<'alphabetical' | 'completeness'>('alphabetical');
-  const [config, setConfig] = useState<GlobalConfig>({
-    lang: 'es-419',
-    generationModel: DEFAULT_GENERATION_MODEL,
-    name: 'PICTOS.NET',
-    credits: '',
-    license: 'CC BY 4.0',
-    visualStylePrompt: getDefaultStylePrompt('es-419'),
-    geoContext: { lat: '-33.0245', lng: '-71.5518', region: 'Viña del Mar, CL' },
-
-    svgStyleDefs: INITIAL_STYLES,
-    svgKeyframes: INITIAL_KEYFRAMES,
-    recording: { enabled: false },
-    paletteColors: DEFAULT_PALETTE,
-    advancedConfigOpen: false,
-  });
+  const [config, setConfig] = useState<GlobalConfig>(DEFAULT_APP_CONFIG);
   const [modelChangeWarning, setModelChangeWarning] = useState<{
     pendingModel: GenerationModel;
     affectedCount: number;
@@ -301,6 +313,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
     return localStorage.getItem('pictonet_high_contrast') === 'true';
   });
   const [statusAnnouncement, setStatusAnnouncement] = useState('');
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const announce = useCallback((msg: string) => {
     setStatusAnnouncement(msg);
@@ -490,7 +503,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
           } else {
             parsed.generationModel = migrateGenerationModel(parsed.generationModel);
           }
-          setConfig(parsed);
+          setConfig({ ...DEFAULT_APP_CONFIG, ...parsed });
         } catch (e) { console.error('Failed to load config', e); }
       }
 
@@ -588,8 +601,12 @@ const App: React.FC<AppProps> = ({ authUser }) => {
           language: config.lang,
         });
         setLibraryIndex(libraryService.getLibraryIndex());
+        setSaveError(null);
       } catch (error) {
+        // A failed write means edits are NOT persisted — surface it, don't
+        // swallow it. Most likely the localStorage quota is exhausted.
         console.error('[save] library storage write failed:', error);
+        setSaveError(t('messages.storageWriteFailed'));
       }
 
       // 4. Preview thumbnails → localStorage (async, cosmetic, never blocks)
@@ -734,7 +751,10 @@ const App: React.FC<AppProps> = ({ authUser }) => {
       const savedRows = libraryService.getLibraryRows(id);
       const savedConfig = libraryService.getLibraryConfig(id);
       setRows(savedRows);
-      if (savedConfig) setConfig(prev => ({ ...prev, ...savedConfig }));
+      // Merge over the baseline, NOT over prev — otherwise fields the library
+      // never stored (svgStyleDefs, paletteColors, …) leak in from the
+      // previously open library.
+      setConfig(savedConfig ? { ...DEFAULT_APP_CONFIG, ...savedConfig } : DEFAULT_APP_CONFIG);
 
       // Merge IDB binaries (SVGs / bitmaps) asynchronously after the sync load.
       Promise.all([
@@ -1386,7 +1406,9 @@ const App: React.FC<AppProps> = ({ authUser }) => {
 
         // Apply all state changes in one batch so the save effect sees the
         // correct activeLibraryId alongside the new rows and config.
-        if (pendingConfig) setConfig(prev => ({ ...prev, ...pendingConfig! }));
+        // Baseline, not prev: this path runs openLibrary with skipRowLoad, so
+        // it is the only place the new library's config is applied.
+        setConfig(pendingConfig ? { ...DEFAULT_APP_CONFIG, ...pendingConfig } : DEFAULT_APP_CONFIG);
         setRows(typedRows);
         if (Array.isArray(data.sequences) && data.sequences.length > 0) {
           setSequences((data.sequences as Sequence[]).map(seq => ({ ...seq, libraryId: newLib.id })));
@@ -3816,6 +3838,17 @@ const App: React.FC<AppProps> = ({ authUser }) => {
       <div aria-live="polite" aria-atomic="true" className="sr-only">
         {statusAnnouncement}
       </div>
+
+      {/* Persistent banner when a library save fails (e.g. localStorage quota).
+          role="alert" so screen readers announce it; dismissible by the user. */}
+      {saveError && (
+        <div role="alert" className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[100] max-w-lg w-[calc(100%-2rem)] flex items-start gap-3 bg-red-600 text-white px-4 py-3 shadow-2xl rounded">
+          <span className="flex-1 text-sm">{saveError}</span>
+          <button onClick={() => setSaveError(null)} className="shrink-0 text-white/80 hover:text-white" aria-label={t('actions.close')}>
+            <X size={16} />
+          </button>
+        </div>
+      )}
     </div>
   );
 };
