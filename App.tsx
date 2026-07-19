@@ -548,8 +548,25 @@ const App: React.FC<AppProps> = ({ authUser }) => {
     loadData();
   }, []);
 
+  // Persistence is debounced so opening a row — which starts a recording
+  // session and thus mutates `rows` — no longer serialises the whole library
+  // to localStorage synchronously on the click (the source of the row-open
+  // lag, which grew with the intervention log). Writes coalesce; switching or
+  // closing a library, and page hide, flush any pending write first.
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingSaveRef = useRef<(() => void) | null>(null);
+  const flushPendingSave = useCallback(() => {
+    if (saveTimerRef.current) { clearTimeout(saveTimerRef.current); saveTimerRef.current = null; }
+    const fn = pendingSaveRef.current;
+    pendingSaveRef.current = null;
+    fn?.();
+  }, []);
+
   useEffect(() => {
     if (!isInitialized) return;
+    const doSave = () => {
+      saveTimerRef.current = null;
+      pendingSaveRef.current = null;
 
     // 1. Metadata → scoped localStorage (synchronous, always runs first)
     if (activeLibraryId) {
@@ -622,7 +639,20 @@ const App: React.FC<AppProps> = ({ authUser }) => {
       });
       svgRowIdsRef.current = currentSvgIds;
     }
+    };
+    pendingSaveRef.current = doSave;
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(doSave, 300);
+    return () => { if (saveTimerRef.current) { clearTimeout(saveTimerRef.current); saveTimerRef.current = null; } };
   }, [rows, isInitialized, config, activeLibraryId]);
+
+  // Flush any pending debounced save when the tab is hidden/closed so a recent
+  // edit is never lost to the debounce window.
+  useEffect(() => {
+    const onHide = () => flushPendingSave();
+    window.addEventListener('pagehide', onHide);
+    return () => window.removeEventListener('pagehide', onHide);
+  }, [flushPendingSave]);
 
   /**
    * Recupera los bitmaps de una librería derivada de plantilla cuando
@@ -693,6 +723,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
   }, []);
 
   const openLibrary = useCallback((id: string, { skipRowLoad = false }: { skipRowLoad?: boolean } = {}) => {
+    flushPendingSave(); // persist the current library before switching
     localStorage.setItem(libraryService.ACTIVE_LIBRARY_KEY, id);
 
     if (!skipRowLoad) {
@@ -742,6 +773,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
   }, []);
 
   const closeLibrary = useCallback(() => {
+    flushPendingSave(); // persist the current library before closing
     localStorage.removeItem(libraryService.ACTIVE_LIBRARY_KEY);
     // Clear the SVG-row tracker so the save effect for the next library
     // does not attempt to delete SVGs belonging to this (now closed) library.
@@ -3788,6 +3820,44 @@ const App: React.FC<AppProps> = ({ authUser }) => {
   );
 };
 
+/**
+ * Auto-growing textarea.
+ *
+ * Sizing a textarea means writing `height:auto` and then reading `scrollHeight`,
+ * which forces a synchronous layout. Doing that inside each component
+ * interleaves write→read→write→read, costing one full layout PER textarea.
+ * Expanding a row mounts every NLU field at once, which profiled at 1.36 s of
+ * forced reflow (DevTools "Forced reflow", 1305 ms Rendering).
+ *
+ * So measurement is batched across all pending textareas: reset them all, read
+ * them all (one layout for the batch), then write them all. It runs inside a
+ * rAF so it lands after paint and never blocks the interaction.
+ */
+const autoGrowPending = new Set<HTMLTextAreaElement>();
+let autoGrowScheduled = false;
+const scheduleAutoGrow = (el: HTMLTextAreaElement) => {
+  autoGrowPending.add(el);
+  if (autoGrowScheduled) return;
+  autoGrowScheduled = true;
+  requestAnimationFrame(() => {
+    autoGrowScheduled = false;
+    const els = [...autoGrowPending].filter(e => e.isConnected);
+    autoGrowPending.clear();
+    if (els.length === 0) return;
+    for (const e of els) e.style.height = 'auto';          // invalidate all
+    const heights = els.map(e => e.scrollHeight);          // one layout
+    els.forEach((e, i) => { e.style.height = `${heights[i]}px`; });
+  });
+};
+
+const AutoGrowTextarea: React.FC<React.TextareaHTMLAttributes<HTMLTextAreaElement>> = ({ value, ...rest }) => {
+  const ref = React.useRef<HTMLTextAreaElement>(null);
+  React.useEffect(() => {
+    if (ref.current) scheduleAutoGrow(ref.current);
+  }, [value]);
+  return <textarea ref={ref} value={value} {...rest} />;
+};
+
 const RowComponent: React.FC<{
   row: RowData; isOpen: boolean; setIsOpen: (v: boolean) => void;
   onUpdate: (u: any) => void; onProcess: (s: any) => Promise<boolean>;
@@ -3829,14 +3899,12 @@ const RowComponent: React.FC<{
           </div>
         )}
         <div className="pl-6 py-6 pr-6 flex-1 flex items-center gap-6">
-          <textarea
+          <AutoGrowTextarea
             value={sentenceCase(row.UTTERANCE)}
             onChange={e => onUpdate({ UTTERANCE: e.target.value, nluStatus: 'outdated', visualStatus: 'outdated', bitmapStatus: 'outdated' })}
             onBlur={() => onSettleField?.()}
             onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); (e.currentTarget as HTMLTextAreaElement).blur(); } }}
             rows={1}
-            ref={el => { if (el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; } }}
-            onInput={e => { const el = e.target as HTMLTextAreaElement; el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }}
             className="flex-1 w-full bg-transparent border-none outline-none focus:ring-0 utterance-title text-slate-900 font-normal resize-none overflow-hidden hover:bg-amber-50 hover:cursor-text focus:bg-amber-50 transition-colors rounded self-center line-clamp-2"
             style={{ lineHeight: '1.5rem' }}
           />
@@ -3883,7 +3951,7 @@ const RowComponent: React.FC<{
 
       {isOpen && (
         <>
-          <div id={`row-detail-${row.id}`} className="p-8 border-t bg-slate-50/30 grid grid-cols-1 lg:grid-cols-3 gap-10 max-h-[calc(100vh-7.5rem)] overflow-y-auto lg:overflow-y-hidden snap-y snap-mandatory lg:snap-none">
+          <div id={`row-detail-${row.id}`} className="p-8 border-t bg-slate-50/30 grid grid-cols-1 lg:grid-cols-3 gap-10 animate-in slide-in-from-top-2 max-h-[calc(100vh-7.5rem)] overflow-y-auto lg:overflow-y-hidden snap-y snap-mandatory lg:snap-none">
             <StepBox id="block-nlu" label={t('pipeline.understand')} status={row.nluStatus} onRegen={() => onProcess('nlu')} onStop={onStop} onFocus={() => onFocus('nlu')} duration={row.nluDuration}>
               <SmartNLUEditor
                 data={row.NLU}
@@ -3915,6 +3983,7 @@ const RowComponent: React.FC<{
                       setElementsManuallyEdited(true);
                     }} onRecordOp={(op, before, after) => onRecordElementOp?.(op, before, after)} />
                     {elementsManuallyEdited && row.NLU && row.elements && row.elements.length > 0 && (
+                      <div className="mt-3 flex justify-end animate-in fade-in slide-in-from-top-2 duration-300">
                       <button
                         onMouseDown={async (e) => {
                           e.preventDefault();
@@ -3926,7 +3995,7 @@ const RowComponent: React.FC<{
                           setPromptManuallyEdited(false);
                         }}
                         disabled={isRegeneratingPrompt}
-                        className="mt-3 w-full py-2 px-3 bg-violet-950 hover:bg-black text-white transition-all flex items-center justify-end gap-2 text-xs font-bold uppercase tracking-widest shadow-lg disabled:opacity-50 disabled:cursor-not-allowed animate-in fade-in slide-in-from-top-2 duration-300"
+                        className="py-2 px-3 bg-violet-950 hover:bg-black text-white transition-all flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-widest shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                         title={t('actions.regeneratePrompt')}
                       >
                         {isRegeneratingPrompt ? (
@@ -3941,12 +4010,13 @@ const RowComponent: React.FC<{
                           </>
                         )}
                       </button>
+                      </div>
                     )}
                   </div>
                   <div id="spatial-prompt" className={`flex-1 mt-6 border-t pt-6 border-slate-200 flex flex-col gap-3 transition-colors ${elementsManuallyEdited ? 'bg-amber-50 rounded-lg px-3' : ''}`}>
                     <label className="text-xs font-medium uppercase text-slate-500 block tracking-widest">{t('editor.spatialLogic')}</label>
                     {isPromptEditing ? (
-                      <textarea
+                      <AutoGrowTextarea
                         value={row.prompt || ""}
                         onChange={e => {
                           onUpdate({ prompt: e.target.value, bitmapStatus: 'outdated' });
@@ -3954,8 +4024,6 @@ const RowComponent: React.FC<{
                         }}
                         onBlur={() => { setIsPromptEditing(false); onSettleField?.(); }}
                         autoFocus
-                        ref={el => { if (el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; } }}
-                        onInput={e => { const t = e.target as HTMLTextAreaElement; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }}
                         className="w-full min-h-[100px] text-xs text-slate-600 leading-loose p-3 bg-slate-50 rounded border border-slate-200 outline-none focus:ring-2 focus:ring-violet-300 resize-none overflow-hidden"
                       />
                     ) : (
@@ -4232,25 +4300,10 @@ const SmartNLUEditor: React.FC<{
         {Object.entries(dict || {}).map(([key, value]) => (
           <div key={key} className="flex gap-2 items-start">
             <span className={`font-mono text-slate-500 pt-1 shrink-0 break-words ${narrow ? 'w-16' : 'w-28'}`}>{formatKey(key)}</span>
-            <textarea
+            <AutoGrowTextarea
               rows={1}
               value={value}
-              onChange={e => {
-                updateField([path, key], e.target.value);
-                e.target.style.height = 'auto';
-                e.target.style.height = e.target.scrollHeight + 'px';
-              }}
-              onInput={e => {
-                const t = e.target as HTMLTextAreaElement;
-                t.style.height = 'auto';
-                t.style.height = t.scrollHeight + 'px';
-              }}
-              ref={el => {
-                if (el) {
-                  el.style.height = 'auto';
-                  el.style.height = el.scrollHeight + 'px';
-                }
-              }}
+              onChange={e => updateField([path, key], e.target.value)}
               className="flex-1 min-w-0 bg-white border-b outline-none focus:border-violet-400 resize-none overflow-hidden"
             />
           </div>
@@ -4955,6 +5008,7 @@ const FocusViewModal: React.FC<{
               setElementsManuallyEdited(true);
             }} onRecordOp={(op, before, after) => onRecordElementOp?.(op, before, after)} />
             {elementsManuallyEdited && row.NLU && row.elements && row.elements.length > 0 && (
+              <div className="mt-3 flex justify-end animate-in fade-in slide-in-from-top-2 duration-300">
               <button
                 onMouseDown={async (e) => {
                   e.preventDefault();
@@ -4965,7 +5019,7 @@ const FocusViewModal: React.FC<{
                   setElementsManuallyEdited(false);
                 }}
                 disabled={isRegeneratingPrompt}
-                className="mt-3 w-full py-2 px-3 bg-violet-950 hover:bg-black text-white transition-all flex items-center justify-end gap-2 text-xs font-bold uppercase tracking-widest shadow-lg disabled:opacity-50 disabled:cursor-not-allowed animate-in fade-in slide-in-from-top-2 duration-300"
+                className="py-2 px-3 bg-violet-950 hover:bg-black text-white transition-all flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-widest shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 title={t('actions.regeneratePrompt')}
               >
                 {isRegeneratingPrompt ? (
@@ -4980,6 +5034,7 @@ const FocusViewModal: React.FC<{
                   </>
                 )}
               </button>
+              </div>
             )}
           </div>
           <div className={`flex flex-col lg:border-l lg:pl-6 border-slate-200 transition-colors ${elementsManuallyEdited ? 'bg-amber-50 rounded-lg p-4 lg:border-l-amber-200' : ''}`}>

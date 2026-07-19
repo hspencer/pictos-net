@@ -230,6 +230,18 @@ surface ElementTreeView {
     -- panel receives a pale yellow background (amber-50) to signal
     -- that the prompt no longer reflects the current element tree.
 
+  @guidance "regenerate prompt button"
+    -- The "regenerate spatial prompt" button appears below the tree ONLY
+    --   after the user edits the element tree (add / remove / rename /
+    --   reorder). It is not shown on a pristine tree, and editing the
+    --   prompt text alone does not reveal it.
+    -- It stays visible until a regeneration completes, then hides again
+    --   (a fresh prompt now reflects the current tree).
+    -- The button is sized to its own content — NOT stretched to the full
+    --   panel width — and is aligned to the right edge of the panel.
+    -- Triggering it runs the regeneration described in
+    --   visual-reasoning.allium (Phase2_RegenerateSpatialPrompt).
+
   @guidance "subtree drag"
     -- When dragging a parent element, its children move with it visually.
     -- The entire subtree appears at reduced opacity during drag.
