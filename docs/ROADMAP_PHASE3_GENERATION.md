@@ -1,7 +1,7 @@
 # Roadmap: Fase 3 (PRODUCIR) — Modelos y Consistencia Visual
 
 Creado: 2026-06-08
-Estado: Exploración activa
+Estado: Referencia activa (algunas líneas de trabajo abiertas)
 
 ## Contexto
 
@@ -19,7 +19,7 @@ Desde v2.0.1 la Fase 3 soporta múltiples modelos de generación: Recraft V4.1 (
 | `gemini-3-pro-image` | bitmap | ídem | 1 u/llamada |
 | `gemini-2.5-flash-image` | bitmap | ídem (legacy, mantenido por compatibilidad) | 1 u/llamada |
 
-Default activo: `gemini-3.1-flash-image`
+Default activo: `gemini-2.5-flash-image`
 
 ---
 

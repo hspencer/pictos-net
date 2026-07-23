@@ -1,12 +1,10 @@
 # Plan de Implementacion SSO + Proxy API
 
-Branch: `sso` (desde `dev`)
-Deploy de prueba: `pictos-next.netlify.app` (branch `lab`)
-Merge final: `lab` -> `dev` -> `main`
+> **Estado: Implementado.** Este plan fue ejecutado y está en producción. El proxy con Netlify Identity, JWT y Google SSO está activo. Se conserva como referencia histórica. Para el estado actual, ver [ARCHITECTURE.md](./ARCHITECTURE.md) y [SECURITY.md](./SECURITY.md).
 
 ## Resumen
 
-Mover las llamadas a Gemini desde el cliente a Netlify Functions (proxy),
+Mover las llamadas a servicios de IA desde el cliente a Netlify Functions (proxy),
 protegidas por autenticacion via Netlify Identity con Google SSO.
 
 ## Arquitectura actual vs. propuesta

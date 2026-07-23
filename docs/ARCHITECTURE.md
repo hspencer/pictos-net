@@ -2,16 +2,14 @@
 
 **Pictogramas generativos para la Comunicación Aumentativa y Alternativa (CAA)**
 
-Actualizado: 2026-03-05
-
----
+Actualizado: 2026-07-23
 
 ## Tabla de contenidos
 
 1. [Visión general](#1-visión-general)
 2. [Estructura del repositorio](#2-estructura-del-repositorio)
 3. [Stack tecnológico](#3-stack-tecnológico)
-4. [Pipeline de generación (5 fases)](#4-pipeline-de-generación-5-fases)
+4. [Pipeline de generación](#4-pipeline-de-generación)
 5. [Modelos de datos](#5-modelos-de-datos)
 6. [Servicios](#6-servicios)
 7. [Componentes](#7-componentes)
@@ -19,43 +17,42 @@ Actualizado: 2026-03-05
 9. [Configuración](#9-configuración)
 10. [Build y deployment](#10-build-y-deployment)
 
----
-
 ## 1. Visión general
 
-PICTOS.NET transforma intenciones comunicativas en lenguaje natural en pictogramas SVG semánticos mediante un pipeline de razonamiento en 5 fases. Es una herramienta de investigación doctoral orientada a profesionales de la CAA (fonoaudiólogos, educadores especiales, psicólogos) que trabajan con personas con diversidad funcional comunicativa.
+PICTOS.NET transforma intenciones comunicativas en lenguaje natural en pictogramas SVG semánticos mediante un pipeline de razonamiento en 4 fases. Es una herramienta de investigación doctoral orientada a profesionales de la CAA (fonoaudiólogos, educadores especiales, psicólogos) que trabajan con personas con diversidad funcional comunicativa.
 
 ### Principios de diseño
 
 - **Explicabilidad**: cada fase es visible, editable y regenerable de forma independiente
-- **Control local**: todo el procesamiento pesado (vectorización) ocurre en el navegador via WASM
 - **Semántica persistente**: los SVG exportados son autocontenidos con metadatos accesibles embebidos
-- **Privacidad**: datos almacenados localmente (IndexedDB), sin servidor propio
-
----
+- **Privacidad**: datos almacenados localmente (IndexedDB), sin servidor propio de datos
+- **Seguridad por diseño**: ninguna API key llega al navegador; todas las llamadas a servicios externos pasan por Netlify Functions autenticadas
 
 ## 2. Estructura del repositorio
 
 ```
 pictos-net/
 ├── App.tsx                        # Componente raíz, orquestación del pipeline
-├── index.tsx                      # Entry point React
-├── index.html                     # Template HTML (Tailwind CDN, fuentes)
 ├── types.ts                       # Tipos TypeScript globales
 ├── vite.config.ts
 ├── tailwind.config.js
 ├── package.json
 │
 ├── services/
-│   ├── geminiService.ts           # Integración Gemini API (NLU, imagen, composición)
-│   ├── vtracerService.ts          # Vectorización WASM (vtracer visioncortex)
-│   ├── svgStructureService.ts     # Estructuración semántica SVG (Gemini multimodal)
+│   ├── claudeService.ts           # Fases 1+2 (NLU, composición) y spatial regen
+│   ├── recraftService.ts          # Fase 3 (SVG vectorial nativo)
+│   ├── svgStructureService.ts     # Fase 4 (estructuración semántica)
+│   ├── aiClient.ts                # Proxy siempre-server: callClaude(), callRecraft()
+│   ├── vtracerService.ts          # VTracer WASM (presente; no en cascada automática)
 │   ├── indexedDBService.ts        # Capa de persistencia (IndexedDB v3)
-│   ├── svgStyles.ts               # Generación de CSS para SVG
+│   ├── svgMergeCandidates.ts      # Detección de contornos dobles (módulo puro)
+│   ├── svgPathPolish.ts           # Pulido geométrico determinístico (módulo puro)
+│   ├── svgTreeUtils.ts            # Utilidades de árbol SVG (módulo puro)
+│   ├── svgGeometryUtils.ts        # Geometría SVG (módulo puro)
 │   └── geocodingService.ts        # Geocodificación para contexto geográfico
 │
 ├── stores/
-│   └── svgEditorStore.ts          # Estado del editor SVG (zustand-like, pure React)
+│   └── svgEditorStore.ts          # Zustand: overrideMap, libraryValues, history, viewport
 │
 ├── hooks/
 │   ├── useDialogA11y.ts           # Focus trap + Escape para modales
@@ -66,7 +63,7 @@ pictos-net/
 │   ├── SVGGenerator.tsx           # UI de generación SVG por fila
 │   ├── SVGThumbnail.tsx           # Miniatura de pictograma
 │   ├── GeoAutocomplete.tsx        # Input de contexto geográfico
-│   ├── VectorizerModal.tsx        # Modal bitmap→SVG (vtracer WASM)
+│   ├── VectorizerModal.tsx        # Modal bitmap→SVG (vtracer WASM, acceso manual)
 │   ├── PictoForge/
 │   │   └── StyleEditor.tsx        # Editor de estilos CSS para SVG
 │   ├── SVGEditor/
@@ -96,22 +93,22 @@ pictos-net/
 │   ├── en-GB.json                 # Traducciones inglés
 │   └── es-419.json                # Traducciones español latinoamericano
 │
+├── netlify/
+│   ├── functions/                 # Proxies server-side (Claude, Recraft, Gemini, quota)
+│   └── edge-functions/            # (reservado)
+│
 ├── schemas/                       # Git submodules
-│   ├── nlu-schema/                # mediafranca/nlu-schema
-│   ├── mf-svg-schema/             # mediafranca/mf-svg-schema
-│   └── ICAP/                      # mediafranca/ICAP
+│   ├── nlu-schema/                # NLU v1.0 JSON schema + tests
+│   ├── mf-svg-schema/             # Esquema para pictogramas SVG estructurados
+│   └── ICAP/                      # Corpus ICAP-50
 │
 ├── public/
 │   ├── wasm/vtracer/              # WASM binary servido estáticamente
 │   ├── libraries/                 # Bibliotecas de ejemplo (.json)
 │   └── schemas/                   # Copias de schemas para acceso web
 │
-├── docs/                          # Documentación técnica
-└── data/
-    └── canonicalData.ts           # Corpus ICAP-50 (fallback offline)
+└── docs/                          # Documentación técnica
 ```
-
----
 
 ## 3. Stack tecnológico
 
@@ -119,21 +116,22 @@ pictos-net/
 |------|-----------|---------|
 | UI Framework | React | 19 |
 | Tipado | TypeScript | ~5.8 |
-| Build | Vite | ^6.2 |
-| Estilos | Tailwind CSS (CDN) | — |
-| Iconos | Lucide React | ^0.562 |
+| Build | Vite | ^6 |
+| Estilos | Tailwind CSS | 3.4 |
+| Iconos | Lucide React | — |
 | Drag & drop | @dnd-kit | — |
 | Compresión de descarga | JSZip | — |
-| AI / LLM | Google Gemini API (`@google/genai`) | ^1.38 |
-| Vectorización | vtracer-webapp WASM (visioncortex) | 0.4.0 |
-| Persistencia | IndexedDB (nativo) | — |
+| AI — fases 1, 2, 4 | Anthropic Claude (Haiku 4.5 / Sonnet 4.6) | via proxy |
+| AI — fase 3 | Recraft V4.1 Vector | via proxy |
+| AI — fase 3 alternativo | Gemini imagen (Vertex AI) | via proxy |
+| Vectorización local | vtracer-webapp WASM (visioncortex) | 0.4.0 |
+| Persistencia | IndexedDB (nativo) + localStorage | — |
+| Hosting / Functions | Netlify | — |
 | i18n | Hook personalizado | — |
 
----
+## 4. Pipeline de generación
 
-## 4. Pipeline de generación (4 fases)
-
-La cascada automática abarca las fases (1)(2)(3). La fase (4) es opcional e iniciada manualmente por el usuario. La antigua fase VECTORIZAR (vtracer) fue eliminada de la cascada: Recraft V4.1 entrega SVG nativo.
+3 fases automáticas (1→2→3) + 1 fase opcional iniciada por el usuario (4). La antigua fase VECTORIZAR (VTracer) fue eliminada de la cascada: Recraft V4.1 entrega SVG nativo; VTracer sigue disponible manualmente.
 
 ```mermaid
 flowchart TD
@@ -160,24 +158,20 @@ flowchart TD
 Cada fila acumula los resultados progresivamente:
 
 ```
-RowData = { utterance, NLU, elements, prompt, bitmap, rawSvg, structuredSvg }
+RowData = { utterance, NLU, elements, prompt, bitmap?, rawSvg, structuredSvg }
 ```
 
 Ningún campo se sobreescribe automáticamente al regenerar una fase posterior. El usuario controla qué fases regenerar.
 
 ### Invalidación en cascada
 
-Al editar un campo, los pasos posteriores se marcan como `outdated`:
-
 | Edición | Invalida |
 |---------|---------|
-| utterance | NLU → elements → prompt → bitmap |
-| NLU | elements → prompt → bitmap |
-| elements | prompt → bitmap |
-| prompt | bitmap |
-| bitmap | rawSvg → structuredSvg |
-
----
+| utterance | NLU → elements → prompt → rawSvg |
+| NLU | elements → prompt → rawSvg |
+| elements | prompt → rawSvg |
+| prompt | rawSvg |
+| rawSvg | structuredSvg |
 
 ## 5. Modelos de datos
 
@@ -190,17 +184,15 @@ interface RowData {
   NLU?: NLUData;
   elements?: VisualElement[];
   prompt?: string;
-  bitmap?: string;               // base64 data URL (PNG en memoria, JPEG en IndexedDB)
-  rawSvg?: string;               // output vtracer, sin semántica
+  bitmap?: string;               // base64 (solo modelos Gemini imagen)
+  rawSvg?: string;               // output fase 3, sin semántica
   structuredSvg?: string;        // output mf-svg-schema, autocontenido
   shared?: boolean;
 
-  // Estado por fase
   nluStatus: StepStatus;
   visualStatus: StepStatus;
   bitmapStatus: StepStatus;
 
-  // Duración de procesamiento (segundos)
   nluDuration?: number;
   visualDuration?: number;
   bitmapDuration?: number;
@@ -209,16 +201,13 @@ interface RowData {
 type StepStatus = 'idle' | 'processing' | 'completed' | 'error' | 'outdated';
 ```
 
-### NLUData (nlu-schema v2.0)
+### NLUData (nlu-schema v1.0)
 
 ```typescript
 interface NLUData {
   utterance: string;
   lang: string;
-  metadata: {
-    speech_act: string;
-    intent: string;
-  };
+  metadata: { speech_act: string; intent: string };
   domain: string;
   frame_name: string;
   frame_label: string;
@@ -240,18 +229,20 @@ interface NLUData {
 
 ```typescript
 interface VisualElement {
-  id: string;                    // snake_case, sustantivo en el idioma del utterance
+  id: string;        // snake_case, sustantivo en el idioma del utterance
+  concept?: string;  // Root | Agent | Action | Object | Context | Element
   children?: VisualElement[];
 }
 ```
 
-### GlobalConfig
+### GlobalConfig (campos activos)
 
 ```typescript
 interface GlobalConfig {
   lang: string;                  // ISO 639 (ej: 'es-419')
-  aspectRatio: string;           // '1:1' | '3:4' | '4:3' | '9:16' | '16:9'
-  imageModel: 'flash' | 'pro';
+  uiLang: string;                // Idioma de la UI (independiente del NLU)
+  generationModel: string;       // Modelo fase 3 (default: 'gemini-2.5-flash-image')
+  phase5Model: string;           // Modelo fase 4 (default: 'claude-sonnet-4-6')
   author: string;
   license: string;
   visualStylePrompt: string;
@@ -262,97 +253,53 @@ interface GlobalConfig {
 }
 ```
 
----
-
 ## 6. Servicios
 
-### geminiService.ts
+### claudeService.ts
 
-Integración con la API de Google Gemini. Todas las llamadas usan `@google/genai`.
+Integración con la API de Anthropic (fases 1, 2 y regeneración de prompt). Todas las llamadas van vía `aiClient.callClaude()` al proxy `api-claude`.
 
-| Función | Modelo | Descripción |
-|---------|--------|-------------|
-| `generateNLU(utterance, onLog, config)` | `gemini-2.5-flash` | Análisis semántico NSM → NLUData |
-| `generateElements(nlu, config, onLog)` | `gemini-2.5-flash` | Visual Topology → VisualElement[] |
-| `generatePrompt(nlu, elements, config, onLog)` | `gemini-2.5-flash` | Spatial Articulation → string |
-| `generateImage(elements, prompt, row, config, onLog)` | `gemini-2.5-flash-image` / `gemini-3-pro-image-preview` | Bitmap PNG |
+| Función | Fase | Modelo |
+|---------|------|--------|
+| `generateNLU(utterance, config)` | 1 — COMPRENDER | Haiku 4.5 |
+| `generateElements(nlu, config)` | 2 — COMPONER | Haiku 4.5 |
+| `generateSpatialPrompt(nlu, elements, config)` | 2 — regen prompt | Haiku 4.5 |
 
-**Post-procesamiento de imagen:**
-```typescript
-// En memoria: PNG lossless 1024px
-const resized = await resizeImage(base64Image, 1024);
-// En IndexedDB: JPEG q=0.75 (compressForStorage en indexedDBService.ts)
-```
+### recraftService.ts
 
-### vtracerService.ts
+Integración con Recraft V4.1 Vector (fase 3). Las llamadas van vía background worker y poll:
 
-Vectorización local via WASM. El WASM es DOM-coupled: lee pixels de un `<canvas>` y escribe `<path>` directamente a un `<svg>`, ambos referenciados por ID.
+- `api-recraft-worker-background` — genera la imagen, escribe a Blob store
+- `api-recraft-poll` — el cliente sondea el resultado
 
-**APIs principales:**
-
-| Función | Descripción |
-|---------|-------------|
-| `traceInteractive(canvasId, svgId, config, onProgress, signal)` | API interactiva para VectorizerModal (renderizado progresivo) |
-| `vectorizeBitmap(base64, config, onProgress)` | API one-shot (crea elementos DOM temporales) |
-| `drawBitmapToCanvas(base64, canvasId)` | Dibuja bitmap en canvas, aplica downscale si >1024px |
-| `preloadWasm()` | Precarga el WASM (llamar antes de la primera conversión) |
-
-**VectorizerConfig:**
-
-```typescript
-interface VectorizerConfig {
-  mode?: 'polygon' | 'spline' | 'none';      // default: 'spline'
-  colorMode?: 'color' | 'bw';                // default: 'color'
-  hierarchical?: 'stacked' | 'cutout';       // default: 'stacked'
-  colorPrecision?: number;                   // 1-8, default: 6
-  layerDifference?: number;                  // 0-255, default: 16
-  filterSpeckle?: number;                    // 0-16, default: 4
-  cornerThreshold?: number;                  // grados, default: 60
-  lengthThreshold?: number;                  // 1-10, default: 4.0
-  spliceThreshold?: number;                  // grados, default: 45
-  pathPrecision?: number;                    // 1-8, default: 8
-}
-```
+Modelo: `recraftv4_1_vector` (default) y variantes. V4.1 no soporta `style_id` — la consistencia visual depende exclusivamente del prompt y `visualStylePrompt`.
 
 ### svgStructureService.ts
 
-Estructuración semántica del SVG crudo (fase 4). Documento de referencia completo: [ESTRUCTURAR.md](ESTRUCTURAR.md).
+Estructuración semántica del SVG crudo (fase 4). Referencia completa: [ESTRUCTURAR.md](ESTRUCTURAR.md).
 
-**Input:** `{ rawSvg, nlu, elements, utterance, config, referenceImage? }`
+Pipeline interno: pre-proceso local → una sola llamada de visión (`api-claude`) → ensamblaje local → pulido determinístico. La geometría nunca la escribe el modelo.
 
-**Proceso (una sola llamada de visión; la geometría nunca la escribe el modelo):**
-1. Pre-proceso local: `ensurePathIds` → `buildPathInventory` con anclas reales (`measurePathAnchors`: getBBox + cadena CTM + isPointInPath) → `detectMergeCandidates` (contornos dobles por IoU de bbox) → `rasterizeWithMarks` (marcas numeradas con anti-colisión y líneas guía)
-2. Llamada de visión con tool use forzado (`restructure_svg`): el modelo asigna path-ids a nodos semánticos, confirma candidatos de fusión y descarta ruido
-3. Ensamblaje local: `resolveMergeGeometry` (unión Martinez + refit a curvas), redes de seguridad (huérfanos reparentados, descartes no micro-blob revertidos, fallback plano) y `renderGroup` con `data-concept` tomado del árbol compuesto en fase 2
-4. Post-proceso: CSS filtrado a clases usadas, metadata mf-svg (incluye `visualDom`), `deriveChildIds`, `polishGeometry` (refit selectivo de paths polyline-pesados + redondeo de coordenadas)
+**Módulos puros testeables** (`node --test`): `svgMergeCandidates.ts`, `svgPathPolish.ts`, `svgTreeUtils.ts`, `svgGeometryUtils.ts`.
 
-**Módulos puros testeables** (sin imports, `node --test`): `svgMergeCandidates.ts`, `svgPathPolish.ts`, `svgTreeUtils.ts`, `svgGeometryUtils.ts`.
+### aiClient.ts
 
-**Funciones de eligibilidad:**
+Proxy siempre-server. Nunca llama a servicios externos directamente desde el navegador.
+
 ```typescript
-canVectorize(row): EligibilityResult          // siempre inelegible — VTracer eliminado
-canStructureSVG({ rawSvg, NLU, elements }): EligibilityResult
+callClaude(body)    // → /.netlify/functions/api-claude
+callRecraft(body)   // → /.netlify/functions/api-recraft-worker-background
 ```
 
 ### indexedDBService.ts
 
-Capa de persistencia. Base de datos `pictonet_storage` v3, tres stores:
+Base de datos `pictonet_storage` v3, tres stores:
 
-| Store | Contenido | Notas |
-|-------|-----------|-------|
-| `rows` | RowData sin campos binarios | Metadata del pipeline |
-| `bitmaps` | `{ id, bitmap: string }` | PNG→JPEG q=0.75 al escribir |
-| `svgs` | `{ id, rawSvg?, structuredSvg? }` | Sin compresión |
-
-**Funciones principales:**
-```typescript
-saveRows(rows)           getAllRows()
-saveBitmap(id, bitmap)   getBitmap(id)      deleteBitmap(id)
-saveSvgs(id, svgs)       getSvgs(id)        deleteSvgs(id)
-clearAllData()           getStorageEstimate()
-```
-
----
+| Store | Contenido |
+|-------|-----------|
+| `rows` | RowData sin campos binarios |
+| `bitmaps` | `{ id, bitmap: string }` — PNG→JPEG q=0.75 al escribir |
+| `svgs` | `{ id, rawSvg?, structuredSvg? }` |
 
 ## 7. Componentes
 
@@ -369,7 +316,7 @@ App.tsx
 ├── Main (#mainContent)
 │   ├── Home view (#home-view)
 │   └── List view (#list-view)
-│       └── RowComponent (#picto-row-{id}) × N
+│       └── RowComponent × N
 │           ├── row header (utterance, badges, thumbnail, cascade control)
 │           └── row detail (3 StepBoxes)
 │               ├── #block-nlu → SmartNLUEditor
@@ -384,24 +331,8 @@ App.tsx
     │   ├── SVGCanvas        — viewport zoom/pan
     │   ├── StylePanel       — propiedades y clases CSS
     │   └── StylePickerModal — selector de estilos de biblioteca
-    └── VectorizerModal      — vectorizador bitmap→SVG con controles vtracer
+    └── VectorizerModal      — vectorizador bitmap→SVG con controles vtracer (manual)
 ```
-
-### SVGEditorModal
-
-Editor semántico completo para `structuredSvg` o `rawSvg`. Organizado en tres paneles:
-
-- **Izquierda** (`#svg-editor-tree-panel`): SemanticTree — árbol de elementos SVG como capas editables
-- **Centro** (`#svg-editor-canvas`): SVGCanvas — viewport con zoom/pan, selección, bounding boxes
-- **Derecha** (`#svg-editor-properties-panel`): StylePanel — aplicar/quitar clases CSS, overrides locales, renombrar, eliminar
-
-El modelo de estilos sigue arquitectura de dos niveles documentada en `docs/CSS_STYLING_ARCHITECTURE.md`.
-
-### VectorizerModal
-
-Modal fullscreen para la fase (4). Panel izquierdo con controles vtracer (presets, curve mode, color mode, sliders). Panel derecho dividido: original bitmap (canvas) | SVG result (renderizado progresivo).
-
----
 
 ## 8. Almacenamiento
 
@@ -410,18 +341,18 @@ Modal fullscreen para la fase (4). Panel izquierdo con controles vtracer (preset
 **IndexedDB** (`pictonet_storage` v3) — datos binarios y pipeline:
 - Filas (metadata sin binarios), bitmaps, SVGs
 - Persiste entre sesiones, sobrevive recarga de página
-- Los bitmaps se comprimen a JPEG q=0.75 al guardar (solo para storage, no afecta al pipeline)
+- Los bitmaps se comprimen a JPEG q=0.75 al guardar
 
 **localStorage** — solo configuración:
 - Clave: `pictonet_v19_config`
-- Contiene: `GlobalConfig` (lang, modelo, estilos, geo, etc.)
+- Contiene: `GlobalConfig`
 
 ### Exportación
 
-**Exportar librería** → JSON con todos los rows + bitmaps base64 embebidos
-**Exportar SVGs** → ZIP con todos los `structuredSvg` como archivos `.svg` individuales
+- **Exportar librería** → JSON con todos los rows + bitmaps base64 embebidos
+- **Exportar SVGs** → ZIP con todos los `structuredSvg` como archivos `.svg` individuales
 
-### Limpiar datos (desarrollo / troubleshooting)
+### Limpiar datos (troubleshooting)
 
 ```javascript
 // Consola del navegador
@@ -429,42 +360,26 @@ indexedDB.deleteDatabase('pictonet_storage')
 localStorage.removeItem('pictonet_v19_config')
 ```
 
-O desde DevTools → Application → Storage → Clear site data.
-
----
-
 ## 9. Configuración
 
 ### Variables de entorno
 
 ```bash
-GEMINI_API_KEY=<Google Generative AI API Key>
+ANTHROPIC_API_KEY=<Anthropic API Key>
+RECRAFT_API_KEY=<Recraft API Key>
+GOOGLE_SERVICE_ACCOUNT_JSON=<JSON en una línea — Vertex AI>
 ```
 
-Necesaria en `.env` para desarrollo local. En producción se inyecta via GitHub Actions secret.
-
-WARNING: La API key queda embebida en el bundle compilado. Ver `docs/SECURITY.md`.
-
-### vite.config.ts
-
-```typescript
-{
-  server: { port: 3000, host: '0.0.0.0' },
-  plugins: [react()],
-  define: {
-    'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-    'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
-  }
-}
-```
+Necesarias en `.env` para desarrollo local. En producción se inyectan en Netlify como variables de entorno server-side. El bundle del cliente no contiene ninguna key. Ver [SECURITY.md](./SECURITY.md).
 
 ### GlobalConfig por defecto
 
 ```typescript
 {
   lang: 'es-419',
-  aspectRatio: '1:1',
-  imageModel: 'flash',
+  uiLang: 'es-419',
+  generationModel: 'gemini-2.5-flash-image',
+  phase5Model: 'claude-sonnet-4-6',
   author: 'PICTOS.NET',
   license: 'CC BY 4.0',
   visualStylePrompt: 'Siluetas sobre fondo blanco plano...',
@@ -472,20 +387,25 @@ WARNING: La API key queda embebida en el bundle compilado. Ver `docs/SECURITY.md
 }
 ```
 
----
-
 ## 10. Build y deployment
 
 ```bash
-npm run dev          # → http://localhost:3000 (HMR)
-npm run build        # → dist/ (ES modules, ES2022)
-npm run preview      # preview del build de producción
-npm run validate-i18n # verifica consistencia de traducciones
+npm run dev          # copy-schemas + optimize-thumbs + netlify dev → http://localhost:9001
+npm run build        # copy-schemas + optimize-thumbs + vite build → dist/
+npx tsc --noEmit     # verificación de tipos
+npm run validate-i18n # consistencia de traducciones
 ```
+
+El servidor de desarrollo usa `netlify dev` (no `vite` directamente) para que las Netlify Functions estén disponibles en local. El puerto de la app es **9001**; Vite interno corre en 3000 y el proxy reenvía `/.netlify/*` a 9001.
 
 ### Deployment automático
 
-GitHub Actions (`.github/workflows/deploy.yml`) despliega a GitHub Pages desde la rama `main`. Requiere el secret `GEMINI_API_KEY` configurado en el repositorio.
+| Branch | Deploy | URL |
+|--------|--------|-----|
+| `main` | Netlify auto | pictos.net |
+| `dev` | Netlify auto | next.pictos.net |
+
+Flujo: `dev` → `main` (fast-forward).
 
 ### Submodules
 
@@ -497,20 +417,17 @@ git submodule update --init --recursive
 
 Los submodules (`nlu-schema`, `mf-svg-schema`, `ICAP`) se copian a `public/schemas/` automáticamente en `postinstall`.
 
----
-
 ## Referencias cruzadas
 
 | Documento | Cubre |
 |-----------|-------|
 | `docs/CONTRIBUTING.md` | Setup local, submodules, i18n, flujo de contribución |
-| `docs/SECURITY.md` | API key management, consideraciones de seguridad |
-| `docs/CSS_STYLING_ARCHITECTURE.md` | Modelo de estilos SVG (dos niveles, overrides, garbage collection) |
-| `docs/UI_MAP.md` | Todos los IDs semánticos de la interfaz |
+| `docs/SECURITY.md` | Modelo de seguridad, API keys, proxies, headers |
+| `docs/ESTRUCTURAR.md` | Fase 4: pipeline interno, set-of-marks, geometría local |
+| `docs/CSS_STYLING_ARCHITECTURE.md` | Modelo de estilos SVG (dos niveles, overrides) |
+| `docs/UI_MAP.md` | IDs semánticos de la interfaz |
 | `docs/UI_CONVENTIONS.md` | Reglas de diseño, tokens, componentes |
 | `docs/WCAG_ROADMAP.md` | Estado de conformidad WCAG 2.1 AA |
-| `docs/PROMPT_MAESTRO.md` | Prompt para sesiones de diseño con Claude Code |
-
----
+| `docs/BATCH_GENERATION_DESIGN.md` | Generación en lote (Vertex AI Batch API) |
 
 *Licencia: Apache 2.0 (código) · CC-BY-4.0 (pictogramas generados)*

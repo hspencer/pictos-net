@@ -1,6 +1,6 @@
 # Especificacion: Migracion del pipeline a Claude + Recraft
 
-Estado: borrador para revision (rama `dev`). Respaldo del estado anterior con Gemini en la rama `dev-gemini`.
+> **Estado: Implementado.** Esta especificación está completa y el pipeline migrado está en producción desde junio 2026. Se conserva como referencia histórica de las decisiones de diseño. Para el estado actual del pipeline, ver [ARCHITECTURE.md](./ARCHITECTURE.md) y [ESTRUCTURAR.md](./ESTRUCTURAR.md).
 
 ## Decisiones cerradas
 
@@ -16,9 +16,7 @@ Estas decisiones provienen de la elicitacion inicial y enmarcan toda la especifi
 
 ## 1. Contexto y objetivo
 
-En junio de 2026, el proyecto de Google Cloud que respaldaba la fase de produccion (`gen-lang-client-0167983259`) fue suspendido con motivo `CONSUMER_SUSPENDED`. La causa raiz fue el abuso de una clave de Gemini sin restricciones: la aplicacion exponia un proxy server-side protegido solo por autenticacion, mientras el registro de usuarios estaba abierto, lo que permitio que una cuenta no autorizada consumiera cuota de forma anomala.[^1]
-
-Mas alla de la correccion inmediata de ese incidente, el episodio dejo en evidencia el riesgo de acoplar todo el pipeline a un unico proveedor cuya cuenta puede suspenderse de forma automatica. El objetivo de esta migracion es doble: desacoplar el sistema de Google y, de paso, simplificar el pipeline aprovechando que el nuevo proveedor de produccion entrega SVG nativo.
+En junio de 2026 el proyecto atravesó un incidente operativo con el proveedor de IA anterior que motivó el cambio de stack. El objetivo de esta migración fue doble: desacoplar el sistema de un único proveedor y simplificar el pipeline aprovechando que el nuevo proveedor de producción entrega SVG nativo directamente.
 
 El pipeline migra a un stack independiente: Claude (Anthropic) para comprender y componer, Recraft para producir el SVG, y Claude con vision para estructurar el resultado segun el DOM propuesto. El beneficio es independencia de proveedor, un pipeline mas corto al eliminar el paso de vectorizacion, y una fase de estructuracion mas robusta porque pasa a apoyarse en comprension visual y no solo en heuristicas geometricas.
 
@@ -107,8 +105,6 @@ El orden prioriza dejar todo funcionando en local antes de pensar en deployment.
 ## 10. Riesgos y decisiones abiertas
 
 La calidad pictografica de Recraft frente a Gemini debe validarse con un prototipo temprano antes de comprometer el resto del trabajo. La consistencia del SVG de Recraft es un riesgo: si fragmenta en exceso los paths, complica el mapeo de la fase 5, lo que refuerza la necesidad de la validacion de cobertura. La precision del mapeo guiado por vision debe medirse con casos reales, definiendo el umbral de confianza que dispara la segunda pasada. El costo de Sonnet podria importar si el volumen crece, con Haiku 4.5 con vision como alternativa. Debe confirmarse que ni Anthropic ni Recraft se invocan desde el navegador, sino siempre via funcion, tanto por CORS como por seguridad. Queda por fijar la resolucion del render marcado que la vision necesita para distinguir elementos pequenos sin exceder limites de tamano de imagen. Y el manejo de tool use debe contemplar el caso en que el modelo no llame la herramienta.
-
-[^1]: El detalle del incidente y su mitigacion se trataron por separado; aqui solo interesa como motivacion del desacople de proveedor.
 
 [^2]: En la API de Anthropic, forzar tool use se logra con `tool_choice` apuntando a la herramienta definida, cuyo `input_schema` es el JSON Schema de salida deseado.
 

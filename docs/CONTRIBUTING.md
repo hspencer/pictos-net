@@ -11,7 +11,7 @@ git clone --recurse-submodules https://github.com/hspencer/pictos-net.git
 cd pictos-net
 ```
 
-Si ya clonaste el repositorio sin submodules, inicialízalos:
+Si ya clonaste el repositorio sin submodules:
 
 ```bash
 git submodule update --init --recursive
@@ -19,10 +19,9 @@ git submodule update --init --recursive
 
 **Submodules incluidos:**
 
-- `schemas/nlu-schema` - Esquema MediaFranca para análisis NLU
-- `schemas/ICAP` - Corpus de frases canónicas y framework de evaluación
-- `schemas/mf-svg-schema` - Esquema para pictogramas SVG estructurados
-
+- `schemas/nlu-schema` — NLU v1.0 JSON schema + tests
+- `schemas/ICAP` — Corpus ICAP-50 y framework de evaluación
+- `schemas/mf-svg-schema` — Esquema para pictogramas SVG estructurados
 
 ### 2. Instalación de Dependencias
 
@@ -36,43 +35,33 @@ Este comando también:
 
 ### 3. Configuración de Variables de Entorno
 
-Copia el archivo de ejemplo:
-
 ```bash
 cp .env.example .env
 ```
 
-Obtén tu API key de Google Gemini en: <https://aistudio.google.com/app/apikey>
-
-Edita el archivo `.env` y reemplaza `your_gemini_api_key_here` con tu API key real:
+Edita `.env` con tus API keys:
 
 ```env
-GEMINI_API_KEY=tu_api_key_aquí
+ANTHROPIC_API_KEY=tu_key_aquí
+RECRAFT_API_KEY=tu_key_aquí
+GOOGLE_SERVICE_ACCOUNT_JSON={"type":"service_account",...}
 ```
 
-**IMPORTANTE - SEGURIDAD:**
+- `ANTHROPIC_API_KEY`: obtenla en [Anthropic Console](https://console.anthropic.com)
+- `RECRAFT_API_KEY`: obtenla en [Recraft](https://www.recraft.ai)
+- `GOOGLE_SERVICE_ACCOUNT_JSON`: service account de Vertex AI (para modelos Gemini alternativos)
 
-- **NUNCA** subas el archivo `.env` a Git (ya está en `.gitignore`)
-- **NO COMPARTAS** tu API key públicamente
-- En **desarrollo local**, la API key se inyecta via Vite y las llamadas van directo a Gemini
-- En **produccion**, las llamadas pasan por una Netlify Function (`api-gemini.js`) con JWT auth; la API key nunca llega al cliente
-- Para mas detalles, consulta [SECURITY.md](./SECURITY.md)
+**Seguridad:** Las keys viven solo en el servidor (Netlify Functions). El bundle del cliente no las contiene. Ver [SECURITY.md](./SECURITY.md).
 
-### 3. Ejecutar el Proyecto
-
-#### Modo Desarrollo (Local)
+### 4. Ejecutar el Proyecto
 
 ```bash
 npm run dev
 ```
 
-La aplicación estará disponible en `http://localhost:3000`
+La aplicación estará disponible en **`http://localhost:9001`** (no 3000 — las Netlify Functions solo están disponibles a través de `netlify dev`).
 
-Este comando ejecuta Vite en modo desarrollo con:
-
-- Hot Module Replacement (HMR)
-- Acceso desde cualquier dispositivo en la red local
-- Las APIs de Gemini funcionarán normalmente si tu API key está configurada
+Vite interno corre en el puerto 3000 y el proxy reenvía `/.netlify/*` a 9001, así que ambos puertos funcionan para la UI, pero las llamadas a las funciones requieren el 9001.
 
 #### Build para Producción
 
@@ -80,169 +69,49 @@ Este comando ejecuta Vite en modo desarrollo con:
 npm run build
 ```
 
-Genera los archivos optimizados en el directorio `dist/`:
+Genera los archivos optimizados en `dist/`.
 
-- JavaScript minificado y bundled
-- Assets optimizados
-- **NOTA**: En produccion la API key NO se incluye en el bundle (las llamadas pasan por proxy server-side)
-
-#### Vista Previa del Build
+#### Validación de Tipos y Traducciones
 
 ```bash
-npm run preview
+npx tsc --noEmit       # verificación de tipos
+npm run validate-i18n  # consistencia de traducciones
 ```
-
-Sirve la versión de producción localmente para probar el build antes de desplegar.
-
-#### Validación de Traducciones
-
-```bash
-npm run validate-i18n
-```
-
-Verifica que los archivos de traducción en `/locales/` tengan las mismas claves.
-
-#### Generar Índice de Bibliotecas
-
-```bash
-node scripts/generate-libraries-index.cjs
-```
-
-Regenera el archivo `public/libraries/index.json` escaneando todos los archivos JSON en `public/libraries/`. Este comando se ejecuta automáticamente durante el build, pero puedes ejecutarlo manualmente si agregas o modificas bibliotecas de ejemplo.
 
 ## Despliegue en Netlify
 
-El proyecto se despliega en Netlify desde la rama `main`. El branch `lab` despliega a `pictos-next.netlify.app` para pruebas.
+El proyecto se despliega automáticamente desde Netlify:
 
-### Configuracion:
+| Branch | URL |
+|--------|-----|
+| `main` | pictos.net (producción) |
+| `dev` | next.pictos.net (preview) |
 
-1. **Netlify Identity**: Habilitado con Google SSO para autenticacion de usuarios
-2. **Variable de entorno**: `GEMINI_API_KEY` configurada en Netlify (server-side only)
-3. **Netlify Functions**: `api-gemini.js` proxea las llamadas a Gemini con validacion JWT
-4. **Dominio**: `pictos.net` (produccion), `pictos-next.netlify.app` (staging/lab)
+Flujo de trabajo: `dev` → `main` (fast-forward merge).
 
-### Branches
+### Configuración en Netlify:
 
-- `main` — produccion (pictos.net)
-- `dev` — desarrollo activo, destino de PRs
-- `lab` — staging (pictos-next.netlify.app)
-- Feature branches — se crean desde `dev` y se mergean via PR a `dev`
+1. **Netlify Identity**: Habilitado con Google SSO
+2. **Variables de entorno**: `ANTHROPIC_API_KEY`, `RECRAFT_API_KEY`, `GOOGLE_SERVICE_ACCOUNT_JSON` configuradas como variables server-side (scope: Functions)
+3. **Netlify Functions**: `api-claude.js` y funciones relacionadas se despliegan automáticamente desde `netlify/functions/`
 
 ## Verificación de Servicios de IA
 
-Para verificar que los servicios de Gemini funcionan correctamente en local:
+Para verificar que el pipeline funciona en local:
 
-1. Asegúrate que tu archivo `.env` contiene una API key válida
+1. Asegúrate de que `.env` contiene las API keys válidas
 2. Ejecuta `npm run dev`
-3. Abre `http://localhost:5173` en tu navegador
+3. Abre `http://localhost:9001`
 4. Ingresa un utterance de prueba (ej: "Quiero beber agua")
 5. El sistema debería generar:
-   - Análisis NLU (usando Gemini 3 Pro)
-   - Blueprint visual con elementos jerárquicos
-   - Imagen final (usando Gemini 3 Pro Image o Gemini 2.5 Flash Image)
+   - Análisis NLU (fase 1 — Claude Haiku)
+   - Elementos visuales y prompt espacial (fase 2 — Claude Haiku)
+   - SVG vectorial (fase 3 — modelo seleccionado en configuración)
 
-Si encuentras errores de API, verifica:
-
-- La API key está correctamente configurada en `.env`
-- La API key es válida en [Google AI Studio](https://aistudio.google.com/app/apikey)
-- Tienes conexión a internet
-- No has excedido tu cuota de API
-
-## Arquitectura del Proyecto
-
-### Estructura de Directorios
-
-```
-pictos-net/
-├── src/
-│   ├── App.tsx              # Componente principal
-│   ├── types.ts             # Definiciones TypeScript
-│   ├── services/
-│   │   └── geminiService.ts # Integración con Gemini API
-│   ├── data/
-│   │   └── canonicalData.ts # Dataset ICAP (50 utterances base)
-│   ├── hooks/
-│   │   └── useTranslation.ts # Hook personalizado i18n
-│   ├── utils/
-│   │   └── i18nHelpers.ts   # Utilidades de internacionalización
-│   └── locales/
-│       ├── en-GB.json       # Traducciones inglés británico
-│       └── es-419.json      # Traducciones español latinoamericano
-├── public/
-│   └── CNAME                # Configuración dominio personalizado
-├── scripts/
-│   └── validateTranslations.cjs # Script de validación i18n
-└── .github/
-    └── workflows/
-        └── deploy.yml       # GitHub Actions deployment
-```
-
-### Pipeline de Procesamiento
-
-El sistema implementa un pipeline de 5 fases:
-
-1. **COMPRENDER (NLU)**: Análisis lingüístico profundo basado en Natural Semantic Metalanguage (NSM), 65 primitivos universales
-2. **COMPONER (Visual)**: Generación de elementos jerárquicos (`elements`) y articulación espacial (`prompt`)
-3. **PRODUCIR (Bitmap)**: Renderizado PNG lossless max 1024px usando Gemini Image Generation
-4. **VECTORIZAR (WASM)**: Conversión bitmap→SVG via vtracer local (sin API). Resultado: `rawSvg`
-5. **ESTRUCTURAR (Gemini multimodal)**: Agrupación semántica del SVG crudo según mf-svg-schema. Resultado: `structuredSvg`
-
-### Consistencia Transversal
-
-La aplicación utiliza un esquema de datos unificado:
-
-- **UTTERANCE**: El texto de entrada (intención comunicativa)
-- **NLU**: El esquema semántico MediaFranca (JSON), incluyendo análisis NSM detallado basado en 65 primitivos universales
-- **elements**: Una estructura jerárquica de componentes visuales que define la composición del pictograma
-- **prompt**: La estrategia de articulación espacial que describe cómo se relacionan los elementos (generada en el idioma del utterance)
-- **bitmap**: La imagen final generada (Base64 PNG)
-- **evaluation**: Métricas de evaluación (clarity, recognizability, semantic_transparency, pragmatic_fit, cultural_adequacy, cognitive_accessibility)
-
-## Formato de Intercambio (JSON)
-
-El proyecto se exporta en un único archivo JSON que contiene tanto la configuración como los datos completos (incluyendo las imágenes generadas).
-
-```json
-{
-  "version": "2.6",
-  "config": {
-    "lang": "es",
-    "uiLang": "es-419",
-    "aspectRatio": "square",
-    "imageModel": "flash",
-    "author": "PICTOS.NET",
-    "license": "CC-BY-4.0",
-    "visualStylePrompt": "..."
-  },
-  "rows": [
-    {
-      "id": "R_001",
-      "UTTERANCE": "Quiero beber agua",
-      "NLU": { "...": "..." },
-      "elements": [
-        { "id": "perfil_humano" },
-        {
-          "id": "vaso",
-          "children": [
-            { "id": "nivel_liquido" }
-          ]
-        }
-      ],
-      "prompt": "La composición se centra en un `perfil_humano`...",
-      "bitmap": "data:image/png;base64,iVBORw0KGgoAAA...",
-      "evaluation": {
-        "clarity": 5,
-        "recognizability": 4,
-        "semantic_transparency": 4,
-        "pragmatic_fit": 4,
-        "cultural_adequacy": 3,
-        "cognitive_accessibility": 5,
-        "humanReasoning": "..."
-      }
-    }
-  ]
-}
-```
+Si encuentras errores de API:
+- Verifica que las keys estén correctamente configuradas en `.env`
+- Confirma que `netlify dev` está corriendo (no `vite` directamente)
+- Revisa la consola de la función en la terminal de `netlify dev`
 
 ## Trabajar con Submodules
 
@@ -253,8 +122,6 @@ git submodule update --remote
 npm run copy-schemas
 ```
 
-Esto actualizará todos los submodules a sus últimas versiones en sus respectivas ramas principales.
-
 ### Actualizar un Submodule Específico
 
 ```bash
@@ -264,66 +131,31 @@ git pull origin main
 cd ../..
 npm run copy-schemas
 git add schemas/ICAP
-git commit -m "chore: Update ICAP submodule to latest version"
+git commit -m "chore: update ICAP submodule"
 ```
 
-### Freezar una Versión Específica
+### Scripts de Submodules
 
-Para reproducibilidad científica, puedes freezar submodules a commits específicos:
-
-```bash
-cd schemas/ICAP
-git checkout v1.2.3  # o un commit hash específico
-cd ../..
-npm run copy-schemas
-git add schemas/ICAP
-git commit -m "chore: Pin ICAP to version 2.0.0"
-```
-
-### Desarrollo Local en Submodules
-
-Si necesitas hacer cambios en un esquema mientras trabajas en PICTOS:
-
-1. Haz cambios en `schemas/[submodule]/`
-2. Commitea los cambios dentro del submodule
-3. Haz push al repo del submodule (necesitas permisos)
-4. Actualiza la referencia en PICTOS:
-
-```bash
-cd schemas/ICAP
-git add .
-git commit -m "feat: Add new evaluation metric"
-git push origin main
-cd ../..
-git add schemas/ICAP
-git commit -m "chore: Update ICAP submodule"
-```
-
-### Scripts Disponibles para Submodules
-
-- `npm run copy-schemas` - Copia archivos de submodules a `public/schemas/`
-- Los scripts `dev` y `build` automáticamente ejecutan `copy-schemas`
+- `npm run copy-schemas` — Copia archivos de submodules a `public/schemas/`
+- Los scripts `dev` y `build` ejecutan `copy-schemas` automáticamente
 
 ## Internacionalización (i18n)
 
-El proyecto implementa un sistema de internacionalización personalizado que soporta:
+El proyecto soporta:
 
 - **Inglés Británico** (`en-GB`)
 - **Español Latinoamericano** (`es-419`)
 
 ### Agregar nuevas traducciones
 
-1. Edita ambos archivos: `/locales/en-GB.json` y `/locales/es-419.json`
+1. Edita ambos archivos: `locales/en-GB.json` y `locales/es-419.json`
 2. Usa la misma estructura de keys en ambos archivos
 3. Ejecuta `npm run validate-i18n` para verificar consistencia
-4. Usa interpolación de variables con `{variable}` cuando sea necesario
-
-Ejemplo:
 
 ```json
 {
   "messages": {
-    "importSuccess": "Imported {count} phrases from file."
+    "importSuccess": "Se importaron {count} frases del archivo."
   }
 }
 ```
@@ -337,47 +169,37 @@ addLog('success', t('messages.importSuccess', { count: phrases.length }));
 
 ## Stack Tecnológico
 
-- **React 19** - UI framework
-- **TypeScript 5.8** - Type safety
-- **Vite 6** - Build tool y dev server
-- **Tailwind CSS** (via CDN) - Styling
-- **Lucide React** - Iconografía
-- **Google Gemini API** - Procesamiento de lenguaje natural e generación de imágenes
-  - Gemini 3 Pro (Text)
-  - Gemini 3 Pro Image / Gemini 2.5 Flash Image
+- **React 19** — UI framework
+- **TypeScript 5.8** — Type safety
+- **Vite 6** — Build tool y dev server (via `netlify dev`)
+- **Tailwind CSS 3.4** — Styling
+- **Lucide React** — Iconografía
+- **Anthropic Claude** (Haiku 4.5 / Sonnet 4.6) — Fases 1, 2, 4 del pipeline
+- **Recraft V4.1 Vector** — Fase 3 (SVG generativo)
+- **Gemini (Vertex AI)** — Alternativo en fase 3 (imagen) y fase 4 (structuring)
 
-## Contribuir
+## Convenciones de código
 
-### Flujo de trabajo
-
-1. Fork el repositorio
-2. Crea una rama para tu feature: `git checkout -b feature/mi-feature`
-3. Realiza tus cambios y commits con mensajes descriptivos
-4. Ejecuta `npm run build` para verificar que no hay errores
-5. Ejecuta `npm run validate-i18n` si modificaste traducciones
-6. Push a tu fork: `git push origin feature/mi-feature`
-7. Abre un Pull Request a la rama `dev`
-
-### Convenciones de código
-
-- Usa TypeScript con tipos explícitos
+- TypeScript con tipos explícitos
 - Componentes funcionales con hooks
 - Nombres de componentes en PascalCase
 - Funciones y variables en camelCase
-- Traduce todos los strings de UI (no hardcodear textos)
+- Todos los strings de UI deben pasar por `useTranslation()` — no hardcodear textos en español ni inglés
 - Commits semánticos: `feat:`, `fix:`, `docs:`, `refactor:`, etc.
+- Código y commits en inglés; textos de UI en español (es-419)
 
-## Recursos Adicionales
+## Flujo de Contribución
 
-- [SECURITY.md](./SECURITY.md) - Consideraciones de seguridad
-- [ARCHITECTURE.md](./ARCHITECTURE.md) - Arquitectura detallada del sistema
-- [Google Gemini API Docs](https://ai.google.dev/docs)
+1. Crea una rama desde `dev`: `git checkout -b feat/mi-feature`
+2. Realiza tus cambios
+3. Verifica: `npx tsc --noEmit` + `npm run validate-i18n`
+4. Push a tu fork
+5. Abre un Pull Request a la rama `dev`
+
+## Recursos
+
+- [SECURITY.md](./SECURITY.md) — Modelo de seguridad y API keys
+- [ARCHITECTURE.md](./ARCHITECTURE.md) — Arquitectura detallada del sistema
+- [ESTRUCTURAR.md](./ESTRUCTURAR.md) — Fase 4: pipeline interno de estructuración SVG
+- [Anthropic API Docs](https://docs.anthropic.com)
 - [NSM Homepage](https://nsm-approach.net/)
-
-## Soporte
-
-Para reportar bugs o solicitar features, abre un issue en el repositorio de GitHub.
-
----
-
-*Esta guía está diseñada para facilitar la contribución al proyecto. Si encuentras alguna información desactualizada o faltante, por favor abre un issue.*
