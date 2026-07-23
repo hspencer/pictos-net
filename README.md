@@ -12,7 +12,7 @@ This document is in Spanish. For a complete English version, please see [the Eng
 * ![version](https://img.shields.io/badge/version-2.3.11-violet)
 * ![opensource](https://img.shields.io/badge/opensource--always-available-blue)
 
-PICTOS.NET transforma intenciones comunicativas expresadas en lenguaje natural en pictogramas mediante un pipeline de razonamiento semántico. Es parte de la investigación doctoral de [Herbert Spencer](https://herbertspencer.net/cc) y de **[MediaFranca](https://github.com/mediafranca)** — una iniciativa de código abierto de bien público para la CAA.
+PICTOS.NET transforma intenciones comunicativas expresadas en lenguaje natural en pictogramas mediante un pipeline de razonamiento semántico. Es parte de la investigación doctoral de [Herbert Spencer](https://herbertspencer.net/cc) en diseño para la Comunicación Aumentativa y Alternativa.
 
 La rama de desarrollo `dev` contiene la siguiente versión:
 
@@ -253,9 +253,9 @@ Los pictogramas generados buscan reducir barreras cognitivas, facilitar la expre
 
 ---
 
-## Ecosistema MediaFranca
+## Proyectos relacionados
 
-PICTOS.NET es parte de [MediaFranca](https://github.com/mediafranca), un conjunto de esquemas abiertos para la comunicación aumentativa y alternativa:
+PICTOS.NET se apoya en los siguientes esquemas y plataformas de código abierto para la CAA:
 
 | Repositorio | Descripción |
 |---|---|
@@ -318,6 +318,7 @@ Ver [docs/CONTRIBUTING.md](./docs/CONTRIBUTING.md) para instrucciones completas.
 | [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) | Arquitectura técnica, modelos de datos, servicios |
 | [docs/CONTRIBUTING.md](./docs/CONTRIBUTING.md) | Guía de desarrollo, submodules, i18n, deployment |
 | [docs/SECURITY.md](./docs/SECURITY.md) | Gestión de API keys, consideraciones de seguridad |
+| [docs/PRIVACY.md](./docs/PRIVACY.md) | Arquitectura de datos y privacidad: qué sale del navegador, soberanía del usuario |
 | [docs/PIPELINE_MIGRATION_CLAUDE_RECRAFT.md](./docs/PIPELINE_MIGRATION_CLAUDE_RECRAFT.md) | Notas de la migración Gemini → Claude + Recraft (v1.x → v2.0) |
 
 ### Interfaz de usuario
@@ -343,7 +344,7 @@ Las contribuciones son bienvenidas. Reporta bugs, propone features o abre un Pul
 
 ```
 Spencer, H. (2026). PICTOS.NET: Pictogramas generativos para la accesibilidad cognitiva.
-MediaFranca. https://pictos.net
+https://pictos.net
 ```
 
 *Licencia: Apache 2.0 (código) · CC-BY-4.0 (pictogramas generados, según elección del usuario)*

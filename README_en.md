@@ -6,7 +6,7 @@
 * ![version](https://img.shields.io/badge/version-2.3.11-violet)
 * ![opensource](https://img.shields.io/badge/opensource--always-available-blue)
 
-PICTOS.NET transforms communicative intentions expressed in natural language into pictograms using a semantic reasoning pipeline. It is part of the doctoral research of [Herbert Spencer](https://herbertspencer.net/cc) and **[MediaFranca](https://github.com/mediafranca)** — a public good open-source initiative for AAC.
+PICTOS.NET transforms communicative intentions expressed in natural language into pictograms using a semantic reasoning pipeline. It is part of the doctoral research of [Herbert Spencer](https://herbertspencer.net/cc) in design for Augmentative and Alternative Communication.
 
 The `dev` development branch contains the next version:
 
@@ -247,9 +247,9 @@ The generated pictograms aim to reduce cognitive barriers, facilitate the expres
 
 ---
 
-## MediaFranca Ecosystem
+## Related Projects
 
-PICTOS.NET is part of [MediaFranca](https://github.com/mediafranca), a set of open schemas for augmentative and alternative communication:
+PICTOS.NET builds on the following open-source schemas and platforms for AAC:
 
 | Repository | Description |
 |---|---|
@@ -312,6 +312,7 @@ See [docs/CONTRIBUTING.md](./docs/CONTRIBUTING.md) for full instructions.
 | [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) | Technical architecture, data models, services |
 | [docs/CONTRIBUTING.md](./docs/CONTRIBUTING.md) | Development guide, submodules, i18n, deployment |
 | [docs/SECURITY.md](./docs/SECURITY.md) | API key management, security considerations |
+| [docs/PRIVACY_en.md](./docs/PRIVACY_en.md) | Data architecture and privacy: what leaves the browser, user sovereignty |
 | [docs/PIPELINE_MIGRATION_CLAUDE_RECRAFT.md](./docs/PIPELINE_MIGRATION_CLAUDE_RECRAFT.md) | Notes on the Gemini → Claude + Recraft migration (v1.x → v2.0) |
 
 ### User Interface
@@ -337,7 +338,7 @@ Contributions are welcome. Report bugs, propose features, or open a Pull Request
 
 ```
 Spencer, H. (2026). PICTOS.NET: Generative pictograms for cognitive accessibility.
-MediaFranca. https://pictos.net
+https://pictos.net
 ```
 
 *License: Apache 2.0 (code) · CC-BY-4.0 (generated pictograms, per user's choice)*
