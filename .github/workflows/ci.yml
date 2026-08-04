@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Type check
+        # Filter out known pre-existing errors in in-progress components.
+        # Fails if any NEW error appears outside these files.
+        run: |
+          known_bad="components/LibraryHome|components/ParticipateModal|components/SequenceEditor|components/SequenceList|components/SVGEditor/SemanticTree|components/SVGEditor/SVGCanvas|hooks/useDialogA11y|lib/style-editor|utils/styleUtils|services/aiClient"
+          errors=$(npx tsc --noEmit 2>&1 | grep "error TS" | grep -vE "$known_bad" || true)
+          if [ -n "$errors" ]; then
+            echo "$errors"
+            exit 1
+          fi
+
+      - name: Unit tests (TypeScript)
+        run: |
+          node --test --experimental-strip-types \
+            services/svgBooleanOps.test.ts \
+            services/svgGeometryUtils.test.ts \
+            services/svgMergeCandidates.test.ts \
+            services/svgPathPolish.test.ts \
+            services/svgTreeUtils.test.ts \
+            services/visualElementUtils.test.ts
+
+      - name: Unit tests (ESM)
+        run: |
+          node --test \
+            netlify/functions/_shared/geminiTranslate.test.mjs \
+            netlify/functions/_shared/vertexBatch.test.mjs

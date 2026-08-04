@@ -7,7 +7,8 @@
 --   artifact lifecycle, invalidation cascade, per-phase re-execution,
 --   background execution pattern (timer, stop), phase error handling,
 --   NLU model selection per phase (Phase 1: comprenderModel, Phase 2: componerModel),
---   Phase 5 model selection (session-only), timed review (recording mode).
+--   Phase 5 model selection (session-only), timed review (recording mode),
+--   Phase 5 fidelity verification and merge-free fallback.
 -- Excludes:
 --   - Generation model selection and library-level model config (generation-config.allium)
 --   - Library backward-compatibility and migration (separate spec)
@@ -19,17 +20,21 @@
 -- Value Types
 ------------------------------------------------------------
 
-value PhaseStatus {
-  idle | running | completed | failed | outdated
+value StepStatus {
+  -- Status of a single pipeline phase.
+  -- Field names in RowData: nluStatus, visualStatus, bitmapStatus, structuredSvgStatus.
+  idle | processing | completed | error | outdated | review
+  -- review: exists in the type but is component-local only (Phase5_Review panel open);
+  --   structuredSvgStatus on RowData is never set to review — component tracks it locally.
 }
 
 value NLUModel {
   -- Text model used for Phase 1 (COMPRENDER) and Phase 2 (COMPONER).
-  -- Catalog (claude-haiku-4-5 is the default for both phases):
-  --   claude-haiku-4-5   — fast, low cost, strong tool use (default)
-  --   claude-sonnet-4-6  — higher accuracy for complex utterances
-  --   gemini-2.5-flash   — Gemini equivalent of Haiku: fast and cheap
-  --   gemini-2.5-pro     — highest accuracy; use for difficult NLU tasks
+  -- Catalog (claude-haiku-4-5-20251001 is the default for both phases):
+  --   claude-haiku-4-5-20251001  — fast, low cost, strong tool use (default)
+  --   claude-sonnet-4-6          — higher accuracy for complex utterances
+  --   gemini-2.5-flash           — Gemini equivalent of Haiku: fast and cheap
+  --   gemini-2.5-pro             — highest accuracy; use for difficult NLU tasks
   -- Routing: claude-* → api-claude; gemini-* → api-gemini-nlu (text-only, synchronous)
   -- Phases 1 and 2 use different fields in GlobalConfig (comprenderModel, componerModel)
   --   so each can be tuned independently.
@@ -40,64 +45,52 @@ value NLUModel {
 
 value NLUData {
   -- Semantic analysis of the communicative intention.
-  -- Schema enforced by nlu-schema via Claude tool use.
+  -- Schema enforced via Claude forced tool use (analyze_utterance).
+  -- All fields required in the tool schema; domain is enum-constrained to VOCAB.domain.
   utterance: String
   lang: String
-  domain: String?
+  domain: String              -- constrained to VOCAB.domain enum at tool schema level
+  metadata: NLUMetadata       -- { speech_act: String, intent: String }
   frames: [Frame]
   visual_guidelines: VisualGuidelines
   nsm_explications: Map<String, String>
+  logical_form: LogicalForm   -- { event: String, modality: String }
   pragmatics: Pragmatics
 }
 
-value VisualDOMNode {
-  -- One semantic node in the pictogram's DOM.
-  -- id must be unique and mf-svg-schema compliant.
-  id: String
-  concept: String
-  label: String
-  required: Boolean
-  children: [VisualDOMNode]?
-}
-
-value VisualDOM {
-  -- The target semantic structure proposed by Phase 2.
-  -- This is the contract that Phase 5 maps against.
-  nodes: [VisualDOMNode]
+value VisualElement {
+  -- One semantic node in the element tree produced by Phase 2.
+  -- Matches VisualElement interface in types.ts.
+  id: String              -- noun in utterance language; snake_case for compounds
+  concept: Concept        -- Root | Agent | Action | Object | Context | Element
+  children: [VisualElement]?
 }
 
 value ElementMark {
-  -- One indexed element extracted from rawSvg for set-of-marks.
+  -- One indexed path extracted from rawSvg for set-of-marks rasterisation.
   index: Number
   boundingBox: BBox
   centroid: Point
 }
 
-value ElementMapping {
-  -- Claude's assignment of one marked element to a DOM node.
-  -- @deprecated: replaced by StructuringGroup in Phase 5 v2.
-  elementIndex: Number
-  nodeId: String | "none"    -- must be a valid VisualDOMNode id or "none"
-  confidence: Number         -- 0.0 to 1.0
-  justification: String
-}
-
-value MergedPath {
-  -- A simplified union of two or more overlapping source paths.
-  -- d is validated locally before use; invalid d falls back to original paths.
-  d: String         -- combined SVG path data (space-joined subpaths)
-  sources: [String] -- original path ids that were merged
+value MergeProposal {
+  -- Model's proposal to merge overlapping source paths into a single contour.
+  -- The model proposes sources only; no path geometry is returned by the model.
+  -- Local validation: bounding-box IoU ≥ 0.7, similar area ratio, matching fill-role.
+  -- On pass: Boolean union computed locally via Martinez sweep-line + Bezier refit.
+  -- On fail: sources kept as separate paths (silent, non-blocking fallback).
+  sources: [String]   -- path ids to merge
 }
 
 value StructuringGroup {
   -- One semantic node in the Phase 5 restructured output.
   -- Groups are flat (one per node) with parentId for hierarchy reconstruction.
-  nodeId: String              -- VisualDOMNode id from Phase 2
+  nodeId: String              -- VisualElement id from Phase 2
   label: String               -- human label (editable during Phase5_Review)
   cssClass: String            -- CSS class from the style palette
   parentId: String?           -- parent nodeId; null for top-level groups
   keep: [String]              -- path ids to include verbatim from rawSvg
-  merge: MergedPath?          -- optional simplified union of overlapping paths
+  merge: MergeProposal?       -- optional merge proposal; geometry computed locally
   selected: Boolean = true    -- user toggle during Phase5_Review (default: true)
 }
 
@@ -114,13 +107,13 @@ value StructuringMapping {
 
 external GlobalConfig {
   -- User-level configuration forwarded to every pipeline phase.
+  -- Field names match GlobalConfig in types.ts.
   lang: String
-  geoContext: String?
-  annotatedContext: String?
-  visualStylePrompt: String
-  comprenderModel: NLUModel?   -- Phase 1 model; falls back to nluModel, then claude-haiku-4-5
-  componerModel: NLUModel?     -- Phase 2 model; falls back to nluModel, then claude-haiku-4-5
-  nluModel: NLUModel?          -- @deprecated: migration source for both phases
+  geoContext: GeoContext?
+  visualStylePrompt: String   -- injected as context hint in Phase 1; style hint in Phase 3
+  comprenderModel: NLUModel?  -- Phase 1; falls back to nluModel, then claude-haiku-4-5-20251001
+  componerModel: NLUModel?    -- Phase 2; falls back to nluModel, then claude-haiku-4-5-20251001
+  nluModel: NLUModel?         -- @deprecated: migration fallback for both phases
   generationModel: GenerationModel    -- see generation-config.allium
   recording: RecordingSetting?        -- { enabled: Boolean }; enables Phase5_Review timer
   svgStyleDefs: [StyleDefinition]?    -- CSS palette forwarded to Phase 5 as style context
@@ -133,38 +126,38 @@ external GlobalConfig {
 entity VisualReasoning {
   -- A single pictogram generation in progress.
   -- One VisualReasoning instance per utterance being worked on.
+  -- Field names match RowData in types.ts.
 
   utterance: String
 
   -- Phase 1
-  nluData: NLUData?
-  phase1Status: PhaseStatus = idle
+  NLU: NLUData?
+  nluStatus: StepStatus = idle
 
   -- Phase 2
-  visualDom: VisualDOM?
-  visualPrompt: String?         -- prompt text delivered to Phase 3
-  phase2Status: PhaseStatus = idle
+  elements: [VisualElement]?  -- element tree with a single injected root node
+  prompt: String?             -- spatial prompt delivered to Phase 3
+  visualStatus: StepStatus = idle
 
   -- Phase 3
-  bitmap: String?               -- base64 PNG (800×800px); set by bitmap-producing models
-  rawSvg: String?               -- native SVG; set by vector model (Phase 3) or VTrace (Phase 4)
+  bitmap: String?             -- base64 PNG (square); set by bitmap-producing models
+  rawSvg: String?             -- native SVG; set by vector model (Phase 3) or VTrace (Phase 4)
   generationModel: GenerationModel?   -- model that produced Phase 3 output; frozen at completion
-  phase3Status: PhaseStatus = idle
+  bitmapStatus: StepStatus = idle
 
   -- Phase 4 (user-triggered; only available for bitmap-producing model rows)
-  phase4Status: PhaseStatus = idle
+  -- No dedicated status field on RowData. Completion is reflected by rawSvg being set.
 
   -- Phase 5
-  pictograma: String?           -- mf-svg-schema structured SVG, single source of truth
-  phase5Status: PhaseStatus = idle
-  -- Phase 5 intermediate (populated in recording mode; cleared after assembly)
+  structuredSvg: String?      -- mf-svg-schema structured SVG; single source of truth
+  structuredSvgStatus: StepStatus = idle
+  -- Phase 5 intermediate state (component-local; not persisted on RowData)
   phase5Mapping: StructuringMapping?
   phase5ReviewTimerMs: Number?  -- total review window; derived from label word count × 3
 
   -- Phase 5 model comes from GlobalConfig.phase5Model (persisted per library).
   -- Allowed: claude-sonnet-4-6, claude-opus-4-6, gemini-2.5-pro, gemini-2.5-flash
-  -- Default: claude-sonnet-4-6  (since 2026-07-18; was gemini-2.5-flash.
-  --   gemini-2.0-flash removed 2026-06-13: 404 on all regions)
+  -- Default: claude-sonnet-4-6 (since 2026-07-18; gemini-2.0-flash removed 2026-06-13)
 }
 
 ------------------------------------------------------------
@@ -187,24 +180,20 @@ rule InvalidateDownstream {
   when: a phase of a VisualReasoning transitions to completed
 
   ensures: every phase downstream of the completed phase
-    transitions to outdated if it was previously completed or failed
+    transitions to outdated if it was previously completed or error
 
   -- Downstream order for bitmap-producing models:
-  --   phase1 → phase2 → phase3 → phase4 → phase5
-  -- Downstream order for vector-direct models (recraftv4_1_vector):
-  --   phase1 → phase2 → phase3 → phase5
-  --   phase4 is not in the chain; it transitions to idle when phase3 completes
-  --   with a rawSvg output (no bitmap to trace)
-  -- Example: completing phase3 with a bitmap model marks phase4 and phase5 as outdated.
-  -- Example: completing phase3 with a vector model resets phase4 to idle and
-  --   marks phase5 as outdated.
-  -- Example: completing phase4 marks only phase5 as outdated.
-  -- Completing phase5 marks nothing (terminal phase).
+  --   nluStatus → visualStatus → bitmapStatus → (phase4) → structuredSvgStatus
+  -- Downstream order for vector-direct models (e.g. recraftv4_1_vector):
+  --   nluStatus → visualStatus → bitmapStatus → structuredSvgStatus
+  --   (phase4 is not applicable; rawSvg comes directly from Phase 3)
+  -- Example: bitmapStatus completing marks structuredSvgStatus as outdated.
+  -- Completing structuredSvgStatus marks nothing (terminal phase).
 
-  -- Artifact clearing on phase3 completion:
-  --   bitmap-producing result: prior rawSvg (from Phase 4) and pictograma are cleared
-  --   vector result: prior bitmap is set to nil; pictograma is cleared
-  -- This ensures artifact fields are consistent with the new phase3 output type.
+  -- Artifact clearing on bitmapStatus completion:
+  --   bitmap-producing result: prior rawSvg (from Phase 4) and structuredSvg are cleared
+  --   vector result: prior bitmap is set to nil; structuredSvg is cleared
+  -- This ensures artifact fields are consistent with the new Phase 3 output type.
 }
 
 -- === Phase 1: COMPRENDER ===
@@ -215,21 +204,21 @@ rule Phase1_Comprender {
   requires: VisualReasoning.utterance is non-empty
 
   ensures: model call with forced tool use dispatched to function matching comprenderModel:
-    -- effective model = GlobalConfig.comprenderModel ?? GlobalConfig.nluModel ?? claude-haiku-4-5
+    -- effective model: GlobalConfig.comprenderModel ?? GlobalConfig.nluModel ?? claude-haiku-4-5-20251001
     -- claude-* models → api-claude; gemini-* models → api-gemini-nlu
     -- tool name: "analyze_utterance"
-    -- tool input_schema: nlu-schema JSON Schema
+    -- tool input_schema: nlu-schema JSON Schema; domain field enum-constrained to VOCAB.domain
     -- tool_choice: forced to "analyze_utterance"
-    -- inputs forwarded: utterance, GlobalConfig (lang, geoContext, annotatedContext)
+    -- inputs forwarded: utterance, GlobalConfig (lang, geoContext, visualStylePrompt)
   ensures: on success:
-    VisualReasoning.nluData = parsed NLUData from tool call arguments
-    VisualReasoning.phase1Status = completed
-  ensures: on tool-use failure (Claude does not invoke tool, or parse error):
-    VisualReasoning.phase1Status = failed
+    VisualReasoning.NLU = parsed NLUData from tool call arguments
+    VisualReasoning.nluStatus = completed
+  ensures: on tool-use failure (model does not invoke tool, or parse error):
+    VisualReasoning.nluStatus = error
 }
 
 rule Phase1_Failure {
-  when: VisualReasoning.phase1Status transitions to failed
+  when: VisualReasoning.nluStatus transitions to error
 
   ensures: full error detail logged to console (provider error, raw response)
   ensures: phase 1 indicator shown as failed in UI
@@ -241,53 +230,48 @@ rule Phase1_Failure {
 rule Phase2_Componer {
   when: phase 2 is triggered for a VisualReasoning
 
-  requires: VisualReasoning.phase1Status = completed
-  requires: VisualReasoning.nluData is present
+  requires: VisualReasoning.nluStatus = completed
+  requires: VisualReasoning.NLU is present
 
   ensures: model call with forced tool use dispatched to function matching componerModel:
-    -- effective model = GlobalConfig.componerModel ?? GlobalConfig.nluModel ?? claude-haiku-4-5
+    -- effective model: GlobalConfig.componerModel ?? GlobalConfig.nluModel ?? claude-haiku-4-5-20251001
     -- claude-* models → api-claude; gemini-* models → api-gemini-nlu
     -- tool name: "compose_pictogram"
-    -- tool input_schema: { elements: [VisualElement], visualPrompt: String }
+    -- tool input_schema: { elements: [VisualElement], prompt: String }
         where elements contains only semantic child nodes (Agent, Action, Object,
-        Context, Element) — no root node is returned by the model
+        Context, Element) — the root node is never returned by the model
+    -- user message: filtered NLUData (frames, visual_guidelines, lang only)
     -- tool_choice: forced to "compose_pictogram"
   ensures: on success:
     parsed elements wrapped under a synthetic root node injected by local code:
-      root.id  = 'pictograma' (if lang is Spanish) or 'pictogram' (if lang is English)
+      root.id      = 'pictograma' (Spanish) | 'pictogram' (English)
       root.concept = Root
       root.children = parsed elements
-    VisualReasoning.visualDom = VisualDOM with that single-root tree
-    VisualReasoning.visualPrompt = visualPrompt string from tool arguments
-    VisualReasoning.phase2Status = completed
+    VisualReasoning.elements = [VisualElement] with that single-root tree
+    VisualReasoning.prompt = prompt string from tool arguments
+    VisualReasoning.visualStatus = completed
   ensures: on tool-use failure:
-    VisualReasoning.phase2Status = failed
+    VisualReasoning.visualStatus = error
 
   @invariant "single response delivers both artifacts"
-    -- VisualDOM and visualPrompt are produced in one tool call response.
+    -- elements and prompt are produced in one tool call response.
     -- They are not generated by separate Claude calls.
 
   @invariant "single-root element tree"
-    -- VisualDOM always has exactly one top-level node ('pictograma' in Spanish,
-    --   'pictogram' in English), injected deterministically by local code post-parse.
+    -- elements always has exactly one top-level node ('pictograma' or 'pictogram'),
+    --   injected deterministically by local code post-parse.
     -- The model is never asked to return this root; it returns only semantic children.
-    -- This removes the root from the model's non-deterministic output surface.
-
-  @invariant "DOM validated before continuing"
-    -- VisualDOM is validated against mf-svg-schema before phase2Status
-    -- transitions to completed. Validation failure is treated as tool-use failure.
 
   @invariant "no phantom elements"
-    -- Every node in VisualDOM has a real id sourced from the model.
-    -- The tool schema requires id + concept on elements and their children.
-    -- Any node that still arrives without a usable id is DROPPED during
-    --   normalisation — never fabricated into an 'unknown' placeholder.
-    -- This holds on every regeneration of the step, not just the first, so
-    --   repeated COMPONER runs cannot accrete phantom nodes.
+    -- Every node in elements has a real id and concept sourced from the model.
+    -- The tool schema requires both fields on elements and their children.
+    -- Any node that arrives without a usable id is DROPPED during normalisation —
+    --   never fabricated into an 'unknown' placeholder.
+    -- This holds on every regeneration, not just the first run.
 }
 
 rule Phase2_Failure {
-  when: VisualReasoning.phase2Status transitions to failed
+  when: VisualReasoning.visualStatus transitions to error
 
   ensures: full error detail logged to console
   ensures: phase 2 indicator shown as failed in UI
@@ -297,32 +281,32 @@ rule Phase2_Failure {
 
 rule Phase2_RegenerateSpatialPrompt {
   -- Triggered when the user has manually edited the element tree and asks
-  -- to rebuild only the spatial prompt (visualPrompt) — the tree itself is
-  -- not re-derived. See element-tree.allium for the edit events that arm this.
+  -- to rebuild only the spatial prompt — the tree itself is not re-derived.
+  -- See element-tree.allium for the edit events that arm this.
   when: user triggers spatial prompt regeneration for a VisualReasoning
 
-  requires: VisualReasoning.nluData is present
-  requires: VisualReasoning.visualDom has at least one element
+  requires: VisualReasoning.NLU is present
+  requires: VisualReasoning.elements has at least one element
 
   ensures: a plain-text prompt is generated from the CURRENT element tree
     -- the model is given the current tree verbatim; no prior prompt is reused
     -- prompt describes only topology and composition, in the NLU language,
     --   with every element id wrapped in single quotes
-  ensures: VisualReasoning.visualPrompt = the regenerated prompt
+  ensures: VisualReasoning.prompt = the regenerated prompt
   ensures: VisualReasoning.bitmapStatus = outdated
     -- the produced pictogram (Phase 3) no longer reflects its inputs
 
   @invariant "every element is referenced"
     -- The regenerated prompt references EVERY element id in the current tree
     --   (root and all nested children), none omitted and none invented.
-    -- This is verified after generation, not merely requested of the model:
-    --   ids missing from the prompt trigger one corrective retry naming them;
+    -- Verification checks for each id wrapped in single quotes (e.g. 'mesa'),
+    --   not as a bare substring, to avoid false positives (e.g. 'mano' ≠ 'manos').
+    -- ids missing from the prompt trigger one corrective retry naming them explicitly;
     --   any still missing after the retry are surfaced as an error in the log.
 
   @invariant "tree and prompt are the Phase 3 inputs"
-    -- Phase 3 (PRODUCIR) consumes BOTH the element tree and visualPrompt.
-    -- Every element referenced in the prompt therefore has a counterpart in
-    --   the tree handed to generation, keeping the two inputs congruent.
+    -- Phase 3 (PRODUCIR) consumes BOTH elements and prompt.
+    -- Every element referenced in the prompt has a counterpart in the tree.
 }
 
 -- === Phase 3: PRODUCIR ===
@@ -330,34 +314,32 @@ rule Phase2_RegenerateSpatialPrompt {
 rule Phase3_Producir {
   when: phase 3 is triggered for a VisualReasoning
 
-  requires: VisualReasoning.phase2Status = completed
-  requires: VisualReasoning.visualPrompt is present
+  requires: VisualReasoning.visualStatus = completed
+  requires: VisualReasoning.prompt is present
 
   ensures: generation call dispatched to the function matching GlobalConfig.generationModel:
-    -- Gemini models → api-gemini function; output: bitmap (PNG, 800×800px, base64)
-    -- Recraft raster (recraftv4_1) → api-recraft function; output: bitmap (PNG, 800×800px, base64)
+    -- Gemini models → api-gemini function; output: bitmap (PNG, square, base64)
+    -- Recraft raster (recraftv4_1) → api-recraft function; output: bitmap (PNG, square, base64)
     -- Recraft vector (recraftv4_1_vector) → api-recraft function; output: native SVG string
     -- All calls use background function + polling pattern (see Phase3_BackgroundExecution)
     -- Pictograms are always square: Gemini imageConfig.aspectRatio "1:1",
     --   Recraft size "1024×1024" (or the model's square equivalent)
   ensures: on success with bitmap output:
-    VisualReasoning.bitmap = base64 PNG at 800×800px
-    VisualReasoning.rawSvg = nil        -- prior Phase 4 rawSvg cleared
-    VisualReasoning.pictograma = nil    -- prior Phase 5 output cleared
+    VisualReasoning.bitmap = base64 PNG (square)
+    VisualReasoning.rawSvg = nil         -- prior Phase 4 rawSvg cleared
+    VisualReasoning.structuredSvg = nil  -- prior Phase 5 output cleared
     VisualReasoning.generationModel = GlobalConfig.generationModel at trigger time
-    VisualReasoning.phase3Status = completed
-    VisualReasoning.phase4Status = idle
-    VisualReasoning.phase5Status = idle
+    VisualReasoning.bitmapStatus = completed
+    VisualReasoning.structuredSvgStatus = outdated (if previously completed or error)
   ensures: on success with vector output:
     VisualReasoning.rawSvg = native SVG content
-    VisualReasoning.bitmap = nil        -- no bitmap produced by this model
-    VisualReasoning.pictograma = nil    -- prior Phase 5 output cleared
+    VisualReasoning.bitmap = nil         -- no bitmap produced by vector models
+    VisualReasoning.structuredSvg = nil  -- prior Phase 5 output cleared
     VisualReasoning.generationModel = GlobalConfig.generationModel at trigger time
-    VisualReasoning.phase3Status = completed
-    VisualReasoning.phase4Status = idle -- phase4 is not applicable for vector rows
-    VisualReasoning.phase5Status = outdated  -- if previously completed
+    VisualReasoning.bitmapStatus = completed
+    VisualReasoning.structuredSvgStatus = outdated (if previously completed or error)
   ensures: on any generation error (timeout, malformed response, empty body):
-    VisualReasoning.phase3Status = failed
+    VisualReasoning.bitmapStatus = error
 }
 
 rule Phase3_BackgroundExecution {
@@ -365,13 +347,13 @@ rule Phase3_BackgroundExecution {
   -- Phase 3 is a long-running operation (2–30 s); it runs via background function
   -- and is polled until a result is available.
 
-  when: phase3Status transitions to running
+  when: bitmapStatus transitions to processing
 
   ensures: elapsed time is tracked from this exact moment
-  ensures: elapsed time is visible in the UI while phase3Status = running
+  ensures: elapsed time is visible in the UI while bitmapStatus = processing
     -- the timer must not wait for the row to be expanded, focused, or scrolled
     -- the timer is not reset by any UI interaction (collapse, row switch, navigation)
-  ensures: a Stop action is available in the UI while phase3Status = running
+  ensures: a Stop action is available in the UI while bitmapStatus = processing
 
   @invariant "timer origin is trigger time"
     -- The elapsed counter reflects wall-clock time since Phase 3 was triggered.
@@ -379,18 +361,18 @@ rule Phase3_BackgroundExecution {
 }
 
 rule Phase3_Stop {
-  when: user triggers Stop on a VisualReasoning while phase3Status = running
+  when: user triggers Stop on a VisualReasoning while bitmapStatus = processing
 
   ensures: the in-flight background job is cancelled (poll loop terminated)
-  ensures: phase3Status transitions to idle
-    -- idle, not failed: user-initiated stop is not an error
+  ensures: bitmapStatus transitions to idle
+    -- idle, not error: user-initiated stop is not an error
   ensures: any partial bitmap or rawSvg from the incomplete run is discarded
   ensures: VisualReasoning.generationModel is NOT updated
     -- provenance is set only on successful Phase 3 completion
 }
 
 rule Phase3_Failure {
-  when: VisualReasoning.phase3Status transitions to failed
+  when: VisualReasoning.bitmapStatus transitions to error
 
   ensures: full error detail logged to console (model id, raw error, elapsed time)
   ensures: phase 3 indicator shown as failed in UI
@@ -402,7 +384,7 @@ rule Phase3_Failure {
 rule Phase4_Vectorizar {
   when: user triggers Vectorizar on a VisualReasoning
 
-  requires: VisualReasoning.phase3Status = completed
+  requires: VisualReasoning.bitmapStatus = completed
   requires: VisualReasoning.bitmap is present
   requires: modelFamily(VisualReasoning.generationModel) = bitmap
     -- Phase 4 is never triggered for rows where generationModel = recraftv4_1_vector
@@ -411,9 +393,8 @@ rule Phase4_Vectorizar {
     -- no API call; no quota charge; geometry stays in the browser
   ensures: on success:
     VisualReasoning.rawSvg = SVG string produced by VTracer
-    VisualReasoning.phase4Status = completed
-  ensures: on VTracer error:
-    VisualReasoning.phase4Status = failed
+    -- Phase 4 has no dedicated status field; completion is reflected by rawSvg being set
+  ensures: on VTracer error: error surfaced in UI; rawSvg unchanged
 
   @invariant "user-triggered only"
     -- Phase 4 is never invoked automatically by the pipeline cascade.
@@ -424,60 +405,59 @@ rule Phase4_Vectorizar {
     -- The bitmap remains available after rawSvg is produced.
 }
 
-rule Phase4_Failure {
-  when: VisualReasoning.phase4Status transitions to failed
-
-  ensures: full error detail logged to console
-  ensures: phase 4 indicator shown as failed in UI
-  -- User can re-trigger Phase 4 to retry.
-}
-
 -- === Phase 5: ESTRUCTURAR ===
 
 rule Phase5_Estructurar {
   when: phase 5 is triggered for a VisualReasoning
 
   requires: VisualReasoning.rawSvg is present
-    -- rawSvg may come from Phase 4 (VTrace of a bitmap) or Phase 3 (Recraft vector).
-  requires: VisualReasoning.visualDom is present
+    -- rawSvg may come from Phase 4 (VTrace of a bitmap) or Phase 3 (vector model)
+  requires: VisualReasoning.elements is present
 
-  ensures: phase5Status transitions to running
+  ensures: structuredSvgStatus transitions to processing
   ensures: Phase5_SingleCall executes (one API call; no retry loop)
   ensures: Phase5_Console logs throughout execution
-  ensures: Phase5_GeometryValidation runs on any MergedPath in the result
   ensures: if GlobalConfig.recording.enabled = true:
-    phase5Mapping = returned StructuringMapping
-    phase5ReviewTimerMs = computed per Phase5_Review formula
-    phase5Status transitions to review
+    -- mapping and timer are held in component-local state; not written to RowData
+    phase5Mapping = returned StructuringMapping (component-local)
+    phase5ReviewTimerMs = computed per Phase5_Review formula (component-local)
     Phase5_Review begins
+    -- structuredSvgStatus remains processing until Phase5_Review confirm
   ensures: if GlobalConfig.recording.enabled = false:
     Phase5_Assemble runs immediately on returned mapping
-    VisualReasoning.pictograma = assembled SVG content
-    phase5Status transitions to completed
+    Phase5_FidelityVerification runs on assembled result
+    VisualReasoning.structuredSvg = final assembled SVG
+    structuredSvgStatus transitions to completed
   ensures: on API error or tool-use failure:
-    phase5Status transitions to failed
+    structuredSvgStatus transitions to error
 }
 
 rule Phase5_SingleCall {
   -- One API call per user trigger. No retry loop.
   when: phase 5 begins
 
-  ensures: rawSvg preprocessed locally:
+  ensures: rawSvg preprocessed locally before the API call:
     -- all paths assigned stable numeric marks (0, 1, 2, …)
-    -- path inventory built (id, centroid, fill-role)
+    -- path inventory built (id, centroid, fill-role, bounding box)
     -- background paths detected and excluded from marks
-  ensures: rawSvg rasterized to JPEG with numeric labels at path centroids
+    -- merge candidates detected via local bounding-box IoU analysis
+  ensures: rawSvg rasterised to JPEG with numeric labels at path centroids:
+    -- two-image variant (when referenceImage is available):
+    --   Image A: clean reference bitmap (visual ground truth)
+    --   Image B: numbered trace JPEG
+    -- single-image variant (common case, no referenceImage):
+    --   Image: numbered trace JPEG (clean raster of rawSvg)
   ensures: single API call dispatched to the session-selected Phase 5 model:
-    -- image: marked JPEG rasterization
-    -- text: raw SVG source, VisualDOM (each node: id + label + concept),
-             CSS palette (class names and declarations)
-    -- system: restructuring instructions (see Phase5_Console rule 1)
+    -- image(s): as described above
+    -- text: raw SVG source (up to 10 000 chars), elements (id + label + concept per node),
+             CSS palette (class names and declarations), merge candidate hints
+    -- system: restructuring instructions (Spanish)
     -- tool: restructure_svg (returns StructuringMapping)
     -- tool_choice: forced to restructure_svg
     -- max_tokens: 8192
     -- routing: claude-* models → api-claude; gemini-* models → api-gemini-structure
-  ensures: on success: StructuringMapping returned
-  ensures: on tool-use failure: phase5Status transitions to failed immediately
+  ensures: on success: StructuringMapping returned; proceed to assembly or review
+  ensures: on tool-use failure: structuredSvgStatus transitions to error immediately
 
   @invariant "NLU excluded from prompt"
     -- utterance, domain, frames, pragmatics, visual_guidelines are NOT sent to the model.
@@ -495,33 +475,45 @@ rule Phase5_Console {
 
   ensures: console receives the following events in order:
     1. full system prompt text sent to the model
-    2. "imagen adjunta: {W}×{H}px JPEG, {sizeKB} KB" when image is attached
+    2. image attachment summary:
+       "trazado numerado: {W}×{H}px JPEG, {sizeKB} KB"
+       and optionally "+ bitmap de referencia ({mediaType})" if referenceImage present
     3. "llamando {model}…" when the API request is dispatched
     4. elapsed ms and HTTP status when the response arrives
     5. token usage: input_tokens and output_tokens
-    6. per-group summary: nodeId → path ids, cssClass, merge indicator if present
-    7. discards: path ids listed with any justification text from the model
-    8. for each MergedPath: sources → new d (first 80 chars), validation result
-    9. if geometry validation fails: path id, reason, "fallback: usando paths originales"
+    6. per-group summary: nodeId → path ids, cssClass, merge proposal indicator if present
+    7. discards: path ids with any justification text from the model
+    8. for each merge proposal: sources listed, IoU validation result
+    9. if IoU validation fails: path ids, IoU score, "fallback: usando paths originales"
 }
 
-rule Phase5_GeometryValidation {
-  -- Validates any MergedPath.d returned by the model before use.
+rule Phase5_MergeValidation {
+  -- Local validation of model-proposed merges before Boolean union computation.
+  -- The model returns merge.sources (path ids) only; no geometry is authored by the model.
   when: a StructuringGroup.merge is present in the returned StructuringMapping
 
-  ensures: MergedPath.d is parsed locally as a valid SVG path sequence
-  ensures: on valid parse:
+  ensures: local IoU analysis runs on proposed source paths:
+    -- bounding-box IoU ≥ 0.7 AND similar area ratio AND matching fill-role required
+  ensures: on validation pass:
+    Boolean union computed locally via Martinez sweep-line polygon clipping
+    result simplified via Bezier refit
     merged path replaces source paths in the assembled group
-    console receives: "merge OK: {sources} → {d[:80]}"
-  ensures: on invalid parse (Fallback B):
-    console receives warning: path ids, invalid d excerpt, "usando paths originales"
+    console receives: "merge OK: {sources} → merged path"
+  ensures: on validation fail:
+    console receives: path ids, IoU score, "fallback: usando paths originales"
     group.keep = merge.sources, group.merge = null
     assembly continues with original paths unmodified
-    phase5Status is NOT affected — fallback is silent and non-blocking
+    structuredSvgStatus is NOT affected — fallback is silent and non-blocking
+
+  @invariant "geometry never model-authored"
+    -- No path d attribute is generated or returned by the model.
+    -- All geometry in the output is sourced from rawSvg or computed locally
+    --   via Boolean operations (Martinez sweep-line + Bezier simplification).
 }
 
 rule Phase5_Review {
   -- Timed interactive review step. Active only when recording.enabled = true.
+  -- Timer and mapping state are held component-locally in SVGGenerator; not on RowData.
   when: GlobalConfig.recording.enabled = true
     AND StructuringMapping returned by Phase5_SingleCall without error
 
@@ -534,7 +526,7 @@ rule Phase5_Review {
     )
 
   ensures: review panel displayed with:
-    -- hierarchical tree following VisualDOM parent-child order (parentId)
+    -- hierarchical tree following elements parent-child order (parentId)
     -- each row: checkbox (default checked), label (editable), nodeId, path count, cssClass
     -- countdown timer visible and decrementing
     -- early-confirm action always available
@@ -546,9 +538,11 @@ rule Phase5_Review {
 
   ensures: on timer expiry OR early confirm:
     Phase5_Assemble runs with current selections and label overrides
-    phase5Mapping cleared
-    phase5ReviewTimerMs cleared
-    phase5Status transitions to completed
+    Phase5_FidelityVerification runs on assembled result
+    phase5Mapping cleared (component-local)
+    phase5ReviewTimerMs cleared (component-local)
+    VisualReasoning.structuredSvg = final assembled SVG
+    structuredSvgStatus transitions to completed
 
   @invariant "all selected by default"
     -- StructuringGroup.selected = true for all groups at review start.
@@ -561,30 +555,43 @@ rule Phase5_Assemble {
   -- Local SVG assembly from a final StructuringMapping.
   when: mapping is final (after Phase5_SingleCall directly, or after Phase5_Review confirm)
 
-  ensures: local code assembles Pictograma SVG:
+  ensures: local code assembles structuredSvg:
     -- groups with selected = false are omitted entirely from output
     -- for each selected group: paths in keep sourced verbatim from rawSvg
-    -- for groups with a validated merge: merged path replaces keep paths
+    -- for groups with a validated merge: locally computed union path replaces keep paths
     -- paths in discard are excluded from output
     -- any rawSvg path not accounted for is placed in a fallback "contexto" group
     -- hierarchy reconstructed from parentId: child groups nested inside parent <g>
     -- each group: <g id=nodeId role="group" tabindex="0" aria-label=label class=cssClass>
-    -- no inline fill attributes — all color via CSS classes from the palette
+    -- no inline fill attributes — all colour via CSS classes from the palette
     -- CSS: only classes actually used in the output included in <defs>
     -- result conforms to mf-svg-schema document structure
 
   @invariant "geometry stays local"
-    -- The model provides only the mapping (nodeId → path ids, optional merge.d).
-    -- No path d attribute is generated by the model, except MergedPath.d
-    -- which is validated before use and falls back to original paths on failure.
+    -- The model provides only the mapping (nodeId → path ids, optional merge.sources).
+    -- All path geometry is sourced from rawSvg or computed locally via Boolean operations.
+    -- No path d attribute is authored or returned by the model.
 
   @invariant "label edits reflected"
     -- Labels edited during Phase5_Review replace model labels in assembled
     -- SVG aria-label attributes.
 }
 
+rule Phase5_FidelityVerification {
+  -- Structural diff between assembled and raw SVG to detect over-elimination.
+  -- Runs after Phase5_Assemble, before structuredSvgStatus transitions to completed.
+  when: Phase5_Assemble completes
+
+  ensures: path coverage compared between assembled structuredSvg and rawSvg
+  ensures: if fidelity check indicates significant path loss:
+    -- re-assembly attempted without any merge proposals (merge-free variant)
+    -- if merge-free result is a closer match to rawSvg, it is used instead
+    -- console receives: "fidelity: usando variante sin fusiones"
+  ensures: structuredSvgStatus transitions to completed with the better-fidelity result
+}
+
 rule Phase5_Failure {
-  when: VisualReasoning.phase5Status transitions to failed
+  when: VisualReasoning.structuredSvgStatus transitions to error
 
   ensures: console receives: model used, elapsed ms, full error message, raw response excerpt
   ensures: phase 5 indicator shown as failed in UI
@@ -598,28 +605,22 @@ rule Phase5_Failure {
 invariant DownstreamConsistency {
   -- A phase's outdated status propagates forward without gaps.
   for r: VisualReasoning:
-    r.phase1Status = outdated →
-      r.phase2Status in {outdated, idle}
-      r.phase3Status in {outdated, idle}
-      r.phase4Status in {outdated, idle}
-      r.phase5Status in {outdated, idle}
-    r.phase2Status = outdated →
-      r.phase3Status in {outdated, idle}
-      r.phase4Status in {outdated, idle}
-      r.phase5Status in {outdated, idle}
-    r.phase3Status = outdated →
-      r.phase4Status in {outdated, idle}
-      r.phase5Status in {outdated, idle}
-    r.phase4Status = outdated →
-      r.phase5Status in {outdated, idle}
+    r.nluStatus = outdated →
+      r.visualStatus in {outdated, idle}
+      r.bitmapStatus in {outdated, idle}
+      r.structuredSvgStatus in {outdated, idle}
+    r.visualStatus = outdated →
+      r.bitmapStatus in {outdated, idle}
+      r.structuredSvgStatus in {outdated, idle}
+    r.bitmapStatus = outdated →
+      r.structuredSvgStatus in {outdated, idle}
 }
 
 invariant PartialGeometryIntegrity {
-  -- Path geometry in the Pictograma is sourced from rawSvg for all non-merged paths.
-  -- Merged paths (MergedPath.d) are validated locally; invalid merges fall back
-  -- to original paths, so the invariant holds at assembly time regardless.
-  for r: VisualReasoning where r.phase5Status = completed:
-    for path in non-merged-paths(r.pictograma):
+  -- Path geometry in structuredSvg is sourced from rawSvg for all non-merged paths.
+  -- Merged paths are computed locally via Boolean union with local IoU validation.
+  for r: VisualReasoning where r.structuredSvgStatus = completed:
+    for path in non-merged-paths(r.structuredSvg):
       path.d = getPath(r.rawSvg, path.id).d
 }
 
@@ -630,16 +631,10 @@ invariant NativeSVGOnly {
     r.rawSvg does not contain <image> elements
 }
 
-invariant BitmapSquare {
-  -- All bitmaps stored in VisualReasoning.bitmap are 800×800px.
-  for r: VisualReasoning where r.bitmap is present:
-    dimensions(r.bitmap) = 800 × 800
-}
-
 invariant Phase4NeverAutoRuns {
-  -- Phase 4 transitions to running only via explicit user action,
+  -- VTracer runs only via explicit user action,
   -- never as a consequence of Phase 3 completing.
-  phase4Status transitions to running
+  VTracer runs
     only when user explicitly triggers Vectorizar
 }
 
@@ -649,9 +644,9 @@ invariant Phase4NeverAutoRuns {
 
 open question "Does processCascade run phases 1–3 automatically after utterance confirmation, with phases 4 and 5 remaining user-initiated? Or does the user trigger each phase manually?"
 
-open question "Should VisualDOM validation against mf-svg-schema happen in phase 2 (before phase3Status can proceed) or lazily at the start of phase 5?"
+open question "Should elements validation against mf-svg-schema happen in phase 2 (before bitmapStatus can proceed) or lazily at the start of phase 5?"
 
-open question "When a VisualDOMNode has no paths assigned by the model, does Phase5_Assemble emit an empty <g id=node.id> or omit the node entirely? Empty group preserves schema compliance; omission reduces clutter."
+open question "When a VisualElement has no paths assigned by the model, does Phase5_Assemble emit an empty <g id=node.id> or omit the node entirely? Empty group preserves schema compliance; omission reduces clutter."
 
 open question "Should the Phase5_Review timer formula use a minimum per-node floor (e.g., 2s per node) rather than a word-count formula, to ensure adequate time for complex pictograms?"
 
