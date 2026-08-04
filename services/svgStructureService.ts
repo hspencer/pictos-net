@@ -1449,7 +1449,8 @@ function assembleStructuredSVG(body: string, input: SVGStructureInput, metadata:
     const descContent = descMatch ? descMatch[1].trim() : input.utterance;
     const bodyWithoutDesc = body.replace(/<desc[^>]*>[\s\S]*?<\/desc>/i, '').trim();
     const descEscaped = descContent.replace(/&(?!amp;|lt;|gt;|quot;|apos;)/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    const metadataJSON = JSON.stringify(metadata, null, 2);
+    // Split ]]> so it cannot close the CDATA section prematurely.
+    const metadataJSON = JSON.stringify(metadata, null, 2).replace(/\]\]>/g, ']]]]><![CDATA[>');
     return `<svg id="pictogram" xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}" role="img" aria-labelledby="title desc" lang="${lang}" tabindex="0" focusable="true" data-domain="${domain}" data-utterance="${utteranceEscaped}">
   <title id="title">${utteranceEscaped}</title>
   <desc id="desc">${descEscaped}</desc>

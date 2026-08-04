@@ -69,29 +69,42 @@ export const generateImage = async (
     onLog?.('info', `[PRODUCIR] Iniciando generación con Recraft (${model})…`);
     onLog?.('info', `[PRODUCIR] Elementos: ${elements.length}`);
 
+    const lang = (row.NLU as any)?.lang || config.lang || 'es-419';
+    const isEs = lang.startsWith('es');
+
     const nluContext = row.NLU && typeof row.NLU === 'object'
-        ? `\nContexto semántico: ${row.NLU.visual_guidelines?.focus_actor || ''} — ${row.NLU.visual_guidelines?.action_core || ''} — ${row.NLU.visual_guidelines?.object_core || ''}`
+        ? `\n${isEs ? 'Contexto semántico' : 'Semantic context'}: ${row.NLU.visual_guidelines?.focus_actor || ''} — ${row.NLU.visual_guidelines?.action_core || ''} — ${row.NLU.visual_guidelines?.object_core || ''}`
         : '';
 
+    const defaultStyle = isEs
+        ? 'Estilo pictograma plano, sin texto, diseño vectorial simple, fondo blanco.'
+        : 'Flat pictogram style, no text, simple vector design, white background.';
+    const noTextLine = isEs
+        ? 'Sin texto. Sin etiquetas. Sin marcas de agua. Fondo blanco. Diseño plano.'
+        : 'No text. No labels. No watermarks. White background. Flat design.';
+
     let fullPrompt = [
-        `Pictograma AAC: "${row.UTTERANCE}"`,
+        isEs ? `Pictograma AAC: "${row.UTTERANCE}"` : `AAC Pictogram: "${row.UTTERANCE}"`,
         nluContext,
         '',
-        'Elementos (jerarquía visual):',
+        isEs ? 'Elementos (jerarquía visual):' : 'Elements (visual hierarchy):',
         formatElements(elements),
         '',
-        'Composición espacial:',
+        isEs ? 'Composición espacial:' : 'Spatial composition:',
         prompt,
         '',
-        config.visualStylePrompt || 'Estilo pictograma plano, sin texto, diseño vectorial simple, fondo blanco.',
+        config.visualStylePrompt || defaultStyle,
         '',
-        'Sin texto. Sin etiquetas. Sin marcas de agua. Fondo blanco. Diseño plano.',
+        noTextLine,
     ].filter(s => s !== undefined).join('\n');
 
     if (fullPrompt.length > 2000) {
-        const style = config.visualStylePrompt || 'Estilo pictograma plano, sin texto, diseño vectorial simple, fondo blanco.';
-        const suffix = `\n\n${style}\nSin texto. Sin etiquetas. Sin marcas de agua. Fondo blanco. Diseño plano.`;
-        const prefix = `Pictograma AAC: "${row.UTTERANCE}"\n${nluContext}\n\nElementos:\n${formatElements(elements)}\n\nComposición espacial:\n${prompt}`;
+        const style = config.visualStylePrompt || defaultStyle;
+        const suffix = `\n\n${style}\n${noTextLine}`;
+        const header = isEs ? 'Pictograma AAC' : 'AAC Pictogram';
+        const elemLabel = isEs ? 'Elementos' : 'Elements';
+        const compLabel = isEs ? 'Composición espacial' : 'Spatial composition';
+        const prefix = `${header}: "${row.UTTERANCE}"\n${nluContext}\n\n${elemLabel}:\n${formatElements(elements)}\n\n${compLabel}:\n${prompt}`;
         const maxPrefixLen = 1995 - suffix.length;
         fullPrompt = prefix.slice(0, maxPrefixLen) + suffix;
     }

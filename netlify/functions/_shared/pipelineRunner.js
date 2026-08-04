@@ -17,6 +17,13 @@ import { getVertexAccessToken, vertexModelUrl } from './vertex.js';
 
 const DEFAULT_NLU_MODEL = 'claude-haiku-4-5-20251001';
 
+// Mirrors ALLOWED_MODELS from api-claude.js and api-gemini-nlu.js.
+// Validated before any model call so a crafted config cannot invoke arbitrary models.
+const NLU_ALLOWED_MODELS = new Set([
+  'claude-haiku-4-5-20251001', 'claude-sonnet-4-6', 'claude-opus-4-6',
+  'gemini-2.5-flash', 'gemini-2.5-pro',
+]);
+
 const VOCAB_DOMAIN = [
   'transporte', 'salud', 'alimentación', 'educación', 'vida_cotidiana',
   'trabajo', 'emociones', 'tiempo_libre', 'dinero', 'seguridad',
@@ -281,8 +288,8 @@ export async function runPhase1(utterance, config) {
   const geoRegion = config?.geoContext?.region || 'No especificado';
   const nsmPrimesBlock = buildNSMPrimesBlock(lang);
 
-  const annotatedContext = config?.annotatedContext?.trim()
-    ? `\n- Contexto anotado: "${config.annotatedContext.trim()}"`
+  const annotatedContext = config?.visualStylePrompt?.trim()
+    ? `\n- Contexto visual: "${config.visualStylePrompt.trim()}"`
     : '';
 
   const explicLang = isEs
@@ -314,6 +321,7 @@ Reglas:
 3. Todos los campos requeridos deben estar presentes.`;
 
   const model = config?.comprenderModel ?? config?.nluModel ?? DEFAULT_NLU_MODEL;
+  if (!NLU_ALLOWED_MODELS.has(model)) throw new Error(`Disallowed comprenderModel: ${model}`);
   const response = await callNluModel(model, {
     model,
     max_tokens: 4096,
@@ -363,6 +371,7 @@ Prompt rules:
 You MUST invoke the compose_pictogram tool with both \`elements\` and \`prompt\`.`;
 
   const model = config?.componerModel ?? config?.nluModel ?? DEFAULT_NLU_MODEL;
+  if (!NLU_ALLOWED_MODELS.has(model)) throw new Error(`Disallowed componerModel: ${model}`);
   const response = await callNluModel(model, {
     model,
     max_tokens: 4096,

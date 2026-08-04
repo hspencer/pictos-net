@@ -2008,6 +2008,8 @@ const App: React.FC<AppProps> = ({ authUser }) => {
           elements: ensureElementsArray(row.elements),
           utterance: row.UTTERANCE,
           config,
+          phase5Model: config.phase5Model,
+          referenceImage: row.bitmapDiscarded ? undefined : row.bitmap,
           onProgress: (msg) => addLog('info', msg),
           onStatus: (s) => addLog('info', `[ESTRUCTURAR] ${s}`),
         });

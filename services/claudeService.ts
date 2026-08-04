@@ -45,7 +45,7 @@ const NLU_TOOL_SCHEMA = {
     properties: {
         utterance: { type: 'string' },
         lang: { type: 'string' },
-        domain: { type: 'string' },
+        domain: { type: 'string', enum: VOCAB.domain },
         metadata: {
             type: 'object',
             properties: {
@@ -288,7 +288,7 @@ You MUST invoke the compose_pictogram tool with both \`elements\` and \`prompt\`
             cache_control: { type: 'ephemeral' },
         }],
         tool_choice: { type: 'tool', name: 'compose_pictogram' },
-        messages: [{ role: 'user', content: `NLU Semantics: ${JSON.stringify(nlu)}` }],
+        messages: [{ role: 'user', content: `NLU Semantics: ${JSON.stringify({ utterance: nlu.utterance, lang: nlu.lang, frames: nlu.frames, visual_guidelines: nlu.visual_guidelines })}` }],
     });
 
     const raw = extractToolUse(response, 'compose_pictogram');
@@ -317,11 +317,11 @@ const collectIds = (els: VisualElement[]): string[] => {
     return ids;
 };
 
-// ponytail: substring check — a shorter id contained in a longer one reads as
-// present. Acceptable for a warn/retry heuristic; tighten to word-boundary if
-// element ids start colliding.
+// IDs are wrapped in single quotes in the prompt ('mesa', 'persona').
+// Checking for `'id'` eliminates the substring false-positive (prompt.includes('mano')
+// matching 'manos') without needing a regex.
 const missingIds = (prompt: string, ids: string[]): string[] =>
-    ids.filter(id => !prompt.includes(id));
+    ids.filter(id => !prompt.includes(`'${id}'`));
 
 export const generateSpatialPrompt = async (
     nlu: NLUData,
@@ -353,7 +353,7 @@ Reply with plain text — no JSON, no markdown.`;
             system,
             messages: [{
                 role: 'user',
-                content: `NLU:\n${JSON.stringify(nlu, null, 2)}\n\nElements:\n${formatElements(elements)}\n\n${extra}Generate the spatial prompt.`,
+                content: `NLU:\n${JSON.stringify({ lang: nlu.lang, visual_guidelines: nlu.visual_guidelines })}\n\nElements:\n${formatElements(elements)}\n\n${extra}Generate the spatial prompt.`,
             }],
         });
         return response.content?.find(b => b.type === 'text')?.text?.trim() || '';
@@ -361,8 +361,10 @@ Reply with plain text — no JSON, no markdown.`;
 
     let prompt = await ask();
     let missing = missingIds(prompt, allIds);
-    if (missing.length) {
-        onLog?.('info', `[PROMPT] Faltan elementos (${missing.join(', ')}); reintentando…`);
+    let retries = 0;
+    while (missing.length && retries < 2) {
+        retries++;
+        onLog?.('info', `[PROMPT] Faltan elementos (${missing.join(', ')}); reintentando (${retries}/2)…`);
         const retry = await ask(`Your previous attempt omitted these element ids: ${missing.map(id => `'${id}'`).join(', ')}. Rewrite so EVERY element id appears.\n\n`);
         if (retry) { prompt = retry; missing = missingIds(prompt, allIds); }
     }
