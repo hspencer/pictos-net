@@ -388,6 +388,10 @@ export interface GlobalConfig {
   credits?: string; // Autores/institución para atribución de la librería
   license: string;
   visualStylePrompt: string;
+  /** Semantic domain context injected into Phase 1 (COMPRENDER) and Phase 2 (COMPONER).
+   *  Tells the NLU how to interpret utterances within a specific domain (e.g. "computer
+   *  interface", "hospital", "cooking"). Separate from visualStylePrompt which targets Phase 3. */
+  domainContext?: string;
   /** Structured style definitions — single source of truth for CSS classes embedded in SVGs */
   svgStyleDefs?: StyleDefinition[];
   /** Structured keyframe definitions */

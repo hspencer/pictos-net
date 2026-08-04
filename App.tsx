@@ -2779,6 +2779,20 @@ const App: React.FC<AppProps> = ({ authUser }) => {
                   />
                 </div>
               </div>
+
+              {/* field-domain-context */}
+              <div id="field-domain-context" className="flex flex-col flex-1">
+                <FieldLabel
+                  label={t('config.domainContext')}
+                  tooltip={t('config.domainContextTooltip')}
+                />
+                <textarea
+                  value={config.domainContext || ''}
+                  onChange={e => setConfig({ ...config, domainContext: e.target.value })}
+                  placeholder={t('config.domainContextPlaceholder')}
+                  className="w-full text-xs border p-2.5 bg-slate-50 focus:bg-white transition-colors flex-1 min-h-[5rem] resize-none"
+                />
+              </div>
             </div>
 
             {/* ── Col 2: Estilo visual ── */}

@@ -115,6 +115,7 @@ export async function submitPipelineBatch(
             componerModel: config.componerModel,
             generationModel: config.generationModel,
             visualStylePrompt: config.visualStylePrompt,
+            domainContext: config.domainContext,
             svgStyleDefs: config.svgStyleDefs,
             paletteColors: (config as any).paletteColors,
         },

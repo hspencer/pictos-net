@@ -110,7 +110,12 @@ external GlobalConfig {
   -- Field names match GlobalConfig in types.ts.
   lang: String
   geoContext: GeoContext?
-  visualStylePrompt: String   -- injected as context hint in Phase 1; style hint in Phase 3
+  domainContext: String?       -- semantic domain injected into Phase 1 + Phase 2 system prompts;
+                               -- tells the model to interpret ALL utterances within this domain
+                               -- (e.g. "computer interface", "hospital", "cooking") to resolve
+                               -- lexical ambiguity. Separate from visual style.
+  visualStylePrompt: String   -- visual style hint injected into Phase 1 (as secondary "Contexto visual")
+                               -- and as the Recraft/Gemini generation prompt in Phase 3
   comprenderModel: NLUModel?  -- Phase 1; falls back to nluModel, then claude-haiku-4-5-20251001
   componerModel: NLUModel?    -- Phase 2; falls back to nluModel, then claude-haiku-4-5-20251001
   nluModel: NLUModel?         -- @deprecated: migration fallback for both phases
@@ -209,7 +214,9 @@ rule Phase1_Comprender {
     -- tool name: "analyze_utterance"
     -- tool input_schema: nlu-schema JSON Schema; domain field enum-constrained to VOCAB.domain
     -- tool_choice: forced to "analyze_utterance"
-    -- inputs forwarded: utterance, GlobalConfig (lang, geoContext, visualStylePrompt)
+    -- inputs forwarded: utterance, GlobalConfig (lang, geoContext, domainContext, visualStylePrompt)
+    --   domainContext → "Contexto de dominio" (primary semantic instruction, if present)
+    --   visualStylePrompt → "Contexto visual" (secondary visual hint, if present)
   ensures: on success:
     VisualReasoning.NLU = parsed NLUData from tool call arguments
     VisualReasoning.nluStatus = completed
@@ -240,6 +247,7 @@ rule Phase2_Componer {
     -- tool input_schema: { elements: [VisualElement], prompt: String }
         where elements contains only semantic child nodes (Agent, Action, Object,
         Context, Element) — the root node is never returned by the model
+    -- system prompt includes: GlobalConfig.domainContext (if present) as "Domain context" instruction
     -- user message: filtered NLUData (frames, visual_guidelines, lang only)
     -- tool_choice: forced to "compose_pictogram"
   ensures: on success:

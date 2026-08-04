@@ -168,6 +168,9 @@
     }
   },
   "config": {
+    "domainContext": "Contexto Semántico de Dominio",
+    "domainContextTooltip": "Define el dominio en el que se interpretan TODAS las palabras de esta librería (ej. «interfaz de computador», «hospital», «cocina»). Se inyecta en el análisis NLU (Fase 1) y en la composición visual (Fase 2) para desambiguar el significado de cada utterance.",
+    "domainContextPlaceholder": "Ej: Interfaz gráfica de computador — acciones, elementos y conceptos del sistema operativo de escritorio",
     "visualStylePrompt": "Prompt de Estilo Visual",
     "geoContext": "Contexto Geo-Lingüístico",
     "mapMode": "Modo Mapa",
@@ -209,7 +212,7 @@
       "ccByNcSa": "CC BY-NC-SA — Atribución-NoComercial-CompartirIgual"
     },
     "geoContextTooltip": "Idioma de procesamiento NLU y región geográfica de referencia. Afecta la interpretación cultural de los pictogramas.",
-    "visualStylePromptTooltip": "Descripción del estilo gráfico y contexto comunicativo de la librería. Se inyecta en el análisis NLU (Fase 1) y en la generación visual (Fase 3).",
+    "visualStylePromptTooltip": "Descripción del estilo gráfico de la librería (ej. «pictograma plano, fondo blanco»). Se inyecta en la generación visual Recraft (Fase 3). Para el contexto semántico usa el campo de arriba.",
     "aspectRatioTooltip": "Relación de aspecto de las imágenes generadas.",
     "imageModelTooltip": "NanoBanana Flash es más rápido; NanoBanana Pro produce mayor calidad pero tarda más.",
     "proportion": "Proporción",

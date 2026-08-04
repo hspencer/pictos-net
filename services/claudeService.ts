@@ -134,7 +134,10 @@ export const generateNLU = async (
     const nsmPrimesBlock = buildNSMPrimesBlock(lang);
     const domainList = VOCAB.domain.join(', ');
 
-    const annotatedContext = config?.visualStylePrompt?.trim()
+    const domainCtx = config?.domainContext?.trim()
+        ? `\n- Contexto de dominio: "${config.domainContext.trim()}" — interpreta TODAS las utterances dentro de este dominio semántico; úsalo para resolver cualquier ambigüedad léxica.`
+        : '';
+    const visualCtx = config?.visualStylePrompt?.trim()
         ? `\n- Contexto visual: "${config.visualStylePrompt.trim()}"`
         : '';
 
@@ -151,7 +154,7 @@ Tu tarea es analizar la intención comunicativa y devolver el resultado JSON ví
 
 Contexto de uso:
 - Región geográfica: ${geoRegion}
-- Idioma del vocabulario: ${lang}${annotatedContext}
+- Idioma del vocabulario: ${lang}${domainCtx}${visualCtx}
 
 Ontología NSM (Goddard & Wierzbicka v19, 2017):
 ${nsmPrimesBlock}
@@ -273,7 +276,7 @@ Prompt rules:
 — Describe only TOPOLOGY (relative position, size, connections). No style.
 — 3–6 sentences maximum.
 
-You MUST invoke the compose_pictogram tool with both \`elements\` and \`prompt\`.`;
+${config.domainContext?.trim() ? `Domain context: "${config.domainContext.trim()}" — all element IDs and visual choices must be grounded in this domain.\n` : ''}You MUST invoke the compose_pictogram tool with both \`elements\` and \`prompt\`.`;
 
     const nluModel = config?.componerModel ?? config?.nluModel ?? DEFAULT_NLU_MODEL;
     onLog?.('info', `[VISUAL] Enviando NLU a ${nluModel}…`);
