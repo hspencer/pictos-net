@@ -4,12 +4,19 @@ import path from 'path';
 
 export function connectBlobs(event) {
   const isLocalMock = process.env.NETLIFY_DEV === 'true' && !process.env.NETLIFY_BLOBS_CONTEXT;
-  if (!isLocalMock && event) {
-    try {
-      connectLambda(event);
-    } catch (err) {
-      console.warn('[blobs] connectLambda failed:', err.message);
-    }
+  if (isLocalMock) return;
+
+  // connectLambda is only for background functions — they receive blob context
+  // via event.blobs because they run outside the normal request lifecycle.
+  // Regular functions get site-scoped context automatically via NETLIFY_BLOBS_CONTEXT.
+  // Calling connectLambda on a regular function overwrites the site-scoped context
+  // with a deploy-scoped token, making data from previous deploys invisible.
+  if (!event?.blobs) return;
+
+  try {
+    connectLambda(event);
+  } catch (err) {
+    console.warn('[blobs] connectLambda failed:', err.message);
   }
 }
 
