@@ -39,7 +39,7 @@ async function fetchReport(domain, from, to, key) {
     headers: { Authorization: `Bearer ${key}` }
   });
   if (res.status === 401) throw new Error('401');
-  if (!res.ok) return null;
+  if (!res.ok) throw new Error(`${res.status}`);
   return res.json();
 }
 
