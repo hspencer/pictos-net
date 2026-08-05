@@ -10,7 +10,7 @@
  * en el servidor) y consolida los datos por día, por usuario y por modelo.
  */
 
-const DOMAINS = ['https://pictos.net', 'https://next.pictos.net'];
+const DOMAINS = [window.location.origin];
 const DOMAIN_COLORS = ['#40069e', '#7c3aed']; // primary y primary-light
 const DAILY_LIMIT = 50; // debe coincidir con DAILY_LIMIT_PER_USER en Netlify
 const KEY_STORAGE = 'pictonet_admin_key';
@@ -362,6 +362,7 @@ document.getElementById('btn-refresh').addEventListener('click', refresh);
 document.getElementById('range').addEventListener('change', refresh);
 document.getElementById('btn-logout').addEventListener('click', () => logout());
 document.getElementById('limit-label').textContent = DAILY_LIMIT;
+document.getElementById('site-label').textContent = window.location.hostname;
 
 // Si ya hay clave en la sesión, entra directo.
 if (sessionStorage.getItem(KEY_STORAGE)) {
