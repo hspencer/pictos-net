@@ -3,7 +3,7 @@
 ## Quick Reference
 
 Generative pictogram system for AAC (Augmentative and Alternative Communication).
-React 19 + TypeScript 5.8 + Vite 6 + Tailwind 3.4 + Claude AI + Recraft V4.1 Vector.
+React 19 + TypeScript 5.8 + Vite 6 + Tailwind 3.4 + Claude AI + Google Gemini image generation.
 
 ## Commands
 
@@ -23,19 +23,18 @@ Vite proxy on port 3000 forwards `/.netlify/*` to 9001, so both ports work in pr
 |--------|--------|-----|
 | `main` | Netlify auto | pictos.net |
 | `dev`  | Netlify auto | next.pictos.net |
-| `recraft` | local only | — |
 
-Flow: `recraft` → `dev` (preview) → `main` (production)
+Flow: `dev` → `main`
 
 ## Architecture
 
 4-phase pipeline: 3 automatic (Comprender → Componer → Producir) + 1 optional (Estructurar).
 Phase 4 (Vectorizar/VTracer) is present in the codebase but eliminated from the cascade —
-Recraft V4.1 delivers native SVG so VTracer is no longer needed.
+Gemini image models deliver native SVG output so VTracer is no longer needed.
 
-- **Services**: `services/claudeService.ts` (phases 1-2), `services/recraftService.ts` (phase 3), `services/svgStructureService.ts` (phase 4)
+- **Services**: `services/claudeService.ts` (phases 1-2), `services/geminiService.ts` (phase 3, default), `services/recraftService.ts` (phase 3, Recraft fallback), `services/svgStructureService.ts` (phase 4)
 - **API**: `services/aiClient.ts` — always-proxy client. All calls go through Netlify Functions (`callClaude`, `callRecraft`). No API key ever reaches the browser.
-- **Functions**: `netlify/functions/api-claude.js` (phases 1,2,4), `netlify/functions/api-recraft.js` (phase 3)
+- **Functions**: `netlify/functions/api-claude.js` (phases 1,2,4), `netlify/functions/api-gemini-worker-background.js` + `api-gemini-poll.js` (phase 3, default), `netlify/functions/api-recraft.js` (phase 3, Recraft fallback)
 - **State**: Zustand for SVG editor, localStorage for metadata, IndexedDB for binary (SVGs)
 - **Main orchestrator**: `App.tsx` — processCascade, processStep, row management
 
@@ -53,11 +52,10 @@ Recraft V4.1 delivers native SVG so VTracer is no longer needed.
 - Each element carries `concept` (Root/Agent/Action/Object/Context/Element) derived from NLU frame roles — flows to `data-concept` in the structured SVG; legacy rows fall back to `guessConceptFromId`
 - `generateSpatialPrompt()` regenerates only the prompt when user edits elements
 
-### Phase 3: PRODUCIR (Recraft V4.1 Vector)
+### Phase 3: PRODUCIR (Gemini image — default: gemini-2.5-flash-image)
 - Input: elements + prompt + visualStylePrompt + NLU context + utterance
-- Model: `recraftv4_1_vector` (via `api-recraft` Netlify Function)
-- Output: raw SVG string (`rawSvg`) — no bitmap, no rasterization
-- No style/substyle params — V4.1 does not support them
+- Model: `gemini-2.5-flash-image` (default), `gemini-3.1-flash-image`, `gemini-3-pro-image` via `api-gemini-worker-background` + `api-gemini-poll`; Recraft variants available as non-default via `api-recraft`
+- Output: raw SVG string (`rawSvg`) for vector models; bitmap PNG (`bitmap`) for raster models
 
 ### Phase 4: ESTRUCTURAR (Claude Sonnet, optional, user-initiated)
 - Input: rawSvg + elements + NLU + GlobalConfig
@@ -75,12 +73,12 @@ Recraft V4.1 delivers native SVG so VTracer is no longer needed.
 | `uiLang` | — | Active | UI language (independent of NLU) |
 | `geoContext` | 1, 4 | Active | Regional context + a11y metadata |
 | `annotatedContext` | 1 | Active | Extra context injected into NLU prompt |
-| `visualStylePrompt` | 3 | Active | Text added to Recraft prompt |
+| `visualStylePrompt` | 3 | Active | Text added to the image generation prompt |
 | `svgStyleDefs` | 2, 4 | Active | CSS definitions for SVG editor + structuring |
 | `svgKeyframes` | 4 | Active | Animation keyframes for structured SVG |
 | `generationModel` | 3 | Active | Phase 3 model: `gemini-2.5-flash-image` (default), `gemini-3.1-flash-image`, `gemini-3-pro-image`, `recraftv4_1`, `recraftv4_1_vector`, `recraftv4_1_utility_vector`, `recraftv4_1_pro_vector` |
 | `phase5Model` | 4 | Active | Phase 4 structuring model: `claude-sonnet-4-6` (default), `claude-opus-4-6`, `gemini-2.5-pro`, `gemini-2.5-flash` |
-| `aspectRatio` | — | Inactive | Was Gemini Image aspect ratio; Recraft uses fixed size |
+| `aspectRatio` | — | Inactive | Was Gemini Image aspect ratio; no longer used |
 | `imageModel` | — | Inactive | Legacy; migrated to `generationModel` on first load |
 
 ## Conventions
@@ -95,7 +93,7 @@ Recraft V4.1 delivers native SVG so VTracer is no longer needed.
 ## Key Patterns
 
 - Tool use in Claude: always `tool_choice: { type: 'tool', name: '...' }` — hard failure if model doesn't invoke
-- Recraft API: `recraftv4_1_vector` model, prompt only (no style/substyle), returns URL → fetched to SVG string
+- Recraft API (non-default, via `api-recraft`): prompt only (no style/substyle), returns URL → fetched to SVG string; only invoked when `generationModel` starts with `recraft`
 - Phase 4 set-of-marks: paths get numeric IDs in a rasterized PNG → Claude assigns each ID to a semantic element
 - Local SVG assembly: Claude returns only `{ path_id → element_id }` map; geometry manipulation is all local
 - Quota: phase 3 image generation = 1 unit/call (Recraft + Gemini workers; batch = 1 unit/row, refunded via `refundUnits` if the batch never starts); ALL Claude calls = 0 units. Limit from `DAILY_LIMIT_PER_USER` env (code default 50; prod = 50, preview = 100; env changes reach functions only on the next deploy). Role `superuser` bypasses the limit; roles are read LIVE from GoTrue at quota-decision points (`fetchFreshRoles` in `_shared/identity.js`), so a role assigned in the Identity panel applies without re-login

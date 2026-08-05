@@ -216,7 +216,7 @@ export interface RowData {
 
   // Phase 3: "Producir" (Produce) - Image Generation
   bitmap?: string;       // Base64 PNG data URL — set by bitmap-producing models
-  rawSvg?: string;       // Native SVG — set by recraftv4_1_vector (Phase 3) or VTrace (Phase 4)
+  rawSvg?: string;       // Native SVG — set by vector models in Phase 3 (Gemini image / Recraft vector)
   structuredSvg?: string; // mf-svg-schema compliant SVG (Phase 5)
   /** Model that produced Phase 3 output. Frozen at Phase 3 completion. */
   generationModel?: GenerationModel;
@@ -236,7 +236,7 @@ export interface RowData {
   // Step Statuses
   nluStatus: StepStatus;            // Phase 1: Comprender (Claude Haiku → NLU)
   visualStatus: StepStatus;         // Phase 2: Componer  (Claude Haiku → VisualDOM + prompt)
-  bitmapStatus: StepStatus;         // Phase 3: Producir  (Recraft V3 → rawSvg)
+  bitmapStatus: StepStatus;         // Phase 3: Producir  (image generation model → rawSvg or bitmap)
   structuredSvgStatus?: StepStatus; // Phase 5: Estructurar (vision model → structuredSvg)
   phase5Mapping?: StructuringMapping; // intermediate result awaiting review (recording mode)
 
@@ -280,7 +280,7 @@ export type GenerationModel =
   | 'recraftv4_1_utility_vector'
   | 'recraftv4_1_pro_vector';
 
-/** Output type classification: Recraft *_vector models are 'vector'; all others are 'bitmap'. */
+/** Output type classification: *_vector models produce SVG ('vector'); all others produce PNG ('bitmap'). */
 export type ModelFamily = 'bitmap' | 'vector';
 
 export function getModelFamily(model: GenerationModel): ModelFamily {
@@ -326,7 +326,8 @@ export const INOPERATIVE_GENERATION_MODELS: Partial<Record<GenerationModel, stri
 
 /** Migrates a legacy imageModel string to the canonical GenerationModel value. */
 export function migrateImageModel(imageModel: string | undefined): GenerationModel {
-  if (!imageModel || imageModel === 'recraftv4_1_vector') return 'recraftv4_1_vector';
+  if (!imageModel) return DEFAULT_GENERATION_MODEL;
+  if (imageModel === 'recraftv4_1_vector') return 'recraftv4_1_vector';
   if (imageModel === 'recraftv4_1') return 'recraftv4_1';
   if (imageModel.includes('pro')) return 'gemini-3-pro-image';
   if (imageModel.includes('flash') || imageModel.startsWith('gemini')) return 'gemini-2.5-flash-image';
@@ -349,7 +350,7 @@ export function migrateGenerationModel(model: string | undefined): GenerationMod
 
 /** Result from Phase 3 (PRODUCIR). Exactly one of svg/bitmap will be set. */
 export interface Phase3Result {
-  /** Present for recraftv4_1_vector — native SVG string. */
+  /** Present for vector models (Gemini image / Recraft *_vector) — native SVG string. */
   svg?: string;
   /** Present for all bitmap-producing models — base64 PNG data URL. */
   bitmap?: string;
@@ -367,7 +368,7 @@ export interface GlobalConfig {
     region: string;
   };
 
-  /** @deprecated v2.0 — was Gemini Image aspect ratio; Recraft V4.1 uses fixed size. Kept for persistence compatibility. */
+  /** @deprecated v2.0 — was Gemini Image aspect ratio; no longer used. Kept for persistence compatibility. */
   aspectRatio?: string;
   /** @deprecated v2.0 — migrated to generationModel on first load. */
   imageModel?: string;
@@ -404,7 +405,7 @@ export interface GlobalConfig {
   recording?: RecordingSetting;
   /** Library presentation mode (see specs/library-views.allium) */
   libraryViewMode?: 'list' | 'grid';
-  /** Preferred colors sent to Recraft as controls.colors (hex strings, max 10) */
+  /** Preferred colors sent to Recraft as controls.colors (hex strings, max 10). Recraft-specific; ignored by Gemini. */
   paletteColors?: string[];
 }
 

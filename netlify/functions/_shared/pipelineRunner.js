@@ -316,11 +316,11 @@ ${nsmPrimesBlock}
 ${explicLang}
 ${frameLabelLang}
 
-Dominio — infiere uno de: ${VOCAB_DOMAIN.join(', ')}
+Dominio — infiere uno de: ${VOCAB_DOMAIN.join(', ')}${domainCtx ? ' — prioriza el más afín al contexto de dominio indicado.' : ''}
 
 Reglas:
 1. Invoca SIEMPRE la herramienta analyze_utterance con el JSON completo.
-2. Analiza semántica y pragmática profunda, no solo la superficie.
+2. Analiza semántica y pragmática profunda${domainCtx ? ' dentro del dominio indicado' : ''}, no solo la superficie.
 3. Todos los campos requeridos deben estar presentes.`;
 
   const model = config?.comprenderModel ?? config?.nluModel ?? DEFAULT_NLU_MODEL;

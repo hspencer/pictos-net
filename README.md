@@ -27,7 +27,7 @@ El sistema implementa un pipeline de tres fases automáticas más una de post-pr
 
 **(2) Componer** (Claude Haiku) — Traduce el análisis NLU a una jerarquía de elementos visuales (`elements`) y una descripción de articulación espacial (`prompt`). Cada elemento lleva un `concept` semántico (Agent, Action, Object, Context) derivado de los roles de frame del NLU, que viaja hasta el `data-concept` del SVG final. Si el usuario edita los elementos, puede regenerar solo el prompt sin repetir toda la composición.
 
-**(3) Producir** (Recraft V4.1 Vector) — Genera el pictograma como SVG nativo a partir del contexto semántico, los elementos, el prompt espacial y el estilo visual configurado. No hay bitmap intermedio: el resultado es un SVG vectorial directamente editable.
+**(3) Producir** (Gemini image — por defecto: Gemini 2.5 Flash) — Genera el pictograma a partir del contexto semántico, los elementos, el prompt espacial y el estilo visual configurado. Los modelos vectoriales producen SVG nativo directamente editable; los modelos raster producen un bitmap PNG. El modelo se configura por librería.
 
 **(4) Estructurar** (Claude Sonnet, opcional) — Reorganiza los paths del SVG crudo en grupos semánticos congruentes con la jerarquía de la fase 2, embebiendo metadatos de accesibilidad según [mf-svg-schema](https://github.com/mediafranca/mf-svg-schema). Combina medición geométrica local (anclas reales por `getBBox` + CTM, candidatos de fusión pre-calculados), una sola llamada de visión (set-of-marks con anti-colisión y líneas guía), ensamblaje local con redes de seguridad y pulido geométrico determinístico: la geometría nunca sale del navegador ni la escribe el modelo. Documentación detallada en [docs/ESTRUCTURAR.md](docs/ESTRUCTURAR.md).
 
@@ -77,11 +77,11 @@ flowchart TD
         f2_prompt["<b>prompt</b><br>composición espacial"]
     end
 
-    subgraph F3["<b>(3) PRODUCIR</b> — Recraft V4.1 Vector"]
+    subgraph F3["<b>(3) PRODUCIR</b> — Gemini image (default: 2.5 Flash)"]
         direction TB
         f3_merge["<b>fullPrompt</b> combina:<br>utterance + NLU context<br>+ elements + prompt<br>+ visualStylePrompt"]
-        f3_gen["recraftv4_1_vector<br>sin texto · fondo blanco"]
-        f3_out["<b>rawSvg</b><br>SVG vectorial nativo"]
+        f3_gen["gemini-2.5-flash-image<br>sin texto · fondo blanco"]
+        f3_out["<b>rawSvg / bitmap</b><br>SVG nativo o PNG"]
     end
 
     subgraph POST["Post-procesamiento — manual, opcional · ver docs/ESTRUCTURAR.md"]
@@ -235,10 +235,10 @@ flowchart LR
 | `uiLang` | — | Activo | Idioma de la interfaz (independiente del NLU) |
 | `geoContext` | 1, 4 | Activo | Región geográfica para contextualización y metadatos a11y |
 | `annotatedContext` | 1 | Activo | Contexto adicional anotado por el usuario (inyectado en el prompt NLU) |
-| `visualStylePrompt` | 3 | Activo | Descripción de estilo visual inyectada en el prompt de Recraft |
+| `visualStylePrompt` | 3 | Activo | Descripción de estilo visual inyectada en el prompt de generación de imagen |
 | `svgStyleDefs` | 2, 4 | Activo | Definiciones CSS del SVG (clases disponibles en composición y en estructuración) |
 | `svgKeyframes` | 4 | Activo | Keyframes de animación para el SVG estructurado |
-| `aspectRatio` | — | Inactivo | Era el aspect ratio de Gemini Image; Recraft V4.1 usa tamaño fijo |
+| `aspectRatio` | — | Inactivo | Era el aspect ratio de Gemini Image; ya no se usa |
 | `imageModel` | — | Inactivo | Era el selector flash/pro de Gemini; eliminado del pipeline |
 
 ---
@@ -283,14 +283,15 @@ Puedes compartir tu grafo exportado con comentarios a [contact@pictos.net](mailt
 ```bash
 git clone --recurse-submodules https://github.com/hspencer/pictos-net.git
 cd pictos-net
-cp .env.example .env        # agrega ANTHROPIC_API_KEY y RECRAFT_API_KEY
+cp .env.example .env        # agrega ANTHROPIC_API_KEY y credenciales de Vertex AI
 npm install
 npm run dev                 # → http://localhost:9001 (netlify dev)
 ```
 
 Las API keys necesarias:
 - `ANTHROPIC_API_KEY` — [console.anthropic.com](https://console.anthropic.com)
-- `RECRAFT_API_KEY` — [recraft.ai](https://www.recraft.ai/api)
+- `GOOGLE_SERVICE_ACCOUNT_JSON` — credenciales de Vertex AI (cuenta de servicio Google Cloud, una línea)
+- `RECRAFT_API_KEY` — [recraft.ai](https://www.recraft.ai/api) (opcional, solo modelos Recraft)
 - `GITHUB_TOKEN` — para la función de compartir pictogramas (opcional)
 
 Ver [docs/CONTRIBUTING.md](./docs/CONTRIBUTING.md) para instrucciones completas.
@@ -303,7 +304,7 @@ Ver [docs/CONTRIBUTING.md](./docs/CONTRIBUTING.md) para instrucciones completas.
 - Vite 6 + Tailwind CSS 3.4
 - Zustand (estado SVG editor)
 - Anthropic SDK — Claude Haiku 4.5 (fases 1 y 2) + Claude Sonnet 4.6 (fase 4, visión)
-- Recraft V4.1 Vector (fase 3, SVG nativo)
+- Google Gemini image models — Vertex AI (fase 3, SVG nativo o bitmap PNG)
 - Netlify Functions (proxy API con JWT) + Netlify Identity
 - IndexedDB v3 + localStorage (persistencia dual)
 

@@ -1,9 +1,9 @@
 /**
- * Recraft Service — Phase 3 (PRODUCIR)
+ * Recraft Service — Phase 3 (PRODUCIR), Recraft models only.
  *
- * Calls Recraft V3 SVG via the api-recraft Netlify function.
- * Returns a native SVG string — no rasterization, no VTracer.
- * This SVG (rawSvg) feeds directly into phase 5 (ESTRUCTURAR).
+ * Non-default fallback: invoked only when config.generationModel starts with 'recraft'.
+ * Default Phase 3 is handled by geminiService.ts (Gemini image via Vertex AI).
+ * Calls the api-recraft Netlify function; returns SVG (vector models) or bitmap (raster models).
  */
 
 import { GlobalConfig, VisualElement, Phase3Result, GenerationModel, getModelFamily } from "../types";
