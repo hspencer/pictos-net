@@ -17,7 +17,7 @@
 
 import { getBlobStore as getStore } from './blobs.js';
 
-const DAILY_LIMIT = parseInt(process.env.DAILY_LIMIT_PER_USER ?? '50', 10);
+export const DAILY_LIMIT = parseInt(process.env.DAILY_LIMIT_PER_USER ?? '50', 10);
 const STORE_NAME = 'pictonet-usage';
 
 /**

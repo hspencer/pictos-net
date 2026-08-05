@@ -12,7 +12,7 @@
 
 const DOMAINS = [window.location.origin];
 const DOMAIN_COLORS = ['#40069e', '#7c3aed']; // primary y primary-light
-const DAILY_LIMIT = 50; // debe coincidir con DAILY_LIMIT_PER_USER en Netlify
+let DAILY_LIMIT = 50; // updated from API on first load
 const KEY_STORAGE = 'pictonet_admin_key';
 const WEEKDAY_LABELS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
@@ -73,6 +73,7 @@ async function loadData(days, key) {
   for (const { domain, data, failed } of results) {
     if (failed) { failedDomains.add(domain); continue; }
     if (!data) continue;
+    if (data.daily_limit) { DAILY_LIMIT = data.daily_limit; document.getElementById('limit-label').textContent = DAILY_LIMIT; }
     const host = new URL(domain).hostname;
 
     for (const [date, d] of Object.entries(data.byDate || {})) {

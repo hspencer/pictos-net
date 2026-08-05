@@ -8,7 +8,7 @@
  * GET /.netlify/functions/api-usage-report?from=YYYY-MM-DD&to=YYYY-MM-DD&email=...
  */
 
-import { getRangeSummary } from './_shared/usage.js';
+import { getRangeSummary, DAILY_LIMIT } from './_shared/usage.js';
 import { connectBlobs } from './_shared/blobs.js';
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
@@ -83,6 +83,7 @@ export const handler = async (event, context) => {
       body: JSON.stringify({
         from,
         to,
+        daily_limit: DAILY_LIMIT,
         total_calls: totalCalls,
         total_units: totalUnits,
         users,
