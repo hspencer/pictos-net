@@ -25,6 +25,8 @@ interface LibraryHomeProps {
   storageQuota: number;
   activeLibraryId?: string;
   onOpen: (id: string) => void;
+  /** Navigate to the active library without reloading it. */
+  onNavigate: () => void;
   onCreate: () => void;
   onDuplicate: (id: string) => void;
   onDownload: (id: string) => void;
@@ -414,6 +416,7 @@ export function LibraryHome({
   storageQuota,
   activeLibraryId,
   onOpen,
+  onNavigate,
   onCreate,
   onDuplicate,
   onDownload,
@@ -428,6 +431,17 @@ export function LibraryHome({
   onRestoreTemplates,
 }: LibraryHomeProps) {
   const { t } = useTranslation();
+  const [pendingOpenId, setPendingOpenId] = useState<string | null>(null);
+
+  const handleCardOpen = (id: string) => {
+    if (id === activeLibraryId) {
+      onNavigate();
+    } else {
+      setPendingOpenId(id);
+    }
+  };
+
+  const activeCount = libraries.find(l => l.id === activeLibraryId)?.pictogramCount ?? 0;
 
   const sortedLibraries = sort === 'alfabetico'
     ? [...libraries].sort((a, b) => a.name.localeCompare(b.name))
@@ -454,6 +468,36 @@ export function LibraryHome({
   })();
 
   return (
+    <>
+    {pendingOpenId && (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+        onClick={() => setPendingOpenId(null)}
+      >
+        <div
+          className="bg-white rounded-xl p-6 max-w-sm w-full shadow-2xl space-y-4 mx-4"
+          onClick={e => e.stopPropagation()}
+        >
+          <p className="text-sm text-slate-700">
+            {t('home.loadLibraryWarning', { count: activeCount })}
+          </p>
+          <div className="flex justify-end gap-2">
+            <button
+              onClick={() => setPendingOpenId(null)}
+              className="text-xs px-3 py-1.5 rounded border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
+            >
+              {t('actions.cancel')}
+            </button>
+            <button
+              onClick={() => { onOpen(pendingOpenId); setPendingOpenId(null); }}
+              className="text-xs px-3 py-1.5 rounded bg-violet-700 text-white hover:bg-violet-800 transition-colors"
+            >
+              {t('home.loadLibrary')}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
     <div id="library-home" className="py-12 space-y-10 animate-in fade-in zoom-in-95 duration-700">
 
       {/* ── Own zone: pictos actions + create + the user's libraries.
@@ -487,7 +531,7 @@ export function LibraryHome({
               key={lib.id}
               lib={lib}
               isActive={lib.id === activeLibraryId}
-              onOpen={onOpen}
+              onOpen={handleCardOpen}
               onDuplicate={onDuplicate}
               onDownload={onDownload}
               onRename={onRename}
@@ -563,5 +607,6 @@ export function LibraryHome({
       </div>
 
     </div>
+    </>
   );
 }

@@ -3228,6 +3228,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
             storageQuota={storageInfo?.quota ?? 0}
             activeLibraryId={activeLibraryId ?? undefined}
             onOpen={openLibrary}
+            onNavigate={() => setViewingLibraryHome(false)}
             onCreate={handleCreateLibrary}
             onDuplicate={handleDuplicateLibrary}
             onDownload={handleDownloadLibrary}
