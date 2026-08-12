@@ -295,7 +295,6 @@ const App: React.FC<AppProps> = ({ authUser }) => {
   const [activeLibraryId, setActiveLibraryId] = useState<string | null>(null);
   const [viewingLibraryHome, setViewingLibraryHome] = useState(true);
   const [libraryIndex, setLibraryIndex] = useState<LibraryMeta[]>([]);
-  const [sortBy, setSortBy] = useState<'alphabetical' | 'completeness'>('alphabetical');
   const [config, setConfig] = useState<GlobalConfig>(DEFAULT_APP_CONFIG);
   const [modelChangeWarning, setModelChangeWarning] = useState<{
     pendingModel: GenerationModel;
@@ -1271,6 +1270,11 @@ const App: React.FC<AppProps> = ({ authUser }) => {
     setShowConfig(false);
     setSearchValue('');
     setIsSearching(false);
+    // Navigate to list view so the new row is visible
+    if (activeLibraryId) {
+      setViewingLibraryHome(false);
+      setConfig(prev => ({ ...prev, libraryViewMode: 'list' }));
+    }
   };
 
   const handleLibraryMenuToggle = () => {
@@ -2328,18 +2332,8 @@ const App: React.FC<AppProps> = ({ authUser }) => {
       filtered = rows.filter(r => r.UTTERANCE.toLowerCase().includes(lowSearch));
     }
 
-    // Then sort by selected criteria
-    const sorted = [...filtered].sort((a, b) => {
-      if (sortBy === 'alphabetical') {
-        return a.UTTERANCE.localeCompare(b.UTTERANCE);
-      } else if (sortBy === 'completeness') {
-        return getRowCompleteness(b) - getRowCompleteness(a); // descending (more complete first)
-      }
-      return 0;
-    });
-
-    return sorted;
-  }, [rows, searchValue, sortBy]);
+    return [...filtered].sort((a, b) => a.UTTERANCE.localeCompare(b.UTTERANCE));
+  }, [rows, searchValue]);
 
   const focusedRowData = useMemo(() => {
     if (!focusMode) return null;
@@ -3146,40 +3140,16 @@ const App: React.FC<AppProps> = ({ authUser }) => {
         {/* Library toolbar — discrete text tabs, single row */}
         {activeLibraryId !== null && !viewingLibraryHome && (
           <div id="library-toolbar" className="mb-6 flex items-center gap-4">
-            {/* Pictogramas tab + inline view toggle when active */}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setLibraryContentMode('pictogramas')}
-                aria-pressed={libraryContentMode === 'pictogramas'}
-                className={`text-xs font-semibold uppercase tracking-wider transition-colors ${libraryContentMode === 'pictogramas' ? 'text-slate-900' : 'text-slate-400 hover:text-slate-600'}`}
-              >
-                {t('library.contentTogglePictogramas')}
-              </button>
-              {libraryContentMode === 'pictogramas' && rows.length > 0 && (
-                <div id="view-switcher" ref={viewSwitcherRef} className="flex items-center gap-1">
-                  <button
-                    onClick={() => setConfig(prev => ({ ...prev, libraryViewMode: 'list' }))}
-                    title={t('library.viewList')}
-                    aria-label={t('library.viewList')}
-                    aria-pressed={(config.libraryViewMode ?? 'list') === 'list'}
-                    className={`transition-colors ${(config.libraryViewMode ?? 'list') === 'list' ? 'text-violet-700' : 'text-slate-300 hover:text-slate-500'}`}
-                  >
-                    <List size={14} aria-hidden="true" />
-                  </button>
-                  <button
-                    onClick={() => setConfig(prev => ({ ...prev, libraryViewMode: 'grid' }))}
-                    title={t('library.viewGrid')}
-                    aria-label={t('library.viewGrid')}
-                    aria-pressed={config.libraryViewMode === 'grid'}
-                    className={`transition-colors ${config.libraryViewMode === 'grid' ? 'text-violet-700' : 'text-slate-300 hover:text-slate-500'}`}
-                  >
-                    <LayoutGrid size={14} aria-hidden="true" />
-                  </button>
-                </div>
-              )}
-            </div>
+            {/* Pictogramas tab */}
+            <button
+              onClick={() => setLibraryContentMode('pictogramas')}
+              aria-pressed={libraryContentMode === 'pictogramas'}
+              className={`text-xs font-semibold uppercase tracking-wider transition-colors ${libraryContentMode === 'pictogramas' ? 'text-slate-900' : 'text-slate-400 hover:text-slate-600'}`}
+            >
+              {t('library.contentTogglePictogramas')}
+            </button>
 
-            {/* Secuencias tab — always navigates to sequence list */}
+            {/* Secuencias tab */}
             <button
               onClick={() => { setLibraryContentMode('secuencias'); setActiveSequenceId(null); }}
               aria-pressed={libraryContentMode === 'secuencias'}
@@ -3188,21 +3158,32 @@ const App: React.FC<AppProps> = ({ authUser }) => {
               {t('library.contentToggleSecuencias')}
             </button>
 
-            {/* Sort toggle — pushed right. The sequence list/grid toggle lives
-                inside SequenceEditor's own header, next to Imprimir/Descargar. */}
+            {/* View switcher — pushed right, horizontal segmented control */}
             {libraryContentMode === 'pictogramas' && rows.length > 0 && (
-              <div className="ml-auto flex items-center gap-3">
+              <div
+                id="view-switcher"
+                ref={viewSwitcherRef}
+                className="ml-auto flex items-center bg-slate-100 rounded-md p-0.5"
+                role="group"
+                aria-label={t('library.viewList') + ' / ' + t('library.viewGrid')}
+              >
                 <button
-                  onClick={() => setSortBy('alphabetical')}
-                  className={`text-xs uppercase tracking-wider transition-colors ${sortBy === 'alphabetical' ? 'text-slate-900 font-semibold' : 'text-slate-400 hover:text-slate-600'}`}
+                  onClick={() => setConfig(prev => ({ ...prev, libraryViewMode: 'list' }))}
+                  title={t('library.viewList')}
+                  aria-label={t('library.viewList')}
+                  aria-pressed={(config.libraryViewMode ?? 'list') === 'list'}
+                  className={`p-1.5 rounded transition-colors ${(config.libraryViewMode ?? 'list') === 'list' ? 'bg-white shadow-sm text-violet-700' : 'text-slate-400 hover:text-slate-600'}`}
                 >
-                  {t('library.alphabetical')}
+                  <List size={20} aria-hidden="true" />
                 </button>
                 <button
-                  onClick={() => setSortBy('completeness')}
-                  className={`text-xs uppercase tracking-wider transition-colors ${sortBy === 'completeness' ? 'text-slate-900 font-semibold' : 'text-slate-400 hover:text-slate-600'}`}
+                  onClick={() => setConfig(prev => ({ ...prev, libraryViewMode: 'grid' }))}
+                  title={t('library.viewGrid')}
+                  aria-label={t('library.viewGrid')}
+                  aria-pressed={config.libraryViewMode === 'grid'}
+                  className={`p-1.5 rounded transition-colors ${config.libraryViewMode === 'grid' ? 'bg-white shadow-sm text-violet-700' : 'text-slate-400 hover:text-slate-600'}`}
                 >
-                  {t('library.completeness')}
+                  <LayoutGrid size={20} aria-hidden="true" />
                 </button>
               </div>
             )}
@@ -3213,7 +3194,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
         {viewSwitcherOffscreen && activeLibraryId !== null && !viewingLibraryHome
           && libraryContentMode === 'pictogramas' && rows.length > 0 && (
           <div
-            className="fixed left-3 top-24 z-40 flex flex-col gap-1 bg-white/95 backdrop-blur-sm border border-slate-200 rounded-md shadow-md p-1.5 animate-in fade-in slide-in-from-left-2 duration-150"
+            className="fixed right-3 top-24 z-40 flex flex-row items-center bg-white/95 backdrop-blur-sm border border-slate-200 rounded-md shadow-md p-0.5 animate-in fade-in slide-in-from-right-2 duration-150"
             role="group"
             aria-label={t('library.viewList') + ' / ' + t('library.viewGrid')}
           >
@@ -3222,18 +3203,18 @@ const App: React.FC<AppProps> = ({ authUser }) => {
               title={t('library.viewList')}
               aria-label={t('library.viewList')}
               aria-pressed={(config.libraryViewMode ?? 'list') === 'list'}
-              className={`p-1 transition-colors ${(config.libraryViewMode ?? 'list') === 'list' ? 'text-violet-700' : 'text-slate-300 hover:text-slate-500'}`}
+              className={`p-1.5 rounded transition-colors ${(config.libraryViewMode ?? 'list') === 'list' ? 'bg-slate-100 text-violet-700' : 'text-slate-300 hover:text-slate-500'}`}
             >
-              <List size={14} aria-hidden="true" />
+              <List size={20} aria-hidden="true" />
             </button>
             <button
               onClick={() => setConfig(prev => ({ ...prev, libraryViewMode: 'grid' }))}
               title={t('library.viewGrid')}
               aria-label={t('library.viewGrid')}
               aria-pressed={config.libraryViewMode === 'grid'}
-              className={`p-1 transition-colors ${config.libraryViewMode === 'grid' ? 'text-violet-700' : 'text-slate-300 hover:text-slate-500'}`}
+              className={`p-1.5 rounded transition-colors ${config.libraryViewMode === 'grid' ? 'bg-slate-100 text-violet-700' : 'text-slate-300 hover:text-slate-500'}`}
             >
-              <LayoutGrid size={14} aria-hidden="true" />
+              <LayoutGrid size={20} aria-hidden="true" />
             </button>
           </div>
         )}
