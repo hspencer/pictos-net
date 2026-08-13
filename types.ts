@@ -247,6 +247,10 @@ export interface RowData {
 
   // Intervention recording (see specs/intervention-recording.allium)
   interventionLog?: RowInterventionLog;
+
+  // Communication boards audio (see specs/boards.allium)
+  // Base64 data URL of a recorded audio clip; null / absent = no audio recorded.
+  audio?: string;
 }
 
 export interface LogEntry {
@@ -516,6 +520,7 @@ export interface LibraryMeta {
   modifiedAt: string;    // ISO-8601
   pictogramCount: number;
   sequenceCount: number;
+  boardCount?: number;
   language?: string;
   sourceTemplate?: string;  // filename in /libraries/ — set when loaded from a template card
 }
@@ -539,4 +544,47 @@ export interface Sequence {
   steps: Step[];
   createdAt: string;
   modifiedAt: string;
+}
+
+// ── Boards ──────────────────────────────────────────────────────────────────
+
+export type FitzgeraldColor = 'amarillo' | 'verde' | 'azul' | 'naranja' | 'rosa' | 'morado' | 'gris';
+
+export const FITZGERALD_BG: Record<FitzgeraldColor, string> = {
+  amarillo: '#FEF08A',  // Personas / pronombres
+  verde:    '#BBF7D0',  // Verbos / acciones
+  azul:     '#BFDBFE',  // Adjetivos / descriptores
+  naranja:  '#FED7AA',  // Sustantivos / objetos
+  rosa:     '#FBCFE8',  // Preposiciones / palabras funcionales
+  morado:   '#DDD6FE',  // Expresiones sociales / saludos
+  gris:     '#E2E8F0',  // Artículos / palabras secundarias
+};
+
+export interface GridDimensions {
+  rows: number;
+  cols: number;
+}
+
+export interface CellPosition {
+  rowIndex: number;
+  colIndex: number;
+}
+
+export interface BoardCell {
+  id: string;
+  position: CellPosition;
+  color: FitzgeraldColor;
+  rowId: string | null;
+}
+
+export interface Board {
+  id: string;
+  libraryId: string;
+  name: string;
+  grid: GridDimensions;
+  cells: BoardCell[];
+  showLabels?: boolean;   // whether utterance text is shown below each cell's pictogram
+  createdAt: string;
+  modifiedAt: string;
+  // mode is NOT persisted — always resets to 'edit' on open
 }

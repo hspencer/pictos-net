@@ -88,7 +88,11 @@ const NLU_TOOL_SCHEMA = {
                 required: ['frame_name', 'lexical_unit', 'roles'],
             },
         },
-        nsm_explications: { type: 'object', additionalProperties: { type: 'string' } },
+        nsm_explications: {
+            type: 'object',
+            description: 'NSM explication for 1–3 key concepts from the utterance. Keys: simple lemma or concept label (e.g. "ayudar", "querer"). Values: NSM formula using ONLY the listed semantic primes in ALL CAPS, in sentence form. Example — key "ayudar", value: "ALGUIEN (YO) piensa: ALGO MALO está pasando para MÍ ahora. ESTE ALGUIEN quiere que ALGUIEN (TÚ) HAGA ALGO bueno para ESTE ALGUIEN. ESTE ALGUIEN DICE: YO QUIERO QUE TÚ HAGAS ALGO."',
+            additionalProperties: { type: 'string' },
+        },
         logical_form: {
             type: 'object',
             properties: {
@@ -142,8 +146,12 @@ export const generateNLU = async (
         : '';
 
     const explicLang = isEs
-        ? 'Las explicaciones NSM (nsm_explications) deben estar escritas usando los primos en ESPAÑOL.'
-        : 'The NSM explications (nsm_explications) must be written using the primes in ENGLISH.';
+        ? `Las explicaciones NSM (nsm_explications) deben estar escritas usando los primos en ESPAÑOL.
+Formato: clave = lema del concepto (p.ej. "ayudar"), valor = fórmula NSM usando SÓLO los primos en MAYÚSCULAS.
+Ejemplo correcto — clave "ayudar": "ALGUIEN (YO) piensa: ALGO MALO está pasando para MÍ. ESTE ALGUIEN quiere que ALGUIEN (TÚ) HAGA ALGO bueno para ESTE ALGUIEN ahora."`
+        : `The NSM explications (nsm_explications) must be written using the primes in ENGLISH.
+Format: key = concept lemma (e.g. "help"), value = NSM formula using ONLY the primes in ALL CAPS.
+Correct example — key "help": "SOMEONE (I) thinks: SOMETHING BAD is happening to ME now. THIS SOMEONE wants SOMEONE (YOU) to DO SOMETHING good for THIS SOMEONE."`;
 
     const frameLabelLang = isEs
         ? 'Genera frame_label como traducción al español del frame_name.'
@@ -356,7 +364,7 @@ Reply with plain text — no JSON, no markdown.`;
             system,
             messages: [{
                 role: 'user',
-                content: `NLU:\n${JSON.stringify({ lang: nlu.lang, visual_guidelines: nlu.visual_guidelines })}\n\nElements:\n${formatElements(elements)}\n\n${extra}Generate the spatial prompt.`,
+                content: `NLU:\n${JSON.stringify({ lang: nlu.lang, visual_guidelines: nlu.visual_guidelines })}\n\nElements:\n${formatElements(elements)}\n\nRequired IDs — each MUST appear wrapped in single quotes in your output: ${allIds.map(id => `'${id}'`).join(', ')}\n\n${extra}Generate the spatial prompt.`,
             }],
         });
         return response.content?.find(b => b.type === 'text')?.text?.trim() || '';

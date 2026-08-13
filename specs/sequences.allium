@@ -44,11 +44,13 @@ value StepState {
 }
 
 value LibraryContentMode {
-  -- The two content views available inside an open Library. Orthogonal to
+  -- The three content views available inside an open Library. Orthogonal to
   -- LibraryViewMode (list | grid) in library-views.allium, which governs
   -- how pictograms are laid out and applies only when mode = pictogramas.
   pictogramas    -- browsing and editing the pictogram collection (default)
   secuencias     -- browsing and editing the sequence collection
+  tableros       -- browsing and editing the communication board collection
+                 --   (added by boards.allium)
 }
 
 value SequenceExportState {
@@ -476,19 +478,19 @@ rule ExportSequencePictogramsZipDisabled {
 ------------------------------------------------------------
 
 surface LibraryContentToggle {
-  -- Top-centre of the Library view. Switches between pictogramas and
-  -- secuencias content modes.
+  -- Top-centre of the Library view. Switches between the three content modes.
+  -- Amended by boards.allium to add the "Tableros" segment.
 
   @guidance "placement"
     -- Centred at the top of the Library content area, between the left-side
     -- view-mode switcher (list | grid) and the right-side sort controls.
     -- The view-mode switcher (list | grid) is hidden when contentMode =
-    -- secuencias (it applies to pictograms only).
+    -- secuencias or tableros (it applies to pictograms only).
 
   @guidance "visual style"
-    -- Segmented control or tab strip. Two equal segments: "Pictogramas" and
-    -- "Secuencias". Active segment is visually distinct (background fill or
-    -- underline). Same visual weight as the existing list | grid switcher.
+    -- Segmented control or tab strip. Three equal segments: "Pictogramas",
+    -- "Secuencias", "Tableros". Active segment is visually distinct (background
+    -- fill or underline). Same visual weight as the existing list | grid switcher.
 
   exposes:
     LibraryView.contentMode (read/write)

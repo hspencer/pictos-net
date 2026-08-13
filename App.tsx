@@ -13,7 +13,7 @@ import {
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { RowData, LogEntry, StepStatus, NLUData, GlobalConfig, VOCAB, VisualElement, NLUFrameRole, ElementOpKind, RowInterventionLog, SvgMetrics, DEFAULT_PHASE5_MODEL, PHASE5_MODELS, Phase5StructuringModel, LibraryMeta, Sequence, Step, NluModel, NLU_MODELS, DEFAULT_NLU_MODEL } from './types';
+import { RowData, LogEntry, StepStatus, NLUData, GlobalConfig, VOCAB, VisualElement, NLUFrameRole, ElementOpKind, RowInterventionLog, SvgMetrics, DEFAULT_PHASE5_MODEL, PHASE5_MODELS, Phase5StructuringModel, LibraryMeta, Sequence, Step, NluModel, NLU_MODELS, DEFAULT_NLU_MODEL, Board } from './types';
 import * as Claude from './services/claudeService';
 import * as Recraft from './services/recraftService';
 import * as Gemini from './services/geminiService';
@@ -32,6 +32,7 @@ import { StyleEditor } from './components/PictoForge/StyleEditor';
 import { GeoAutocomplete } from './components/GeoAutocomplete';
 import * as IndexedDBService from './services/indexedDBService';
 import * as libraryService from './services/libraryService';
+import { createGraphDump, GRAPH_DUMP_SCHEMA_VERSION, rekeyBoardsForLibrary } from './services/libraryTransferService';
 import { INITIAL_STYLES } from './lib/style-editor/lib/constants';
 import { INITIAL_KEYFRAMES } from './lib/style-editor/lib/keyframeConstants';
 import packageJson from './package.json';
@@ -41,6 +42,7 @@ import { PDFExportModal } from './components/PDFExportModal';
 import ParticipateModal from './components/ParticipateModal';
 import { exportLibraryToPdf, pdfExportFilename, downloadPdf, PdfExportCancelledError, type PdfProgress } from './services/pdfExportService';
 import { exportSequenceToPdf, sequencePdfFilename } from './services/sequencePdfService';
+import { exportBoardToPdf, boardPdfFilename } from './services/boardPdfService';
 import { RowAuditPanel } from './components/RowAuditPanel';
 import { PictogramGridCell } from './components/PictogramGridCell';
 import { injectSvgA11y } from './utils/svgAccessibility';
@@ -51,6 +53,8 @@ import type { VectorizerResult } from './services/vtracerService';
 import { LibraryHome } from './components/LibraryHome';
 import { SequenceList } from './components/SequenceList';
 import { SequenceEditor } from './components/SequenceEditor';
+import { BoardList } from './components/BoardList';
+import { BoardEditor } from './components/BoardEditor';
 
 
 
@@ -66,8 +70,9 @@ const newId = () => Array.from(crypto.getRandomValues(new Uint8Array(4)), b => b
  *   v2  2026-05      events drop context; events get a stable id;
  *                    svgs is a real array; copy-row injects a
  *                    portability context header
+ *   v3  2026-08      graph dumps include communication boards
  */
-const EXPORT_SCHEMA_VERSION = 2;
+const EXPORT_SCHEMA_VERSION = GRAPH_DUMP_SCHEMA_VERSION;
 
 interface LibraryMetadata {
   filename: string;
@@ -788,6 +793,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
 
     setActiveLibraryId(id);
     setLibraryContentMode('pictogramas');
+    setActiveBoardId(null);
     setViewingLibraryHome(false);
   }, []);
 
@@ -801,13 +807,17 @@ const App: React.FC<AppProps> = ({ authUser }) => {
     setRows([]);
     setSequences([]);
     setActiveSequenceId(null);
+    setBoards([]);
+    setActiveBoardId(null);
     setViewingLibraryHome(true);
   }, []);
 
   // ── Library home + content mode ───────────────────────────────────────────
-  const [libraryContentMode, setLibraryContentMode] = useState<'pictogramas' | 'secuencias'>('pictogramas');
+  const [libraryContentMode, setLibraryContentMode] = useState<'pictogramas' | 'secuencias' | 'tableros'>('pictogramas');
   const [sequences, setSequences] = useState<Sequence[]>([]);
   const [activeSequenceId, setActiveSequenceId] = useState<string | null>(null);
+  const [boards, setBoards] = useState<Board[]>([]);
+  const [activeBoardId, setActiveBoardId] = useState<string | null>(null);
   const [sequenceViewMode, setSequenceViewMode] = useState<'list' | 'grid'>('list');
   const pendingStepRowsRef = useRef<Map<string, { sequenceId: string; stepId: string }>>(new Map());
   const savedActiveLibraryIdRef = useRef<string | null>(null);
@@ -839,6 +849,13 @@ const App: React.FC<AppProps> = ({ authUser }) => {
     setActiveSequenceId(null);
   }, [activeLibraryId]);
 
+  // Load boards when active library changes
+  useEffect(() => {
+    if (!activeLibraryId) { setBoards([]); setActiveBoardId(null); return; }
+    setBoards(libraryService.getLibraryBoards(activeLibraryId));
+    setActiveBoardId(null);
+  }, [activeLibraryId]);
+
   // Save sequences whenever they change — but skip the first fire after a
   // library switch: at that point `sequences` still holds the previous
   // library's data (load effect hasn't flushed yet) and would corrupt the
@@ -855,6 +872,14 @@ const App: React.FC<AppProps> = ({ authUser }) => {
       modifiedAt: new Date().toISOString(),
     });
   }, [sequences, activeLibraryId, isInitialized]);
+
+  // Save boards whenever they change (same guard as sequences)
+  useEffect(() => {
+    if (!activeLibraryId || !isInitialized) return;
+    if (savedActiveLibraryIdRef.current !== activeLibraryId) return;
+    libraryService.saveLibraryBoards(activeLibraryId, boards);
+    libraryService.updateLibraryMeta(activeLibraryId, { boardCount: boards.length });
+  }, [boards, activeLibraryId, isInitialized]);
 
   // Watch for rows generated from sequence steps completing
   useEffect(() => {
@@ -1075,41 +1100,15 @@ const App: React.FC<AppProps> = ({ authUser }) => {
   };
 
   const exportProject = () => {
-    // Transform rows: convert "processing" status to "idle" or "completed"
-    const sanitizedRows = rows.map((row: RowData) => {
-      if (row.status !== 'processing') {
-        return row; // Keep other statuses as-is
-      }
-
-      // Check if row has meaningful data to determine if it should be 'completed' or 'idle'
-      const hasNLU = row.NLU && (typeof row.NLU === 'string' ? row.NLU.trim() !== '' : Object.keys(row.NLU).length > 0);
-      const hasVisual = (row.elements && row.elements.length > 0) || (row.prompt && row.prompt.trim() !== '');
-      const hasBitmap = row.bitmap && row.bitmap.trim() !== '';
-
-      const hasAnyData = hasNLU || hasVisual || hasBitmap;
-
-      return {
-        ...row,
-        status: hasAnyData ? 'completed' as const : 'idle' as const
-      };
-    });
-
-    const dataToExport = {
-      schemaVersion: EXPORT_SCHEMA_VERSION,
+    const dataToExport = createGraphDump({
       appVersion: APP_VERSION,
-      type: 'pictonet_graph_dump',
       timestamp: new Date().toISOString(),
       config,
-      rows: sanitizedRows,
-      // svgs is now a real array, not a JSON-stringified string.
-      // The previous double-encoding was an accident — JSON.stringify
-      // of dataToExport will serialize the nested array natively.
+      rows,
       svgs,
-      // Las secuencias viven en un estado/clave de localStorage aparte
-      // (pictonet_lib_{id}_seqs). Sin esta línea el graph dump las
-      // omitía y se perdían al exportar/importar la librería.
       sequences,
-    };
+      boards,
+    });
     const blob = new Blob([JSON.stringify(dataToExport, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -1137,12 +1136,15 @@ const App: React.FC<AppProps> = ({ authUser }) => {
 
   /**
    * Migrate a parsed library JSON forward to the current export schema.
-   * Idempotent: passing a v2 document through it is a no-op.
+   * Idempotent: passing a current-schema document through it is a no-op.
    *
    * v1 → v2 changes:
    *   - svgs: a JSON-stringified string → a real array
    *   - InterventionEvent.context: drop (the library config carries it)
    *   - InterventionEvent.id: generate if missing
+   *
+   * v2 → v3 changes:
+   *   - boards: absent → empty collection (new dumps carry the full array)
    *
    * Tolerant: if any step fails, the original sub-tree is preserved.
    */
@@ -1160,6 +1162,10 @@ const App: React.FC<AppProps> = ({ authUser }) => {
         raw.svgs = [];
       }
     }
+
+    // v1/v2 predate communication boards. Treat their absence as an empty
+    // collection so importing an older full dump cannot retain stale boards.
+    if (!Array.isArray(raw.boards)) raw.boards = [];
 
     // v1 events carried a context object and lacked stable ids.
     if (Array.isArray(raw.rows)) {
@@ -1242,6 +1248,12 @@ const App: React.FC<AppProps> = ({ authUser }) => {
               ? (parsed.sequences as Sequence[]).map(seq => ({ ...seq, libraryId: activeLibraryId }))
               : (parsed.sequences as Sequence[]);
             setSequences(reKeyedSeqs);
+          }
+          if (Array.isArray(parsed.boards)) {
+            const reKeyedBoards = activeLibraryId
+              ? rekeyBoardsForLibrary(parsed.boards as Board[], activeLibraryId)
+              : (parsed.boards as Board[]);
+            setBoards(reKeyedBoards);
           }
           addLog('success', t('messages.graphRestored', { count: sanitized.length }));
         } else {
@@ -1391,6 +1403,17 @@ const App: React.FC<AppProps> = ({ authUser }) => {
           addLog('info', `${reKeyed.length} secuencia(s) restaurada(s)`);
         }
 
+        // Restore communication boards and point them at the newly-created
+        // local library while preserving their cell → row references.
+        const templateBoards = Array.isArray(data.boards)
+          ? rekeyBoardsForLibrary(data.boards as Board[], newLib.id)
+          : [];
+        libraryService.saveLibraryBoards(newLib.id, templateBoards);
+        libraryService.updateLibraryMeta(newLib.id, { boardCount: templateBoards.length });
+        if (templateBoards.length > 0) {
+          addLog('info', `${templateBoards.length} tablero(s) restaurado(s)`);
+        }
+
         // Write binary data to IDB fire-and-forget — state update must NOT
         // depend on IDB success. If initDB() is slow or fails, we still show
         // bitmaps from typedRows (which already contain the data from the JSON).
@@ -1417,6 +1440,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
         if (Array.isArray(data.sequences) && data.sequences.length > 0) {
           setSequences((data.sequences as Sequence[]).map(seq => ({ ...seq, libraryId: newLib.id })));
         }
+        setBoards(templateBoards);
         setLibraryIndex(libraryService.getLibraryIndex());
         openLibrary(newLib.id, { skipRowLoad: true });
       } catch (error) {
@@ -3158,12 +3182,21 @@ const App: React.FC<AppProps> = ({ authUser }) => {
               {t('library.contentToggleSecuencias')}
             </button>
 
+            {/* Tableros tab */}
+            <button
+              onClick={() => { setLibraryContentMode('tableros'); setActiveBoardId(null); }}
+              aria-pressed={libraryContentMode === 'tableros'}
+              className={`text-xs font-semibold uppercase tracking-wider transition-colors ${libraryContentMode === 'tableros' ? 'text-slate-900' : 'text-slate-400 hover:text-slate-600'}`}
+            >
+              {t('library.contentToggleTableros')}
+            </button>
+
             {/* View switcher — pushed right, horizontal segmented control */}
             {libraryContentMode === 'pictogramas' && rows.length > 0 && (
               <div
                 id="view-switcher"
                 ref={viewSwitcherRef}
-                className="ml-auto flex items-center bg-slate-100 rounded-md p-0.5"
+                className="ml-auto flex items-center bg-slate-100 rounded-lg p-0.5"
                 role="group"
                 aria-label={t('library.viewList') + ' / ' + t('library.viewGrid')}
               >
@@ -3172,18 +3205,18 @@ const App: React.FC<AppProps> = ({ authUser }) => {
                   title={t('library.viewList')}
                   aria-label={t('library.viewList')}
                   aria-pressed={(config.libraryViewMode ?? 'list') === 'list'}
-                  className={`p-1.5 rounded transition-colors ${(config.libraryViewMode ?? 'list') === 'list' ? 'bg-white shadow-sm text-violet-700' : 'text-slate-400 hover:text-slate-600'}`}
+                  className={`p-1.5 rounded-md transition-colors ${(config.libraryViewMode ?? 'list') === 'list' ? 'bg-white shadow-sm text-violet-700' : 'text-slate-400 hover:text-slate-600'}`}
                 >
-                  <List size={20} aria-hidden="true" />
+                  <List size={15} aria-hidden="true" />
                 </button>
                 <button
                   onClick={() => setConfig(prev => ({ ...prev, libraryViewMode: 'grid' }))}
                   title={t('library.viewGrid')}
                   aria-label={t('library.viewGrid')}
                   aria-pressed={config.libraryViewMode === 'grid'}
-                  className={`p-1.5 rounded transition-colors ${config.libraryViewMode === 'grid' ? 'bg-white shadow-sm text-violet-700' : 'text-slate-400 hover:text-slate-600'}`}
+                  className={`p-1.5 rounded-md transition-colors ${config.libraryViewMode === 'grid' ? 'bg-white shadow-sm text-violet-700' : 'text-slate-400 hover:text-slate-600'}`}
                 >
-                  <LayoutGrid size={20} aria-hidden="true" />
+                  <LayoutGrid size={15} aria-hidden="true" />
                 </button>
               </div>
             )}
@@ -3316,6 +3349,48 @@ const App: React.FC<AppProps> = ({ authUser }) => {
               onRename={(id, name) => setSequences(prev => prev.map(s =>
                 s.id === id ? { ...s, name, modifiedAt: new Date().toISOString() } : s
               ))}
+            />
+          )
+        ) : libraryContentMode === 'tableros' ? (
+          activeBoardId ? (
+            <BoardEditor
+              board={boards.find(b => b.id === activeBoardId)!}
+              rows={rows}
+              onSave={board => setBoards(prev => prev.map(b => b.id === board.id ? board : b))}
+              onBack={() => setActiveBoardId(null)}
+              onUpdateRowAudio={(rowId, audio) => updateRowById(rowId, { audio })}
+            />
+          ) : (
+            <BoardList
+              boards={boards}
+              activeLibraryId={activeLibraryId!}
+              onOpen={id => setActiveBoardId(id)}
+              onCreate={board => { setBoards(prev => [...prev, board]); setActiveBoardId(board.id); }}
+              onSave={board => setBoards(prev => prev.map(b => b.id === board.id ? board : b))}
+              onDelete={id => setBoards(prev => prev.filter(b => b.id !== id))}
+              onDuplicate={id => {
+                const src = boards.find(b => b.id === id);
+                if (!src) return;
+                const now = new Date().toISOString();
+                setBoards(prev => [...prev, {
+                  ...src,
+                  id: crypto.randomUUID(),
+                  name: `${src.name} (copia)`,
+                  cells: src.cells.map(c => ({ ...c, id: crypto.randomUUID() })),
+                  createdAt: now,
+                  modifiedAt: now,
+                }]);
+              }}
+              onExportPdf={async (id, format) => {
+                const board = boards.find(b => b.id === id);
+                if (!board) return;
+                try {
+                  const blob = await exportBoardToPdf(board, rows, format);
+                  downloadPdf(blob, boardPdfFilename(board, format));
+                } catch (err) {
+                  console.error('[board pdf]', err);
+                }
+              }}
             />
           )
         ) : rows.length === 0 ? (
@@ -3725,6 +3800,12 @@ const App: React.FC<AppProps> = ({ authUser }) => {
             >
               <List size={14} className="text-violet-600" /> {t('actions.mySequences')}
             </button>
+            <button
+              onClick={() => { setLibraryContentMode('tableros'); setActiveBoardId(null); setShowLibraryMenu(false); }}
+              className="w-full text-left px-4 py-3 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors border-b border-slate-100"
+            >
+              <LayoutGrid size={14} className="text-slate-500" /> {t('actions.myBoards')}
+            </button>
             <div className="px-4 py-2 border-b border-slate-100 text-xs font-bold text-slate-500 tracking-wider tabular-nums">
               {rows.length} {rows.length === 1 ? t('actions.element') : t('actions.elements')}
             </div>
@@ -4010,7 +4091,7 @@ const RowComponent: React.FC<{
                   <div id="hierarchical-elements">
                     <label className="text-xs font-medium uppercase text-slate-500 block mb-2 tracking-widest">{t('editor.hierarchicalElements')}</label>
                     <ElementsEditor elements={row.elements || []} onUpdate={val => {
-                      onUpdate({ elements: val, bitmapStatus: 'outdated' });
+                      onUpdate({ elements: val, bitmapStatus: 'outdated', visualStatus: 'outdated' });
                       setElementsManuallyEdited(true);
                     }} onRecordOp={(op, before, after) => onRecordElementOp?.(op, before, after)} />
                     {elementsManuallyEdited && row.NLU && row.elements && row.elements.length > 0 && (
@@ -4026,7 +4107,7 @@ const RowComponent: React.FC<{
                           setPromptManuallyEdited(false);
                         }}
                         disabled={isRegeneratingPrompt}
-                        className="py-2 px-3 bg-violet-950 hover:bg-black text-white transition-all flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-widest shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-violet-700 border border-violet-200 hover:bg-violet-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         title={t('actions.regeneratePrompt')}
                       >
                         {isRegeneratingPrompt ? (
@@ -4304,10 +4385,15 @@ const SmartNLUEditor: React.FC<{
 }> = ({ data, onUpdate, config, onConfigChange, expanded = false, onSettleField }) => {
   const { t, lang: uiLang, setLang } = useTranslation();
   const nlu = useMemo<Partial<NLUData>>(() => {
-    if (typeof data === 'string') {
-      try { return JSON.parse(data); } catch (e) { return {}; }
+    const parsed = typeof data === 'string'
+      ? (() => { try { return JSON.parse(data); } catch { return {}; } })()
+      : (data || {});
+    // nsm_explications arrives as a JSON-encoded string from the Gemini path;
+    // parse it back so renderEditableDict receives a proper object.
+    if (typeof parsed.nsm_explications === 'string') {
+      try { parsed.nsm_explications = JSON.parse(parsed.nsm_explications); } catch { parsed.nsm_explications = {}; }
     }
-    return data || {};
+    return parsed;
   }, [data]);
 
   const updateField = (path: (string | number)[], value: any) => {
@@ -5005,7 +5091,13 @@ const FocusViewModal: React.FC<{
   const handleCopy = () => {
     let contentToCopy: string = '';
     if (mode === 'nlu') {
-      contentToCopy = JSON.stringify(row.NLU, null, 2);
+      const nluForCopy = typeof row.NLU === 'string'
+        ? (() => { try { return JSON.parse(row.NLU); } catch { return row.NLU; } })()
+        : row.NLU;
+      if (nluForCopy && typeof nluForCopy.nsm_explications === 'string') {
+        try { nluForCopy.nsm_explications = JSON.parse(nluForCopy.nsm_explications); } catch { nluForCopy.nsm_explications = {}; }
+      }
+      contentToCopy = JSON.stringify(nluForCopy, null, 2);
     } else if (mode === 'visual') {
       contentToCopy = JSON.stringify({ "elements": row.elements, "prompt": row.prompt }, null, 2);
     } else if (mode === 'produce') {
@@ -5035,7 +5127,7 @@ const FocusViewModal: React.FC<{
           <div className="flex flex-col">
             <label className="text-xs font-medium uppercase text-slate-500 block mb-2 tracking-widest">{t('editor.hierarchicalElements')}</label>
             <ElementsEditor elements={row.elements || []} onUpdate={val => {
-              onUpdate({ elements: val, bitmapStatus: 'outdated' });
+              onUpdate({ elements: val, bitmapStatus: 'outdated', visualStatus: 'outdated' });
               setElementsManuallyEdited(true);
             }} onRecordOp={(op, before, after) => onRecordElementOp?.(op, before, after)} />
             {elementsManuallyEdited && row.NLU && row.elements && row.elements.length > 0 && (
@@ -5050,7 +5142,7 @@ const FocusViewModal: React.FC<{
                   setElementsManuallyEdited(false);
                 }}
                 disabled={isRegeneratingPrompt}
-                className="py-2 px-3 bg-violet-950 hover:bg-black text-white transition-all flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-widest shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-violet-700 border border-violet-200 hover:bg-violet-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 title={t('actions.regeneratePrompt')}
               >
                 {isRegeneratingPrompt ? (

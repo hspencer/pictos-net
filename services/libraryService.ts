@@ -10,6 +10,7 @@
  *   pictonet_lib_{id}_meta      — RowData[]       (rows without binaries)
  *   pictonet_lib_{id}_config    — GlobalConfig
  *   pictonet_lib_{id}_seqs      — Sequence[]
+ *   pictonet_lib_{id}_boards    — Board[]
  *
  * Legacy keys (read-only, only used by migration):
  *   pictonet_v19_storage        — old single-library RowData[]
@@ -17,7 +18,8 @@
  */
 
 import JSZip from 'jszip';
-import type { RowData, GlobalConfig, LibraryMeta, Sequence } from '../types';
+import type { RowData, GlobalConfig, LibraryMeta, Sequence, Board } from '../types';
+import { rekeyBoardsForLibrary } from './libraryTransferService';
 
 // ── Storage keys ────────────────────────────────────────────────────────────
 
@@ -26,6 +28,7 @@ export const ACTIVE_LIBRARY_KEY  = 'pictonet_active_lib';
 export const libMetaKey   = (id: string) => `pictonet_lib_${id}_meta`;
 export const libConfigKey = (id: string) => `pictonet_lib_${id}_config`;
 export const libSeqsKey      = (id: string) => `pictonet_lib_${id}_seqs`;
+export const libBoardsKey    = (id: string) => `pictonet_lib_${id}_boards`;
 export const libPreviewsKey  = (id: string) => `pictonet_lib_${id}_previews`;
 
 // Legacy keys — used only by needsMigration() and migrateFromSingleLibrary()
@@ -100,6 +103,7 @@ export function createLibrary(name: string, initialConfig?: Partial<GlobalConfig
   localStorage.setItem(libConfigKey(id), JSON.stringify(config));
   localStorage.setItem(libMetaKey(id), JSON.stringify([]));
   localStorage.setItem(libSeqsKey(id), JSON.stringify([]));
+  localStorage.setItem(libBoardsKey(id), JSON.stringify([]));
 
   return meta;
 }
@@ -120,6 +124,7 @@ export function deleteLibrary(id: string): void {
   localStorage.removeItem(libMetaKey(id));
   localStorage.removeItem(libConfigKey(id));
   localStorage.removeItem(libSeqsKey(id));
+  localStorage.removeItem(libBoardsKey(id));
 
   // Remove previews thumbnail cache
   localStorage.removeItem(libPreviewsKey(id));
@@ -138,15 +143,18 @@ export function duplicateLibrary(sourceId: string): LibraryMeta {
   const rows = getLibraryRows(sourceId);
   const config = getLibraryConfig(sourceId);
   const seqs = getLibrarySequences(sourceId);
+  const boards = getLibraryBoards(sourceId);
 
   const newMeta = createLibrary(`${sourceName} (copia)`, config ?? undefined);
 
-  // Overwrite with proper data (createLibrary already wrote empty rows/seqs)
+  // Overwrite with proper data (createLibrary already wrote empty rows/seqs/boards)
   saveLibraryRows(newMeta.id, rows);
   saveLibrarySequences(newMeta.id, seqs);
+  saveLibraryBoards(newMeta.id, boards.map(b => ({ ...b, libraryId: newMeta.id })));
   updateLibraryMeta(newMeta.id, {
     pictogramCount: rows.length,
     sequenceCount: seqs.length,
+    boardCount: boards.length,
   });
 
   return newMeta;
@@ -200,6 +208,22 @@ export function saveLibrarySequences(id: string, seqs: Sequence[]): void {
   localStorage.setItem(libSeqsKey(id), JSON.stringify(seqs));
 }
 
+// ── Boards ───────────────────────────────────────────────────────────────────
+
+export function getLibraryBoards(id: string): Board[] {
+  try {
+    const raw = localStorage.getItem(libBoardsKey(id));
+    if (!raw) return [];
+    return JSON.parse(raw) as Board[];
+  } catch {
+    return [];
+  }
+}
+
+export function saveLibraryBoards(id: string, boards: Board[]): void {
+  localStorage.setItem(libBoardsKey(id), JSON.stringify(boards));
+}
+
 // ── Export / Import ──────────────────────────────────────────────────────────
 
 export function exportLibraryJson(id: string): string {
@@ -208,6 +232,7 @@ export function exportLibraryJson(id: string): string {
   const rows = getLibraryRows(id);
   const config = getLibraryConfig(id);
   const sequences = getLibrarySequences(id);
+  const boards = getLibraryBoards(id);
 
   return JSON.stringify({
     id,
@@ -217,6 +242,7 @@ export function exportLibraryJson(id: string): string {
     config,
     rows,
     sequences,
+    boards,
   }, null, 2);
 }
 
@@ -226,6 +252,7 @@ export function importLibraryJson(json: string): LibraryMeta {
     config?: Partial<GlobalConfig>;
     rows?: RowData[];
     sequences?: Sequence[];
+    boards?: Board[];
     createdAt?: string;
     modifiedAt?: string;
   };
@@ -240,10 +267,15 @@ export function importLibraryJson(json: string): LibraryMeta {
   }
 
   if (Array.isArray(data.sequences)) {
-    // Re-key sequences to the new library id
     const reKeyed = data.sequences.map(seq => ({ ...seq, libraryId: meta.id }));
     saveLibrarySequences(meta.id, reKeyed);
     updateLibraryMeta(meta.id, { sequenceCount: data.sequences.length });
+  }
+
+  if (Array.isArray(data.boards)) {
+    const reKeyed = rekeyBoardsForLibrary(data.boards, meta.id);
+    saveLibraryBoards(meta.id, reKeyed);
+    updateLibraryMeta(meta.id, { boardCount: data.boards.length });
   }
 
   return meta;

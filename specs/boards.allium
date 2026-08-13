@@ -1,0 +1,533 @@
+-- allium: 3
+-- boards.allium
+
+-- Scope: Communication boards (Tableros de Comunicación) — fixed-grid arrays
+--   of cells, each optionally linked to a Library Row and coloured by the
+--   Fitzgerald key. Boards are a third content type within a Library, alongside
+--   pictogramas and secuencias.
+-- Includes:
+--   - Board entity: name, immutable grid dimensions, Library membership
+--   - Cell entity: grid position, Fitzgerald background colour, linked Row
+--   - Grid presets: named dimension shortcuts at board-creation time
+--   - BoardMode: edit (pencil) ↔ use (eye) switch
+--   - Cell editor: Fitzgerald colour picker + Row autocomplete (existing rows only)
+--   - Audio recording: browser microphone → Row.audio; 3-2-1 countdown + pulsing indicator
+--   - Use mode: tap cell → play Row.audio
+--   - Library content toggle: adds `tableros` as a third tab
+--   - Library menu: adds "Mis tableros" entry
+--   - Board export / print in horizontal Letter and Tabloid formats
+--   - Full lifecycle portability: graph dump, library JSON, backup and template load
+-- Excludes:
+--   - Cross-board cell navigation (deferred)
+--   - Pictogram generation from within the board editor (existing rows only)
+--   - TTS fallback when Row.audio is absent (open question)
+--   - Audio trimming or editing (deferred)
+-- Amends:
+--   - sequences.allium / LibraryContentMode: adds `tableros` as a third value
+--   - sequences.allium / LibraryContentToggle surface: gains a third segment
+--   - visual-reasoning.allium / Row: adds `audio: String?` (blob URL; null = no audio)
+-- Dependencies:
+--   - Row (visual-reasoning.allium)
+--   - Library, LibraryId (library-manager.allium)
+--   - LibraryView, LibraryContentMode (sequences.allium)
+
+------------------------------------------------------------
+-- Enumerations
+------------------------------------------------------------
+
+enum FitzgeraldColor {
+  amarillo    -- Personas / Pronombres
+  verde       -- Verbos / Acciones
+  azul        -- Adjetivos / Descriptivos
+  naranja     -- Sustantivos / Objetos
+  rosa        -- Social / Fórmulas
+  morado      -- Respuestas, saludos y cierres
+  gris        -- Elementos de sistema (default for new cells)
+}
+
+------------------------------------------------------------
+-- Value Types
+------------------------------------------------------------
+
+value GridDimensions {
+  rows: Integer    -- >= 1
+  cols: Integer    -- >= 1
+
+  total_cells: rows * cols
+}
+
+value CellPosition {
+  row_index: Integer    -- 0-based
+  col_index: Integer    -- 0-based
+}
+
+------------------------------------------------------------
+-- External Entities
+------------------------------------------------------------
+
+external Row {
+  -- Defined in visual-reasoning.allium. This spec adds the audio field.
+  id: String
+  utterance: String
+  bitmap: String?
+  rawSvg: String?
+  structuredSvg: String?
+  audio: String?    -- new: recorded audio blob URL; null = no audio recorded
+}
+
+external Library {
+  -- Defined in library-manager.allium.
+  id: LibraryId
+  name: String
+}
+
+external LibraryView {
+  -- Defined in library-views.allium; sequences.allium adds contentMode.
+  -- This spec adds `tableros` as a valid value for contentMode.
+  contentMode: LibraryContentMode
+}
+
+------------------------------------------------------------
+-- Entities
+------------------------------------------------------------
+
+entity Board {
+  -- A named communication board. Belongs to exactly one Library.
+  -- Grid dimensions are fixed at creation and cannot be changed afterwards.
+  id: String
+  library: Library
+  name: String
+  grid: GridDimensions
+  cells: Cell with board = this
+  mode: edit | use
+  createdAt: Timestamp
+  modifiedAt: Timestamp
+
+  -- Derived
+  assigned_cells: cells where row != null
+}
+
+entity Cell {
+  -- One slot in a Board grid. Always exists for every position in the grid.
+  id: String
+  board: Board
+  position: CellPosition
+  color: FitzgeraldColor
+  row: Row?    -- null = empty cell; no pictogram assigned
+}
+
+------------------------------------------------------------
+-- Invariants
+------------------------------------------------------------
+
+invariant BoardHasExactCells {
+  -- A Board always contains exactly grid.rows × grid.cols Cells,
+  -- one per position. No gaps, no extras.
+  for board in Boards:
+    board.cells.count = board.grid.total_cells
+}
+
+invariant CellPositionsAreUnique {
+  for board in Boards:
+    for a in board.cells:
+      for b in board.cells:
+        a != b implies
+          not (a.position.row_index = b.position.row_index
+               and a.position.col_index = b.position.col_index)
+}
+
+invariant CellPositionWithinGrid {
+  for cell in Cells:
+    cell.position.row_index >= 0
+    and cell.position.row_index < cell.board.grid.rows
+    and cell.position.col_index >= 0
+    and cell.position.col_index < cell.board.grid.cols
+}
+
+invariant BoardNameIsNonEmpty {
+  for board in Boards:
+    length(board.name) >= 1
+}
+
+invariant AudioIsSharedViaRow {
+  -- Cell.row.audio is the canonical audio source. Two cells referencing
+  -- the same Row always play the same audio. There is no per-cell audio.
+  -- Enforced by the data model: audio lives on Row, not on Cell.
+}
+
+invariant BoardPortabilityIsComplete {
+  -- Every full-library representation keeps Boards together with the Rows
+  -- referenced by their Cells. Importing or loading under a fresh Library id
+  -- changes Board.library only; board ids, grid positions, colours and row
+  -- references remain unchanged.
+}
+
+------------------------------------------------------------
+-- Rules
+------------------------------------------------------------
+
+-- === Library content toggle ===
+
+rule SwitchToTableros {
+  when: user activates the "tableros" segment of the content toggle
+  ensures:
+    LibraryView.contentMode = tableros
+    BoardList is displayed for the active Library
+}
+
+rule SwitchAwayFromTableros {
+  when: user activates the "pictogramas" or "secuencias" segment
+        while LibraryView.contentMode = tableros
+  ensures:
+    LibraryView.contentMode = the activated segment
+    the corresponding view (pictogram or sequence) is displayed
+}
+
+rule LibraryMenuMisTableros {
+  -- Analogous to sequences.allium / LibraryMenuMisSecuencias.
+  when: the Library dropdown menu is open
+  ensures:
+    a "Mis tableros" item appears alongside "Mis secuencias"
+    activating it is equivalent to SwitchToTableros
+}
+
+rule ExportBoardsWithLibrary {
+  when: user exports a graph dump, downloads a Library, or backs up all Libraries
+  ensures:
+    every Board in the exported Library is present in the resulting JSON
+    every exported Board retains its name, grid, cells, colours and row references
+    Row.audio remains present for every exported Row that has recorded audio
+}
+
+rule RestoreBoardsWithLibrary {
+  when: user imports a graph dump, imports a Library JSON, or loads an example Library
+  ensures:
+    every Board in the source JSON is restored
+    every restored Board belongs to the newly active or newly created Library
+    board ids, grid positions, colours and cell row references are unchanged
+    no Board from the previously active Library remains in the restored Library
+}
+
+-- === Board lifecycle ===
+
+rule CreateBoard {
+  when: user activates "Crear nuevo tablero" in BoardList
+  ensures:
+    the user is presented with a creation modal containing:
+      a name field
+      a grid selector: preset buttons for standard sizes and a
+        "Personalizado" option that exposes two number inputs (rows × cols)
+    if the user confirms a non-empty name and valid dimensions:
+      a new Board is created with:
+        the given name
+        the given GridDimensions (fixed; cannot be changed after creation)
+        grid.rows × grid.cols empty Cells (one per position; BoardHasExactCells),
+          each with color = gris and row = null
+        mode = use
+        createdAt = modifiedAt = now
+      BoardEditor opens for the new Board
+
+  @guidance "grid presets"
+    -- Preset buttons (label = rows × cols, sub-label = total cells):
+    --   2×2 (4), 3×3 (9), 4×5 (20), 5×9 (45), 6×10 (60), 7×11 (77), 8×10 (80)
+    -- The "Personalizado" option accepts positive integers only.
+    -- No maximum grid size is enforced by this spec (open question).
+}
+
+rule OpenBoard {
+  when: user activates a Board in BoardList
+  ensures:
+    BoardEditor opens for that Board
+    Board.mode = use    -- always resets to use mode on open
+}
+
+rule RenameBoard {
+  when: user edits the Board name inline in BoardEditor's header,
+        or activates "Renombrar" from the "..." menu of a Board in BoardList
+  ensures:
+    if the user confirms a non-empty name:
+      Board.name = the new name
+      Board.modifiedAt = now
+    if the user cancels or submits an empty string:
+      Board.name is unchanged
+}
+
+rule DeleteBoard {
+  when: user activates "Eliminar" for Board B in BoardList
+        or from within BoardEditor
+  requires:
+    user confirms via a destructive-action prompt
+  ensures:
+    not exists B
+    for cell in B.cells:
+      not exists cell
+    -- Rows referenced by B's Cells remain in the Library; boards reference, not own
+    -- Row.audio fields are unaffected by board deletion
+    if BoardEditor for B is currently shown:
+      BoardList is displayed
+
+  @guidance "confirmation copy"
+    -- Suggested (es-419):
+    -- "¿Eliminar «{name}»? Esta acción no se puede deshacer."
+    -- The delete action in the "..." menu should be visually distinct (red label).
+}
+
+-- === Board mode switch ===
+
+rule SwitchBoardMode {
+  when: user activates the mode toggle in BoardEditor
+  ensures:
+    if Board.mode = use:
+      Board.mode = edit
+    if Board.mode = edit:
+      Board.mode = use
+      BoardUseSurface is displayed full-screen
+
+  @guidance "full-screen use mode"
+    -- Use mode occupies the complete viewport so the communication grid is
+    -- the only primary interface. A small exit control remains at the
+    -- upper-left; activating it, or pressing Escape, returns to edit mode.
+
+  @guidance "visual"
+    -- Segmented control with pencil icon (edit) and eye icon (use).
+    -- Same visual weight and header position as the list/grid switcher in
+    -- the Library pictogram view. Active segment is visually distinct.
+}
+
+-- === Cell editing (edit mode only) ===
+
+rule OpenCellEditor {
+  when: user taps Cell C in BoardEditor
+  requires: C.board.mode = edit
+  ensures:
+    a cell editor panel opens for C, showing:
+      the Fitzgerald colour picker (six colour swatches)
+      a Row autocomplete field (prefilled with C.row.utterance if set, else empty)
+      the pictogram thumbnail (if C.row is set)
+      if C.row is set and C.row.audio = null:
+        an "Agregar audio" action
+      if C.row is set and C.row.audio != null:
+        an audio playback control and a "Reemplazar audio" action
+}
+
+rule SetCellColor {
+  when: user selects a FitzgeraldColor F in the cell editor for Cell C
+  ensures:
+    C.color = F
+    C.board.modifiedAt = now
+}
+
+rule AssignRowToCell {
+  when: user selects a Row suggestion R from the autocomplete in the cell editor
+  ensures:
+    C.row = R
+    C.board.modifiedAt = now
+
+  @guidance "autocomplete"
+    -- Searches Row.utterance within the active Library, substring match,
+    -- case-insensitive. Each suggestion shows the pictogram thumbnail and
+    -- utterance. Only existing Rows are offered; no generation path from here.
+}
+
+rule ClearCellRow {
+  when: user clears the autocomplete field or activates a remove action
+        for the linked Row of Cell C
+  ensures:
+    C.row = null
+    C.board.modifiedAt = now
+    -- Row.audio is not affected; audio belongs to the Row, not to C
+}
+
+-- === Audio recording ===
+
+rule RecordAudio {
+  when: user activates "Agregar audio" in the cell editor for Cell C
+  requires:
+    C.row != null
+    C.row.audio = null
+  ensures:
+    browser microphone permission is requested (if not already granted)
+    if permission is granted:
+      a 3-second countdown is displayed: 3 → 2 → 1 → ¡Rec!
+      after the countdown, browser microphone recording begins
+      a red pulsing indicator is shown for the duration of the recording
+      the "Agregar audio" action is unavailable while recording is active
+      when the user activates the stop control:
+        C.row.audio = the recorded blob URL
+        the pulsing indicator is replaced by an audio playback control
+      if the user cancels during countdown or recording:
+        C.row.audio remains null; no audio is stored
+    if permission is denied:
+      an inline error is shown; recording does not proceed
+
+  @guidance "shared scope"
+    -- Row.audio is shared across every Cell in every Board within this Library
+    -- that references C.row. Recording here sets the audio for all of them.
+    -- When the Row appears in multiple Boards, show a note:
+    -- "Este audio se aplicará a todos los tableros que usen este pictograma."
+}
+
+rule ReplaceAudio {
+  when: user activates "Reemplazar audio" in the cell editor for Cell C
+  requires:
+    C.row != null
+    C.row.audio != null
+  ensures:
+    same flow as RecordAudio (permission → countdown → record → stop)
+    C.row.audio = the new recorded blob URL
+    -- All Cells in all Boards that reference C.row now play the new audio
+
+  @guidance "no confirmation"
+    -- No destructive-action confirmation is required; "Reemplazar" makes the
+    -- intent clear and the shared-scope note (from RecordAudio guidance) covers it.
+}
+
+-- === Use mode interaction ===
+
+rule TapCellInUseMode {
+  when: user taps Cell C in BoardEditor
+  requires: C.board.mode = use
+  ensures:
+    if C.row != null and C.row.audio != null:
+      any audio currently playing stops
+      C.row.audio plays from the beginning through the device speaker
+    if C.row != null and C.row.audio = null:
+      no audio plays
+      -- open question: visual pulse for feedback? TTS fallback?
+    if C.row = null:
+      no action occurs
+
+  @guidance "one audio at a time"
+    -- At most one audio clip plays at a time across all cells. Starting a
+    -- new clip always stops any clip that is currently playing.
+}
+
+------------------------------------------------------------
+-- Surfaces
+------------------------------------------------------------
+
+surface BoardList {
+  -- The board catalogue for the active Library.
+  -- Shown when LibraryView.contentMode = tableros.
+
+  @guidance "layout"
+    -- Card grid. Each card shows: board name, grid dimensions (e.g. "5 × 9"),
+    -- last-modified date, "..." menu. A "Crear nuevo tablero" block appears
+    -- as the last card (same visual idiom as SequenceList's create block).
+
+  @guidance "empty state"
+    -- When no Boards exist, show only the create block and a short invitation:
+    -- "Crea tu primer tablero de comunicación." (es-419)
+
+  @guidance "per-board actions"
+    -- "..." menu per card: Abrir, Renombrar, Eliminar.
+    -- Clicking the card body opens BoardEditor.
+
+  exposes:
+    Boards for active Library (read)
+    Board.name, Board.grid, Board.modifiedAt per board (read)
+    create Board
+    open Board
+    rename Board
+    delete Board
+}
+
+surface BoardEditor {
+  -- The grid view for one Board. Supports edit and use modes.
+
+  @guidance "header"
+    -- Board name (editable inline), back button to BoardList, and the
+    -- edit/use mode toggle (pencil / eye icons). Same header rhythm as the
+    -- Library pictogram and sequence editors.
+
+  @guidance "grid"
+    -- Cells fill the available content area proportionally (equal cell sizes).
+    -- Open question: scrolling behaviour for very large grids.
+
+  @guidance "cell appearance"
+    -- Each cell shows:
+    --   FitzgeraldColor as background fill
+    --   Pictogram thumbnail centred (best artifact: structuredSvg > rawSvg > bitmap)
+    --   Row.utterance as caption below the thumbnail
+    --   Small speaker icon overlay when Row.audio != null (visible in both modes)
+    -- Empty cells (row = null) show only the background colour.
+
+  @guidance "edit mode"
+    -- Tapping any cell opens CellEditor as a side panel or bottom sheet.
+
+  @guidance "use mode"
+    -- Tapping a cell with audio plays it immediately.
+    -- Empty cells and cells with no audio are visually inert.
+    -- The grid fills the viewport, with all configured rows and columns fitted
+    -- into the available space. The editor header and cell editor are hidden.
+
+  exposes:
+    Board.name (read/write inline)
+    Board.mode (read/write via toggle)
+    Board.grid (read)
+    Cell.all for Board in grid layout (read; write via CellEditor in edit mode)
+}
+
+surface BoardUseSurface {
+  -- Full-screen, distraction-free communication surface for one Board.
+
+  @guidance "exit"
+    -- A small control in the upper-left and the Escape key both return to
+    -- BoardEditor in edit mode. The control has an accessible name.
+
+  exposes:
+    Board.grid (read)
+    Cell.all for Board in grid layout (read)
+
+  provides:
+    TapCellInUseMode(cell) when Board.mode = use
+    SwitchBoardMode
+}
+
+surface CellEditor {
+  -- Panel for configuring one Cell. Accessible only when Board.mode = edit.
+
+  @guidance "layout"
+    -- Side panel or bottom sheet with three sections:
+    --   Color: six Fitzgerald swatches; active colour highlighted
+    --   Pictograma: autocomplete field + thumbnail (or empty-state placeholder)
+    --   Audio: "Agregar audio" if Row.audio = null;
+    --          audio player + "Reemplazar audio" if Row.audio != null;
+    --          hidden if no Row is linked
+
+  @guidance "shared audio note"
+    -- When Row.audio is set and the Row is referenced by other cells or boards,
+    -- show a subtle note clarifying that the recording is shared.
+
+  exposes:
+    Cell.color (read/write)
+    Cell.row (read/write via autocomplete)
+    Cell.row.audio (read/write via recording)
+
+  provides:
+    SetCellColor(cell, color)
+    AssignRowToCell(cell, row)
+    ClearCellRow(cell)
+    RecordAudio(cell)
+    ReplaceAudio(cell)
+}
+
+------------------------------------------------------------
+-- Open Questions
+------------------------------------------------------------
+
+open question "TTS fallback: when Cell.row.audio is null in use mode, should the system speak Row.utterance via browser TTS, show a brief visual pulse, or do nothing?"
+
+open question "Empty cell tap in use mode: should tapping a cell with row = null produce any visual feedback to confirm the tap was registered?"
+
+open question "Maximum grid size: no upper bound is specified on Board.grid dimensions. Very large grids may require scrolling — behaviour not defined."
+
+open question "Board mode persistence: Board.mode currently resets to use on every open. Should the last-used mode be remembered per Board across sessions?"
+
+open question "Grid resize: can a Board's dimensions change after creation? Currently fixed. Resizing would require a policy for cells outside the new bounds."
+
+open question "Board export: should a Board be printable as PDF? If so, what does the output look like — filled grid with pictograms, or blank template?"
+
+open question "Audio duration: no maximum recording length is specified. Should there be a cap?"
+
+open question "Board scrolling: for grids too large to fit the viewport, does the grid scroll or scale down? No layout policy is specified for large grids."

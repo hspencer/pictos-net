@@ -1,6 +1,6 @@
 {
-  "generated": "2026-08-12T13:18:31.715Z",
-  "count": 19,
+  "generated": "2026-08-13T16:33:31.723Z",
+  "count": 20,
   "libraries": [
     {
       "filename": "a-mano.json",
@@ -13,24 +13,14 @@
       "filesize": 2131888
     },
     {
-      "filename": "blake.json",
-      "name": "Blake",
-      "location": "Viña del Mar, Región de Valparaíso, Chile",
-      "language": "es",
-      "items": 22,
-      "credits": "Pictos / MediaFranca",
-      "description": "pictonet_graph_dump",
-      "filesize": 35312724
-    },
-    {
-      "filename": "escena-descriptiva.json",
+      "filename": "escena_descriptiva_graph_2026-08-11.json",
       "name": "Escena descriptiva",
       "location": "Viña del Mar, Valparaiso Region, Chile",
       "language": "es",
       "items": 8,
       "credits": "Pictos / MediaFranca",
       "description": "pictonet_graph_dump",
-      "filesize": 6609133
+      "filesize": 6559338
     },
     {
       "filename": "expresiones-cotidianas.json",
@@ -151,6 +141,16 @@
       "filesize": 2262956
     },
     {
+      "filename": "q___blake_graph_2026-08-11.json",
+      "name": "Q • Blake",
+      "location": "Viña del Mar, Región de Valparaíso, Chile",
+      "language": "es",
+      "items": 22,
+      "credits": "Pictos / MediaFranca",
+      "description": "pictonet_graph_dump",
+      "filesize": 34799013
+    },
+    {
       "filename": "senaletica-color.json",
       "name": "Señalética Color",
       "location": "Viña del Mar, Valparaiso Region, Chile",
@@ -169,6 +169,16 @@
       "credits": "Pictos / MediaFranca",
       "description": "pictonet_graph_dump",
       "filesize": 350327
+    },
+    {
+      "filename": "tablero_graph_2026-08-13.json",
+      "name": "Tablero",
+      "location": "Viña del Mar, Región de Valparaíso, Chile",
+      "language": "es",
+      "items": 36,
+      "credits": "Pictos / MediaFranca",
+      "description": "pictonet_graph_dump",
+      "filesize": 4917357
     },
     {
       "filename": "tramites-mineduc.json",

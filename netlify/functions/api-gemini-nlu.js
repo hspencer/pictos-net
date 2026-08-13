@@ -138,16 +138,24 @@ async function handleRequest(event, context) {
   const responseBody = parsed.response;
   try {
     const toolBlock = responseBody?.content?.find(b => b.type === 'tool_use');
-    if (toolBlock?.input?.frames) {
-      for (const frame of toolBlock.input.frames) {
-        if (typeof frame.roles === 'string') {
-          try { frame.roles = JSON.parse(frame.roles); } catch { frame.roles = {}; }
+    if (toolBlock?.input) {
+      // frame.roles and nsm_explications both have additionalProperties schemas that
+      // sanitizeSchemaForGemini collapses to type:'string'. Parse them back to objects.
+      if (toolBlock.input.frames) {
+        for (const frame of toolBlock.input.frames) {
+          if (typeof frame.roles === 'string') {
+            try { frame.roles = JSON.parse(frame.roles); } catch { frame.roles = {}; }
+          }
+          frame.roles = frame.roles && typeof frame.roles === 'object' ? frame.roles : {};
         }
-        frame.roles = frame.roles && typeof frame.roles === 'object' ? frame.roles : {};
+      }
+      if (typeof toolBlock.input.nsm_explications === 'string') {
+        try { toolBlock.input.nsm_explications = JSON.parse(toolBlock.input.nsm_explications); }
+        catch { toolBlock.input.nsm_explications = {}; }
       }
     }
   } catch (e) {
-    console.warn('[api-gemini-nlu] roles post-processing skipped:', e.message);
+    console.warn('[api-gemini-nlu] post-processing skipped:', e.message);
   }
 
   await logCall({

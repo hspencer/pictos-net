@@ -156,6 +156,11 @@ entity VisualReasoning {
   -- Phase 5
   structuredSvg: String?      -- mf-svg-schema structured SVG; single source of truth
   structuredSvgStatus: StepStatus = idle
+
+  -- Audio (added by boards.allium)
+  audio: String?              -- recorded audio blob URL; null = no audio recorded
+                              -- set by the Board cell editor; shared across all
+                              -- Boards and cells that reference this Row
   -- Phase 5 intermediate state (component-local; not persisted on RowData)
   phase5Mapping: StructuringMapping?
   phase5ReviewTimerMs: Number?  -- total review window; derived from label word count × 3

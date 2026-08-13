@@ -266,7 +266,7 @@ rule ImportLibrary {
     if the JSON is valid:
       a new Library is created from the JSON with:
         a fresh unique id (the original id in the JSON is not reused)
-        all pictogram metadata and sequence definitions from the JSON
+        all pictogram metadata, sequence definitions, and communication boards from the JSON
         no binary artifacts (DuplicateOmitsBinaryArtifacts applies)
         createdAt = modifiedAt = now
         name = name from the JSON, with "(importada)" appended if a
