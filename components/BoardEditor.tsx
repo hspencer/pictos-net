@@ -22,6 +22,7 @@ export function BoardEditor({ board, rows, onSave, onBack, onUpdateRowAudio }: B
   // Keep a ref so updateCell always serialises the latest board metadata
   const boardRef = useRef(board);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const lastTouchRef = useRef<{ cellId: string; time: number } | null>(null);
 
   // Floating panel — position and drag
   const [panelPos, setPanelPos] = useState(() => ({
@@ -87,7 +88,7 @@ export function BoardEditor({ board, rows, onSave, onBack, onUpdateRowAudio }: B
     });
   }
 
-  function handleCellClick(cell: BoardCell) {
+  function activateCell(cell: BoardCell) {
     if (mode === 'edit') {
       setSelectedCellId(prev => prev === cell.id ? null : cell.id);
       return;
@@ -98,6 +99,22 @@ export function BoardEditor({ board, rows, onSave, onBack, onUpdateRowAudio }: B
     if (audioRef.current) { audioRef.current.pause(); audioRef.current.currentTime = 0; }
     audioRef.current = new Audio(row.audio);
     audioRef.current.play();
+  }
+
+  function handleCellClick(cell: BoardCell) {
+    const lastTouch = lastTouchRef.current;
+    if (lastTouch?.cellId === cell.id && Date.now() - lastTouch.time < 1000) {
+      lastTouchRef.current = null;
+      return;
+    }
+    activateCell(cell);
+  }
+
+  function handleCellTap(event: React.TouchEvent<HTMLButtonElement>, cell: BoardCell) {
+    if (mode !== 'use') return;
+    event.preventDefault();
+    lastTouchRef.current = { cellId: cell.id, time: Date.now() };
+    activateCell(cell);
   }
 
   const ordered = [...cells].sort((a, b) =>
@@ -176,6 +193,7 @@ export function BoardEditor({ board, rows, onSave, onBack, onUpdateRowAudio }: B
                 <button
                   key={cell.id}
                   onClick={() => handleCellClick(cell)}
+                  onTouchEnd={event => handleCellTap(event, cell)}
                   className={`flex min-h-0 flex-col rounded-lg overflow-hidden transition-all border-2 ${
                     isSelected
                       ? 'border-violet-500 shadow-md'
@@ -185,7 +203,7 @@ export function BoardEditor({ board, rows, onSave, onBack, onUpdateRowAudio }: B
                           ? 'border-transparent hover:brightness-95 active:scale-95'
                           : 'border-transparent cursor-default'
                   }`}
-                  style={{ backgroundColor: FITZGERALD_BG[cell.color] }}
+                  style={{ backgroundColor: FITZGERALD_BG[cell.color], touchAction: 'manipulation' }}
                   disabled={mode === 'use' && !isClickable}
                 >
                   {/* Pictogram area */}
