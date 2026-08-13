@@ -23,7 +23,7 @@ const FITZGERALD_COLORS: { key: FitzgeraldColor; bg: string; label: string }[] =
   { key: 'gris',     bg: '#E2E8F0', label: 'Sistema' },
 ];
 
-type RecordState = 'idle' | 'countdown' | 'recording';
+type RecordState = 'idle' | 'requesting' | 'countdown' | 'recording';
 
 export function CellEditor({ cell, rows, allCells, onUpdateCell, onUpdateRowAudio, onClose }: CellEditorProps) {
   const { t } = useTranslation();
@@ -47,6 +47,7 @@ export function CellEditor({ cell, rows, allCells, onUpdateCell, onUpdateRowAudi
   const [countdown, setCountdown] = useState(3);
   const [micError, setMicError] = useState<string | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
+  const recordingCancelledRef = useRef(false);
   const chunksRef = useRef<BlobPart[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -70,31 +71,61 @@ export function CellEditor({ cell, rows, allCells, onUpdateCell, onUpdateRowAudi
     ? allCells.filter(c => c.id !== cell.id && c.rowId === linkedRow.id).length
     : 0;
 
-  function startCountdown() {
-    setRecordState('countdown');
-    setCountdown(3);
-    let n = 3;
-    countdownRef.current = setInterval(() => {
-      n--;
-      if (n > 0) {
-        setCountdown(n);
-      } else {
-        clearInterval(countdownRef.current!);
-        startRecording();
-      }
-    }, 1000);
-  }
-
-  async function startRecording() {
+  async function startCountdown() {
     setMicError(null);
+    setRecordState('requesting');
+    recordingCancelledRef.current = false;
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      if (recordingCancelledRef.current) {
+        stream.getTracks().forEach(track => track.stop());
+        return;
+      }
       streamRef.current = stream;
+
+      setRecordState('countdown');
+      setCountdown(3);
+      let n = 3;
+      countdownRef.current = setInterval(() => {
+        n--;
+        if (n > 0) {
+          setCountdown(n);
+        } else {
+          clearInterval(countdownRef.current!);
+          startRecording();
+        }
+      }, 1000);
+    } catch {
+      if (!recordingCancelledRef.current) {
+        setMicError(t('board.micDenied'));
+        setRecordState('idle');
+      }
+    }
+  }
+
+  function startRecording() {
+    const stream = streamRef.current;
+    if (!stream) {
+      setMicError(t('board.micDenied'));
+      setRecordState('idle');
+      return;
+    }
+
+    try {
       chunksRef.current = [];
       const recorder = new MediaRecorder(stream);
       recorderRef.current = recorder;
       recorder.ondataavailable = e => chunksRef.current.push(e.data);
       recorder.onstop = () => {
+        if (recordingCancelledRef.current) {
+          recordingCancelledRef.current = false;
+          chunksRef.current = [];
+          streamRef.current?.getTracks().forEach(t => t.stop());
+          streamRef.current = null;
+          setRecordState('idle');
+          return;
+        }
         const blob = new Blob(chunksRef.current, { type: recorder.mimeType || 'audio/webm' });
         const reader = new FileReader();
         reader.onload = () => {
@@ -108,17 +139,21 @@ export function CellEditor({ cell, rows, allCells, onUpdateCell, onUpdateRowAudi
       recorder.start();
       setRecordState('recording');
     } catch {
+      stream.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
       setMicError(t('board.micDenied'));
       setRecordState('idle');
     }
   }
 
   function stopRecording() {
+    recordingCancelledRef.current = false;
     recorderRef.current?.stop();
   }
 
   function cancelRecording() {
     if (countdownRef.current) clearInterval(countdownRef.current);
+    recordingCancelledRef.current = true;
     recorderRef.current?.stop();
     recorderRef.current = null;
     streamRef.current?.getTracks().forEach(t => t.stop());
@@ -130,6 +165,7 @@ export function CellEditor({ cell, rows, allCells, onUpdateCell, onUpdateRowAudi
 
   // Cleanup on unmount
   useEffect(() => () => {
+    recordingCancelledRef.current = true;
     if (countdownRef.current) clearInterval(countdownRef.current);
     streamRef.current?.getTracks().forEach(t => t.stop());
   }, []);
@@ -238,6 +274,10 @@ export function CellEditor({ cell, rows, allCells, onUpdateCell, onUpdateRowAudi
 
             {micError && (
               <p className="text-xs text-red-500 mb-2">{micError}</p>
+            )}
+
+            {recordState === 'requesting' && (
+              <p className="text-xs text-slate-500 py-3">{t('board.requestingMic')}</p>
             )}
 
             {recordState === 'countdown' && (

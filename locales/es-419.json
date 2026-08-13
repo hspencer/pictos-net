@@ -687,6 +687,7 @@
     "addAudio": "Agregar audio",
     "replaceAudio": "Reemplazar audio",
     "sharedAudioNote": "Este audio se aplica a todos los tableros que usen este pictograma.",
+    "requestingMic": "Esperando autorización para usar el micrófono…",
     "recording": "Grabando…",
     "micDenied": "No se pudo acceder al micrófono.",
     "clearRow": "Quitar pictograma",

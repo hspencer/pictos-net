@@ -687,6 +687,7 @@
     "addAudio": "Add audio",
     "replaceAudio": "Replace audio",
     "sharedAudioNote": "This audio applies to all boards that use this pictogram.",
+    "requestingMic": "Waiting for microphone permission…",
     "recording": "Recording…",
     "micDenied": "Could not access microphone.",
     "clearRow": "Remove pictogram",
