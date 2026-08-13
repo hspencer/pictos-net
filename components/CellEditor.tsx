@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { X, Mic, Square, RefreshCw } from 'lucide-react';
 import { BoardCell, FitzgeraldColor, RowData } from '../types';
 import { useTranslation } from '../hooks/useTranslation';
+import { createPlayableAudioUrl, revokePlayableAudioUrl } from '../services/audioPlayback';
 
 interface CellEditorProps {
   cell: BoardCell;
@@ -51,12 +52,24 @@ export function CellEditor({ cell, rows, allCells, onUpdateCell, onUpdateRowAudi
   const chunksRef = useRef<BlobPart[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [playableAudioUrl, setPlayableAudioUrl] = useState<string | null>(null);
 
   // Keep query in sync if parent changes the linked row
   useEffect(() => {
     setQuery(linkedRow?.UTTERANCE ?? '');
     setShowSuggestions(false);
   }, [cell.rowId]);
+
+  useEffect(() => {
+    if (!linkedRow?.audio) {
+      setPlayableAudioUrl(null);
+      return;
+    }
+
+    const playable = createPlayableAudioUrl(linkedRow.audio);
+    setPlayableAudioUrl(playable);
+    return () => revokePlayableAudioUrl(linkedRow.audio!, playable);
+  }, [linkedRow?.audio]);
 
   const normalize = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
   const suggestions = query.trim().length > 0
@@ -307,7 +320,7 @@ export function CellEditor({ cell, rows, allCells, onUpdateCell, onUpdateRowAudi
               <>
                 {linkedRow.audio ? (
                   <div className="space-y-2">
-                    <audio controls src={linkedRow.audio} className="w-full h-8" style={{ height: 32 }} />
+                    <audio controls src={playableAudioUrl ?? undefined} className="w-full h-8" style={{ height: 32 }} />
                     <button
                       onClick={startCountdown}
                       className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-violet-600 transition-colors"

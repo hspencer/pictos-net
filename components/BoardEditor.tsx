@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ChevronLeft, Pencil, Eye, Volume2, GripHorizontal } from 'lucide-react';
 import { Board, BoardCell, RowData, FITZGERALD_BG } from '../types';
 import { useTranslation } from '../hooks/useTranslation';
+import { createPlayableAudioUrl, revokePlayableAudioUrl } from '../services/audioPlayback';
 import { CellEditor } from './CellEditor';
 
 interface BoardEditorProps {
@@ -22,6 +23,7 @@ export function BoardEditor({ board, rows, onSave, onBack, onUpdateRowAudio }: B
   // Keep a ref so updateCell always serialises the latest board metadata
   const boardRef = useRef(board);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioSourceRef = useRef<{ stored: string; playable: string } | null>(null);
   const lastTouchRef = useRef<{ cellId: string; time: number } | null>(null);
 
   // Floating panel — position and drag
@@ -61,6 +63,12 @@ export function BoardEditor({ board, rows, onSave, onBack, onUpdateRowAudio }: B
     if (mode === 'use') setSelectedCellId(null);
   }, [mode]);
 
+  useEffect(() => () => {
+    if (audioSourceRef.current) {
+      revokePlayableAudioUrl(audioSourceRef.current.stored, audioSourceRef.current.playable);
+    }
+  }, []);
+
   useEffect(() => {
     if (mode !== 'use') return;
 
@@ -97,7 +105,12 @@ export function BoardEditor({ board, rows, onSave, onBack, onUpdateRowAudio }: B
     const row = rows.find(r => r.id === cell.rowId);
     if (!row?.audio) return;
     if (audioRef.current) { audioRef.current.pause(); audioRef.current.currentTime = 0; }
-    audioRef.current = new Audio(row.audio);
+    if (audioSourceRef.current) {
+      revokePlayableAudioUrl(audioSourceRef.current.stored, audioSourceRef.current.playable);
+    }
+    const playable = createPlayableAudioUrl(row.audio);
+    audioSourceRef.current = { stored: row.audio, playable };
+    audioRef.current = new Audio(playable);
     audioRef.current.play();
   }
 
