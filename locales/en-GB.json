@@ -739,7 +739,9 @@
     "colorNouns": "Nouns",
     "colorFunctional": "Functional",
     "colorSocial": "Social",
-    "colorSystem": "System"
+    "colorSystem": "System",
+    "convertAudioForIos": "Convert audio for iOS",
+    "convertingAudio": "Converting…"
   },
   "batch": {
     "button": "Batch generate",

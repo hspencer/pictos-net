@@ -739,7 +739,9 @@
     "colorNouns": "Sustantivos",
     "colorFunctional": "Funcionales",
     "colorSocial": "Social",
-    "colorSystem": "Sistema"
+    "colorSystem": "Sistema",
+    "convertAudioForIos": "Convertir audio para iOS",
+    "convertingAudio": "Convirtiendo…"
   },
   "batch": {
     "button": "Generar en lote",

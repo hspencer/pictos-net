@@ -3,6 +3,7 @@ import { ChevronLeft, Pencil, Eye, Volume2, GripHorizontal } from 'lucide-react'
 import { Board, BoardCell, RowData, FITZGERALD_BG } from '../types';
 import { useTranslation } from '../hooks/useTranslation';
 import { createPlayableAudioUrl, revokePlayableAudioUrl } from '../services/audioPlayback';
+import { convertAudioToMp4 } from '../services/audioConvert';
 import { CellEditor } from './CellEditor';
 
 interface BoardEditorProps {
@@ -22,6 +23,7 @@ export function BoardEditor({ board, rows, otherBoardCells, onSave, onBack, onUp
   const [selectedCellId, setSelectedCellId] = useState<string | null>(null);
   const [cells, setCells] = useState<BoardCell[]>(board.cells);
   const [playError, setPlayError] = useState<string | null>(null);
+  const [converting, setConverting] = useState(false);
   // Keep a ref so updateCell always serialises the latest board metadata
   const boardRef = useRef(board);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -141,6 +143,26 @@ export function BoardEditor({ board, rows, otherBoardCells, onSave, onBack, onUp
       : a.position.colIndex - b.position.colIndex,
   );
 
+  // Cells whose linked row has audio stored in a non-mp4 format
+  const rowsNeedingConversion = [...new Set(
+    cells.flatMap(c => {
+      if (!c.rowId) return [];
+      const row = rows.find(r => r.id === c.rowId);
+      return (row?.audio && !row.audio.startsWith('data:audio/mp4')) ? [c.rowId] : [];
+    })
+  )];
+
+  async function handleConvertAll() {
+    setConverting(true);
+    for (const rowId of rowsNeedingConversion) {
+      const row = rows.find(r => r.id === rowId);
+      if (!row?.audio) continue;
+      const converted = await convertAudioToMp4(row.audio);
+      if (converted !== row.audio) onUpdateRowAudio(rowId, converted);
+    }
+    setConverting(false);
+  }
+
   return (
     <div className={mode === 'use'
       ? 'fixed inset-0 z-[var(--z-modal)] flex flex-col bg-white p-1 sm:p-2 animate-in fade-in duration-200'
@@ -168,6 +190,17 @@ export function BoardEditor({ board, rows, otherBoardCells, onSave, onBack, onUp
         </button>
 
         <h1 className="text-sm font-bold text-slate-900 flex-1 truncate min-w-0">{board.name}</h1>
+
+        {/* Convert legacy webm audio to mp4 for iOS compatibility */}
+        {rowsNeedingConversion.length > 0 && (
+          <button
+            onClick={handleConvertAll}
+            disabled={converting}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg border border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors disabled:opacity-50 flex-shrink-0"
+          >
+            {converting ? t('board.convertingAudio') : t('board.convertAudioForIos')}
+          </button>
+        )}
 
         {/* Mode toggle */}
         <div className="flex items-center bg-slate-100 rounded-lg p-0.5 flex-shrink-0">
