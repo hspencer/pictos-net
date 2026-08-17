@@ -41,6 +41,8 @@ public/libraries/index.json
 # AI / Local folders
 .gemini
 .claude
+AGENTS.md
+docs/SPEC_ALIGNMENT_AUDIT_*.md
 # Local Netlify folder
 .netlify
 pictos-vertex-38ff5ecd7e32.json
