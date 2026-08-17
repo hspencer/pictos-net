@@ -14,14 +14,14 @@ interface CellEditorProps {
   onClose: () => void;
 }
 
-const FITZGERALD_COLORS: { key: FitzgeraldColor; bg: string; label: string }[] = [
-  { key: 'amarillo', bg: '#FEF08A', label: 'Personas' },
-  { key: 'verde',    bg: '#BBF7D0', label: 'Verbos' },
-  { key: 'azul',     bg: '#BFDBFE', label: 'Adjetivos' },
-  { key: 'naranja',  bg: '#FED7AA', label: 'Sustantivos' },
-  { key: 'rosa',     bg: '#FBCFE8', label: 'Funcionales' },
-  { key: 'morado',   bg: '#DDD6FE', label: 'Social' },
-  { key: 'gris',     bg: '#E2E8F0', label: 'Sistema' },
+const FITZGERALD_COLORS: { key: FitzgeraldColor; bg: string; labelKey: string }[] = [
+  { key: 'amarillo', bg: '#FEF08A', labelKey: 'board.colorPeople' },
+  { key: 'verde',    bg: '#BBF7D0', labelKey: 'board.colorVerbs' },
+  { key: 'azul',     bg: '#BFDBFE', labelKey: 'board.colorAdjectives' },
+  { key: 'naranja',  bg: '#FED7AA', labelKey: 'board.colorNouns' },
+  { key: 'rosa',     bg: '#FBCFE8', labelKey: 'board.colorFunctional' },
+  { key: 'morado',   bg: '#DDD6FE', labelKey: 'board.colorSocial' },
+  { key: 'gris',     bg: '#E2E8F0', labelKey: 'board.colorSystem' },
 ];
 
 type RecordState = 'idle' | 'requesting' | 'countdown' | 'recording';
@@ -127,7 +127,10 @@ export function CellEditor({ cell, rows, allCells, onUpdateCell, onUpdateRowAudi
 
     try {
       chunksRef.current = [];
-      const recorder = new MediaRecorder(stream);
+      // Prefer audio/mp4 (AAC) — supported on iOS Safari and modern Chromium; falls back to webm on older FF
+      const mimeType = ['audio/mp4;codecs=mp4a.40.2', 'audio/mp4', 'audio/webm;codecs=opus', 'audio/webm']
+        .find(m => MediaRecorder.isTypeSupported(m));
+      const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
       recorderRef.current = recorder;
       recorder.ondataavailable = e => chunksRef.current.push(e.data);
       recorder.onstop = () => {
@@ -187,22 +190,23 @@ export function CellEditor({ cell, rows, allCells, onUpdateCell, onUpdateRowAudi
     <div className="w-72 bg-white flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
-        <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">Celda</span>
-        <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors">
-          <X size={16} />
+        <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">{t('board.cellEditorTitle')}</span>
+        <button onClick={onClose} title={t('actions.close')} aria-label={t('actions.close')} className="text-slate-400 hover:text-slate-600 transition-colors">
+          <X size={16} aria-hidden="true" />
         </button>
       </div>
 
       <div className="p-4 space-y-5 overflow-y-auto">
         {/* Color section */}
         <div>
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Color</p>
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">{t('board.colorLabel')}</p>
           <div className="grid grid-cols-3 gap-2">
-            {FITZGERALD_COLORS.map(({ key, bg, label }) => (
+            {FITZGERALD_COLORS.map(({ key, bg, labelKey }) => (
               <button
                 key={key}
                 onClick={() => onUpdateCell({ color: key })}
-                title={label}
+                title={t(labelKey)}
+                aria-label={t(labelKey)}
                 className={`rounded-lg h-10 transition-all border-2 ${
                   cell.color === key ? 'border-slate-700 scale-105 shadow-sm' : 'border-transparent hover:border-slate-300'
                 }`}
@@ -214,7 +218,7 @@ export function CellEditor({ cell, rows, allCells, onUpdateCell, onUpdateRowAudi
 
         {/* Pictogram section */}
         <div>
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Pictograma</p>
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">{t('board.pictogramLabel')}</p>
           <div>
             <input
               ref={inputRef}
@@ -283,7 +287,7 @@ export function CellEditor({ cell, rows, allCells, onUpdateCell, onUpdateRowAudi
         {/* Audio section — only when a row is linked */}
         {linkedRow && (
           <div>
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Audio</p>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">{t('board.audioLabel')}</p>
 
             {micError && (
               <p className="text-xs text-red-500 mb-2">{micError}</p>
@@ -296,7 +300,7 @@ export function CellEditor({ cell, rows, allCells, onUpdateCell, onUpdateRowAudi
             {recordState === 'countdown' && (
               <div className="flex flex-col items-center gap-2 py-3">
                 <span className="text-4xl font-bold text-violet-600">{countdown}</span>
-                <button onClick={cancelRecording} className="text-xs text-slate-400 hover:text-red-500">Cancelar</button>
+                <button onClick={cancelRecording} className="text-xs text-slate-400 hover:text-red-500">{t('actions.cancel')}</button>
               </div>
             )}
 
@@ -310,9 +314,9 @@ export function CellEditor({ cell, rows, allCells, onUpdateCell, onUpdateRowAudi
                   onClick={stopRecording}
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 text-white text-xs font-medium rounded-lg hover:bg-red-700 transition-colors"
                 >
-                  <Square size={12} /> Detener
+                  <Square size={12} aria-hidden="true" /> {t('actions.stop')}
                 </button>
-                <button onClick={cancelRecording} className="text-xs text-slate-400 hover:text-slate-600">Cancelar</button>
+                <button onClick={cancelRecording} className="text-xs text-slate-400 hover:text-slate-600">{t('actions.cancel')}</button>
               </div>
             )}
 

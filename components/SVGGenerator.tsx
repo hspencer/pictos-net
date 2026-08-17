@@ -234,7 +234,7 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
             setStatus('structuring');
             setProcessStartTime(startedAt);
             setElapsedTime((Date.now() - startedAt) / 1000);
-            setSubStatus('Estructurando SVG semántico...');
+            setSubStatus(t('svg.applyingSemanticSchema'));
             // Restart heartbeat from an estimated progress based on elapsed time
             if (!heartbeatRef.current) {
                 const elapsed = (Date.now() - startedAt) / 1000;
@@ -285,16 +285,16 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
 
             // Structure with Gemini
             setStatus('structuring');
-            setSubStatus('Preparando prompt semántico...');
+            setSubStatus(t('svgGenerator.preparingSemanticPrompt'));
             setStructureProgress(0);
             activeStructuring.set(row.id, Date.now());
             startHeartbeat();
             await new Promise(r => setTimeout(r, 600)); // UX Delay
 
             const nluData = typeof row.NLU === 'object' ? row.NLU as NLUData : undefined;
-            if (!nluData) throw new Error("Invalid NLU data");
+            if (!nluData) throw new Error(t('svgGenerator.invalidNlu'));
 
-            onLog('info', `Estructurando SVG semántico [modelo: ${phase5Model}]…`);
+            onLog('info', t('svgGenerator.structuringWithModel', { model: phase5Model }));
             const sStart = performance.now();
             const result = await structureSVG({
                 rawSvg: svg,
@@ -315,22 +315,22 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
             const sEnd = performance.now();
 
             if (!result.success) {
-                throw new Error(result.error || 'Failed to structure SVG');
+                throw new Error(result.error || t('svgGenerator.structureFailed'));
             }
 
             // Recording mode: mapping awaits user review
             if (result.pendingReview && result.mapping) {
-                onLog('info', `Mapeo listo — esperando revisión (modo grabación)`);
+                onLog('info', t('svgGenerator.mappingReadyForReview'));
                 setPendingMapping(result.mapping);
                 setStatus('idle');
                 return;
             }
 
             if (!result.svg) {
-                throw new Error('ESTRUCTURAR devolvió resultado vacío');
+                throw new Error(t('svgGenerator.emptyStructureResult'));
             }
 
-            onLog('success', `Estructuración completada en ${((sEnd - sStart) / 1000).toFixed(2)}s`);
+            onLog('success', t('svgGenerator.structureCompleted', { duration: ((sEnd - sStart) / 1000).toFixed(2) }));
 
             addSVG({
                 id: row.id,
@@ -346,16 +346,16 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
             activeStructuring.delete(row.id);
             setStatus('completed');
             const totalTime = ((performance.now() - startTime) / 1000).toFixed(2);
-            onLog('success', `Proceso SVG finalizado. Tiempo total: ${totalTime}s`);
+            onLog('success', t('svgGenerator.processCompleted', { duration: totalTime }));
 
         } catch (err) {
             stopHeartbeat(0);
             activeStructuring.delete(row.id);
             console.error(err);
             setStatus('error');
-            const msg = err instanceof Error ? err.message : "Unknown error";
+            const msg = err instanceof Error ? err.message : t('messages.unknownError');
             setError(msg);
-            onLog('error', `Fallo SVG: ${msg}`);
+            onLog('error', t('svgGenerator.processFailed', { error: msg }));
         }
     };
 
@@ -404,7 +404,8 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
                                 <button
                                     onClick={(e) => { e.stopPropagation(); onOpenEditor('raw'); }}
                                     className="p-1.5 bg-black/60 hover:bg-black/80 text-white rounded-full shadow-lg"
-                                    title="Editar SVG trazado"
+                                    title={t('svg.editRaw')}
+                                    aria-label={t('svg.editRaw')}
                                 >
                                     <Edit size={12} />
                                 </button>
@@ -412,7 +413,8 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
                             <button
                                 onClick={downloadRawSvg}
                                 className="p-1.5 bg-black/60 hover:bg-black/80 text-white rounded-full shadow-lg"
-                                title="Download raw SVG"
+                                title={t('svg.download')}
+                                aria-label={t('svg.download')}
                             >
                                 <Download size={12} />
                             </button>
@@ -467,7 +469,8 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
                             <button
                                 onClick={(e) => { e.stopPropagation(); onOpenEditor('structured'); }}
                                 className="p-2 bg-black/60 hover:bg-black/80 text-white rounded-full shadow-lg backdrop-blur-sm transition-all"
-                                title="Editar SVG estructurado"
+                                title={t('svg.editStructured')}
+                                aria-label={t('svg.editStructured')}
                             >
                                 <Edit size={14} />
                             </button>
@@ -475,7 +478,8 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
                         <button
                             onClick={downloadStructuredSvg}
                             className="p-2 bg-black/60 hover:bg-black/80 text-white rounded-full shadow-lg backdrop-blur-sm transition-all"
-                            title="Descargar SVG"
+                            title={t('svg.download')}
+                            aria-label={t('svg.download')}
                         >
                             <Download size={14} />
                         </button>
@@ -641,7 +645,7 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
                                     onConfirm={(selectionOverrides, labelOverrides) => {
                                         setPendingMapping(null);
                                         const nluData = typeof row.NLU === 'object' ? row.NLU as NLUData : undefined;
-                                        if (!nluData) { onLog('error', 'NLU no disponible para ensamblar'); return; }
+                                        if (!nluData) { onLog('error', t('svgGenerator.nluUnavailableForAssembly')); return; }
                                         const assembled = assembleFromMapping(pendingMapping, {
                                             rawSvg: row.rawSvg!,
                                             nlu: nluData,
@@ -653,9 +657,9 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
                                         if (assembled.success && assembled.svg) {
                                             addSVG({ id: row.id, utterance: row.UTTERANCE, svg: assembled.svg, createdAt: new Date().toISOString(), sourceRowId: row.id, lang: nluData.lang });
                                             onUpdate({ structuredSvg: assembled.svg, structuredSvgDiscarded: false });
-                                            onLog('success', 'SVG estructurado ensamblado tras revisión');
+                                            onLog('success', t('svgGenerator.assembledAfterReview'));
                                         } else {
-                                            onLog('error', assembled.error || 'Fallo en ensamblado tras revisión');
+                                            onLog('error', assembled.error || t('svgGenerator.assemblyFailedAfterReview'));
                                         }
                                     }}
                                 />
@@ -675,7 +679,8 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
                                         value={phase5Model}
                                         onChange={e => onPhase5ModelChange?.(e.target.value)}
                                         className="text-xs text-slate-500 border border-slate-200 rounded px-2 py-1 bg-white hover:border-slate-300 cursor-pointer"
-                                        title="Modelo para ESTRUCTURAR (sesión)"
+                                        title={t('svg.phase5ModelTitle')}
+                                        aria-label={t('svg.phase5ModelTitle')}
                                     >
                                         {PHASE5_MODELS.map(m => (
                                             <option key={m.id} value={m.id}>{m.label}</option>
@@ -718,7 +723,8 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
                             <button
                                 onClick={(e) => { e.stopPropagation(); onOpenEditor('raw'); }}
                                 className="p-2 bg-black/60 hover:bg-black/80 text-white rounded-full shadow-lg"
-                                title="Editar SVG trazado"
+                                title={t('svg.editRaw')}
+                                aria-label={t('svg.editRaw')}
                             >
                                 <Edit size={14} />
                             </button>
@@ -726,7 +732,8 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
                         <button
                             onClick={downloadRawSvg}
                             className="p-2 bg-black/60 hover:bg-black/80 text-white rounded-full shadow-lg"
-                            title="Download raw SVG"
+                            title={t('svg.download')}
+                            aria-label={t('svg.download')}
                         >
                             <Download size={14} />
                         </button>
@@ -824,7 +831,8 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
                                 <button
                                     onClick={(e) => { e.stopPropagation(); onOpenEditor('raw'); }}
                                     className="p-1.5 bg-white hover:bg-slate-100 text-slate-500 hover:text-slate-700 rounded border border-slate-200 transition-colors"
-                                    title="Editar SVG trazado"
+                                    title={t('svg.editRaw')}
+                                    aria-label={t('svg.editRaw')}
                                 >
                                     <Edit size={12} />
                                 </button>
@@ -841,7 +849,7 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
                         />
                     </div>
                     <p className="text-xs text-slate-500 mt-1.5 truncate">
-                        {subStatus || 'Aplicando esquema semántico con Gemini...'}
+                        {subStatus || t('svg.applyingSemanticSchema')}
                     </p>
                 </div>
             </div>

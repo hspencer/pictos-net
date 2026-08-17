@@ -687,7 +687,7 @@ export const StylePanel: React.FC<StylePanelProps> = ({ styleDefs = [], svgSourc
                         <div className="px-4 pb-4">
                             <div className="border border-amber-200 rounded-lg overflow-hidden bg-amber-50">
                                 <div className="px-2.5 py-1.5 border-b border-amber-100 flex items-center justify-between">
-                                    <span className="text-xs font-mono text-amber-700 font-bold">from-inline</span>
+                                    <span className="text-xs font-mono text-amber-700 font-bold">{t('svgEditor.fromInlineCode')}</span>
                                     <span className="text-xs text-amber-600">{t('svgEditor.fromInlineLabel')}</span>
                                 </div>
                                 <div className="px-2.5 py-2 space-y-1.5">

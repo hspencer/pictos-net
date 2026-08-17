@@ -268,7 +268,7 @@ export const updateSvgStyleText = (
   if (!svgElement) return svgDocument;
 
   const trimmed = cssText.trim();
-  let styleElement = svgElement.querySelector('style');
+  let styleElement = svgElement.querySelector<SVGStyleElement>('style');
   if (!trimmed && removeIfEmpty) {
     if (styleElement) {
       styleElement.remove();

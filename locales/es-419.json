@@ -198,6 +198,7 @@
     "spaceNamePlaceholder": "Mi librería de pictogramas",
     "license": "Licencia",
     "geoSearch": "Buscar ciudad...",
+    "clearLocation": "Quitar ubicación",
     "geoSearching": "Buscando...",
     "geoNoResults": "No se encontraron resultados",
     "credits": "Créditos",
@@ -341,6 +342,7 @@
     "hideTemplate": "Ocultar ejemplo"
   },
   "a11y": {
+    "skipToMain": "Saltar al contenido principal",
     "toolbar": "Barra de herramientas",
     "mainActions": "Acciones principales",
     "uiLanguage": "Idioma de la interfaz",
@@ -380,6 +382,23 @@
     "configRestored": "Configuración global restaurada.",
     "allCleared": "Todos los nodos y logs han sido borrados.",
     "loadingLibrary": "Cargando {name}...",
+    "templateImagesRecovered": "Se recuperaron {count} imágenes de la plantilla «{name}».",
+    "libraryImportFailed": "Error al importar la biblioteca: {error}",
+    "invalidFormat": "formato inválido",
+    "unknownError": "Error desconocido",
+    "libraryLoaded": "Biblioteca cargada: {count} pictogramas.",
+    "sequencesRestored": "Secuencias restauradas: {count}.",
+    "boardsRestored": "Tableros restaurados: {count}.",
+    "libraryLoadFailed": "Error al cargar la biblioteca: {error}",
+    "promptRequiresNluElements": "Se necesitan el análisis NLU y los elementos para regenerar el prompt.",
+    "promptRegenerating": "[PROMPT] Regenerando el prompt espacial desde los elementos modificados…",
+    "promptRegenerated": "Prompt regenerado en {duration}s: «{preview}…»",
+    "promptRegenerationFailed": "Error al regenerar el prompt: {error}",
+    "regenerationFailed": "[REGENERAR] Error en «{utterance}»: {error}",
+    "structureStatus": "[ESTRUCTURAR] {status}",
+    "structureFailed": "Falló la estructuración SVG.",
+    "processStoppedAtStep": "Proceso detenido por el usuario en el paso {step}.",
+    "stepFailed": "{step} falló para «{utterance}»: {error}",
     "cascadeStarted": "Iniciando propagación en grafo para: {utterance}",
     "cascadeStopped": "Cascada detenida en {step} para {utterance}",
     "stepComplete": "{step} completado: {duration}s para \"{utterance}\"",
@@ -452,21 +471,19 @@
     "editorExport": "Exportar",
     "reStructure": "Re-estructurar",
     "reStructureTooltip": "Volver a estructurar semánticamente desde el SVG trazado",
-    "clearInlineStyles": "Limpiar estilos en línea"
-  },
-  "vectorizer": {
-    "preview": "Vista previa de vectorizador",
-    "retrace": "Re-vectorizar",
-    "apply": "Aplicar",
-    "adjustTrace": "Ajustar configuración de traza",
-    "warnings": "Advertencias de traza",
-    "layersTraced": "{traced}/{total} capas trazadas"
+    "clearInlineStyles": "Limpiar estilos en línea",
+    "editRaw": "Editar SVG trazado",
+    "editStructured": "Editar SVG estructurado",
+    "phase5ModelTitle": "Modelo para ESTRUCTURAR (sesión)",
+    "outputSsot": "Salida SVG (fuente única de verdad)",
+    "applyingSemanticSchema": "Aplicando esquema semántico con Gemini…"
   },
   "svgEditor": {
     "localOverride": "Estilos locales",
     "restoreToLibrary": "Restaurar",
     "overriddenIndicator": "Modificado respecto a librería",
     "fromInlineLabel": "Estilos inline convertidos",
+    "fromInlineCode": "from-inline",
     "cite": "Asignar clase",
     "uncite": "Quitar clase",
     "addStyle": "Agregar estilo",
@@ -710,7 +727,19 @@
     "editTitle": "Editar tablero",
     "duplicate": "Duplicar",
     "exportPdfLetter": "Exportar PDF (Carta)",
-    "exportPdfTabloid": "Exportar PDF (Tabloide)"
+    "exportPdfTabloid": "Exportar PDF (Tabloide)",
+    "gridCellCount": "{rows} × {cols} = {count} celdas",
+    "cellEditorTitle": "Celda",
+    "colorLabel": "Color",
+    "pictogramLabel": "Pictograma",
+    "audioLabel": "Audio",
+    "colorPeople": "Personas",
+    "colorVerbs": "Verbos",
+    "colorAdjectives": "Adjetivos",
+    "colorNouns": "Sustantivos",
+    "colorFunctional": "Funcionales",
+    "colorSocial": "Social",
+    "colorSystem": "Sistema"
   },
   "batch": {
     "button": "Generar en lote",
@@ -735,6 +764,12 @@
     }
   },
   "vectorizer": {
+    "preview": "Vista previa de vectorizador",
+    "retrace": "Re-vectorizar",
+    "adjustTrace": "Ajustar configuración de traza",
+    "warnings": "Advertencias de traza",
+    "layersTraced": "{traced}/{total} capas trazadas",
+    "pathCount": "{count} trazados",
     "title": "Vectorizador",
     "presets": "Preajustes",
     "starting": "Iniciando...",
@@ -789,9 +824,23 @@
     "reviewStructure": "Revisar estructura",
     "discarded": "Descartados ({count}):",
     "nodes": "{selected}/{total} nodos",
-    "confirm": "Confirmar"
+    "confirm": "Confirmar",
+    "pathCount": "{count} trazados",
+    "mergeSuffix": " + fusión"
   },
   "svgGenerator": {
-    "unavailable": "Generación de SVG no disponible"
+    "unavailable": "Generación de SVG no disponible",
+    "preparingSemanticPrompt": "Preparando el prompt semántico…",
+    "invalidNlu": "Los datos NLU no son válidos.",
+    "structuringWithModel": "Estructurando el SVG semántico [modelo: {model}]…",
+    "structureFailed": "No se pudo estructurar el SVG.",
+    "mappingReadyForReview": "Mapeo listo; esperando revisión (modo grabación).",
+    "emptyStructureResult": "La estructuración devolvió un resultado vacío.",
+    "structureCompleted": "Estructuración completada en {duration}s.",
+    "processCompleted": "Proceso SVG finalizado. Tiempo total: {duration}s.",
+    "processFailed": "Falló el proceso SVG: {error}",
+    "nluUnavailableForAssembly": "NLU no está disponible para ensamblar.",
+    "assembledAfterReview": "SVG estructurado ensamblado tras la revisión.",
+    "assemblyFailedAfterReview": "Falló el ensamblado tras la revisión."
   }
 }

@@ -501,7 +501,7 @@ export const VectorizerModal: React.FC<VectorizerModalProps> = ({
                     <span className="text-slate-500 text-sm truncate">— "{utterance}"</span>
                     {traceState === 'done' && result && (
                         <span className="text-xs font-mono text-slate-500 ml-2">
-                            {result.layersTraced} paths
+                            {t('vectorizer.pathCount', { count: result.layersTraced })}
                             {resultSvgHtml && ` · ${(new Blob([resultSvgHtml]).size / 1024).toFixed(0)} KB`}
                             {result.tiersUsed > 1 && ` · tier ${result.tiersUsed}`}
                         </span>
@@ -510,8 +510,8 @@ export const VectorizerModal: React.FC<VectorizerModalProps> = ({
                 <button
                     onClick={onClose}
                     className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded transition-colors"
-                    title="Close"
-                    aria-label="Close"
+                    title={t('actions.close')}
+                    aria-label={t('actions.close')}
                 >
                     <X size={16} aria-hidden="true" />
                 </button>

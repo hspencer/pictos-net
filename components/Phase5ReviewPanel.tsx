@@ -122,7 +122,10 @@ export function Phase5ReviewPanel({ mapping, onConfirm }: Phase5ReviewPanelProps
                     <span className="phase5-review-meta">
                         <code className="phase5-review-nodeid">{group.nodeId}</code>
                         <span className="phase5-review-css">.{group.cssClass}</span>
-                        <span className="phase5-review-paths">{group.keep?.length ?? 0} paths{group.merge ? ' +merge' : ''}</span>
+                        <span className="phase5-review-paths">
+                            {t('phase5.pathCount', { count: group.keep?.length ?? 0 })}
+                            {group.merge ? t('phase5.mergeSuffix') : ''}
+                        </span>
                     </span>
                 </label>
                 {children.map(child => renderGroup(child, depth + 1))}

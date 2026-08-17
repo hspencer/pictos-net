@@ -135,7 +135,8 @@ export const GeoAutocomplete: React.FC<GeoAutocompleteProps> = ({ value, onChang
           <button
             onClick={handleClear}
             className="text-slate-500 hover:text-slate-600 text-xs font-bold"
-            title="Clear location"
+            title={t('config.clearLocation')}
+            aria-label={t('config.clearLocation')}
           >
             ×
           </button>

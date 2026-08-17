@@ -8,6 +8,7 @@ import { CellEditor } from './CellEditor';
 interface BoardEditorProps {
   board: Board;
   rows: RowData[];
+  otherBoardCells: BoardCell[];
   onSave: (board: Board) => void;
   onBack: () => void;
   onUpdateRowAudio: (rowId: string, audio: string | undefined) => void;
@@ -15,11 +16,12 @@ interface BoardEditorProps {
 
 type BoardMode = 'edit' | 'use';
 
-export function BoardEditor({ board, rows, onSave, onBack, onUpdateRowAudio }: BoardEditorProps) {
+export function BoardEditor({ board, rows, otherBoardCells, onSave, onBack, onUpdateRowAudio }: BoardEditorProps) {
   const { t } = useTranslation();
   const [mode, setMode] = useState<BoardMode>('edit');
   const [selectedCellId, setSelectedCellId] = useState<string | null>(null);
   const [cells, setCells] = useState<BoardCell[]>(board.cells);
+  const [playError, setPlayError] = useState<string | null>(null);
   // Keep a ref so updateCell always serialises the latest board metadata
   const boardRef = useRef(board);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -111,7 +113,10 @@ export function BoardEditor({ board, rows, onSave, onBack, onUpdateRowAudio }: B
     const playable = createPlayableAudioUrl(row.audio);
     audioSourceRef.current = { stored: row.audio, playable };
     audioRef.current = new Audio(playable);
-    audioRef.current.play();
+    audioRef.current.play().catch(() => {
+      setPlayError(cell.id);
+      setTimeout(() => setPlayError(null), 1500);
+    });
   }
 
   function handleCellClick(cell: BoardCell) {
@@ -168,17 +173,19 @@ export function BoardEditor({ board, rows, onSave, onBack, onUpdateRowAudio }: B
         <div className="flex items-center bg-slate-100 rounded-lg p-0.5 flex-shrink-0">
           <button
             onClick={() => setMode('edit')}
-            aria-pressed={mode === 'edit'}
+            aria-pressed="true"
+            aria-label={t('board.modeEdit')}
             title={t('board.modeEdit')}
-            className={`p-1.5 rounded-md transition-colors ${mode === 'edit' ? 'bg-white shadow-sm text-violet-700' : 'text-slate-400 hover:text-slate-600'}`}
+            className="p-1.5 rounded-md bg-white shadow-sm text-violet-700 transition-colors"
           >
             <Pencil size={15} />
           </button>
           <button
             onClick={() => setMode('use')}
-            aria-pressed={mode === 'use'}
+            aria-pressed="false"
+            aria-label={t('board.modeUse')}
             title={t('board.modeUse')}
-            className={`p-1.5 rounded-md transition-colors ${mode === 'use' ? 'bg-white shadow-sm text-violet-700' : 'text-slate-400 hover:text-slate-600'}`}
+            className="p-1.5 rounded-md text-slate-400 transition-colors hover:text-slate-600"
           >
             <Eye size={15} />
           </button>
@@ -208,13 +215,15 @@ export function BoardEditor({ board, rows, onSave, onBack, onUpdateRowAudio }: B
                   onClick={() => handleCellClick(cell)}
                   onTouchEnd={event => handleCellTap(event, cell)}
                   className={`flex min-h-0 flex-col rounded-lg overflow-hidden transition-all border-2 ${
-                    isSelected
-                      ? 'border-violet-500 shadow-md'
-                      : mode === 'edit'
-                        ? 'border-transparent hover:border-slate-400'
-                        : isClickable
-                          ? 'border-transparent hover:brightness-95 active:scale-95'
-                          : 'border-transparent cursor-default'
+                    playError === cell.id
+                      ? 'border-red-400'
+                      : isSelected
+                        ? 'border-violet-500 shadow-md'
+                        : mode === 'edit'
+                          ? 'border-transparent hover:border-slate-400'
+                          : isClickable
+                            ? 'border-transparent hover:brightness-95 active:scale-95'
+                            : 'border-transparent cursor-default'
                   }`}
                   style={{ backgroundColor: FITZGERALD_BG[cell.color], touchAction: 'manipulation' }}
                   disabled={mode === 'use' && !isClickable}
@@ -273,7 +282,7 @@ export function BoardEditor({ board, rows, onSave, onBack, onUpdateRowAudio }: B
             <CellEditor
               cell={selectedCell}
               rows={rows}
-              allCells={cells}
+              allCells={[...otherBoardCells, ...cells]}
               onUpdateCell={patch => updateCell(selectedCell.id, patch)}
               onUpdateRowAudio={onUpdateRowAudio}
               onClose={() => setSelectedCellId(null)}

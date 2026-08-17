@@ -218,7 +218,7 @@ function BoardConfigModal({ board, activeLibraryId, onCreate, onSave, onDelete, 
                 </div>
               )}
               <p className="mt-2 text-xs text-slate-400">
-                {grid.rows} × {grid.cols} = {grid.rows * grid.cols} celdas
+                {t('board.gridCellCount', { rows: grid.rows, cols: grid.cols, count: grid.rows * grid.cols })}
               </p>
             </div>
 

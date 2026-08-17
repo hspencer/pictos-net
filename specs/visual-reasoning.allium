@@ -655,7 +655,9 @@ invariant Phase4NeverAutoRuns {
 -- Open Questions
 ------------------------------------------------------------
 
-open question "Does processCascade run phases 1–3 automatically after utterance confirmation, with phases 4 and 5 remaining user-initiated? Or does the user trigger each phase manually?"
+-- Resolved: confirming a non-empty utterance runs processCascade through
+-- COMPRENDER → COMPONER → PRODUCIR. VECTORIZAR and ESTRUCTURAR remain explicit,
+-- user-triggered operations; individual phases may also be re-run manually.
 
 open question "Should elements validation against mf-svg-schema happen in phase 2 (before bitmapStatus can proceed) or lazily at the start of phase 5?"
 

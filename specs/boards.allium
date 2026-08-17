@@ -6,7 +6,7 @@
 --   Fitzgerald key. Boards are a third content type within a Library, alongside
 --   pictogramas and secuencias.
 -- Includes:
---   - Board entity: name, immutable grid dimensions, Library membership
+--   - Board entity: name, resizable grid dimensions, Library membership
 --   - Cell entity: grid position, Fitzgerald background colour, linked Row
 --   - Grid presets: named dimension shortcuts at board-creation time
 --   - BoardMode: edit (pencil) ↔ use (eye) switch
@@ -40,8 +40,8 @@ enum FitzgeraldColor {
   verde       -- Verbos / Acciones
   azul        -- Adjetivos / Descriptivos
   naranja     -- Sustantivos / Objetos
-  rosa        -- Social / Fórmulas
-  morado      -- Respuestas, saludos y cierres
+  rosa        -- Palabras funcionales
+  morado      -- Expresiones sociales, respuestas, saludos y cierres
   gris        -- Elementos de sistema (default for new cells)
 }
 
@@ -72,7 +72,7 @@ external Row {
   bitmap: String?
   rawSvg: String?
   structuredSvg: String?
-  audio: String?    -- new: recorded audio blob URL; null = no audio recorded
+  audio: String?    -- recorded audio data URL; null = no audio recorded
 }
 
 external Library {
@@ -93,13 +93,14 @@ external LibraryView {
 
 entity Board {
   -- A named communication board. Belongs to exactly one Library.
-  -- Grid dimensions are fixed at creation and cannot be changed afterwards.
+  -- Grid dimensions can be changed later from the board configuration modal.
   id: String
   library: Library
   name: String
   grid: GridDimensions
   cells: Cell with board = this
-  mode: edit | use
+  mode: edit | use              -- transient UI state; never persisted
+  show_labels: Boolean = true
   createdAt: Timestamp
   modifiedAt: Timestamp
 
@@ -220,16 +221,16 @@ rule CreateBoard {
     if the user confirms a non-empty name and valid dimensions:
       a new Board is created with:
         the given name
-        the given GridDimensions (fixed; cannot be changed after creation)
+        the given GridDimensions
         grid.rows × grid.cols empty Cells (one per position; BoardHasExactCells),
           each with color = gris and row = null
-        mode = use
+        mode = edit
         createdAt = modifiedAt = now
       BoardEditor opens for the new Board
 
   @guidance "grid presets"
-    -- Preset buttons (label = rows × cols, sub-label = total cells):
-    --   2×2 (4), 3×3 (9), 4×5 (20), 5×9 (45), 6×10 (60), 7×11 (77), 8×10 (80)
+    -- Preset buttons (label = rows × cols):
+    --   2×2, 3×3, 4×4, 4×6, 5×6, 6×6, 6×8
     -- The "Personalizado" option accepts positive integers only.
     -- No maximum grid size is enforced by this spec (open question).
 }
@@ -238,23 +239,45 @@ rule OpenBoard {
   when: user activates a Board in BoardList
   ensures:
     BoardEditor opens for that Board
-    Board.mode = use    -- always resets to use mode on open
+    Board.mode = edit    -- always resets to edit mode on open
 }
 
-rule RenameBoard {
-  when: user edits the Board name inline in BoardEditor's header,
-        or activates "Renombrar" from the "..." menu of a Board in BoardList
+rule ConfigureBoard {
+  when: user activates "Editar" from the "..." menu of a Board in BoardList
   ensures:
-    if the user confirms a non-empty name:
+    a configuration modal exposes name, grid dimensions and label visibility
+    if the user confirms a non-empty name and valid dimensions:
       Board.name = the new name
+      Board.show_labels = the selected visibility
+      ResizeBoard applies if dimensions changed
       Board.modifiedAt = now
     if the user cancels or submits an empty string:
-      Board.name is unchanged
+      Board is unchanged
+}
+
+rule ResizeBoard {
+  when: valid new dimensions are confirmed in ConfigureBoard
+  ensures:
+    Board.grid = the new dimensions
+    every existing Cell still within the new bounds is preserved
+    every existing Cell outside the new bounds is deleted
+    every newly introduced position receives an empty Cell with color = gris
+    BoardHasExactCells
+    Board.modifiedAt = now
+}
+
+rule DuplicateBoard {
+  when: user activates "Duplicar" for Board B
+  ensures:
+    a new Board is created in the same Library
+    its name is B.name with "(copia)" appended
+    its grid, show_labels, colours and row references equal B
+    Board and Cell ids are fresh
+    createdAt = modifiedAt = now
 }
 
 rule DeleteBoard {
-  when: user activates "Eliminar" for Board B in BoardList
-        or from within BoardEditor
+  when: user activates "Eliminar" inside the Board configuration modal
   requires:
     user confirms via a destructive-action prompt
   ensures:
@@ -301,7 +324,7 @@ rule OpenCellEditor {
   requires: C.board.mode = edit
   ensures:
     a cell editor panel opens for C, showing:
-      the Fitzgerald colour picker (six colour swatches)
+      the Fitzgerald colour picker (seven colour swatches)
       a Row autocomplete field (prefilled with C.row.utterance if set, else empty)
       the pictogram thumbnail (if C.row is set)
       if C.row is set and C.row.audio = null:
@@ -348,12 +371,13 @@ rule RecordAudio {
   ensures:
     browser microphone permission is requested (if not already granted)
     if permission is granted:
-      a 3-second countdown is displayed: 3 → 2 → 1 → ¡Rec!
-      after the countdown, browser microphone recording begins
+      a 3-second countdown is displayed: 3 → 2 → 1
+      after the countdown:
+        browser microphone recording begins
       a red pulsing indicator is shown for the duration of the recording
       the "Agregar audio" action is unavailable while recording is active
       when the user activates the stop control:
-        C.row.audio = the recorded blob URL
+        C.row.audio = the recorded data URL
         the pulsing indicator is replaced by an audio playback control
       if the user cancels during countdown or recording:
         C.row.audio remains null; no audio is stored
@@ -402,6 +426,18 @@ rule TapCellInUseMode {
     -- new clip always stops any clip that is currently playing.
 }
 
+rule ExportBoardPdf {
+  when: user activates the Carta or Tabloide PDF action for Board B
+  ensures:
+    one landscape PDF page is generated in the selected paper size
+    the page contains B.name and the complete B.grid
+    every Cell retains its Fitzgerald background colour
+    each linked Cell uses the best available artifact in priority order:
+      structuredSvg > rawSvg > bitmap
+    Row.utterance is printed when B.show_labels = true
+    the downloaded filename identifies the board, paper size and date
+}
+
 ------------------------------------------------------------
 -- Surfaces
 ------------------------------------------------------------
@@ -420,7 +456,8 @@ surface BoardList {
     -- "Crea tu primer tablero de comunicación." (es-419)
 
   @guidance "per-board actions"
-    -- "..." menu per card: Abrir, Renombrar, Eliminar.
+    -- "..." menu per card: Abrir, Editar, Duplicar, exportar PDF Carta,
+    -- exportar PDF Tabloide. Eliminar lives inside the Editar modal.
     -- Clicking the card body opens BoardEditor.
 
   exposes:
@@ -428,21 +465,25 @@ surface BoardList {
     Board.name, Board.grid, Board.modifiedAt per board (read)
     create Board
     open Board
-    rename Board
+    configure Board
+    resize Board
+    duplicate Board
     delete Board
+    export Board as PDF
 }
 
 surface BoardEditor {
   -- The grid view for one Board. Supports edit and use modes.
 
   @guidance "header"
-    -- Board name (editable inline), back button to BoardList, and the
+    -- Board name (read-only here), back button to BoardList, and the
     -- edit/use mode toggle (pencil / eye icons). Same header rhythm as the
     -- Library pictogram and sequence editors.
 
   @guidance "grid"
     -- Cells fill the available content area proportionally (equal cell sizes).
-    -- Open question: scrolling behaviour for very large grids.
+    -- Edit mode scrolls when needed. Full-screen use mode scales every configured
+    -- row and column into the viewport without scrolling.
 
   @guidance "cell appearance"
     -- Each cell shows:
@@ -462,9 +503,9 @@ surface BoardEditor {
     -- into the available space. The editor header and cell editor are hidden.
 
   exposes:
-    Board.name (read/write inline)
+    Board.name (read)
     Board.mode (read/write via toggle)
-    Board.grid (read)
+    Board.grid (read; write via ConfigureBoard)
     Cell.all for Board in grid layout (read; write via CellEditor in edit mode)
 }
 
@@ -489,7 +530,7 @@ surface CellEditor {
 
   @guidance "layout"
     -- Side panel or bottom sheet with three sections:
-    --   Color: six Fitzgerald swatches; active colour highlighted
+    --   Color: seven Fitzgerald swatches; active colour highlighted
     --   Pictograma: autocomplete field + thumbnail (or empty-state placeholder)
     --   Audio: "Agregar audio" if Row.audio = null;
     --          audio player + "Reemplazar audio" if Row.audio != null;
@@ -520,14 +561,8 @@ open question "TTS fallback: when Cell.row.audio is null in use mode, should the
 
 open question "Empty cell tap in use mode: should tapping a cell with row = null produce any visual feedback to confirm the tap was registered?"
 
-open question "Maximum grid size: no upper bound is specified on Board.grid dimensions. Very large grids may require scrolling — behaviour not defined."
+open question "Maximum grid size: custom dimensions currently have no upper bound. Should the configuration modal enforce a practical cap beyond the 6×8 largest preset?"
 
-open question "Board mode persistence: Board.mode currently resets to use on every open. Should the last-used mode be remembered per Board across sessions?"
-
-open question "Grid resize: can a Board's dimensions change after creation? Currently fixed. Resizing would require a policy for cells outside the new bounds."
-
-open question "Board export: should a Board be printable as PDF? If so, what does the output look like — filled grid with pictograms, or blank template?"
+open question "Board mode persistence: Board.mode currently resets to edit on every open. Should the last-used mode be remembered per Board across sessions?"
 
 open question "Audio duration: no maximum recording length is specified. Should there be a cap?"
-
-open question "Board scrolling: for grids too large to fit the viewport, does the grid scroll or scale down? No layout policy is specified for large grids."

@@ -670,7 +670,7 @@ surface RowAuditPanel {
 -- Resolved: events have stable short ids (8-char hex), generated at creation
 -- Resolved: events do NOT carry context (lang/uiLang/geoContext) — the library config does
 -- Resolved: a portable context header is injected only when a row is copied to clipboard
--- Resolved: export schema is versioned via top-level schemaVersion (currently 2)
+-- Resolved: export schema is versioned via top-level schemaVersion (currently 3)
 -- Resolved: graphic phases (svg_raw, svg_structured) recorded with SvgMetrics summaries (no full content)
 -- Superseded: only semantic phases were recorded — now extended to graphic phases too
 -- Resolved: SVG editor sessions emit one edit event on close, aggregating all atomic ops

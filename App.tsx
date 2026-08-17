@@ -735,7 +735,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
         // flags de estado corruptos por bugs previos.
         return { ...r, bitmap: r.bitmap || bmp, bitmapStatus: 'completed' as const };
       }));
-      addLog('info', `Se recuperaron ${entries.length} imagen(es) de la plantilla "${meta.name}"`);
+      addLog('info', t('messages.templateImagesRecovered', { count: entries.length, name: meta.name }));
       console.info(`[recovery] Recovered ${entries.length} bitmap(s) from ${sourceTemplate}`);
     } catch (err) {
       console.warn('[recovery] Bitmap recovery failed:', err);
@@ -925,10 +925,12 @@ const App: React.FC<AppProps> = ({ authUser }) => {
         setLibraryIndex(libraryService.getLibraryIndex());
         openLibrary(lib.id);
       } catch (err) {
-        addLog('error', `Error al importar librería: ${err instanceof Error ? err.message : 'formato inválido'}`);
+        addLog('error', t('messages.libraryImportFailed', {
+          error: err instanceof Error ? err.message : t('messages.invalidFormat'),
+        }));
       }
     });
-  }, [openLibrary]);
+  }, [openLibrary, t]);
 
   const handleBackupLibraries = useCallback(async () => {
     const blob = await libraryService.backupAllLibraries();
@@ -1238,8 +1240,10 @@ const App: React.FC<AppProps> = ({ authUser }) => {
             addLog('info', t('messages.configRestored'));
           }
           if (parsed.svgs && Array.isArray(parsed.svgs)) {
-            const count = importSVGs(parsed.svgs);
-            if (count > 0) addLog('success', t('messages.svgLibraryRestored', { count }));
+            const result = importSVGs(JSON.stringify(parsed.svgs));
+            if (result.success && result.count > 0) {
+              addLog('success', t('messages.svgLibraryRestored', { count: result.count }));
+            }
           }
           // Restaura las secuencias del dump, re-asignándolas a la
           // librería activa (mismo patrón que la importación de plantillas).
@@ -1363,13 +1367,13 @@ const App: React.FC<AppProps> = ({ authUser }) => {
       setIsLoadingLibrary(true);
       setLoadingLibraryName(displayName);
       try {
-        addLog('info', `Cargando biblioteca: ${displayName}...`);
+        addLog('info', t('messages.loadingLibrary', { name: displayName }));
         const response = await fetch(`/libraries/${filename}`);
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
         const data = await response.json();
         const typedRows = data.rows as RowData[];
-        addLog('success', `Biblioteca cargada: ${typedRows?.length || 0} pictogramas`);
+        addLog('success', t('messages.libraryLoaded', { count: typedRows?.length || 0 }));
 
         const newLib = libraryService.createLibrary(displayName);
 
@@ -1400,7 +1404,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
           const reKeyed = (data.sequences as Sequence[]).map(seq => ({ ...seq, libraryId: newLib.id }));
           libraryService.saveLibrarySequences(newLib.id, reKeyed);
           libraryService.updateLibraryMeta(newLib.id, { sequenceCount: reKeyed.length });
-          addLog('info', `${reKeyed.length} secuencia(s) restaurada(s)`);
+          addLog('info', t('messages.sequencesRestored', { count: reKeyed.length }));
         }
 
         // Restore communication boards and point them at the newly-created
@@ -1411,7 +1415,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
         libraryService.saveLibraryBoards(newLib.id, templateBoards);
         libraryService.updateLibraryMeta(newLib.id, { boardCount: templateBoards.length });
         if (templateBoards.length > 0) {
-          addLog('info', `${templateBoards.length} tablero(s) restaurado(s)`);
+          addLog('info', t('messages.boardsRestored', { count: templateBoards.length }));
         }
 
         // Write binary data to IDB fire-and-forget — state update must NOT
@@ -1444,8 +1448,8 @@ const App: React.FC<AppProps> = ({ authUser }) => {
         setLibraryIndex(libraryService.getLibraryIndex());
         openLibrary(newLib.id, { skipRowLoad: true });
       } catch (error) {
-        const msg = error instanceof Error ? error.message : 'Unknown error';
-        addLog('error', `Error al cargar biblioteca: ${msg}`);
+        const msg = error instanceof Error ? error.message : t('messages.unknownError');
+        addLog('error', t('messages.libraryLoadFailed', { error: msg }));
         console.error('Library load error:', error);
       } finally {
         setIsLoadingLibrary(false);
@@ -1646,7 +1650,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
   const regeneratePrompt = async (rowId: string): Promise<boolean> => {
     const row = rows.find(r => r.id === rowId);
     if (!row || !row.NLU || !row.elements) {
-      addLog('error', 'Se requiere NLU y elementos para regenerar el prompt');
+      addLog('error', t('messages.promptRequiresNluElements'));
       return false;
     }
 
@@ -1664,7 +1668,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
         throw new Error(`Failed to parse NLU data: ${parseError}`);
       }
 
-      addLog('info', `[PROMPT] Regenerando prompt espacial a partir de elementos modificados...`);
+      addLog('info', t('messages.promptRegenerating'));
       const newPrompt = await Claude.generateSpatialPrompt(nluObj as NLUData, ensureElementsArray(row.elements), config, addLog);
 
       if (stopFlags.current[rowId]) {
@@ -1681,11 +1685,11 @@ const App: React.FC<AppProps> = ({ authUser }) => {
         bitmapStatus: 'outdated'
       });
       recordPhaseRegen(rowId, 'prompt', beforePrompt, newPrompt);
-      addLog('success', `Prompt regenerado en ${duration.toFixed(1)}s: "${newPrompt.substring(0, 50)}..."`);
+      addLog('success', t('messages.promptRegenerated', { duration: duration.toFixed(1), preview: newPrompt.substring(0, 50) }));
       return true;
     } catch (error) {
-      const msg = error instanceof Error ? error.message : "Unknown error";
-      addLog('error', `Error al regenerar prompt: ${msg}`);
+      const msg = error instanceof Error ? error.message : t('messages.unknownError');
+      addLog('error', t('messages.promptRegenerationFailed', { error: msg }));
       updateRowById(rowId, { visualStatus: 'error' });
       return false;
     }
@@ -1732,7 +1736,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
   ) => {
     if (result.error) {
       updateRowById(rowId, { bitmapStatus: 'error', status: 'error' });
-      addLog('error', `[LOTE] ${result.error.slice(0, 120)}`);
+      addLog('error', t('batch.rowError', { error: result.error.slice(0, 120) }));
       return;
     }
     const update: Record<string, any> = {};
@@ -1892,7 +1896,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
           if (err instanceof QuotaExceededError) {
             setQuotaModal({ units_used: err.units_used, limit: err.limit });
           } else {
-            addLog('error', `[LOTE] ${err.message}`);
+            addLog('error', t('batch.rowError', { error: err.message }));
           }
         }
       }
@@ -1974,7 +1978,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
             updateRowById(row.id, { bitmapStatus: 'idle' });
           } else {
             updateRowById(row.id, { bitmapStatus: 'error' });
-            addLog('error', `[REGENERAR] Error en "${row.UTTERANCE}": ${err.message}`);
+            addLog('error', t('messages.regenerationFailed', { utterance: row.UTTERANCE, error: err.message }));
           }
         }
     }
@@ -2039,14 +2043,14 @@ const App: React.FC<AppProps> = ({ authUser }) => {
           phase5Model: config.phase5Model,
           referenceImage: row.bitmapDiscarded ? undefined : row.bitmap,
           onProgress: (msg) => addLog('info', msg),
-          onStatus: (s) => addLog('info', `[ESTRUCTURAR] ${s}`),
+          onStatus: (s) => addLog('info', t('messages.structureStatus', { status: s })),
         });
-        if (!result.success) throw new Error(result.error || 'ESTRUCTURAR falló');
+        if (!result.success) throw new Error(result.error || t('messages.structureFailed'));
         result = result.svg; // structuredSvg string
       }
 
       if (stopFlags.current[rowId]) {
-        addLog('info', `Proceso detenido por usuario en paso ${step.toUpperCase()}`);
+        addLog('info', t('messages.processStoppedAtStep', { step: step.toUpperCase() }));
         updateRowById(rowId, { [statusKey]: 'idle' });
         return false;
       }
@@ -2079,7 +2083,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
         recordPhaseRegen(rowId, 'elements', beforeElements, result.elements);
         recordPhaseRegen(rowId, 'prompt', beforePrompt, result.prompt);
       }
-      addLog('success', `${step.toUpperCase()} completo: ${duration.toFixed(1)}s para "${row.UTTERANCE}"`);
+      addLog('success', t('messages.stepComplete', { step: step.toUpperCase(), duration: duration.toFixed(1), utterance: row.UTTERANCE }));
 
       if (step === 'produce') {
         requestAnimationFrame(() => {
@@ -2097,7 +2101,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
         return false;
       }
       updateRowById(rowId, { [statusKey]: 'error' });
-      addLog('error', `${step.toUpperCase()} Error para "${row.UTTERANCE}": ${err.message}`);
+      addLog('error', t('messages.stepFailed', { step: step.toUpperCase(), utterance: row.UTTERANCE, error: err.message }));
       return false;
     }
   };
@@ -2496,7 +2500,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <a href="#mainContent" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[100] focus:bg-violet-950 focus:text-white focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:rounded">
-        Saltar al contenido principal
+        {t('a11y.skipToMain')}
       </a>
       <header id="toolbar" className="h-20 bg-white border-b border-slate-200 sticky top-0 z-50 flex items-center px-8 justify-between shadow-sm" aria-label={t('a11y.toolbar')}>
         <div id="brand-area" className="flex items-center gap-4 cursor-pointer" onClick={() => { setViewingLibraryHome(true); setShowConfig(false); }}>
@@ -3356,6 +3360,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
             <BoardEditor
               board={boards.find(b => b.id === activeBoardId)!}
               rows={rows}
+              otherBoardCells={boards.filter(b => b.id !== activeBoardId).flatMap(b => b.cells)}
               onSave={board => setBoards(prev => prev.map(b => b.id === board.id ? board : b))}
               onBack={() => setActiveBoardId(null)}
               onUpdateRowAudio={(rowId, audio) => updateRowById(rowId, { audio })}
@@ -4517,7 +4522,7 @@ const SmartNLUEditor: React.FC<{
                 onChange={e => updateField(['metadata', 'speech_act'], e.target.value)}
                 className="flex-1 min-w-0 bg-white border-b outline-none focus:border-violet-400 text-xs p-1"
               >
-                <option value="" disabled>Select...</option>
+                <option value="" disabled>{t('placeholders.selectOption')}</option>
                 {VOCAB.speech_act.map(opt => <option key={opt} value={opt}>{opt}</option>)}
               </select>
             </div>
@@ -4528,7 +4533,7 @@ const SmartNLUEditor: React.FC<{
                 onChange={e => updateField(['metadata', 'intent'], e.target.value)}
                 className="flex-1 min-w-0 bg-white border-b outline-none focus:border-violet-400 text-xs p-1"
               >
-                <option value="" disabled>Select...</option>
+                <option value="" disabled>{t('placeholders.selectOption')}</option>
                 {VOCAB.intent.map(opt => <option key={opt} value={opt}>{opt}</option>)}
               </select>
             </div>
@@ -5272,7 +5277,7 @@ const FocusViewModal: React.FC<{
         return (
           <div className="flex flex-col h-full bg-slate-50 p-6">
             <div className="mb-3">
-              <h3 className="text-xs font-bold uppercase text-slate-500 tracking-widest">SVG Output (SSoT)</h3>
+              <h3 className="text-xs font-bold uppercase text-slate-500 tracking-widest">{t('svg.outputSsot')}</h3>
             </div>
             <div className="flex-1 overflow-hidden">
               <SVGGenerator row={row} config={config} onLog={onLog} onUpdate={onUpdate} onOpenEditor={onOpenEditor} onOpenVectorizer={onOpenVectorizer} layout="columns" onDiscardSvg={onDiscardSvg} phase5Model={phase5Model} onPhase5ModelChange={onPhase5ModelChange} />

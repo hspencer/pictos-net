@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, Mail } from 'lucide-react';
-import { TFunc } from '../types';
+
+type TFunc = (key: string, vars?: Record<string, string | number>) => string;
 
 interface ParticipateModalProps {
   t: TFunc;

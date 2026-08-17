@@ -1,7 +1,14 @@
 # Generative Pipeline — Technical Analysis
 
-**PICTOS.NET v2.4.0**
+**Historical pipeline snapshot — PICTOS.NET v2.4.0**
 Last updated: 2026-07-29
+
+> This document records the pipeline as analysed in v2.4.0 and is retained as
+> a research artefact. It is not the current operational specification. For the
+> deployed v2.5.0 behaviour use `specs/visual-reasoning.allium`,
+> `specs/svg-structuring.allium`, and `docs/PROJECT_CONTEXT.md`. In particular,
+> the current pipeline distinguishes optional VECTORIZAR and ESTRUCTURAR phases
+> and supports configurable Claude/Gemini/Recraft models.
 
 This document describes each phase of the generative pipeline in technical detail — the prompts, constraints, forced formats, transport mechanisms, and post-processing steps — and identifies opportunities for improvement. It is intended as a research artefact for pipeline evaluation and participatory design sessions.
 

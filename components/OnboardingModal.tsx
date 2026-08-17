@@ -1,6 +1,5 @@
 import React, { useState, useCallback } from 'react';
 import { Sparkles, Settings, Globe, Users, ArrowRight, ArrowLeft, Upload, Compass, PenTool } from 'lucide-react';
-import type { TranslationKey } from '../locales';
 
 const STYLES = [
   { id: 'senaletica', label: 'Señalética color', desc: 'senaletica' },
@@ -66,7 +65,7 @@ function imgSrc(styleId: string, phraseId: string): string {
   return `/onboarding/${styleId}_${phraseId}.jpg`;
 }
 
-type TFunc = (key: TranslationKey) => string;
+type TFunc = (key: string, vars?: Record<string, string | number>) => string;
 type LangCode = 'es-419' | 'en-GB';
 
 interface OnboardingModalProps {
@@ -186,7 +185,7 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ t, lang, onClose, onS
 /* ── Step 1: Bienvenida ── */
 const Step1: React.FC<{ t: TFunc }> = ({ t }) => (
   <div className="flex flex-col items-center text-center py-4">
-    <img src="/pictos-iso.svg" alt="PICTOS.net Logo" className="w-24 h-24 mb-6" />
+    <img src="/pictos-iso.svg" alt="PICTOS.net" className="w-24 h-24 mb-6" />
     <h1 className="text-3xl font-semibold text-slate-900 mb-2 leading-tight">
       {t('onboarding.step1.title')}
     </h1>
