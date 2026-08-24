@@ -3,7 +3,7 @@
 
 -- Scope: Per-user daily quota enforcement and audit logging for all AI API calls.
 -- Covers: quota model, Netlify Blobs schema, enforcement flow per function,
---   admin report endpoint, dev bypass, 429 contract, Gemini key selection.
+--   admin report endpoint, dev bypass, 429 contract, Vertex AI authentication.
 -- Excludes:
 --   - Pipeline phase logic (see visual-reasoning.allium)
 --   - Generation model selection and library config (see generation-config.allium)
@@ -50,7 +50,8 @@ value QuotaCheckResult {
 config {
   daily_limit: Number = 50          -- overridable via DAILY_LIMIT_PER_USER env var
   blob_store: String = "pictonet-usage"
-  admin_email: String = "contact@pictos.net"
+  admin_email: String               -- read from ADMIN_EMAIL env var at function startup;
+                                    -- defaults to "contact@pictos.net" if absent
 }
 
 ------------------------------------------------------------
@@ -121,7 +122,7 @@ rule BlobKeyFormat {
 ------------------------------------------------------------
 
 rule EnforceQuotaBefore {
-  when: an api-claude or api-recraft function receives a POST request
+  when: an api-claude, api-recraft, or api-gemini function receives a POST request
 
   requires: user authenticated (Netlify Identity JWT valid OR isLocalDev = true)
 
@@ -193,34 +194,38 @@ rule DevBypass {
   ensures: JWT validation skipped
   ensures: email = "dev"
   ensures: quota check skipped (dev is always allowed)
-  ensures: audit logging skipped (dev calls produce no Blob entries)
+  ensures: audit logging proceeds as normal — logCall() runs after each upstream call;
+           dev calls DO produce AuditRecord blobs in the local Netlify dev Blobs store
 }
 
 ------------------------------------------------------------
--- Gemini Key Selection
+-- Vertex AI Authentication
 ------------------------------------------------------------
 
-rule GeminiKeySelection {
-  -- api-gemini uses different API keys for local dev and deployed environments.
-  -- Both keys are server-side only; neither reaches the browser.
+rule VertexServiceAccountAuth {
+  -- api-gemini functions (image generation and structuring) authenticate to
+  -- Google Vertex AI using a service account, not a static API key.
+  -- No API key of any kind reaches the browser or appears in request headers.
 
-  when: api-gemini function handles a request
+  when: any api-gemini-* function handles a request
 
-  ensures: API key selected as:
-    if NETLIFY_DEV = "true": use GEMINI_LOCAL_API_KEY
-    else: use GEMINI_PUBLIC_API_KEY
+  ensures: authentication via OAuth2 access token derived from
+           GOOGLE_SERVICE_ACCOUNT_JSON (single-line JSON, server env only)
+  ensures: token fetched by _shared/vertex.js (getVertexAccessToken())
+           before each upstream Vertex AI call
+  ensures: optional VERTEX_PROJECT_ID and VERTEX_LOCATION env vars override
+           the project/region from the service account JSON
 
-  @deployment "key restriction requirement"
-    -- GEMINI_PUBLIC_API_KEY must be restricted by API restriction
-    --   (Generative Language API only), NOT by HTTP referrer.
-    -- HTTP referrer restrictions are enforced by the browser; server-side
-    --   Netlify functions send no browser referrer, so a referrer-restricted
-    --   key will be rejected by Google's API with a 403.
-    -- If the key is currently referrer-restricted (e.g. to pictos.net and
-    --   next.pictos.net), switch it to API restriction in the Google Cloud
-    --   console before deploying api-gemini to production.
-    -- GEMINI_LOCAL_API_KEY is unrestricted or restricted to local use only;
-    --   it must never be deployed to production or preview environments.
+  @deployment "per-site service accounts"
+    -- prod (pictos.net)         → service account for project pictos-vertex
+    -- preview (next.pictos.net) → service account for project pictos-vertex-gmail
+    -- local dev (.env)          → either account; pictos-vertex recommended
+    -- The two projects are owned by different Google identities; roles assigned
+    --   in one project are not visible to the other.
+
+  @deployment "no static API keys"
+    -- GEMINI_LOCAL_API_KEY and GEMINI_PUBLIC_API_KEY are no longer used.
+    -- Do not set them; they are ignored by all current functions.
 }
 
 ------------------------------------------------------------
@@ -229,36 +234,61 @@ rule GeminiKeySelection {
 
 entity UsageReport {
   -- Returned by api-usage-report on a successful GET.
-  date: String          -- YYYY-MM-DD
-  total_calls: Number   -- sum of all AuditRecord entries for the date
+  from: String          -- YYYY-MM-DD (start of range)
+  to: String            -- YYYY-MM-DD (end of range, inclusive)
+  daily_limit: Number   -- current DAILY_LIMIT_PER_USER value
+  total_calls: Number   -- sum of all AuditRecord entries in the range
   total_units: Number   -- sum of units_charged across all entries
   users: Map<String, UserSummary>
+  models: Map<String, ModelSummary>  -- per-model aggregation with catalog metadata
+  heatmap: Number[][]  -- [weekday 0–6][hour 0–23] call counts
+  byHour: Number[]     -- [hour 0–23] call counts
+  byWeekday: Number[]  -- [weekday 0–6, 0=Sunday] call counts
+  byDate: Map<String, { calls: Number, units: Number }>  -- daily charting series
 }
 
 value UserSummary {
   calls: Number
   units: Number
-  phases: Map<String, Number>   -- phase → call count
-  errors: Number                -- count of ok=false entries
+  errors: Number                  -- count of ok=false entries
+  phases: Map<String, Number>     -- phase → call count
+  models: Map<String, Number>     -- modelId → call count
+  first_call: Timestamp
+  last_call: Timestamp
+}
+
+value ModelSummary {
+  calls: Number
+  units: Number
+  errors: Number
+  totalMs: Number
+  avgMs: Number
+  label: String         -- from MODEL_CATALOG
+  phaseLabel: String    -- from MODEL_CATALOG
+  description: String   -- from MODEL_CATALOG
 }
 
 rule AdminReportEndpoint {
-  -- GET /.netlify/functions/api-usage-report?date=YYYY-MM-DD
+  -- GET /.netlify/functions/api-usage-report?from=YYYY-MM-DD&to=YYYY-MM-DD[&email=...]
+  -- Legacy shorthand: ?date=YYYY-MM-DD  (equivalent to from=date&to=date)
 
   when: GET request received
 
-  requires: user authenticated
-  requires: user.email = config.admin_email
-    -- HTTP 403 returned for any other authenticated user
+  requires: one of:
+    (a) user authenticated via Netlify Identity AND user.email = config.admin_email, OR
+    (b) Authorization: Bearer <ADMIN_API_KEY> header matches process.env.ADMIN_API_KEY
+    -- isLocalDev (NETLIFY_DEV=true) bypasses auth entirely
 
-  ensures: all audit/{date}/ blobs read and aggregated into UsageReport
+  ensures: all audit/{date}/ blobs in the range read and aggregated into UsageReport
+  ensures: optional email query param filters results to a single user
   ensures: HTTP 200 with UsageReport JSON body
-  ensures: date defaults to today if query param absent
-  ensures: HTTP 400 if date does not match /^\d{4}-\d{2}-\d{2}$/
+  ensures: from/to default to today if absent; date= is a legacy single-day alias
+  ensures: HTTP 400 if from or to do not match /^\d{4}-\d{2}-\d{2}$/ or from > to
+  ensures: HTTP 401 if unauthenticated; HTTP 403 if authenticated but not admin
 
   @invariant "admin-only"
     -- No non-admin user, even authenticated, can access usage data via this endpoint.
-    -- Owner email is hardcoded in config.admin_email; not derived from env or JWT claims.
+    -- config.admin_email is read from the ADMIN_EMAIL env var at function startup.
 }
 
 ------------------------------------------------------------

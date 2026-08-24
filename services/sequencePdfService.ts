@@ -7,7 +7,7 @@
  * `step.utterance`). Las unicas diferencias propias de una secuencia son:
  *   - el encabezado muestra el nombre de la secuencia (titleOverride), y
  *   - cada celda lleva el numero de paso, pequeno, en la esquina superior
- *     derecha (badgeFor), como en la vista de grilla.
+ *     izquierda (badgeFor), como en la vista de grilla.
  *
  * Se usa en App.tsx (handleSequencePrint).
  */

@@ -354,7 +354,7 @@ export function migrateGenerationModel(model: string | undefined): GenerationMod
 
 /** Result from Phase 3 (PRODUCIR). Exactly one of svg/bitmap will be set. */
 export interface Phase3Result {
-  /** Present for vector models (Gemini image / Recraft *_vector) — native SVG string. */
+  /** Present for vector models (Recraft *_vector) — native SVG string. */
   svg?: string;
   /** Present for all bitmap-producing models — base64 PNG data URL. */
   bitmap?: string;

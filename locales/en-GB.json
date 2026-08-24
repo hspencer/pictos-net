@@ -741,7 +741,9 @@
     "colorSocial": "Social",
     "colorSystem": "System",
     "convertAudioForIos": "Convert audio for iOS",
-    "convertingAudio": "Converting…"
+    "convertingAudio": "Converting…",
+    "save": "Save",
+    "cancel": "Cancel"
   },
   "batch": {
     "button": "Batch generate",

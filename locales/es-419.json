@@ -741,7 +741,9 @@
     "colorSocial": "Social",
     "colorSystem": "Sistema",
     "convertAudioForIos": "Convertir audio para iOS",
-    "convertingAudio": "Convirtiendo…"
+    "convertingAudio": "Convirtiendo…",
+    "save": "Guardar",
+    "cancel": "Cancelar"
   },
   "batch": {
     "button": "Generar en lote",

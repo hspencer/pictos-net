@@ -46,10 +46,12 @@ value NLUModel {
 value NLUData {
   -- Semantic analysis of the communicative intention.
   -- Schema enforced via Claude forced tool use (analyze_utterance).
-  -- All fields required in the tool schema; domain is enum-constrained to VOCAB.domain.
+  -- Most fields required in the tool schema; domain is enum-constrained but NOT in the
+  -- required array (model may omit it — treat as optional in downstream consumers).
   utterance: String
   lang: String
-  domain: String              -- constrained to VOCAB.domain enum at tool schema level
+  domain: String?             -- constrained to VOCAB.domain enum at tool schema level;
+                              -- optional in practice (not in tool required[] array)
   metadata: NLUMetadata       -- { speech_act: String, intent: String }
   frames: [Frame]
   visual_guidelines: VisualGuidelines
@@ -155,7 +157,8 @@ entity VisualReasoning {
 
   -- Phase 5
   structuredSvg: String?      -- mf-svg-schema structured SVG; single source of truth
-  structuredSvgStatus: StepStatus = idle
+  structuredSvgStatus: StepStatus = idle  -- declared optional (?) in RowData TypeScript type;
+                                          -- treat as idle when absent
 
   -- Audio (added by boards.allium)
   audio: String?              -- recorded audio blob URL; null = no audio recorded

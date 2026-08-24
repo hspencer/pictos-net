@@ -257,7 +257,9 @@ export function importLibraryJson(json: string): LibraryMeta {
     modifiedAt?: string;
   };
 
-  const name = data.name || (data.config as any)?.name || 'Librería importada';
+  const existingNames = new Set(getLibraryIndex().map(l => l.name));
+  const baseName = data.name || (data.config as any)?.name || 'Librería importada';
+  const name = existingNames.has(baseName) ? `${baseName} (importada)` : baseName;
 
   const meta = createLibrary(name, data.config);
 

@@ -41,7 +41,7 @@ Gemini image models deliver native SVG output so VTracer is no longer needed.
 ## Pipeline
 
 ### Phase 1: COMPRENDER (Claude Haiku)
-- Input: utterance + GlobalConfig (lang, geoContext, annotatedContext)
+- Input: utterance + GlobalConfig (lang, geoContext, domainContext)
 - Method: forced tool use (`analyze_utterance`) — guaranteed JSON
 - Output: `NLUData` (domain, frames, nsm_explications, visual_guidelines, pragmatics)
 
@@ -72,7 +72,7 @@ Gemini image models deliver native SVG output so VTracer is no longer needed.
 | `lang` | 1, 2, 4 | Active | NLU language + element IDs |
 | `uiLang` | — | Active | UI language (independent of NLU) |
 | `geoContext` | 1, 4 | Active | Regional context + a11y metadata |
-| `annotatedContext` | 1 | Active | Extra context injected into NLU prompt |
+| `domainContext` | 1, 2 | Active | Semantic domain injected into NLU + composition prompts (e.g. "hospital", "cooking") |
 | `visualStylePrompt` | 3 | Active | Text added to the image generation prompt |
 | `svgStyleDefs` | 2, 4 | Active | CSS definitions for SVG editor + structuring |
 | `svgKeyframes` | 4 | Active | Animation keyframes for structured SVG |

@@ -52,16 +52,22 @@ external GlobalConfig {
 ------------------------------------------------------------
 
 entity Library {
-  -- A named, self-contained collection of pictograms and sequences.
+  -- A named, self-contained collection of pictograms, sequences, and boards.
   -- Each Library is stored independently: its metadata, pictogram records,
-  -- sequence definitions, and binary artifacts (bitmaps, SVGs) do not
-  -- share storage with any other Library.
+  -- sequence definitions, board definitions, and binary artifacts (bitmaps, SVGs)
+  -- do not share storage with any other Library.
   id: LibraryId
   name: String                 -- user-given; always non-empty
   pictogramCount: Integer      -- count of rows; shown on the home screen card
   sequenceCount: Integer       -- count of sequences
+  boardCount: Integer?         -- count of communication boards (absent = 0)
+  language: String?            -- lang code of the library config (e.g. "es-419");
+                               -- derived from GlobalConfig.lang at creation time
+  sourceTemplate: String?      -- filename of the public template this library was
+                               -- loaded from (e.g. "tablero_graph_2026-08-13.json");
+                               -- nil for user-created libraries
   createdAt: Timestamp
-  modifiedAt: Timestamp        -- updated whenever pictograms or sequences change
+  modifiedAt: Timestamp        -- updated whenever pictograms, sequences, or boards change
 
   states: exists
   -- Libraries have no multi-state lifecycle; they either exist or are deleted.
@@ -312,15 +318,21 @@ rule StorageIndicatorDisplay {
 
 -- === Example libraries ===
 
-rule ExampleLibrariesAreMutable {
-  when: the application initialises for the first time
+rule CommunityTemplates {
+  -- Template libraries are NOT pre-created Libraries. They are JSON files
+  -- served from /public/libraries/ and shown in a separate "De la comunidad"
+  -- section on the home screen, distinct from the user's own Libraries.
+
+  when: LibraryHome is displayed
+
   ensures:
-    one or more example Libraries are pre-populated and appear in
-      LibraryHome.libraries alongside any user-created Libraries
-    these Libraries are fully mutable: the user can open, edit, rename,
-      duplicate, download, and delete them with no restrictions
-    there is no "reset to examples" affordance; once modified or deleted,
-      examples are gone like any other Library
+    template cards appear in a "De la comunidad" section below user libraries
+    each template card shows: name, pictogram count, and a "Cargar" / "Abrir" action
+    loading a template creates a new Library from the JSON (sourceTemplate is set)
+      and navigates into it — the template JSON is never mutated
+    once loaded, the resulting Library is fully mutable with no restrictions
+    template cards can be individually hidden by the user (hidden count is tracked)
+    a "Restaurar plantillas" affordance re-shows all hidden template cards
     on first launch the home screen is displayed (no library is auto-opened)
 }
 

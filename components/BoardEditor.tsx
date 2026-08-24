@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronLeft, Pencil, Eye, Volume2, GripHorizontal } from 'lucide-react';
+import { ChevronLeft, Pencil, Eye, Volume2, GripHorizontal, Settings } from 'lucide-react';
 import { Board, BoardCell, RowData, FITZGERALD_BG } from '../types';
 import { useTranslation } from '../hooks/useTranslation';
 import { createPlayableAudioUrl, revokePlayableAudioUrl } from '../services/audioPlayback';
@@ -24,6 +24,9 @@ export function BoardEditor({ board, rows, otherBoardCells, onSave, onBack, onUp
   const [cells, setCells] = useState<BoardCell[]>(board.cells);
   const [playError, setPlayError] = useState<string | null>(null);
   const [converting, setConverting] = useState(false);
+  const [showConfigModal, setShowConfigModal] = useState(false);
+  const [configRows, setConfigRows] = useState(board.grid.rows);
+  const [configCols, setConfigCols] = useState(board.grid.cols);
   // Keep a ref so updateCell always serialises the latest board metadata
   const boardRef = useRef(board);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -152,6 +155,37 @@ export function BoardEditor({ board, rows, otherBoardCells, onSave, onBack, onUp
     })
   )];
 
+  function handleToggleLabels() {
+    const next = !(board.showLabels ?? true);
+    onSave({ ...boardRef.current, cells, showLabels: next, modifiedAt: new Date().toISOString() });
+  }
+
+  function adjustCellsForGrid(current: BoardCell[], newRows: number, newCols: number): BoardCell[] {
+    const kept = current.filter(c => c.position.rowIndex < newRows && c.position.colIndex < newCols);
+    const occupied = new Set(kept.map(c => `${c.position.rowIndex},${c.position.colIndex}`));
+    const added: BoardCell[] = [];
+    for (let r = 0; r < newRows; r++) {
+      for (let c = 0; c < newCols; c++) {
+        if (!occupied.has(`${r},${c}`)) {
+          added.push({
+            id: `cell-${Date.now()}-${r}-${c}-${Math.random().toString(36).slice(2, 6)}`,
+            position: { rowIndex: r, colIndex: c },
+            color: 'gris',
+            rowId: null,
+          });
+        }
+      }
+    }
+    return [...kept, ...added];
+  }
+
+  function handleGridSave() {
+    const newCells = adjustCellsForGrid(cells, configRows, configCols);
+    setCells(newCells);
+    onSave({ ...boardRef.current, cells: newCells, grid: { rows: configRows, cols: configCols }, modifiedAt: new Date().toISOString() });
+    setShowConfigModal(false);
+  }
+
   async function handleConvertAll() {
     setConverting(true);
     for (const rowId of rowsNeedingConversion) {
@@ -189,7 +223,35 @@ export function BoardEditor({ board, rows, otherBoardCells, onSave, onBack, onUp
           <ChevronLeft size={16} /> {t('board.back')}
         </button>
 
-        <h1 className="text-sm font-bold text-slate-900 flex-1 truncate min-w-0">{board.name}</h1>
+        <h1 className="text-sm font-bold text-slate-900 truncate min-w-0">{board.name}</h1>
+
+        {/* Edit grid button */}
+        <button
+          onClick={() => { setConfigRows(board.grid.rows); setConfigCols(board.grid.cols); setShowConfigModal(true); }}
+          aria-label={t('board.editTitle')}
+          title={t('board.editTitle')}
+          className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors flex-shrink-0"
+        >
+          <Settings size={15} aria-hidden="true" />
+        </button>
+
+        {/* showLabels toggle */}
+        <label className="flex items-center gap-1.5 cursor-pointer flex-shrink-0" title={t('board.showLabels')}>
+          <span className="text-xs text-slate-500 hidden sm:inline select-none">{t('board.showLabels')}</span>
+          <div className="relative">
+            <input
+              type="checkbox"
+              className="sr-only peer"
+              checked={board.showLabels ?? true}
+              onChange={handleToggleLabels}
+              aria-label={t('board.showLabels')}
+            />
+            <div className="w-8 h-4 rounded-full bg-slate-200 peer-checked:bg-violet-500 transition-colors" />
+            <div className="absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full shadow-sm transition-transform peer-checked:translate-x-4" />
+          </div>
+        </label>
+
+        <div className="flex-1" />
 
         {/* Convert legacy webm audio to mp4 for iOS compatibility */}
         {rowsNeedingConversion.length > 0 && (
@@ -320,6 +382,56 @@ export function BoardEditor({ board, rows, otherBoardCells, onSave, onBack, onUp
               onUpdateRowAudio={onUpdateRowAudio}
               onClose={() => setSelectedCellId(null)}
             />
+          </div>
+        </div>
+      )}
+
+      {/* Grid config modal */}
+      {showConfigModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+          onClick={() => setShowConfigModal(false)}
+        >
+          <div
+            className="bg-white rounded-xl shadow-2xl p-5 w-72"
+            onClick={e => e.stopPropagation()}
+          >
+            <h2 className="text-sm font-semibold text-slate-900 mb-4">{t('board.editTitle')}</h2>
+            <div className="flex gap-4 mb-3">
+              <label className="flex-1">
+                <span className="text-xs text-slate-500 block mb-1">{t('board.gridRows')}</span>
+                <input
+                  type="number" min={1} max={8} value={configRows}
+                  onChange={e => setConfigRows(Math.max(1, Math.min(8, Number(e.target.value))))}
+                  className="w-full border border-slate-200 rounded-lg px-2 py-1.5 text-sm text-center focus:outline-none focus:ring-2 focus:ring-violet-500"
+                />
+              </label>
+              <label className="flex-1">
+                <span className="text-xs text-slate-500 block mb-1">{t('board.gridCols')}</span>
+                <input
+                  type="number" min={1} max={12} value={configCols}
+                  onChange={e => setConfigCols(Math.max(1, Math.min(12, Number(e.target.value))))}
+                  className="w-full border border-slate-200 rounded-lg px-2 py-1.5 text-sm text-center focus:outline-none focus:ring-2 focus:ring-violet-500"
+                />
+              </label>
+            </div>
+            <p className="text-xs text-slate-400 text-center mb-4">
+              {t('board.gridCellCount', { rows: configRows, cols: configCols, count: configRows * configCols })}
+            </p>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setShowConfigModal(false)}
+                className="px-3 py-1.5 text-xs text-slate-500 hover:text-slate-800 border border-slate-200 rounded-lg transition-colors"
+              >
+                {t('board.cancel')}
+              </button>
+              <button
+                onClick={handleGridSave}
+                className="px-3 py-1.5 text-xs font-medium bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition-colors"
+              >
+                {t('board.save')}
+              </button>
+            </div>
           </div>
         </div>
       )}

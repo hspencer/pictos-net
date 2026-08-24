@@ -260,15 +260,21 @@ rule EnterStepUtterance {
 }
 
 rule AutocompleteStep {
+  -- Standard combobox pattern (WAI-ARIA): suggestions are never auto-linked.
+  -- Explicit confirmation is always required to avoid accidental associations.
   when: Step.state = pending and Step.utterance is non-empty
   ensures:
     matching Rows from the Library whose utterance contains the typed text
       are shown as suggestions (case-insensitive, partial match)
-    if the typed text exactly matches a Row's utterance (case-insensitive):
-      Step.state -> complete
-      Step.row = that Row
-      autocomplete list closes
-      -- No explicit selection needed for an exact match
+
+  -- Keyboard navigation:
+  --   ↓ / ↑  move focus through the suggestion list
+  --   Enter   confirms the focused suggestion → SelectAutocompleteSuggestion
+  --   Escape  closes the list without linking
+  -- Shortcut: if exactly one suggestion is shown, Enter confirms it directly
+  --   without needing to press ↓ first
+  -- Mouse/touch: clicking a suggestion → SelectAutocompleteSuggestion
+  -- No auto-link on exact text match — confirmation is always explicit.
 }
 
 rule SelectAutocompleteSuggestion {

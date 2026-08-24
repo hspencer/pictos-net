@@ -29,10 +29,10 @@ const STORE_NAME = 'pictonet-usage';
  */
 export const MODEL_CATALOG = {
   'claude-haiku-4-5-20251001': { label: 'Claude Haiku 4.5', phaseLabel: 'Comprender + Componer', description: 'NLU y composición de elementos (fases 1-2), gratuito' },
-  'claude-sonnet-4-6': { label: 'Claude Sonnet 4.6', phaseLabel: 'Estructurar', description: 'Visión + ensamblaje semántico (fase 4)' },
-  'claude-opus-4-6': { label: 'Claude Opus 4.6', phaseLabel: 'Estructurar', description: 'Visión + ensamblaje semántico (fase 4), mayor calidad' },
-  'gemini-2.5-pro': { label: 'Gemini 2.5 Pro', phaseLabel: 'Estructurar', description: 'Estructuración por visión (fase 4)' },
-  'gemini-2.5-flash': { label: 'Gemini 2.5 Flash', phaseLabel: 'Estructurar', description: 'Estructuración por visión (fase 4), default' },
+  'claude-sonnet-4-6': { label: 'Claude Sonnet 4.6', phaseLabel: 'Estructurar', description: 'Visión + ensamblaje semántico (fase 5)' },
+  'claude-opus-4-6': { label: 'Claude Opus 4.6', phaseLabel: 'Estructurar', description: 'Visión + ensamblaje semántico (fase 5), mayor calidad' },
+  'gemini-2.5-pro': { label: 'Gemini 2.5 Pro', phaseLabel: 'Estructurar', description: 'Estructuración por visión (fase 5)' },
+  'gemini-2.5-flash': { label: 'Gemini 2.5 Flash', phaseLabel: 'Estructurar', description: 'Estructuración por visión (fase 5), default' },
   'gemini-2.5-flash-image': { label: 'Gemini 2.5 Flash', phaseLabel: 'Producir', description: 'Generación de imagen (fase 3)' },
   'gemini-3.1-flash-image': { label: 'Gemini 3.1 Flash', phaseLabel: 'Producir', description: 'Generación de imagen (fase 3)' },
   'gemini-3-pro-image': { label: 'Gemini 3 Pro', phaseLabel: 'Producir', description: 'Generación de imagen (fase 3), cuota diaria baja' },
