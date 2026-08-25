@@ -40,11 +40,13 @@ async function writeThumbnailJpeg(dataUrl, outPath) {
 
 async function generateThumbs(filename, data) {
   const slug = filename.replace(/(_graph.*)?\.json$/, '');
+  const srcMtime = fs.statSync(path.join(LIBRARIES_DIR, filename)).mtimeMs;
   const existing = Array.from({ length: THUMBS_PER_LIBRARY }, (_, i) =>
     path.join(THUMBS_DIR, `${slug}_${i}.jpg`)
   );
 
-  if (existing.every(f => fs.existsSync(f))) return;
+  // Regenerate when a thumbnail is missing OR older than the library file (stale).
+  if (existing.every(f => fs.existsSync(f) && fs.statSync(f).mtimeMs >= srcMtime)) return;
 
   const withBitmap = (data.rows || []).filter(r => r.bitmap);
   if (withBitmap.length === 0) return;
