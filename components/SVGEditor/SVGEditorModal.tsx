@@ -123,7 +123,7 @@ interface SVGEditorModalProps {
     utterance: string;
     onSave: (svg: string) => void;
     styleDefs?: StyleDefinition[];
-    svgSource?: 'raw' | 'structured' | null;
+    svgSource?: 'raw' | 'structured' | 'draft' | null;
     config?: GlobalConfig;
     onUpdateConfig?: (config: GlobalConfig) => void;
 }
@@ -167,15 +167,17 @@ export const SVGEditorModal: React.FC<SVGEditorModalProps> = ({
 
     useEffect(() => {
         if (isOpen && initialSvg) {
-            const isRaw = svgSource === 'raw';
+            const preserveAppearance = svgSource === 'raw' || svgSource === 'draft';
 
             // Tell the store what mode we're in
-            setSvgSource(svgSource);
+            // Drafts use the editor's geometry-preserving mode, while the host
+            // keeps their separate identity for saving. No library restyling.
+            setSvgSource(svgSource === 'draft' ? 'raw' : svgSource);
 
             // Always remove background rect first
-            let svg = removeBackgroundRect(initialSvg);
+            let svg = svgSource === 'draft' ? initialSvg : removeBackgroundRect(initialSvg);
 
-            if (isRaw) {
+            if (preserveAppearance) {
                 // Raw SVG: skip library style injection, keep inline fills sacred
                 loadSVG(svg, undefined, true);
             } else {
@@ -258,7 +260,7 @@ export const SVGEditorModal: React.FC<SVGEditorModalProps> = ({
                 id="svg-editor-properties-panel"
                 className="fixed top-16 right-0 bottom-0 w-80 z-10 border-l border-slate-200 bg-white flex flex-col shrink-0 shadow-lg text-slate-700"
             >
-                <StylePanel styleDefs={styleDefs} svgSource={svgSource} />
+                <StylePanel styleDefs={styleDefs} svgSource={svgSource === 'draft' ? 'raw' : svgSource} />
             </aside>
 
             {/* Contextual Selection Toolbar */}
@@ -275,7 +277,7 @@ export const SVGEditorModal: React.FC<SVGEditorModalProps> = ({
                     </button>
                     <div>
                         <h2 className="text-lg font-bold text-white font-mono leading-none">
-                            {t('svg.editor')}
+                            {svgSource === 'draft' ? t('svgGenerator.editDraft') : t('svg.editor')}
                         </h2>
                         <span className="text-xs text-slate-400 font-mono">
                             {utterance}

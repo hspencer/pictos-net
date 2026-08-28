@@ -1,33 +1,27 @@
-import { useState, useEffect } from 'react';
+import { useSyncExternalStore } from 'react';
 import { translations, type Locale } from '../locales';
 
 const STORAGE_KEY = 'pictonet_v19_uiLang';
 
-/**
- * Custom i18n hook for PICTOS.NET
- * Provides translation function with variable interpolation and automatic locale detection
- */
+const LOCALE_EVENT = 'pictonet-ui-language';
+const getLocale = (): Locale => {
+  const saved = typeof localStorage === 'undefined' ? null : localStorage.getItem(STORAGE_KEY);
+  if (saved === 'en-GB' || saved === 'es-419') return saved;
+  return typeof navigator !== 'undefined' && navigator.language?.startsWith('en') ? 'en-GB' : 'es-419';
+};
+const subscribe = (listener: () => void) => {
+  window.addEventListener(LOCALE_EVENT, listener);
+  window.addEventListener('storage', listener);
+  return () => { window.removeEventListener(LOCALE_EVENT, listener); window.removeEventListener('storage', listener); };
+};
+
+/** Every mounted consumer observes the same UI locale, including memoized rows. */
 export const useTranslation = () => {
-  const [lang, setLangState] = useState<Locale>(() => {
-    // 1. Check for saved preference
-    const saved = localStorage.getItem(STORAGE_KEY) as Locale | null;
-    if (saved === 'en-GB' || saved === 'es-419') return saved;
-
-    // 2. Detect browser locale
-    const browserLang = navigator.language || (navigator.languages && navigator.languages[0]);
-    if (browserLang) {
-      if (browserLang.startsWith('en')) return 'en-GB';
-      if (browserLang.startsWith('es')) return 'es-419';
-    }
-
-    // 3. Default fallback
-    return 'es-419';
-  });
-
-  // Persist language preference
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, lang);
-  }, [lang]);
+  const lang = useSyncExternalStore(subscribe, getLocale, getLocale);
+  const setLang = (locale: Locale) => {
+    localStorage.setItem(STORAGE_KEY, locale);
+    window.dispatchEvent(new Event(LOCALE_EVENT));
+  };
 
   /**
    * Translation function with variable interpolation
@@ -73,6 +67,6 @@ export const useTranslation = () => {
   return {
     t,              // Translation function
     lang,           // Current locale
-    setLang: setLangState  // Function to change locale
+    setLang  // Function to change locale
   };
 };

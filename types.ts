@@ -1,4 +1,5 @@
 import { MODEL_CATALOG, modelIdsForPhase } from './netlify/functions/_shared/modelCatalog.js';
+import { generationSchema as NLU_GENERATION_SCHEMA } from './schemas/nlu-schema/index.js';
 
 
 export interface NLUMetadata {
@@ -238,6 +239,9 @@ export interface PhaseExecution {
   requestId?: string;
 }
 
+export type SvgEditorSource = 'raw' | 'structured' | 'draft';
+export interface SvgStructureDiagnostic { key: string; fields?: string[]; }
+
 export interface RowData {
   id: string;
   UTTERANCE: string;
@@ -261,8 +265,9 @@ export interface RowData {
   structuredSvg?: string; // Historical bytes may be unvalidated; new promotions use mf-svg v2.
   /** Exact-byte reference claim; verify against SVG before trusting imported data. */
   svgReference?: { schemaVersion: string; revisionId: string; sha256: string; byteLength: number };
-  /** Rejected candidate retained separately; never a completed canonical artifact. */
+  /** Candidate retained separately for editing; never a completed canonical artifact. */
   structuredSvgDraft?: string;
+  structuredSvgDraftDiagnostic?: SvgStructureDiagnostic;
   /** Model that produced Phase 3 output. Frozen at Phase 3 completion. */
   generationModel?: GenerationModel;
   /** OpenAI quality frozen with the generated artifact, not the current config. */
@@ -467,8 +472,8 @@ export interface GlobalConfig {
 
 
 export const VOCAB = {
-  speech_act: ['assertive', 'directive', 'commissive', 'expressive', 'declarative', 'interrogative'],
-  intent: ['inform', 'request', 'desire_expression', 'command', 'offer', 'promise', 'thanking', 'greeting', 'question', 'complaint'],
+  speech_act: NLU_GENERATION_SCHEMA.properties.metadata.properties.speech_act.enum,
+  intent: NLU_GENERATION_SCHEMA.properties.metadata.properties.intent.enum,
   role_type: ['Agent', 'Object', 'Event', 'Attribute', 'Place', 'Time', 'Abstract', 'Quantity', 'Recipient', 'Instrument'],
   definiteness: ['none', 'definite', 'indefinite'],
   lang: ['es-419', 'en-GB'] as const,

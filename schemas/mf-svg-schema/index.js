@@ -82,34 +82,40 @@ export function createMetadata({ nlu, composition, bindings, provenance = {}, op
     contracts: { nlu: '1.1.0', composition: '0.1.0' }, nlu, composition, bindings, provenance, review: { status: 'unreviewed' }, accessibility: { title: nlu.utterance, description, lang: nlu.lang } });
 }
 
+/** Safety is required for drafts too; semantic conformance is a separate gate. */
+export function inspectPassiveSVG(svg) {
+  const document = parseSVG(svg);
+  const root = document.documentElement;
+  const nodes = Array.from(document.getElementsByTagName('*'));
+  const ids = new Map();
+  const references = [];
+  for (const node of nodes) {
+    if (node.namespaceURI !== SVG_NS || !allowedElements.has(node.localName)) throw new Error('Unsupported or active SVG element');
+    const id = node.getAttribute('id');
+    if (id) {
+      if (ids.has(id) || /[\s"'<>#]/.test(id)) throw new Error('Duplicate or unsafe SVG id');
+      ids.set(id, node);
+    }
+    for (const attr of Array.from(node.attributes)) {
+      if (/^on/i.test(attr.localName) || attr.localName === 'base') throw new Error('Event handlers and xml:base are forbidden');
+      if (attr.localName === 'href') {
+        if (!attr.value.startsWith('#') || attr.value.length < 2) throw new Error('External SVG resource is forbidden');
+        references.push(attr.value.slice(1));
+      }
+      if (['aria-labelledby', 'aria-describedby'].includes(attr.localName)) references.push(...attr.value.trim().split(/\s+/));
+      if (/url\s*\(/i.test(attr.value) || /^(style|fill|stroke|filter|clip-path|mask|cursor|marker(?:-.*)?)$/.test(attr.localName)) checkCss(attr.value, references);
+    }
+    if (node.localName === 'style') checkCss(node.textContent, references);
+  }
+  for (const ref of references) if (!ids.has(ref)) throw new Error('Unresolved SVG/ARIA reference');
+  return { document, root, nodes, ids };
+}
+
 export function validateSVG(svg) {
   const errors = [];
   let metadata;
   try {
-    const document = parseSVG(svg);
-    const root = document.documentElement;
-    const nodes = Array.from(document.getElementsByTagName('*'));
-    const ids = new Map();
-    const references = [];
-    for (const node of nodes) {
-      if (node.namespaceURI !== SVG_NS || !allowedElements.has(node.localName)) throw new Error('Unsupported or active SVG element');
-      const id = node.getAttribute('id');
-      if (id) {
-        if (ids.has(id) || /[\s"'<>#]/.test(id)) throw new Error('Duplicate or unsafe SVG id');
-        ids.set(id, node);
-      }
-      for (const attr of Array.from(node.attributes)) {
-        if (/^on/i.test(attr.localName) || attr.localName === 'base') throw new Error('Event handlers and xml:base are forbidden');
-        if (attr.localName === 'href') {
-          if (!attr.value.startsWith('#') || attr.value.length < 2) throw new Error('External SVG resource is forbidden');
-          references.push(attr.value.slice(1));
-        }
-        if (['aria-labelledby', 'aria-describedby'].includes(attr.localName)) references.push(...attr.value.trim().split(/\s+/));
-        if (/url\s*\(/i.test(attr.value) || /^(style|fill|stroke|filter|clip-path|mask|cursor|marker(?:-.*)?)$/.test(attr.localName)) checkCss(attr.value, references);
-      }
-      if (node.localName === 'style') checkCss(node.textContent, references);
-    }
-    for (const ref of references) if (!ids.has(ref)) throw new Error('Unresolved SVG/ARIA reference');
+    const { document, root, nodes, ids } = inspectPassiveSVG(svg);
     if (root.getAttribute('role') !== 'img') throw new Error('Root role must be img');
     const labels = (root.getAttribute('aria-labelledby') || '').trim().split(/\s+/).map(id => ids.get(id));
     for (const name of ['title', 'desc']) if (!labels.some(node => node?.localName === name && node.textContent.trim())) throw new Error('Root ARIA must reference nonempty title and desc');

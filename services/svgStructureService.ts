@@ -24,7 +24,7 @@
  * @module services/svgStructureService
  */
 
-import type { NLUData, VisualElement, GlobalConfig, StructuringMapping, StructuringGroup, MergedPath } from '../types';
+import type { NLUData, VisualElement, GlobalConfig, StructuringMapping, StructuringGroup, MergedPath, SvgStructureDiagnostic } from '../types';
 import { SVG_STYLESHEET } from './svgStyles';
 import { generateCssString } from '../lib/style-editor/lib/utils/cssGenerator';
 import { callStructuringModel, extractToolUse } from './aiClient';
@@ -34,8 +34,10 @@ import { findUnreachableNodeIds } from './svgTreeUtils';
 import { isMicroBlob } from './svgGeometryUtils';
 import { detectMergeCandidates } from './svgMergeCandidates';
 import { shouldSimplify, roundPathD } from './svgPathPolish';
+import { canStructureSVG } from './svgCanonical';
+import { svgStructureDiagnostic } from './svgStructureDiagnostics';
 
-import { assertSemanticInputs, assertValidSVG, createMetadata, parseSVG } from '../schemas/mf-svg-schema/index.js';
+import { assertSemanticInputs, assertValidSVG, createMetadata, parseSVG, inspectPassiveSVG } from '../schemas/mf-svg-schema/index.js';
 
 const MARK_RENDER_SIZE = 800;
 
@@ -52,7 +54,7 @@ export const generateStylesheet = (config: GlobalConfig): string => {
 
 export interface SVGStructureInput {
     rawSvg: string;
-    nlu: NLUData;
+    nlu?: NLUData | string;
     elements: VisualElement[];
     utterance: string;
     prompt: string;
@@ -73,6 +75,7 @@ export interface SVGStructureInput {
 export interface SVGStructureResult {
     svg: string;
     draftSvg?: string;
+    diagnostic?: SvgStructureDiagnostic;
     success: boolean;
     error?: string;
     mapping?: StructuringMapping; // populated in recording mode (pending review)
@@ -974,7 +977,7 @@ function escapeXmlAttr(s: string): string {
 
 function renderGroup(
     group: StructuringGroup,
-    childGroups: StructuringGroup[],
+    childMap: Map<string | null, StructuringGroup[]>,
     originalPaths: Map<string, OriginalPathData>,
     pathInfoMap: Map<string, PathInfo>,
     conceptById: Map<string, string>,
@@ -1005,10 +1008,9 @@ function renderGroup(
     // Concept comes from the composed VisualElement tree (NLU-derived);
     // only synthetic groups (e.g. the 'contexto' orphan bucket) fall back.
     const knownConcept = conceptById.get(group.nodeId);
-    if (!knownConcept) throw new Error('Unknown semantic group cannot be promoted: ' + group.nodeId);
-    const concept = escapeXmlAttr(knownConcept);
+    const conceptAttribute = knownConcept ? ` data-concept="${escapeXmlAttr(knownConcept)}"` : '';
     const lines: string[] = [];
-    lines.push(`${indent}<g id="${group.nodeId}" role="group" tabindex="0" data-concept="${concept}" aria-label="${label}" class="${cls}">`);
+    lines.push(`${indent}<g id="${escapeXmlAttr(group.nodeId)}" role="group" tabindex="0"${conceptAttribute} aria-label="${label}" class="${escapeXmlAttr(cls)}">`);
 
     // Merged path — geometry resolved by resolveMergeGeometry() before render.
     if (group.merge?.d) {
@@ -1025,9 +1027,8 @@ function renderGroup(
     }
 
     // Nested children
-    for (const child of childGroups) {
-        const grandChildren = [];
-        lines.push(renderGroup(child, grandChildren, originalPaths, pathInfoMap, conceptById, indent + '  '));
+    for (const child of childMap.get(group.nodeId) ?? []) {
+        lines.push(renderGroup(child, childMap, originalPaths, pathInfoMap, conceptById, indent + '  '));
     }
 
     lines.push(`${indent}</g>`);
@@ -1122,7 +1123,15 @@ export function assembleFromMapping(
 ): SVGStructureResult {
     let draftSvg: string | undefined;
     try {
-        assertSemanticInputs(input.nlu, { elements: input.elements, prompt: input.prompt }, input.utterance);
+        const admission = canStructureSVG({ rawSvg: input.rawSvg, elements: input.elements });
+        if (!admission.eligible) throw Object.assign(new Error('Invalid structuring input'), { diagnostic: { key: admission.reasonKey } });
+        inspectPassiveSVG(input.rawSvg);
+        if (!Array.isArray(mapping?.groups) || !mapping.groups.length) throw new Error('Invalid mapping groups');
+        const groupIds = new Set<string>();
+        for (const group of mapping.groups) {
+            if (!group || typeof group.nodeId !== 'string' || !group.nodeId.trim() || groupIds.has(group.nodeId)) throw new Error('Invalid mapping group ids');
+            groupIds.add(group.nodeId);
+        }
         const rawSvgWithIds = ensurePathIds(input.rawSvg);
         const inventory = buildPathInventory(rawSvgWithIds);
         const originalPaths = extractOriginalPaths(rawSvgWithIds);
@@ -1208,41 +1217,21 @@ export function assembleFromMapping(
         // Unaccounted paths → fallback contexto group
         const allOriginalIds = Array.from(originalPaths.keys()).filter(id => !inventory.backgroundPathIds.includes(id));
         const orphans = allOriginalIds.filter(id => !assignedIds.has(id));
-        if (orphans.length > 0) throw new Error('Unassigned geometry cannot be given an invented Context concept');
-        if (orphans.length > 0) {
-            console.warn(`[assemble] paths sin asignar (→ contexto): ${orphans.join(', ')}`);
-            const existing = effectiveGroups.find(g => g.nodeId === 'contexto');
-            if (existing) {
-                existing.keep = [...(existing.keep ?? []), ...orphans];
-            } else {
-                effectiveGroups.push({ nodeId: 'contexto', label: 'elementos de contexto', cssClass: 'f', parentId: null, keep: orphans, selected: true });
-                if (!childMap.has(null)) childMap.set(null, []);
-                childMap.get(null)!.push(effectiveGroups[effectiveGroups.length - 1]);
-            }
-        }
-
-        // Hard safety net: if, after every rescue above, there is STILL
-        // nothing renderable — the model returned zero groups, or its
-        // `discard` list swallowed every real path (which also skips the
-        // orphan rescue above, since discarded ids count as "accounted
-        // for") — NEVER silently emit a blank pictogram. A wholesale-empty
-        // response contradicts "preservar es la prioridad" outright, so it
-        // is distrusted entirely: fall back to one flat group holding every
-        // non-background path. Visible and unstructured beats invisible.
-        if (effectiveGroups.length === 0 && allOriginalIds.length > 0) {
-            console.warn(`[assemble] el modelo no devolvió ningún grupo renderizable (grupos vacíos o descarte total) — fallback a grupo plano con ${allOriginalIds.length} path(s)`);
-            input.onProgress?.(`[ESTRUCTURAR] el modelo devolvió una estructura vacía — usando todos los trazos sin agrupar como respaldo (${allOriginalIds.length} paths)`);
-            const fallbackGroup: StructuringGroup = { nodeId: 'contexto', label: 'elementos de contexto', cssClass: 'f', parentId: null, keep: allOriginalIds, selected: true };
-            effectiveGroups = [fallbackGroup];
-            childMap.clear();
-            childMap.set(null, [fallbackGroup]);
+        // Keep unassigned ink in a plainly unclassified draft group. No invented concept.
+        if (orphans.length) {
+            let id = 'unclassified';
+            while (groupIds.has(id) || originalPaths.has(id) || buildConceptMap(input.elements).has(id)) id = '_' + id;
+            const group: StructuringGroup = { nodeId: id, label: id, cssClass: 'f', parentId: null, keep: orphans, selected: true };
+            effectiveGroups.push(group);
+            if (!childMap.has(null)) childMap.set(null, []);
+            childMap.get(null)!.push(group);
         }
 
         // Render top-level groups (parentId = null)
         const conceptById = buildConceptMap(input.elements);
         const topLevel = childMap.get(null) ?? [];
         const body = topLevel
-            .map(g => renderGroup(g, childMap.get(g.nodeId) ?? [], originalPaths, pathInfoMap, conceptById))
+            .map(g => renderGroup(g, childMap, originalPaths, pathInfoMap, conceptById))
             .join('\n');
 
         // CSS
@@ -1269,6 +1258,13 @@ export function assembleFromMapping(
             filteredCSS = filteredCSS ? `${filteredCSS}\n\n/* User-defined styles */\n${inventory.rawStyleRules}` : inventory.rawStyleRules;
         }
 
+        const draftMetadata = { status: 'draft', nlu: input.nlu, composition: { elements: input.elements, prompt: input.prompt }, provenance: input.provenance ?? {} };
+        const candidateDraft = assembleStructuredSVG(body, input, draftMetadata, filteredCSS, inventory.viewBox)
+            .replace('id="mf-accessibility"', 'id="pictonet-draft"');
+        inspectPassiveSVG(candidateDraft);
+        draftSvg = candidateDraft;
+        if (orphans.length || effectiveGroups.some(g => !conceptById.has(g.nodeId))) throw new Error('Unassigned geometry requires binding review');
+
         const metadata = buildMetadataJSON(input, body);
         let svgContent = assembleStructuredSVG(body, input, metadata, filteredCSS, inventory.viewBox);
         svgContent = removeEmptyGroupsFromFragment(svgContent);
@@ -1281,7 +1277,6 @@ export function assembleFromMapping(
             svgContent = polishGeometry(svgContent, input.onProgress);
         }
 
-        draftSvg = svgContent;
         assertValidSVG(svgContent);
         const groupCount = (svgContent.match(/<g /g) ?? []).length;
         input.onProgress?.(`[ESTRUCTURAR] completado — ${(svgContent.length / 1024).toFixed(1)} KB, ${groupCount} grupos semánticos`);
@@ -1291,7 +1286,8 @@ export function assembleFromMapping(
         return {
             svg: '',
             draftSvg,
-            success: false,
+            success: !!draftSvg,
+            diagnostic: svgStructureDiagnostic(error),
             error: error instanceof Error ? error.message : 'Error desconocido en ensamblado',
         };
     }
@@ -1435,8 +1431,9 @@ function buildMetadataJSON(input: SVGStructureInput, body: string, operation = '
 }
 
 function assembleStructuredSVG(body: string, input: SVGStructureInput, metadata: object, filteredCSS: string, viewBox: string): string {
-    const lang = input.nlu.lang || input.config.lang || 'es-419';
-    const domainAttribute = input.nlu.domain ? ` data-domain="${escapeXmlAttr(input.nlu.domain)}"` : '';
+    const nlu = typeof input.nlu === 'object' ? input.nlu : undefined;
+    const lang = nlu?.lang || input.config.lang || 'es-419';
+    const domainAttribute = nlu?.domain ? ` data-domain="${escapeXmlAttr(nlu.domain)}"` : '';
     const utteranceEscaped = escapeXmlAttr(input.utterance);
     const descMatch = body.match(/<desc[^>]*>([\s\S]*?)<\/desc>/i);
     const descContent = descMatch ? descMatch[1].trim() : input.utterance;
@@ -1707,7 +1704,7 @@ export async function redrawSVG(input: SVGStructureInput): Promise<SVGStructureR
         const paletteClasses = extractPaletteClassNames(cssStyles);
 
         const { description, groups } = await callRedrawModel(
-            image, input.elements, cssStyles, input.nlu, input.utterance, model, input.onProgress,
+            image, input.elements, cssStyles, input.nlu as NLUData, input.utterance, model, input.onProgress,
         );
 
         const validGroups = groups.filter(g => g.paths.some(d => validateMergedPath(d)));
@@ -1751,7 +1748,7 @@ export async function redrawSVG(input: SVGStructureInput): Promise<SVGStructureR
 
         return { svg: svgContent, success: true };
     } catch (error) {
-        return { svg: '', draftSvg, success: false, error: error instanceof Error ? error.message : 'Error desconocido en ESTRUCTURAR (redibujo)' };
+        return { svg: '', draftSvg, success: !!draftSvg, diagnostic: svgStructureDiagnostic(error), error: error instanceof Error ? error.message : 'Error desconocido en ESTRUCTURAR (redibujo)' };
     }
 }
 
@@ -1831,7 +1828,7 @@ function stripMerges(mapping: StructuringMapping): StructuringMapping {
 export async function structureSVG(input: SVGStructureInput): Promise<SVGStructureResult> {
     try {
         if (!input.rawSvg || typeof input.rawSvg !== 'string') {
-            return { svg: '', success: false, error: 'rawSvg no es un string válido' };
+            return { svg: '', success: false, diagnostic: { key: 'traceRequired' } };
         }
 
         // Default = two-image relabel: PRESERVE the traced geometry (which is
@@ -1841,12 +1838,14 @@ export async function structureSVG(input: SVGStructureInput): Promise<SVGStructu
         const model = input.phase5Model ?? 'claude-sonnet-4-6';
 
         input.onProgress?.('[ESTRUCTURAR] Pre-procesando SVG local…');
-        assertSemanticInputs(input.nlu, { elements: input.elements, prompt: input.prompt }, input.utterance);
+        const admission = canStructureSVG({ rawSvg: input.rawSvg, elements: input.elements });
+        if (!admission.eligible) return { svg: '', success: false, diagnostic: { key: admission.reasonKey! } };
+        inspectPassiveSVG(input.rawSvg);
         const rawSvgWithIds = ensurePathIds(input.rawSvg);
         const inventory = buildPathInventory(rawSvgWithIds);
 
         if (inventory.paths.length === 0) {
-            return { svg: '', success: false, error: 'No se encontraron paths en el SVG' };
+            return { svg: '', success: false, diagnostic: { key: 'traceRequired' } };
         }
 
         input.onProgress?.(`[ESTRUCTURAR] Inventario: ${inventory.paths.length} paths, ${Object.keys(inventory.vtracerGroups).length} grupos, ${inventory.backgroundPathIds.length} fondo excluido`);
@@ -1897,12 +1896,12 @@ export async function structureSVG(input: SVGStructureInput): Promise<SVGStructu
         // measurement is surfaced as a warning with an added/removed breakdown
         // so the source of the difference can be diagnosed from the log.
         let result = assembleFromMapping(mapping, input);
-        if (!result.success) return result;
+        if (!result.success || !result.svg) return result;
 
         let fidelity = await verifyFidelity(rawSvgWithIds, result.svg);
         if (!fidelity.ok) {
             const noMerge = assembleFromMapping(stripMerges(mapping), input);
-            if (noMerge.success) {
+            if (noMerge.success && noMerge.svg) {
                 const nmFidelity = await verifyFidelity(rawSvgWithIds, noMerge.svg);
                 if (nmFidelity.diffFraction < fidelity.diffFraction) {
                     input.onProgress?.(`[ESTRUCTURAR] variante sin fusiones es más fiel (${(nmFidelity.diffFraction * 100).toFixed(1)}% vs ${(fidelity.diffFraction * 100).toFixed(1)}%) — usando esa`);
@@ -1922,6 +1921,7 @@ export async function structureSVG(input: SVGStructureInput): Promise<SVGStructu
         return {
             svg: '',
             success: false,
+            diagnostic: svgStructureDiagnostic(error),
             error: error instanceof Error ? error.message : 'Error desconocido en ESTRUCTURAR',
         };
     }
@@ -1933,22 +1933,7 @@ export function canVectorize(_row: object): { eligible: boolean; reason?: string
     return { eligible: false, reason: 'VTracer eliminado — Recraft entrega SVG nativo' };
 }
 
-export function canStructureSVG(row: {
-    rawSvg?: string;
-    bitmap?: string;
-    NLU?: NLUData | string;
-    elements?: VisualElement[];
-    prompt?: string;
-}): { eligible: boolean; reason?: string } {
-    // Relabel preserves and groups the traced geometry, so the trace is
-    // required; the bitmap is an optional cleanup reference.
-    if (!row.rawSvg) return { eligible: false, reason: 'Se requiere el trazado (ejecutar TRAZAR primero)' };
-    if (!row.NLU || typeof row.NLU === 'string') return { eligible: false, reason: 'Se requiere análisis NLU' };
-    if (!row.elements || row.elements.length === 0) return { eligible: false, reason: 'Se requieren elementos visuales' };
-    try { assertSemanticInputs(row.NLU, { elements: row.elements, prompt: row.prompt }); }
-    catch (error) { return { eligible: false, reason: error instanceof Error ? error.message : 'Invalid semantic inputs' }; }
-    return { eligible: true };
-}
+export { canStructureSVG };
 
 /** @deprecated Use canStructureSVG() instead */
 export function canGenerateSVG(row: { rawSvg?: string; NLU?: NLUData | string; elements?: VisualElement[] }): { eligible: boolean; reason?: string } {

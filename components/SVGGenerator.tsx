@@ -4,9 +4,10 @@ import { formatModelPrice } from '../services/modelPricing';
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from '../hooks/useTranslation';
 import { Download, AlertCircle, FileCode, Edit, Layers, Trash2, Scan } from 'lucide-react';
-import { RowData, VisualElement, NLUData, StructuringMapping, PHASE5_MODELS, DEFAULT_PHASE5_MODEL } from '../types';
+import { RowData, VisualElement, NLUData, StructuringMapping, PHASE5_MODELS, DEFAULT_PHASE5_MODEL, SvgEditorSource } from '../types';
 import { structureSVG, assembleFromMapping, canStructureSVG } from '../services/svgStructureService';
-import { captureSvgSource, prepareSvgPromotion, observedSvgProvenance } from '../services/svgCanonical';
+import { captureSvgSource, prepareSvgPromotion, prepareSvgDraft, canCertifySVG, observedSvgProvenance } from '../services/svgCanonical';
+import { formatSvgStructureError, svgStructureDiagnostic } from '../services/svgStructureDiagnostics';
 import { Phase5ReviewPanel } from './Phase5ReviewPanel';
 import useSVGLibrary from '../hooks/useSVGLibrary';
 import { GlobalConfig } from '../types';
@@ -25,7 +26,7 @@ interface SVGGeneratorProps {
     config: GlobalConfig;
     onLog: (type: 'info' | 'error' | 'success', message: string) => void;
     onUpdate: (updates: Partial<RowData>) => void;
-    onOpenEditor?: (source?: 'raw' | 'structured') => void;
+    onOpenEditor?: (source?: SvgEditorSource) => void;
     /**
      * Layout direction for the dual-preview "completed" state.
      *  'stacked' (default) — raw above structured, used inside narrow row columns.
@@ -55,8 +56,10 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
     const latestRow = useRef(row);
     latestRow.current = row;
     const pendingSource = useRef<{ row: RowData; config: GlobalConfig; model: string } | null>(null);
-    const [status, setStatus] = useState<'idle' | 'traced' | 'structuring' | 'completed' | 'error'>('idle');
-    const [error, setError] = useState<string | undefined>();
+    const [status, setStatus] = useState<'idle' | 'traced' | 'structuring' | 'completed' | 'error'>(() =>
+        row.structuredSvg && !row.structuredSvgDiscarded ? 'completed'
+            : row.rawSvg && !row.rawSvgDiscarded ? 'traced' : 'idle');
+    const [error, setError] = useState<{ key: string } | undefined>();
     const [progress, setProgress] = useState(0);
     const [processStartTime, setProcessStartTime] = useState<number | null>(null);
     const [elapsedTime, setElapsedTime] = useState(0);
@@ -98,17 +101,30 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
         return undefined;
     }, [row.id, row.structuredSvg, row.structuredSvgDiscarded, row.UTTERANCE, getSVGByRowId]);
 
-    // Redraw needs only a reference image, so structuring is eligible from a
-    // bitmap alone (no trace required) — or from a valid rawSvg. The bitmap is
-    // the preferred redraw reference.
+    // Geometric trace controls are independent of semantic admission to Phase 5.
     const bitmapRef = row.bitmapDiscarded ? undefined : row.bitmap;
-    const structureEligibility = canStructureSVG({
-        rawSvg: row.rawSvgDiscarded ? undefined : row.rawSvg,
-        bitmap: bitmapRef,
-        NLU: row.NLU,
-        elements: row.elements,
-        prompt: row.prompt,
-    });
+    const structureEligibility = canStructureSVG(row);
+    const certification = canCertifySVG(row);
+    const review = structureEligibility.eligible ? certification : structureEligibility;
+    const eligibilityMessage = review.reasonKey ? t(`svgGenerator.${review.reasonKey}`) : '';
+    const structureNotice = <>
+        {row.structuredSvgDraft && <section className="mt-3 p-3 border border-amber-200 rounded" aria-label={t('svgGenerator.draftTitle')}>
+            <p className="text-xs font-bold">{t('svgGenerator.draftTitle')}</p>
+            <img src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(row.structuredSvgDraft)}`} alt={t('svgGenerator.draftTitle')} className="w-full max-h-64 object-contain" />
+            <p className="text-xs mt-2">{t('svgGenerator.draftReady')}</p>
+            <p className="text-xs text-amber-900 mt-2">{t(`svgGenerator.${!row.structuredSvgDraftDiagnostic?.key || row.structuredSvgDraftDiagnostic.key === 'structureFailed' ? 'draftReasonUnavailable' : row.structuredSvgDraftDiagnostic.key}`)}</p>
+            {!!row.structuredSvgDraftDiagnostic?.fields?.length && <p className="text-xs mt-2 break-words">{t('svgGenerator.fieldsToReview', { fields: row.structuredSvgDraftDiagnostic.fields.join(', ') })}</p>}
+            <div className="flex flex-wrap gap-3 mt-3">
+                {onOpenEditor && <button onClick={() => onOpenEditor('draft')} className="flex items-center gap-1 text-xs underline"><Edit size={14} aria-hidden="true" />{t('svgGenerator.editDraft')}</button>}
+                <button onClick={() => triggerDownload(row.structuredSvgDraft!, '-draft')} className="text-xs underline">{t('svgGenerator.downloadDraft')}</button>
+            </div>
+        </section>}
+        {!review.eligible && <div role="status" className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded text-xs text-amber-900">
+            <p className="font-medium">{t('svgGenerator.structuringPending')}</p>
+            <p className="mt-1">{eligibilityMessage}</p>
+            {!!review.fields?.length && <p className="mt-2 break-words">{t('svgGenerator.fieldsToReview', { fields: review.fields.join(', ') })}</p>}
+        </div>}
+    </>;
 
     // Dynamic Style Injection (Visual only)
     const displaySvg = React.useMemo(() => {
@@ -230,6 +246,7 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
         // A discarded rawSvg counts as "no valid trace" for the purposes
         // of this view (the data persists on the row for telemetry).
         const validRawSvg = row.rawSvgDiscarded ? null : (row.rawSvg || null);
+        setRawSvg(validRawSvg);
         if (structuredSvgEntry) {
             // Structuring finished while we were unmounted
             activeStructuring.delete(row.id);
@@ -283,6 +300,11 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
     const handleFormat = async (svgOverride?: string) => {
         const svg = svgOverride || rawSvg;
         if (!svg) return;
+        const eligibility = canStructureSVG(latestRow.current);
+        if (!eligibility.eligible) {
+            onLog('error', t(`svgGenerator.${eligibility.reasonKey}`));
+            return;
+        }
 
         try {
             setError(undefined);
@@ -298,8 +320,7 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
             startHeartbeat();
             await new Promise(r => setTimeout(r, 600)); // UX Delay
 
-            const nluData = typeof row.NLU === 'object' ? row.NLU as NLUData : undefined;
-            if (!nluData) throw new Error(t('svgGenerator.invalidNlu'));
+            const nluData = row.NLU;
 
             onLog('info', t('svgGenerator.structuringWithModel', { model: phase5Model }));
             const sStart = performance.now();
@@ -323,17 +344,24 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
             stopHeartbeat();
             const sEnd = performance.now();
 
-            if (!result.success) {
-                if (result.draftSvg) onUpdate({ structuredSvgDraft: result.draftSvg });
-                throw new Error(result.error || t('svgGenerator.structureFailed'));
+            if (result.draftSvg) {
+                const update = prepareSvgDraft(row, result.draftSvg, result.diagnostic);
+                if (captureSvgSource(latestRow.current) !== update.svgSourceSnapshot) throw new Error('SVG inputs changed during generation');
+                onUpdate(update);
+                activeStructuring.delete(row.id);
+                setStatus(row.structuredSvg && !row.structuredSvgDiscarded ? 'completed' : 'traced');
+                onLog('info', t('svgGenerator.draftReady'));
+                return;
             }
+            if (!result.success) throw Object.assign(new Error(result.error || 'Structuring failed'), { diagnostic: result.diagnostic });
 
             // Recording mode: mapping awaits user review
             if (result.pendingReview && result.mapping) {
                 pendingSource.current = { row: structuredClone(row), config: structuredClone(config), model: phase5Model };
                 onLog('info', t('svgGenerator.mappingReadyForReview'));
                 setPendingMapping(result.mapping);
-                setStatus('idle');
+                activeStructuring.delete(row.id);
+                setStatus('traced');
                 return;
             }
 
@@ -341,11 +369,10 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
                 throw new Error(t('svgGenerator.emptyStructureResult'));
             }
 
-            onLog('success', t('svgGenerator.structureCompleted', { duration: ((sEnd - sStart) / 1000).toFixed(2) }));
-
             const promotion = await prepareSvgPromotion(row, result.svg);
-            if (captureSvgSource(latestRow.current) !== promotion.svgSourceSnapshot) throw new Error('SVG inputs changed during generation; previous canonical revision preserved');
+            if (captureSvgSource(latestRow.current) !== promotion.svgSourceSnapshot) throw new Error(t('svgGenerator.inputsChangedDuringGeneration'));
             onUpdate(promotion);
+            onLog('success', t('svgGenerator.structureCompleted', { duration: ((sEnd - sStart) / 1000).toFixed(2) }));
 
             activeStructuring.delete(row.id);
             setStatus('completed');
@@ -357,23 +384,23 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
             activeStructuring.delete(row.id);
             console.error(err);
             setStatus('error');
-            const msg = err instanceof Error ? err.message : t('messages.unknownError');
-            setError(msg);
+            const msg = formatSvgStructureError(err, t);
+            setError(svgStructureDiagnostic(err));
             onLog('error', t('svgGenerator.processFailed', { error: msg }));
         }
     };
 
 
-    // In the Claude+Recraft pipeline, rawSvg comes from Recraft (phase 3) — not from VTracer.
-    // Show the component when structuredSvg already exists OR when rawSvg is available to structure.
-    if (!structuredSvgEntry && !structureEligibility.eligible) {
+    // A semantic failure must never hide an existing trace or its controls.
+    if (!structuredSvgEntry && !rawSvg && status !== 'structuring') {
         return (
-            <div className="flex flex-col items-center justify-center h-full p-6 bg-slate-50 border border-slate-100 rounded text-center opacity-75">
-                <AlertCircle size={24} className="text-slate-500 mb-2" />
-                <p className="text-xs text-slate-500 font-medium mb-1">{t('svgGenerator.unavailable')}</p>
-                <p className="text-xs text-slate-500 font-mono">
-                    {structureEligibility.reason || "Requirements not met"}
-                </p>
+            <div className="flex flex-col gap-3">
+                {structureNotice}
+                {bitmapRef && onOpenVectorizer && (
+                    <button onClick={onOpenVectorizer} className="py-3 px-4 bg-violet-600 hover:bg-violet-700 text-white rounded text-xs font-bold" aria-label={t('svg.traceSvg')}>
+                        {t('svg.traceSvg')}
+                    </button>
+                )}
             </div>
         );
     }
@@ -578,7 +605,8 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
                                         handleFormat(row.rawSvg!);
                                     }}
                                     className="flex items-center justify-center gap-1.5 bg-slate-50 hover:bg-slate-100 text-slate-500 hover:text-slate-600 py-2 px-3 rounded transition-colors border border-slate-200 text-xs font-bold uppercase tracking-widest"
-                                    title={t('svg.reStructureTooltip')}
+                                    disabled={!structureEligibility.eligible}
+                                    title={structureEligibility.eligible ? t('svg.reStructureTooltip') : eligibilityMessage}
                                 >
                                     <Layers size={13} aria-hidden="true" /> {t('svg.reStructure')}
                                 </button>
@@ -599,20 +627,26 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
                                     handleFormat(row.rawSvg!);
                                 }}
                                 className="flex-1 flex items-center justify-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-500 hover:text-slate-600 py-2 px-3 rounded transition-colors border border-slate-200 text-xs font-bold uppercase tracking-widest"
-                                title={t('svg.reStructureTooltip')}
+                                disabled={!structureEligibility.eligible}
+                                title={structureEligibility.eligible ? t('svg.reStructureTooltip') : eligibilityMessage}
                             >
                                 <Layers size={14} aria-hidden="true" /> {t('svg.reStructure')}
                             </button>
                         )}
+                        {bitmapRef && onOpenVectorizer && (
+                            <button onClick={onOpenVectorizer} title={t('svg.retrace')} aria-label={t('svg.retrace')} className="p-3 bg-slate-50 hover:bg-violet-50 text-violet-700 border border-slate-200 rounded">
+                                <Scan size={14} aria-hidden="true" />
+                            </button>
+                        )}
                     </div>
                 )}
-
+                {structureNotice}
             </div>
         );
     }
 
     // Show raw traced SVG with Format button
-    if (status === 'traced' && rawSvg) {
+    if ((status === 'traced' || status === 'error') && rawSvg) {
         const isColumns = layout === 'columns';
 
         // Columns layout (format step in FocusViewModal): left = trazado, right = Estructurar CTA
@@ -652,8 +686,7 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
                                         pendingSource.current = null;
                                         if (!captured || captureSvgSource(captured.row) !== captureSvgSource(latestRow.current)) { onLog('error', t('svgGenerator.inputsChangedDuringReview')); return; }
                                         const sourceRow = captured.row;
-                                        const nluData = typeof sourceRow.NLU === 'object' ? sourceRow.NLU as NLUData : undefined;
-                                        if (!nluData) { onLog('error', t('svgGenerator.nluUnavailableForAssembly')); return; }
+                                        const nluData = sourceRow.NLU;
                                         const assembled = assembleFromMapping(pendingMapping, {
                                             rawSvg: sourceRow.rawSvg!,
                                             nlu: nluData,
@@ -664,16 +697,18 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
                                             config: captured.config,
                                             onProgress: (msg) => onLog('info', msg),
                                         }, selectionOverrides, labelOverrides);
-                                        if (assembled.success && assembled.svg) {
+                                        if (assembled.draftSvg) {
+                                            onUpdate(prepareSvgDraft(sourceRow, assembled.draftSvg, assembled.diagnostic));
+                                            onLog('info', t('svgGenerator.draftReady'));
+                                        } else if (assembled.success && assembled.svg) {
                                             try {
                                                 const promotion = await prepareSvgPromotion(sourceRow, assembled.svg);
-                                                if (captureSvgSource(latestRow.current) !== promotion.svgSourceSnapshot) throw new Error('SVG inputs changed during review');
+                                                if (captureSvgSource(latestRow.current) !== promotion.svgSourceSnapshot) throw new Error(t('svgGenerator.inputsChangedDuringReview'));
                                                 onUpdate(promotion);
-                                            } catch (error) { onLog('error', error instanceof Error ? error.message : 'SVG validation failed'); return; }
+                                            } catch (error) { onLog('error', formatSvgStructureError(error, t)); return; }
                                             onLog('success', t('svgGenerator.assembledAfterReview'));
                                         } else {
-                                            if (assembled.draftSvg) onUpdate({ structuredSvgDraft: assembled.draftSvg });
-                                            onLog('error', assembled.error || t('svgGenerator.assemblyFailedAfterReview'));
+                                            onLog('error', formatSvgStructureError({ message: assembled.error, diagnostic: assembled.diagnostic }, t));
                                         }
                                     }}
                                 />
@@ -683,7 +718,7 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
                                     <button
                                         onClick={() => handleFormat()}
                                         disabled={!structureEligibility.eligible}
-                                        title={structureEligibility.eligible ? undefined : structureEligibility.reason}
+                                        title={structureEligibility.eligible ? undefined : eligibilityMessage}
                                         aria-label={t('svg.formatGemini')}
                                         className={`flex items-center justify-center gap-2 py-3 px-6 text-xs font-bold uppercase tracking-widest rounded transition-colors shadow-md ${structureEligibility.eligible ? 'bg-violet-600 hover:bg-violet-700 text-white hover:shadow-lg' : 'bg-slate-200 text-slate-500 cursor-not-allowed shadow-none'}`}
                                     >
@@ -701,6 +736,8 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
                                         ))}
                                     </select>
                                     <ModelPricing model={phase5Model} />
+                                    {structureNotice}
+                                    {error && <p role="alert" className="text-xs text-red-600">{t(`svgGenerator.${error.key}`)}</p>}
                                 </>
                             )}
                         </div>
@@ -791,7 +828,7 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
                     <button
                         onClick={() => handleFormat()}
                         disabled={!structureEligibility.eligible}
-                        title={structureEligibility.eligible ? undefined : structureEligibility.reason}
+                        title={structureEligibility.eligible ? undefined : eligibilityMessage}
                         aria-label={t('svg.formatGemini')}
                         className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 text-xs font-bold uppercase tracking-widest rounded transition-colors shadow-md ${structureEligibility.eligible ? 'bg-violet-600 hover:bg-violet-700 text-white hover:shadow-lg' : 'bg-slate-200 text-slate-500 cursor-not-allowed shadow-none'}`}
                     >
@@ -811,9 +848,11 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
 
                 </div>
 
-                <div className="mt-1 text-center text-xs text-slate-500">
+                {structureNotice}
+                {error && <p role="alert" className="mt-2 text-xs text-red-600">{t(`svgGenerator.${error.key}`)}</p>}
+                {structureEligibility.eligible && !row.structuredSvgDraft && <div className="mt-1 text-center text-xs text-slate-500">
                     {t('svg.traceDone')}
-                </div>
+                </div>}
             </div>
         );
     }
@@ -902,7 +941,7 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
                     </p>
                     {error && (
                         <div className="mt-3 text-xs text-red-500 flex items-center gap-1 bg-red-50 px-2 py-1 rounded">
-                            <AlertCircle size={10} aria-hidden="true" /> {error}
+                            <AlertCircle size={10} aria-hidden="true" /> {t(`svgGenerator.${error.key}`)}
                         </div>
                     )}
                 </>

@@ -1,3 +1,4 @@
+import { formatSvgStructureError, svgStructureDiagnostic } from './services/svgStructureDiagnostics';
 import { ModelPricing } from './components/ModelPricing';
 import { formatModelPrice } from './services/modelPricing';
 import { MODEL_CATALOG, getModelProvider } from './netlify/functions/_shared/modelCatalog.js';
@@ -16,14 +17,14 @@ import {
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { RowData, LogEntry, StepStatus, NLUData, GlobalConfig, VOCAB, VisualElement, NLUFrameRole, ElementOpKind, RowInterventionLog, SvgMetrics, DEFAULT_PHASE5_MODEL, PHASE5_MODELS, Phase5StructuringModel, LibraryMeta, Sequence, Step, NluModel, NLU_MODELS, DEFAULT_NLU_MODEL, Board } from './types';
+import { SvgEditorSource, RowData, LogEntry, StepStatus, NLUData, GlobalConfig, VOCAB, VisualElement, NLUFrameRole, ElementOpKind, RowInterventionLog, SvgMetrics, DEFAULT_PHASE5_MODEL, PHASE5_MODELS, Phase5StructuringModel, LibraryMeta, Sequence, Step, NluModel, NLU_MODELS, DEFAULT_NLU_MODEL, Board } from './types';
 import * as Claude from './services/claudeService';
 import { generateImage } from './services/imageGenerationService';
 import * as Batch from './services/batchService';
 import { ExternalProviderQuotaError, QuotaExceededError, callCheck } from './services/aiClient';
 import { GenerationModel, OpenAIImageQuality, DEFAULT_GENERATION_MODEL, migrateImageModel, migrateGenerationModel, GENERATION_MODEL_LABELS, INOPERATIVE_GENERATION_MODELS, Phase3Result, getModelFamily } from './types';
 import { structureSVG } from './services/svgStructureService';
-import { applySvgSafeUpdate, captureSvgSource, prepareSvgPromotion, observedSvgProvenance } from './services/svgCanonical';
+import { applySvgSafeUpdate, captureSvgSource, prepareSvgPromotion, prepareSvgDraft, observedSvgProvenance, svgForEditing, prepareSvgEditorUpdate } from './services/svgCanonical';
 import { verifySvgReference } from './schemas/mf-svg-schema/index.js';
 import * as Recording from './services/interventionRecording';
 import { validBitmap, validRawSvg, validStructuredSvg, validDownstreamSvg, hasValidBitmap, hasAnyValidArtifact, hasAnyValidSvg } from './utils/rowArtifacts';
@@ -407,7 +408,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
     isOpen: boolean;
     rowId: string | null;
     svg: string | null;
-    svgSource: 'raw' | 'structured' | null;
+    svgSource: SvgEditorSource | null;
   }>({
     isOpen: false,
     rowId: null,
@@ -1990,9 +1991,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
         result = await generateImage(ensureElementsArray(row.elements), row.prompt || "", row, config, addLog);
       } else if (step === 'structure') {
         // Phase 5: ESTRUCTURAR — Claude Sonnet vision → structuredSvg
-        if (!row.rawSvg) throw new Error('Se requiere SVG de Recraft (ejecutar PRODUCIR primero)');
-        if (!row.NLU) throw new Error('Se requiere NLU (ejecutar COMPRENDER primero)');
-        const nluObj = typeof row.NLU === 'string' ? JSON.parse(row.NLU) : row.NLU;
+        const nluObj = row.NLU;
         result = await structureSVG({
           rawSvg: row.rawSvg,
           nlu: nluObj as NLUData,
@@ -2006,10 +2005,15 @@ const App: React.FC<AppProps> = ({ authUser }) => {
           onProgress: (msg) => addLog('info', msg),
           onStatus: (s) => addLog('info', t('messages.structureStatus', { status: s })),
         });
-        if (!result.success) {
-          if (result.draftSvg) updateRowById(rowId, { structuredSvgDraft: result.draftSvg });
-          throw new Error(result.error || t('messages.structureFailed'));
+        if (result.draftSvg) {
+          const update = prepareSvgDraft(row, result.draftSvg, result.diagnostic);
+          if (stopFlags.current[rowId]) return false;
+          if (captureSvgSource(rowsForSvgRef.current.find(r => r.id === rowId) ?? {}) !== update.svgSourceSnapshot) throw new Error('SVG inputs changed during generation');
+          updateRowById(rowId, { ...update, structuredSvgStatus: row.structuredSvgStatus === 'completed' ? 'completed' : 'outdated' });
+          addLog('info', t('svgGenerator.draftReady'));
+          return true;
         }
+        if (!result.success) throw Object.assign(new Error(result.error || 'Structuring failed'), { diagnostic: result.diagnostic });
         if (result.pendingReview || !result.svg) throw new Error('SVG mapping requires review before canonical promotion');
         result = await prepareSvgPromotion(row, result.svg);
       }
@@ -2071,7 +2075,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
         return false;
       }
       updateRowById(rowId, { [statusKey]: 'error' });
-      addLog('error', t('messages.stepFailed', { step: step.toUpperCase(), utterance: row.UTTERANCE, error: err.message }));
+      addLog('error', t('messages.stepFailed', { step: step.toUpperCase(), utterance: row.UTTERANCE, error: step === 'structure' ? formatSvgStructureError(err, t) : err.message }));
       return false;
     }
   };
@@ -2255,42 +2259,26 @@ const App: React.FC<AppProps> = ({ authUser }) => {
   // See specs/intervention-recording.allium § SvgEditorSessionEdit.
   const svgEditorBeforeMetricsRef = useRef<{ rowId: string; phase: 'svg_raw' | 'svg_structured'; metrics: SvgMetrics } | null>(null);
 
-  const openSVGEditor = (rowId: string, preferSource?: 'raw' | 'structured') => {
+  const svgEditorSourceSnapshotRef = useRef<string | null>(null);
+
+  const openSVGEditor = (rowId: string, preferSource?: SvgEditorSource) => {
     const row = rows.find(r => r.id === rowId);
     if (!row) return;
 
-    let svgToEdit: string | undefined;
-    let source: 'raw' | 'structured';
-
-    // Use valid (non-discarded) SVGs only. If the caller explicitly asks
-    // for a phase that is currently discarded, fall through to the
-    // downstream-priority pick — opening the editor on a discarded
-    // artifact would be confusing (the user can no longer see it in the
-    // grid / row view).
-    const validRaw = validRawSvg(row);
-    const validStructured = validStructuredSvg(row);
-    if (preferSource === 'raw' && validRaw) {
-      svgToEdit = validRaw;
-      source = 'raw';
-    } else if (preferSource === 'structured' && validStructured) {
-      svgToEdit = validStructured;
-      source = 'structured';
-    } else {
-      svgToEdit = validStructured || validRaw;
-      source = validStructured ? 'structured' : 'raw';
-    }
-
-    if (!svgToEdit) {
+    const artifact = svgForEditing(row, preferSource);
+    if (!artifact) {
       addLog('error', t('messages.noSvgToEdit'));
       return;
     }
+    const { svg: svgToEdit, source } = artifact;
+    svgEditorSourceSnapshotRef.current = captureSvgSource(row);
 
     // Snapshot metrics at open for the recording layer.
     const beforeMetrics = Recording.computeSvgMetrics(svgToEdit);
     if (beforeMetrics) {
       svgEditorBeforeMetricsRef.current = {
         rowId,
-        phase: source === 'structured' ? 'svg_structured' : 'svg_raw',
+        phase: source === 'raw' ? 'svg_raw' : 'svg_structured',
         metrics: beforeMetrics,
       };
     } else {
@@ -2325,24 +2313,33 @@ const App: React.FC<AppProps> = ({ authUser }) => {
     const source = svgEditorState.svgSource;
 
     const rowBeforeSave = rows.find(r => r.id === svgEditorState.rowId);
-    if (!rowBeforeSave) return;
+    if (!rowBeforeSave || !source) return;
+    if (captureSvgSource(rowBeforeSave) !== svgEditorSourceSnapshotRef.current) {
+      addLog('error', t('svgGenerator.inputsChangedDuringEdit'));
+      return;
+    }
     try {
-      const update = source === 'structured'
-        ? await prepareSvgPromotion(rowBeforeSave, updatedSvg, true)
-        : { rawSvg: updatedSvg, rawSvgDiscarded: false };
-      if ('svgSourceSnapshot' in update && captureSvgSource(rowsForSvgRef.current.find(r => r.id === rowBeforeSave.id) ?? {}) !== update.svgSourceSnapshot) {
-        throw new Error('SVG inputs or canonical revision changed while saving');
+      const update = await prepareSvgEditorUpdate(rowBeforeSave, source, updatedSvg);
+      if (captureSvgSource(rowsForSvgRef.current.find(r => r.id === rowBeforeSave.id) ?? {}) !== svgEditorSourceSnapshotRef.current) {
+        addLog('error', t('svgGenerator.inputsChangedDuringEdit'));
+        return;
       }
       if ('structuredSvg' in update) updatedSvg = update.structuredSvg;
       updateRowById(svgEditorState.rowId, update);
     } catch (error) {
-      if (source === 'structured') updateRowById(svgEditorState.rowId, { structuredSvgDraft: updatedSvg });
-      addLog('error', error instanceof Error ? error.message : 'SVG validation failed; previous revision preserved');
+      if (source === 'structured') {
+        try {
+          const draft = prepareSvgDraft(rowBeforeSave, updatedSvg, svgStructureDiagnostic(error));
+          updateRowById(svgEditorState.rowId, draft);
+          svgEditorSourceSnapshotRef.current = captureSvgSource(applySvgSafeUpdate(rowBeforeSave, draft));
+        } catch { /* Unsafe XML is not retained as a renderable draft. */ }
+      }
+      addLog('error', formatSvgStructureError(error, t));
       return;
     }
 
     const savedRow = rows.find(r => r.id === svgEditorState.rowId);
-    addLog('success', t('messages.svgUpdatedSuccess', { utterance: savedRow?.UTTERANCE }));
+    addLog('success', source === 'draft' ? t('svgGenerator.draftSaved') : t('messages.svgUpdatedSuccess', { utterance: savedRow?.UTTERANCE }));
 
     // Emit a svg_raw / svg_structured edit event with metrics before/after.
     // The before was captured at openSVGEditor time; the after is the saved SVG.
@@ -4052,7 +4049,7 @@ const RowComponent: React.FC<{
   onLog: (type: 'info' | 'error' | 'success', message: string) => void;
   config: GlobalConfig;
   onConfigChange: (partial: Partial<GlobalConfig>) => void;
-  onOpenEditor: (source?: 'raw' | 'structured') => void;
+  onOpenEditor: (source?: SvgEditorSource) => void;
   onOpenVectorizer: () => void;
   onSettleField?: () => void;
   onRecordElementOp?: (op: ElementOpKind, before: unknown, after: unknown) => void;
@@ -4273,7 +4270,7 @@ const RowComponent: React.FC<{
 
                 {/* SVG artifacts: trazado (rawSvg) and/or estructurado (structuredSvg).
                    ESTRUCTURAR (relabel) needs the trace, so a bitmap alone offers TRAZAR. */}
-                {hasAnyValidSvg(row) ? (
+                {hasAnyValidSvg(row) || row.structuredSvgDraft ? (
                   <div id="svg-preview">
                     <SVGGenerator
                       row={row}
@@ -4484,6 +4481,13 @@ const SmartNLUEditor: React.FC<{
 
   const formatKey = (key: string) => key.replace(/_/g, ' ');
 
+  // Show the actual imported value, not the first permitted option, until an
+  // explicit user edit reconciles it with the current vocabulary.
+  const storedValueOption = (value: unknown, options: readonly string[]) =>
+    typeof value === 'string' && value && !options.includes(value)
+      ? <option value={value}>{t('svgGenerator.storedValueNeedsReview', { value })}</option>
+      : null;
+
   const renderEditableDict = (dict: Record<string, string> | undefined, path: string, narrow?: boolean) => {
     return (
       <div className="space-y-2 text-xs bg-slate-50 p-2 border">
@@ -4562,6 +4566,7 @@ const SmartNLUEditor: React.FC<{
                 className="flex-1 min-w-0 bg-white border-b outline-none focus:border-violet-400 text-xs p-1"
               >
                 <option value="" disabled>{t('placeholders.selectOption')}</option>
+                {storedValueOption(nlu.domain, VOCAB.domain)}
                 {VOCAB.domain.map(d => <option key={d} value={d}>{getDomainLabel(d)}</option>)}
               </select>
             </div>
@@ -4584,24 +4589,28 @@ const SmartNLUEditor: React.FC<{
           <span className="nlu-key uppercase">{t('editor.metadataClassification')}</span>
           <div className="mt-2 space-y-2 pt-2 border-t">
             <div className="flex gap-2 items-center">
-              <label className="font-mono text-slate-500 shrink-0 w-20 break-words">{formatKey('speech_act')}</label>
+              <label className="font-mono text-slate-500 shrink-0 w-20 break-words">{t('metadata.speechAct')}</label>
               <select
+                aria-label={t('metadata.speechAct')}
                 value={nlu.metadata?.speech_act || ''}
                 onChange={e => updateField(['metadata', 'speech_act'], e.target.value)}
                 className="flex-1 min-w-0 bg-white border-b outline-none focus:border-violet-400 text-xs p-1"
               >
                 <option value="" disabled>{t('placeholders.selectOption')}</option>
+                {storedValueOption(nlu.metadata?.speech_act, VOCAB.speech_act)}
                 {VOCAB.speech_act.map(opt => <option key={opt} value={opt}>{opt}</option>)}
               </select>
             </div>
             <div className="flex gap-2 items-center">
-              <label className="font-mono text-slate-500 shrink-0 w-20 break-words">{formatKey('intent')}</label>
+              <label className="font-mono text-slate-500 shrink-0 w-20 break-words">{t('metadata.intent')}</label>
               <select
+                aria-label={t('metadata.intent')}
                 value={nlu.metadata?.intent || ''}
                 onChange={e => updateField(['metadata', 'intent'], e.target.value)}
                 className="flex-1 min-w-0 bg-white border-b outline-none focus:border-violet-400 text-xs p-1"
               >
                 <option value="" disabled>{t('placeholders.selectOption')}</option>
+                {storedValueOption(nlu.metadata?.intent, VOCAB.intent)}
                 {VOCAB.intent.map(opt => <option key={opt} value={opt}>{opt}</option>)}
               </select>
             </div>
@@ -5122,7 +5131,7 @@ const FocusViewModal: React.FC<{
   config: GlobalConfig;
   onConfigChange: (partial: Partial<GlobalConfig>) => void;
   onLog: (type: 'info' | 'error' | 'success', message: string) => void;
-  onOpenEditor?: (source?: 'raw' | 'structured') => void;
+  onOpenEditor?: (source?: SvgEditorSource) => void;
   onModeChange: (mode: 'nlu' | 'visual' | 'produce' | 'format') => void;
   onRecordElementOp?: (op: ElementOpKind, before: VisualElement[], after: VisualElement[]) => void;
   onSettleField?: () => void;
@@ -5309,7 +5318,7 @@ const FocusViewModal: React.FC<{
         const hasStructured = !!validStructuredSvg(row);
 
         // Nothing yet: check for bitmap first (can vectorize), otherwise prompt to produce.
-        if (!hasRaw && !hasStructured) {
+        if (!hasRaw && !hasStructured && !row.structuredSvgDraft) {
           const bmp = validBitmap(row);
           return (
             <div className="flex items-center justify-center h-full bg-slate-50 p-6">

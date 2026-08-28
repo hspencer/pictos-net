@@ -859,6 +859,14 @@
     "mergeSuffix": " + fusión"
   },
   "svgGenerator": {
+    "structuringPending": "Certificación semántica pendiente",
+    "traceRequired": "Para ESTRUCTURAR se necesita un trazado. Puedes crearlo desde el bitmap con TRAZAR.",
+    "nluNeedsReview": "Puedes ESTRUCTURAR un borrador. Para certificarlo como MF-SVG canónico, revisa los datos de COMPRENDER: no cumplen el esquema actual.",
+    "compositionNeedsReview": "Puedes ESTRUCTURAR un borrador. Para certificarlo, revisa los elementos y las referencias del prompt de COMPONER.",
+    "semanticInputsMismatch": "Puedes ESTRUCTURAR un borrador. Para certificarlo, la frase, el NLU y la composición deben corresponder entre sí.",
+    "fieldsToReview": "Campos por revisar: {fields}",
+    "storedValueNeedsReview": "{value} (valor guardado; revisar)",
+    "inputsChangedDuringGeneration": "Los datos cambiaron durante la estructuración. Se conservó la revisión anterior del SVG.",
     "unavailable": "Generación de SVG no disponible",
     "preparingSemanticPrompt": "Preparando el prompt semántico…",
     "invalidNlu": "Los datos NLU no son válidos.",
@@ -872,6 +880,26 @@
     "nluUnavailableForAssembly": "NLU no está disponible para ensamblar.",
     "assembledAfterReview": "SVG estructurado ensamblado tras la revisión.",
     "assemblyFailedAfterReview": "Falló el ensamblado tras la revisión.",
-    "inputsChangedDuringReview": "Los datos del SVG cambiaron mientras la revisión estaba pendiente. Se conservó la revisión anterior."
+    "inputsChangedDuringReview": "Los datos del SVG cambiaron mientras la revisión estaba pendiente. Se conservó la revisión anterior.",
+    "elementsRequired": "Para ESTRUCTURAR se necesitan elementos visuales. Ejecuta COMPONER o agrega los elementos antes de continuar.",
+    "invalidElementTree": "Los elementos visuales contienen identificadores vacíos, repetidos o una jerarquía inválida. Revisa COMPONER.",
+    "draftTitle": "Borrador SVG · sin certificar",
+    "draftReady": "ESTRUCTURAR produjo este borrador con agrupaciones semánticas. Puedes editarlo y descargarlo; todavía no está certificado conforme al contrato MF-SVG y no sustituye el trazado ni la revisión canónica anterior.",
+    "downloadDraft": "Descargar borrador SVG",
+    "bindingsNeedReview": "Quedan elementos o trazos sin correspondencia semántica. Se conservó el borrador sin inventar relaciones.",
+    "invalidSvg": "El SVG está mal formado o contiene referencias o contenido no permitido. Se conserva el trazado anterior.",
+    "invalidMapping": "El modelo devolvió una asignación de trazos inválida o incompleta. Reintenta ESTRUCTURAR o cambia el modelo; se conserva el trazado.",
+    "providerAuthorization": "El proveedor rechazó la autorización. Revisa la conexión y las credenciales del modelo seleccionado.",
+    "providerQuota": "El proveedor o la cuenta no tiene cuota disponible. Espera antes de reintentar o selecciona otro modelo.",
+    "providerUnavailable": "El proveedor no respondió a tiempo o falló la conexión. Puedes reintentar; se conserva el trazado.",
+    "draftReasonUnavailable": "Este intento no guardó el motivo específico de la validación. El borrador sigue disponible; puedes revisarlo o reintentar ESTRUCTURAR para obtener un diagnóstico nuevo.",
+    "editDraft": "Editar borrador SVG",
+    "draftEdited": "Borrador editado, todavía sin certificar. La edición no acredita por sí sola que sus grupos y metadatos cumplan MF-SVG.",
+    "draftSaved": "Borrador SVG guardado sin certificar. Se conservaron el trazado y la revisión canónica anterior.",
+    "inputsChangedDuringEdit": "La fila o el SVG cambió mientras editabas. No se sobrescribió ningún archivo; tus cambios siguen en el editor y puedes exportarlos.",
+    "metadataNeedsReview": "La agrupación está disponible, pero los metadatos no cumplen el contrato MF-SVG. Deben revisarse antes de certificar el SVG.",
+    "accessibilityNeedsReview": "El título, la descripción, el idioma o las referencias de accesibilidad del SVG no coinciden con los datos semánticos requeridos. El borrador sigue disponible.",
+    "groupAttributesNeedReview": "Los atributos de uno o más grupos (concepto, etiqueta accesible o navegación) no coinciden con la composición. El borrador sigue disponible para revisión.",
+    "invalidViewBox": "El área de dibujo del SVG (viewBox) no tiene dimensiones válidas. Revisa el borrador antes de certificarlo."
   }
 }

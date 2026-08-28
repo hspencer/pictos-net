@@ -859,6 +859,14 @@
     "mergeSuffix": " + merge"
   },
   "svgGenerator": {
+    "structuringPending": "Semantic certification pending",
+    "traceRequired": "STRUCTURE requires a trace. You can create one from the bitmap using TRACE.",
+    "nluNeedsReview": "You can STRUCTURE a draft. To certify it as canonical MF-SVG, review the UNDERSTAND data: it does not meet the current schema.",
+    "compositionNeedsReview": "You can STRUCTURE a draft. To certify it, review the elements and prompt references from COMPOSE.",
+    "semanticInputsMismatch": "You can STRUCTURE a draft. To certify it, the utterance, NLU and composition must agree.",
+    "fieldsToReview": "Fields to review: {fields}",
+    "storedValueNeedsReview": "{value} (stored value; review)",
+    "inputsChangedDuringGeneration": "The inputs changed during structuring. The previous SVG revision was preserved.",
     "unavailable": "SVG generation unavailable",
     "preparingSemanticPrompt": "Preparing semantic prompt…",
     "invalidNlu": "The NLU data is invalid.",
@@ -872,6 +880,26 @@
     "nluUnavailableForAssembly": "NLU is unavailable for assembly.",
     "assembledAfterReview": "Structured SVG assembled after review.",
     "assemblyFailedAfterReview": "Assembly after review failed.",
-    "inputsChangedDuringReview": "The SVG inputs changed while review was pending. The previous revision was preserved."
+    "inputsChangedDuringReview": "The SVG inputs changed while review was pending. The previous revision was preserved.",
+    "elementsRequired": "STRUCTURE needs visual elements. Run COMPOSE or add the elements before continuing.",
+    "invalidElementTree": "The visual elements contain empty or duplicate identifiers or an invalid hierarchy. Review COMPOSE.",
+    "draftTitle": "SVG draft · uncertified",
+    "draftReady": "STRUCTURE produced this draft with semantic groups. You can edit and download it; it is not yet certified against the MF-SVG contract and does not replace the trace or the previous canonical revision.",
+    "downloadDraft": "Download SVG draft",
+    "bindingsNeedReview": "Some elements or paths have no semantic correspondence. The draft was preserved without inventing relationships.",
+    "invalidSvg": "The SVG is malformed or contains unsupported references or content. The previous trace is preserved.",
+    "invalidMapping": "The model returned an invalid or incomplete path assignment. Retry STRUCTURE or change the model; the trace is preserved.",
+    "providerAuthorization": "The provider rejected authorization. Check the connection and credentials for the selected model.",
+    "providerQuota": "The provider or account has no quota available. Wait before retrying or select another model.",
+    "providerUnavailable": "The provider timed out or the connection failed. You can retry; the trace is preserved.",
+    "draftReasonUnavailable": "This attempt did not retain the specific validation reason. The draft remains available; review it or retry STRUCTURE to obtain a new diagnosis.",
+    "editDraft": "Edit SVG draft",
+    "draftEdited": "Draft edited, still uncertified. Editing alone does not establish that its groups and metadata meet MF-SVG.",
+    "draftSaved": "SVG draft saved without certification. The trace and previous canonical revision were preserved.",
+    "inputsChangedDuringEdit": "The row or SVG changed while you were editing. No artifact was overwritten; your changes remain in the editor and can be exported.",
+    "metadataNeedsReview": "The grouping is available, but the metadata does not meet the MF-SVG contract. Review it before certifying the SVG.",
+    "accessibilityNeedsReview": "The SVG title, description, language or accessibility references do not match the required semantic evidence. The draft remains available.",
+    "groupAttributesNeedReview": "One or more group attributes (concept, accessible label or navigation) do not match the composition. The draft remains available for review.",
+    "invalidViewBox": "The SVG drawing area (viewBox) has invalid dimensions. Review the draft before certification."
   }
 }

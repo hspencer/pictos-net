@@ -61,6 +61,13 @@ or proof of authorship. Changes in whitespace alone change the byte hash.
 
 ## Platform promotion
 
+Operational structuring and canonical certification are separate. Historical or
+incomplete NLU can accompany a locally assembled draft without being rewritten.
+Drafts keep supplied evidence and unclassified geometry, but cannot receive a
+canonical reference. `inspectPassiveSVG(svg)` applies the same XML, active-content
+and resource checks to drafts without certifying their semantics; `validateSVG`
+and reference creation still require the complete canonical profile.
+
 Assembly and redraw validate semantic inputs before a paid model request and
 validate final SVG bytes after post-processing. Invalid produced candidates are
 retained as `structuredSvgDraft`, separately from the previous canonical asset.

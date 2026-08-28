@@ -53,10 +53,11 @@ contract LocalGeometryAssembly {
     assemble: (input: StructuringInput, mapping: Any) -> String
 
     @invariant CoherentAssemblyInput
-        -- Assembly receives a frozen raw SVG, complete NLU document, complete
-        -- composition document including its prompt, and actually known
-        -- provenance. It cannot reconstruct absent semantics or execution
-        -- history from current settings, labels, or a hardcoded provider name.
+        -- Assembly receives a frozen raw SVG, the exact supplied NLU and
+        -- composition including any supplied prompt, and actually known
+        -- provenance. Semantic completeness is required for certification,
+        -- not draft admission. Assembly cannot reconstruct absent semantics or
+        -- execution history from current settings, labels, or a provider name.
 
     @invariant MappingIsNotGeometry
         -- The regrouping model proposes source path ids and semantic groups.
@@ -100,6 +101,71 @@ contract LocalGeometryAssembly {
         -- diagnostics. No inferred group, performer or semantic label repairs
         -- an invalid response into accepted meaning. Raw responses retained
         -- for diagnosis remain unvalidated and are not embedded as reasoning.
+}
+
+contract GeometricEditingBoundary {
+    can_trace: (bitmap_available: Boolean) -> Boolean
+    can_edit_trace: (trace_available: Boolean) -> Boolean
+
+    @invariant SemanticsDoNotBlockGeometry
+        -- Tracing requires only a usable bitmap. An existing trace remains
+        -- visible, editable and downloadable even when NLU or composition
+        -- fails current semantic validation. Retracing stays available while
+        -- its bitmap is available, in both compact and focused views.
+
+    @invariant ExplainOnlyTheBlockedOperation
+        -- Incomplete or historical semantics block canonical promotion, not
+        -- draft structuring, TRAZAR or existing geometric artifacts. A localized
+        -- diagnostic identifies COMPRENDER or COMPONER when their data requires
+        -- review, with the affected fields. It never replaces the artifact
+        -- workspace with a generic failure.
+        -- A failed structuring attempt preserves trace access and retry controls.
+
+    @invariant DraftAdmissionIsOperational
+        -- A usable trace and a nonempty tree of uniquely identified visual
+        -- elements suffice to propose and assemble a draft. Missing or historical
+        -- NLU, incomplete vocabulary and prompt reference conventions are
+        -- conformance diagnostics, not reasons to prevent visual grouping.
+        -- Malformed geometry, ambiguous element ids, malformed assignments and
+        -- active or external SVG content remain blocking errors.
+
+    @invariant DraftIsNotCertification
+        -- Preserve unassigned geometry without inventing a Context concept.
+        -- Missing bindings and nonconforming semantic evidence leave a visible,
+        -- editable, downloadable draft with localized review diagnostics.
+        -- Preserve the exact supplied NLU and composition; do not synthesize
+        -- missing values.
+        -- A draft cannot acquire a canonical reference or replace an accepted
+        -- revision. Late drafts cannot overwrite edits made during generation.
+        -- Every user-facing failure is localized, including provider and final
+        -- validation failures; technical details are not the default message.
+
+    @invariant DraftEditorTargetsChosenArtifact
+        -- A passive draft has its own edit and download actions in both compact
+        -- and focused views. Editing opens that exact draft, never substitutes
+        -- the raw trace or an accepted revision. Saving creates an uncertified
+        -- draft snapshot and changes neither the raw trace nor the accepted
+        -- revision or its reference. Editing alone never requests certification.
+        -- If the draft or its source context changes after opening the editor,
+        -- reject the stale save with a localized conflict diagnostic; retain
+        -- the editor's unsaved content and the newer workspace artifacts.
+
+    @invariant ResultExplainsCompletedStage
+        -- Distinguish an attempt that failed before producing a usable draft
+        -- from one that produced grouping but has not passed certification.
+        -- A retained draft from an earlier attempt is not evidence that the
+        -- latest attempt produced one. A new draft is labelled as generated
+        -- and uncertified, with edit, download and retry controls; its result
+        -- cannot be only a trace-ready instruction or a generic failure.
+        -- When a specific blocking reason is known, retain and localize it,
+        -- including affected fields or references where available. If a
+        -- historical draft has no retained reason, explicitly say that the
+        -- cause was not recorded; do not infer a semantic or provider failure.
+
+    @invariant HistoricalValuesRemainEvidence
+        -- Validation does not rewrite imported NLU or composition. Controls
+        -- display the actual stored value even outside the current vocabulary,
+        -- rather than appearing to select a permitted value that is not stored.
 }
 
 contract PortablePictogramRevision {
@@ -335,6 +401,7 @@ surface StructuredArtifactBoundary {
     facing editor: PictogramEditor
     contracts:
         fulfils LocalGeometryAssembly
+        fulfils GeometricEditingBoundary
         fulfils PortablePictogramRevision
     provides:
         StructuredDraftProduced(editor, content: String, parent_hash: String?)

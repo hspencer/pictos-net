@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import crypto from 'node:crypto';
-import { validateSVG, parseMetadataJSON, assertValidSVG, createSvgReference, verifySvgReference, reviseSVG } from '../index.js';
+import { validateSVG, inspectPassiveSVG, parseMetadataJSON, assertValidSVG, createSvgReference, verifySvgReference, reviseSVG } from '../index.js';
 const svg = fs.readFileSync(new URL('../examples/v2example.svg', import.meta.url), 'utf8');
 const replaceMetadata = (edit) => svg.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/, (_, text) => `<![CDATA[${JSON.stringify(edit(JSON.parse(text)))}]]>`);
 
@@ -55,4 +55,19 @@ test('implicit actions are accepted only as supplied bindings to a real performe
   });
   assert.equal(validateSVG(implicit).valid, true);
   assert.equal(validateSVG(implicit.replace('"performedBy":"persona"', '"performedBy":"unknown"')).valid, false);
+});
+
+
+test('passive draft inspection does not certify meaning and retains every safety check', () => {
+  const draft = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><path d="M1 1L2 2"/></svg>';
+  assert.ok(inspectPassiveSVG(draft));
+  assert.equal(validateSVG(draft).valid, false);
+  for (const bad of [
+    draft.replace('<path', '<path onload="alert(1)"'),
+    draft.replace('</svg>', '<script>alert(1)</script></svg>'),
+    draft.replace('</svg>', '<use href="https://example.invalid/svg"/></svg>'),
+    draft.replace('</svg>', '<use href="#missing"/></svg>'),
+    draft.replace('<path', '<path fill="url(https://example.invalid/paint)"'),
+    '<!DOCTYPE svg>' + draft,
+  ]) assert.throws(() => inspectPassiveSVG(bad));
 });
