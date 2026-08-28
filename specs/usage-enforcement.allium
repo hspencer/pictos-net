@@ -165,6 +165,28 @@ contract VertexAuthenticationBoundary {
         -- role assignments. Live roles are preferred over stale JWT snapshots.
 }
 
+contract BackgroundAuthorizationBoundary {
+    authorize: (job_id: String, user: IdentityUser) -> Boolean
+    consume: (job_id: String) -> IdentityUser?
+
+    @invariant VerifiedIdentityBeforeProvider
+        -- A synchronous gate verifies Identity before issuing a short-lived
+        -- authorization for a background job. Missing or expired authorization
+        -- never permits a provider call or a quota charge.
+
+    @invariant ConsistentAuthorizationReads
+        -- Background execution must retain the platform's uncached storage
+        -- endpoint and site identity so authorization reads use strong
+        -- consistency. Cached reads are not a fallback for this boundary.
+        -- A successful consumption removes the authorization before execution;
+        -- a subsequent attempt must not accept a stale cached copy.
+
+    @guidance
+        -- Regression tests exercise the deployed storage SDK without the local
+        -- development identity bypass or filesystem substitute. Include the
+        -- synchronous issuance and background consumption boundary.
+}
+
 contract UsageReportingBoundary {
     report: (request: UsageReportRequest) -> UsageReport
 
@@ -692,6 +714,7 @@ surface UsageEnforcement {
         fulfils AuditBoundary
         fulfils VertexAuthenticationBoundary
         fulfils OpenAIAuthenticationBoundary
+        fulfils BackgroundAuthorizationBoundary
         fulfils UsageReportingBoundary
 }
 

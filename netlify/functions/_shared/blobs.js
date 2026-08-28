@@ -1,4 +1,4 @@
-import { getStore, connectLambda } from '@netlify/blobs';
+import { getStore, setEnvironmentContext } from '@netlify/blobs';
 import fs from 'fs';
 import path from 'path';
 
@@ -6,17 +6,25 @@ export function connectBlobs(event) {
   const isLocalMock = process.env.NETLIFY_DEV === 'true' && !process.env.NETLIFY_BLOBS_CONTEXT;
   if (isLocalMock) return;
 
-  // connectLambda is only for background functions — they receive blob context
-  // via event.blobs because they run outside the normal request lifecycle.
-  // Regular functions get site-scoped context automatically via NETLIFY_BLOBS_CONTEXT.
-  // Calling connectLambda on a regular function overwrites the site-scoped context
-  // with a deploy-scoped token, making data from previous deploys invisible.
+  // Lambda-compatible functions receive platform storage context in event.blobs.
+  // Other invocations already have NETLIFY_BLOBS_CONTEXT; leave it untouched.
   if (!event?.blobs) return;
 
   try {
-    connectLambda(event);
+    const data = JSON.parse(Buffer.from(event.blobs, 'base64').toString('utf8'));
+    // @netlify/blobs 10.7.9 connectLambda drops url_uncached. Preserve the
+    // platform-provided endpoint: grants/staging use strong reads and otherwise
+    // throw BlobsConsistencyError before making any storage request.
+    setEnvironmentContext({
+      deployID: event.headers['x-nf-deploy-id'],
+      siteID: event.headers['x-nf-site-id'],
+      edgeURL: data.url,
+      uncachedEdgeURL: data.url_uncached,
+      token: data.token,
+      primaryRegion: data.primary_region,
+    });
   } catch (err) {
-    console.warn('[blobs] connectLambda failed:', err.message);
+    console.warn('[blobs] Lambda context initialization failed:', err.message);
   }
 }
 
