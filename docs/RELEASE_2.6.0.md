@@ -1,8 +1,9 @@
 # PictoNet 2.6.0
 
-Preparación de entrega: 2026-08-27. Destino previsto: rama `dev` y sitio de pruebas
-`next.pictos.net`. Este documento no afirma que el commit, push o despliegue ya se
-hayan realizado.
+Entrega inicial verificada el 2026-08-27 en la rama `dev` y el sitio de pruebas
+`next.pictos.net`: commit `a0df2f5cb8afe5bd9f28bbf698f9f730a2b05066`.
+La entrega se promueve de `dev` a `main` tras verificar CI y el despliegue de
+pruebas; la publicación en producción requiere su propia comprobación.
 
 ## Cambios
 
@@ -35,16 +36,28 @@ antes circulaban sin validación; no certifica la calidad comunicativa del dibuj
 
 `research/` permanece local e ignorado por Git: protocolos, referencias privadas
 y resultados experimentales no forman parte del despliegue. Tampoco deben entrar
-las credenciales, worktrees locales ni cambios de fecha del índice de bibliotecas.
+las credenciales, worktrees locales ni cambios aislados de fecha del índice de bibliotecas.
+
+El cierre de entrega incorpora además la actualización local de la biblioteca
+Escena descriptiva de 8 a 15 filas, su nuevo nombre de archivo, el índice y sus
+miniaturas derivadas. El inventario resultante contiene 20 bibliotecas y 826 filas.
+Se sincronizan también las dependencias de tipos React del archivo `deno.lock`;
+los worktrees de `/.codex/` permanecen locales e ignorados.
 
 ## Verificación y publicación
 
-Antes del commit se exige completar la suite local sin la antigua prueba de
-integración pagada, los contratos Allium, TypeScript, traducciones y compilación.
+La entrega inicial pasó 193 pruebas locales sin la antigua prueba de integración
+pagada, 18 pruebas de esquemas y 8 fixtures, contratos Allium sin errores,
+TypeScript, 781 traducciones y compilación. La comprobación en navegador verificó
+la versión 2.6.0 y la exclusión mutua de los paneles de configuración.
 Las pruebas simuladas no demuestran disponibilidad de la cuenta ni superioridad
 semántica de un modelo. No se ejecuta un benchmark pagado durante la preparación.
 
-Tras el push a `dev`, verificar el despliegue de Netlify y la versión 2.6.0 visible
-en `next.pictos.net`. Las pruebas con proveedores y cualquier gasto requieren un
+- GitHub CI del commit inicial: [ejecución 33128822569](https://github.com/hspencer/pictos-net/actions/runs/33128822569), resultado `success`.
+- Netlify: despliegue `6a90d1d7c229aa0009521995`, estado `ready`; versión 2.6.0
+  comprobada en el DOM de [next.pictos.net](https://next.pictos.net).
+
+Después del commit de cierre y de la promoción a `main`, se deben verificar de
+nuevo CI, ambos despliegues y su versión publicada. Las pruebas con proveedores y cualquier gasto requieren un
 alcance explícito. Las limitaciones de acceso a métricas/cuotas de GCP siguen
 pendientes de autorización; no se cambian IAM, facturación ni capacidad contratada.
