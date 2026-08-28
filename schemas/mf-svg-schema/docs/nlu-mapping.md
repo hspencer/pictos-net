@@ -1,3 +1,5 @@
+> Historical profile documentation. For the current draft and its verification limits, see [the product README](../README.md). These legacy statements do not establish v2 conformance or proven accessibility.
+
 # NLU Integration — Mapping Natural Language Understanding to SVG Structure
 
 **Version:** 1.0.0

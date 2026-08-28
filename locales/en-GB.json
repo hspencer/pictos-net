@@ -242,11 +242,16 @@
     "tutorialTooltip": "View the PICTOS.net introductory tutorial",
     "pipelineModels": "AI models per phase",
     "comprenderModel": "Phase 1: UNDERSTAND",
-    "comprenderModelTooltip": "Model for semantic analysis of the utterance. Haiku and Gemini Flash are sufficient; Sonnet or Pro for complex cases.",
+    "comprenderModelTooltip": "Model for semantic analysis of the utterance. Compare fidelity, corrections and cost before choosing a preferred model.",
     "componerModel": "Phase 2: COMPOSE",
     "componerModelTooltip": "Model for visual composition (element tree + prompt). Can differ from the Phase 1 model.",
     "generationModel": "Phase 3: PRODUCE",
-    "generationModelTooltip": "AI model for pictogram generation. Gemini models produce bitmaps; Recraft produces vector SVG.",
+    "generationModelTooltip": "AI model for pictogram generation. Gemini and OpenAI produce bitmaps; Recraft offers bitmap and vector SVG.",
+    "openaiQuality": "OpenAI image quality",
+    "openaiQualityLow": "Low · economical",
+    "openaiQualityMedium": "Medium",
+    "openaiQualityHigh": "High",
+    "openaiCostNote": "1024×1024 PNG output. USD estimates; prompt text costs extra. Start with Low. Connection checks do not generate images or guarantee generation permission.",
     "generationModels": {
       "gemini-2.5-flash-image": "Gemini 2.5 Flash",
       "gemini-3.1-flash-image": "Gemini 3.1 Flash",
@@ -262,7 +267,26 @@
     "connectionChecking": "Checking…",
     "connectionOk": "OK",
     "connectionError": "Error",
-    "advancedConfig": "Advanced configuration"
+    "advancedConfig": "Advanced configuration",
+    "priceUnknown": "Price unavailable",
+    "tokenPrice": "{input} input / {output} output per 1M tokens",
+    "imagePrice": "≈ {price} / image",
+    "priceSource": "Official pricing",
+    "priceChecked": "Checked {date}",
+    "tokenCostNote": "Standard API rates in USD, not a price per pictogram. Actual tokens (including reasoning), cache, discounts and applicable taxes affect the bill.",
+    "imageCostNote": "Reference USD generation price; internal PictoNet units are separate.",
+    "longContextPrice": "Above {threshold} input tokens: {input} input / {output} output per 1M tokens.",
+    "imagePriceSize": "Reference output: {size}.",
+    "imagePromptExtra": "Input and any text output are billed separately.",
+    "openaiReasoningNote": "OpenAI reasoning effort: low. A benchmark is needed to compare quality.",
+    "recraftCreditsNote": "Requires prepaid Recraft API credits, separate from the Studio subscription. A balance check does not guarantee generation.",
+    "recraftStyleRequired": "This model requires an existing Recraft style ID. Creating a style is not automatic.",
+    "recraftStyleId": "Recraft style ID",
+    "recraftStyleIdHint": "Existing style UUID; required for V4 Styles, optional for V4.1.",
+    "recraftStyleMissing": "Configure a style ID before generating.",
+    "connectionScopeNote": "Checks credentials/model metadata or a minimal text response; does not guarantee image generation or future quota.",
+    "recraftCreditBalance": "Available Recraft API units: {credits}.",
+    "checkedTextModel": "Credentials checked using {model}; selected image model not generated."
   },
   "console": {
     "title": "PICTOS Console",
@@ -400,6 +424,7 @@
     "processStoppedAtStep": "Process stopped by the user at step {step}.",
     "stepFailed": "{step} failed for “{utterance}”: {error}",
     "cascadeStarted": "Starting graph propagation for: {utterance}",
+    "runLog": "[run:{runId}] {message}",
     "cascadeStopped": "Cascade stopped at {step} for {utterance}",
     "stepComplete": "{step} complete: {duration}s for \"{utterance}\"",
     "nluComplete": "NLU Node calculated in {duration}s",
@@ -755,7 +780,8 @@
     "submitted": "[BATCH] Submitted: {{count}} pictograms. You can close the browser; the batch keeps running.",
     "draining": "[BATCH] Retrieving {{count}} batch results…",
     "noEligible": "[BATCH] No pictograms with a completed Phase 2 to send",
-    "rowError": "[BATCH] Pictogram failed: {{error}}"
+    "rowError": "[BATCH] Pictogram failed: {{error}}",
+    "providerQuotaDeferred": "[BATCH] Row {rowId} deferred because the provider quota is exhausted"
   },
   "auth": {
     "important": "Important",
@@ -845,6 +871,7 @@
     "processFailed": "SVG process failed: {error}",
     "nluUnavailableForAssembly": "NLU is unavailable for assembly.",
     "assembledAfterReview": "Structured SVG assembled after review.",
-    "assemblyFailedAfterReview": "Assembly after review failed."
+    "assemblyFailedAfterReview": "Assembly after review failed.",
+    "inputsChangedDuringReview": "The SVG inputs changed while review was pending. The previous revision was preserved."
   }
 }

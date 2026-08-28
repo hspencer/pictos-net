@@ -1,3 +1,4 @@
+import { MODEL_CATALOG as PROVIDER_MODELS } from './modelCatalog.js';
 /**
  * Usage tracking and quota enforcement for PictoNet Netlify Functions.
  *
@@ -27,20 +28,13 @@ const STORE_NAME = 'pictonet-usage';
  * api-gemini-structure.js, api-batch-create.js). Used only for admin
  * reporting — never referenced by the generation pipeline itself.
  */
-export const MODEL_CATALOG = {
-  'claude-haiku-4-5-20251001': { label: 'Claude Haiku 4.5', phaseLabel: 'Comprender + Componer', description: 'NLU y composición de elementos (fases 1-2), gratuito' },
-  'claude-sonnet-4-6': { label: 'Claude Sonnet 4.6', phaseLabel: 'Estructurar', description: 'Visión + ensamblaje semántico (fase 5)' },
-  'claude-opus-4-6': { label: 'Claude Opus 4.6', phaseLabel: 'Estructurar', description: 'Visión + ensamblaje semántico (fase 5), mayor calidad' },
-  'gemini-2.5-pro': { label: 'Gemini 2.5 Pro', phaseLabel: 'Estructurar', description: 'Estructuración por visión (fase 5)' },
-  'gemini-2.5-flash': { label: 'Gemini 2.5 Flash', phaseLabel: 'Estructurar', description: 'Estructuración por visión (fase 5), default' },
-  'gemini-2.5-flash-image': { label: 'Gemini 2.5 Flash', phaseLabel: 'Producir', description: 'Generación de imagen (fase 3)' },
-  'gemini-3.1-flash-image': { label: 'Gemini 3.1 Flash', phaseLabel: 'Producir', description: 'Generación de imagen (fase 3)' },
-  'gemini-3-pro-image': { label: 'Gemini 3 Pro', phaseLabel: 'Producir', description: 'Generación de imagen (fase 3), cuota diaria baja' },
-  'recraftv4_1': { label: 'Recraft (raster)', phaseLabel: 'Producir', description: 'Generación de imagen bitmap (fase 3)' },
-  'recraftv4_1_vector': { label: 'Recraft (vector)', phaseLabel: 'Producir', description: 'Generación de SVG nativo (fase 3), default' },
-  'recraftv4_1_utility_vector': { label: 'Recraft Utility (vector)', phaseLabel: 'Producir', description: 'SVG nativo, variante simple y predecible (fase 3)' },
-  'recraftv4_1_pro_vector': { label: 'Recraft Pro (vector)', phaseLabel: 'Producir', description: 'SVG nativo de mayor resolución (fase 3)' },
-};
+export const MODEL_CATALOG = Object.fromEntries(Object.entries(PROVIDER_MODELS).map(([id, model]) => [id, {
+  label: model.label,
+  phaseLabel: model.phases.map(phase => ({ 1: 'Comprender', 2: 'Componer', 3: 'Producir', 5: 'Estructurar' })[phase]).join(' + '),
+  description: model.pricing.kind === 'tokens'
+    ? 'API de texto/visión; coste según tokens reales, sin unidades internas de PictoNet'
+    : model.output === 'vector' ? 'Generación de SVG nativo (fase 3)' : 'Generación de imagen bitmap (fase 3)',
+}]));
 
 function modelInfo(model) {
   return MODEL_CATALOG[model] ?? { label: model || 'desconocido', phaseLabel: '—', description: '' };
@@ -112,7 +106,7 @@ export async function checkAndCharge(email, units = 1, roles = []) {
     // Blob not found → first call today
   }
 
-  if (current.units >= DAILY_LIMIT) {
+  if (current.units + units > DAILY_LIMIT) {
     return { allowed: false, units_used: current.units, limit: DAILY_LIMIT };
   }
 
@@ -138,20 +132,78 @@ export async function checkAndCharge(email, units = 1, roles = []) {
  * logged and swallowed — a missed refund must never break the error path.
  */
 export async function refundUnits(email, units) {
-  if (!email || email === 'dev' || !(units > 0)) return;
+  if (!email || email === 'dev' || !(units > 0)) return true;
   const store = getStore(STORE_NAME);
   const key = `quota/${email}/${today()}`;
   try {
     const current = await store.get(key, { type: 'json' });
-    if (!current) return;
+    if (!current) return true;
     await store.set(key, JSON.stringify({
       ...current,
       units: Math.max(0, (current.units ?? 0) - units),
       last_call: new Date().toISOString(),
     }));
+    return true;
   } catch (err) {
     console.error(`[usage] refund failed for ${email}:`, err.message);
+    return false;
   }
+}
+
+/**
+ * Apply a refund once for a stable generation or batch idempotency key.
+ *
+ * The refund id is persisted in the same quota blob as the decremented unit
+ * count. `onlyIfMatch` makes both changes one atomic conditional write, so two
+ * workers racing with the same id cannot both refund it.
+ */
+export async function refundUnitsOnce(email, units, idempotencyKey, reason = 'provider_error') {
+  if (!idempotencyKey || !(units > 0)) return false;
+  if (!email || email === 'dev') return true;
+
+  const store = getStore(STORE_NAME);
+  const key = `quota/${email}/${today()}`;
+  const refundId = String(idempotencyKey).replace(/[^a-zA-Z0-9._:-]/g, '_').slice(0, 160);
+
+  return refundUnitsOnceInStore(store, key, email, units, refundId, reason);
+}
+
+/** @internal Exported for deterministic unit testing without Netlify. */
+export async function refundUnitsOnceInStore(store, key, email, units, refundId, reason) {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    try {
+      const snapshot = await store.getWithMetadata(key, { type: 'json' });
+      if (!snapshot) return true;
+
+      const appliedRefunds = Array.isArray(snapshot.data?.applied_refunds)
+        ? snapshot.data.applied_refunds
+        : [];
+      if (appliedRefunds.some(refund => refund?.id === refundId)) return true;
+
+      const appliedAt = new Date().toISOString();
+      const updated = {
+        ...snapshot.data,
+        units: Math.max(0, (snapshot.data?.units ?? 0) - units),
+        last_call: appliedAt,
+        applied_refunds: [...appliedRefunds, {
+          id: refundId,
+          units,
+          reason,
+          applied_at: appliedAt,
+        }],
+      };
+      const result = await store.set(key, JSON.stringify(updated), {
+        onlyIfMatch: snapshot.etag,
+      });
+      if (result.modified) return true;
+    } catch (err) {
+      console.error(`[usage] idempotent refund failed for ${email}:`, err.message);
+      return false;
+    }
+  }
+
+  console.error(`[usage] idempotent refund conflicted repeatedly for ${email}`);
+  return false;
 }
 
 /**

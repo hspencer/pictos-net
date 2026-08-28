@@ -13,6 +13,8 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { checkAndCharge, logCall } from './_shared/usage.js';
 import { connectBlobs } from './_shared/blobs.js';
+import { fetchWithRetry } from './_shared/httpRetry.js';
+import { providerFailure } from './_shared/providerError.js';
 
 const ALLOWED_ORIGINS = [
   'https://pictos.net',
@@ -76,9 +78,9 @@ async function handleRequest(event, context) {
     return { statusCode: 500, headers, body: JSON.stringify({ error: 'Server configuration error' }) };
   }
 
-  let model, max_tokens, system, tools, tool_choice, messages;
+  let model, max_tokens, system, tools, tool_choice, messages, _requestId;
   try {
-    ({ model, max_tokens, system, tools, tool_choice, messages } = JSON.parse(event.body));
+    ({ model, max_tokens, system, tools, tool_choice, messages, _requestId } = JSON.parse(event.body));
   } catch {
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid JSON body' }) };
   }
@@ -101,6 +103,9 @@ async function handleRequest(event, context) {
       headers,
       body: JSON.stringify({
         error: 'Daily quota exceeded',
+        quotaExceeded: true,
+        failureSource: 'pictonet_user_quota',
+        recoverable: false,
         units_used: quota.units_used,
         limit: quota.limit,
       }),
@@ -110,11 +115,29 @@ async function handleRequest(event, context) {
   console.log(`[api-claude] user=${email} model=${model} units=${units} today=${quota.units_used}/${quota.limit}`);
 
   const startMs = Date.now();
-  let response, ok = true, errorMsg;
+  const clientRequestId = _requestId || context?.awsRequestId || `claude-${Date.now()}`;
+  let response;
+  let providerAttempts = 1;
 
   try {
     // baseURL hardcoded to bypass Netlify CLI v24 ANTHROPIC_BASE_URL injection
-    const client = new Anthropic({ apiKey, baseURL: 'https://api.anthropic.com' });
+    // The SDK's own retries are disabled so quota is charged once and the
+    // shared, observable retry policy controls the complete provider call.
+    const client = new Anthropic({
+      apiKey,
+      baseURL: 'https://api.anthropic.com',
+      maxRetries: 0,
+      fetch: (input, init) => fetchWithRetry(input, init, {
+        retries: 2,
+        baseDelayMs: 1000,
+        retryOn429: true,
+        maxTotalMs: 30_000,
+        onRetry: (attempt, total, waitMs, status) => {
+          providerAttempts = attempt + 1;
+          console.warn(`[api-claude] request=${clientRequestId} provider_retry=${attempt}/${total} status=${status} wait_ms=${Math.round(waitMs)}`);
+        },
+      }),
+    });
 
     const params = {
       model,
@@ -127,35 +150,36 @@ async function handleRequest(event, context) {
 
     response = await client.messages.create(params);
   } catch (error) {
-    ok = false;
-    errorMsg = error.message;
-    console.error(`[api-claude] Error: ${error.message}`);
-
-    await logCall({
-      email, phase: 'claude', model, units_charged: units,
-      ms: Date.now() - startMs,
-      tokens_in: 0, tokens_out: 0, ok: false, error_msg: errorMsg,
-    });
-
-    return { statusCode: 500, headers, body: JSON.stringify({ error: errorMsg || 'Claude API error' }) };
+    const details = providerFailure(Object.assign(error, { attempts: providerAttempts }), { provider: 'anthropic', requestId: clientRequestId });
+    await logCall({ email, phase: 'claude', model, units_charged: units,
+      ms: Date.now() - startMs, tokens_in: error.usage?.input_tokens ?? null,
+      tokens_out: error.usage?.output_tokens ?? null, ok: false, error_msg: details.error,
+      provider: details.provider, provider_status: details.providerStatus,
+      request_id: details.requestId, attempts: providerAttempts, quota_failure_source: details.failureSource });
+    return { statusCode: details.providerStatus || 500, headers, body: JSON.stringify({
+      ...details, recoverable: details.retryable,
+    }) };
   }
 
   const ms = Date.now() - startMs;
   await logCall({
     email, phase: 'claude', model, units_charged: units,
     ms,
-    tokens_in: response.usage?.input_tokens ?? 0,
-    tokens_out: response.usage?.output_tokens ?? 0,
+    tokens_in: response.usage?.input_tokens ?? null,
+    tokens_out: response.usage?.output_tokens ?? null,
     ok: true,
+    provider: 'anthropic', request_id: clientRequestId, attempts: providerAttempts,
   });
 
   return {
     statusCode: 200,
     headers,
     body: JSON.stringify({
+      model: response.model,
       content: response.content,
       stop_reason: response.stop_reason,
       usage: response.usage,
+      meta: { provider: 'anthropic', requestId: clientRequestId, attempts: providerAttempts },
     }),
   };
 }

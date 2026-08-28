@@ -19,6 +19,7 @@ function corsHeaders(origin) {
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Allow-Methods': 'GET, OPTIONS',
     'Content-Type': 'application/json',
+    'Cache-Control': 'no-store',
   };
 }
 
@@ -30,15 +31,16 @@ export const handler = async (event, context) => {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
   }
+  if (event.httpMethod !== 'GET') return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) };
 
-  const { user } = context.clientContext || {};
+  const user = context?.clientContext?.user;
   const isLocalDev = process.env.NETLIFY_DEV === 'true';
-  if (!isLocalDev && !user) {
+  if (!isLocalDev && !user?.email) {
     return { statusCode: 401, headers, body: JSON.stringify({ error: 'Unauthorized' }) };
   }
 
   const jobId = event.queryStringParameters?.jobId;
-  if (!jobId) {
+  if (typeof jobId !== 'string' || !/^struct-[a-zA-Z0-9-]{1,100}$/.test(jobId)) {
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'Missing jobId' }) };
   }
 
@@ -53,10 +55,12 @@ export const handler = async (event, context) => {
   if (!result) {
     return { statusCode: 200, headers, body: JSON.stringify({ pending: true }) };
   }
+  if (!isLocalDev && result.owner !== user.email) return { statusCode: 403, headers, body: JSON.stringify({ error: 'Forbidden' }) };
+  const { owner, ...value } = result;
 
   if (result.response || result.error) {
     await store.delete(jobId);
-    return { statusCode: 200, headers, body: JSON.stringify(result) };
+    return { statusCode: 200, headers, body: JSON.stringify(value) };
   }
 
   return { statusCode: 200, headers, body: JSON.stringify({ pending: true }) };

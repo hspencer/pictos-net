@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pictos.net/schemas/pictogram-composition-0.1.0.schema.json",
+  "title": "Pictogram composition accepted artifact 0.1.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "elements",
+    "prompt"
+  ],
+  "properties": {
+    "elements": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "concept",
+          "children"
+        ],
+        "properties": {
+          "id": {
+            "enum": [
+              "pictograma",
+              "pictogram"
+            ]
+          },
+          "concept": {
+            "const": "Root"
+          },
+          "children": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "#/$defs/Element"
+            }
+          }
+        }
+      },
+      "description": "Semantic children only. Root is constructed locally, never by the provider.",
+      "maxItems": 1
+    },
+    "prompt": {
+      "type": "string",
+      "pattern": "\\S",
+      "description": "Spatial topology. Reference every semantic element ID in single quotes. No visual style."
+    }
+  },
+  "$defs": {
+    "Element": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "concept"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[^\\s']+$",
+          "minLength": 1,
+          "description": "Unique semantic identifier. A noun in the utterance language; snake_case for compounds."
+        },
+        "concept": {
+          "type": "string",
+          "enum": [
+            "Agent",
+            "Action",
+            "Object",
+            "Context",
+            "Element"
+          ]
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Element"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,7 +1,7 @@
 {
   "name": "pictos.net",
   "private": true,
-  "version": "2.5.1",
+  "version": "2.6.0",
   "type": "module",
   "scripts": {
     "dev": "npm run copy-schemas && npm run optimize-thumbs && netlify dev",
@@ -13,7 +13,8 @@
     "typecheck": "tsc --noEmit",
     "copy-schemas": "sh scripts/copy-submodule-data.sh",
     "optimize-thumbs": "node scripts/optimize-thumbs.mjs",
-    "postinstall": "npm run copy-schemas"
+    "postinstall": "npm run copy-schemas",
+    "test:schemas": "npm test --prefix schemas/nlu-schema && npm test --prefix schemas/pictogram-composition-schema && npm test --prefix schemas/mf-svg-schema && npm run check:sync --prefix schemas/mf-svg-schema"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.100.1",
@@ -21,6 +22,9 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@netlify/blobs": "^10.7.9",
+    "@xmldom/xmldom": "0.9.12",
+    "ajv": "8.20.0",
+    "ajv-formats": "3.0.1",
     "google-auth-library": "^10.7.0",
     "jspdf": "^4.2.1",
     "jszip": "^3.10.1",

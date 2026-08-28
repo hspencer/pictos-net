@@ -1,12 +1,16 @@
+import { MODEL_CATALOG, modelIdsForPhase } from './netlify/functions/_shared/modelCatalog.js';
+
 
 export interface NLUMetadata {
   speech_act: string;
   intent: string;
+  timestamp?: string;
+  speaker_id?: string;
 }
 
 export interface NLUFrameRole {
   type: string;
-  surface: string;
+  surface?: string;
   lemma?: string;
   definiteness?: string;
   ref?: string;
@@ -14,6 +18,7 @@ export interface NLUFrameRole {
 }
 
 export interface NLUFrame {
+  id?: string;
   frame_name: string;
   frame_label?: string;
   lexical_unit: string;
@@ -22,6 +27,8 @@ export interface NLUFrame {
 
 export interface NLUVisualGuidelines {
   focus_actor: string;
+  secondary_actor?: string;
+  salience?: Record<string, number>;
   action_core: string;
   object_core: string;
   context: string;
@@ -32,14 +39,20 @@ export interface Pragmatics {
   politeness: string;
   formality: string;
   expected_response: string;
+  urgency?: string;
+  speaker_stance?: string;
 }
 
 export interface LogicalForm {
   event: string;
   modality: string;
+  negation?: boolean;
+  aspect?: string;
+  tense?: string;
 }
 
 export interface NLUData {
+  schemaVersion?: "1.1.0";
   utterance: string;
   lang: string;
   domain?: string;
@@ -59,14 +72,13 @@ export type NluModel =
   | 'claude-haiku-4-5-20251001'
   | 'claude-sonnet-4-6'
   | 'gemini-2.5-flash'
-  | 'gemini-2.5-pro';
+  | 'gemini-2.5-pro'
+  | 'gpt-5.6-luna'
+  | 'gpt-5.6-terra'
+  | 'gpt-5.6-sol';
 
-export const NLU_MODELS: { id: NluModel; label: string }[] = [
-  { id: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5' },
-  { id: 'claude-sonnet-4-6',         label: 'Claude Sonnet 4.6' },
-  { id: 'gemini-2.5-flash',          label: 'Gemini 2.5 Flash' },
-  { id: 'gemini-2.5-pro',            label: 'Gemini 2.5 Pro' },
-];
+export const NLU_MODELS: { id: NluModel; label: string }[] = modelIdsForPhase(1)
+  .map(id => ({ id: id as NluModel, label: MODEL_CATALOG[id].label }));
 
 export const DEFAULT_NLU_MODEL: NluModel = 'claude-haiku-4-5-20251001';
 
@@ -76,16 +88,15 @@ export type Phase5StructuringModel =
   | 'claude-sonnet-4-6'
   | 'claude-opus-4-6'
   | 'gemini-2.5-pro'
-  | 'gemini-2.5-flash';
+  | 'gemini-2.5-flash'
+  | 'gpt-5.6-luna'
+  | 'gpt-5.6-terra'
+  | 'gpt-5.6-sol';
 // Nota: gemini-2.0-flash se retiro del selector el 2026-06-13: el proyecto
 // pictos-vertex devuelve 404 NOT_FOUND para ese modelo en global y us-central1.
 
-export const PHASE5_MODELS: { id: Phase5StructuringModel; label: string }[] = [
-  { id: 'claude-sonnet-4-6',  label: 'Claude Sonnet 4.6' },
-  { id: 'claude-opus-4-6',    label: 'Claude Opus 4.6' },
-  { id: 'gemini-2.5-pro',     label: 'Gemini 2.5 Pro' },
-  { id: 'gemini-2.5-flash',   label: 'Gemini 2.5 Flash' },
-];
+export const PHASE5_MODELS: { id: Phase5StructuringModel; label: string }[] = modelIdsForPhase(5)
+  .map(id => ({ id: id as Phase5StructuringModel, label: MODEL_CATALOG[id].label }));
 
 // Structuring is the finest visual-judgment task in the pipeline and runs
 // manually at low volume — default to the most capable model, not the fastest.
@@ -202,9 +213,39 @@ export interface RecordingSetting {
   enabled: boolean;
 }
 
+/** Evidence for newly accepted Phase 1/2 outputs; not an archive of all attempts.
+ * inputSnapshot is the credential-free application request, not provider wire data. */
+export interface PhaseExecution {
+  id: string;
+  phase: 1 | 2;
+  createdAt: string;
+  model: string;
+  provider: 'google' | 'anthropic' | 'openai';
+  actualModel?: string;
+  reasoningEffort?: string;
+  durationMs?: number;
+  providerRequestId?: string;
+  usage?: Record<string, unknown>;
+  contractId: string;
+  contractVersion: string;
+  contractHash: string;
+  promptVersion: string;
+  promptHash: string;
+  inputSnapshot: unknown;
+  inputHash: string;
+  outputHash: string;
+  validated: true;
+  requestId?: string;
+}
+
 export interface RowData {
   id: string;
   UTTERANCE: string;
+
+  /** New accepted semantic executions; absence on historical data stays unknown. */
+  phaseExecutions?: PhaseExecution[];
+  /** Original values requiring safe UI defaults during import; never training approval. */
+  importOriginalValues?: Record<string, unknown>;
 
   // Pipeline Data
   // Phase 1: "Comprender" (Understanding) - NLU Analysis
@@ -217,9 +258,15 @@ export interface RowData {
   // Phase 3: "Producir" (Produce) - Image Generation
   bitmap?: string;       // Base64 PNG data URL — set by bitmap-producing models
   rawSvg?: string;       // Native SVG — set by vector models in Phase 3 (Gemini image / Recraft vector)
-  structuredSvg?: string; // mf-svg-schema compliant SVG (Phase 5)
+  structuredSvg?: string; // Historical bytes may be unvalidated; new promotions use mf-svg v2.
+  /** Exact-byte reference claim; verify against SVG before trusting imported data. */
+  svgReference?: { schemaVersion: string; revisionId: string; sha256: string; byteLength: number };
+  /** Rejected candidate retained separately; never a completed canonical artifact. */
+  structuredSvgDraft?: string;
   /** Model that produced Phase 3 output. Frozen at Phase 3 completion. */
   generationModel?: GenerationModel;
+  /** OpenAI quality frozen with the generated artifact, not the current config. */
+  generationQuality?: OpenAIImageQuality;
 
   // Discard flags. When true, the artifact is preserved on disk and in
   // memory (for telemetry / research / regeneration) but is NOT
@@ -276,16 +323,26 @@ import type { StyleDefinition, KeyframeDefinition } from './lib/style-editor/lib
 
 /** The Phase 3 generation models, by stable API identifier. */
 export type GenerationModel =
+  | 'gpt-image-2'
   | 'gemini-2.5-flash-image'
   | 'gemini-3.1-flash-image'
   | 'gemini-3-pro-image'
   | 'recraftv4_1'
   | 'recraftv4_1_vector'
   | 'recraftv4_1_utility_vector'
-  | 'recraftv4_1_pro_vector';
+  | 'recraftv4_1_pro_vector'
+  | 'recraftv4_1_pro'
+  | 'recraftv4_1_utility'
+  | 'recraftv4_1_utility_pro'
+  | 'recraftv4_1_utility_pro_vector'
+  | 'recraftv4_styles'
+  | 'recraftv4_styles_vector'
+  | 'recraftv4_styles_pro'
+  | 'recraftv4_styles_pro_vector';
 
 /** Output type classification: *_vector models produce SVG ('vector'); all others produce PNG ('bitmap'). */
 export type ModelFamily = 'bitmap' | 'vector';
+export type OpenAIImageQuality = 'low' | 'medium' | 'high';
 
 export function getModelFamily(model: GenerationModel): ModelFamily {
   return model.endsWith('_vector') ? 'vector' : 'bitmap';
@@ -294,17 +351,9 @@ export function getModelFamily(model: GenerationModel): ModelFamily {
 export const DEFAULT_GENERATION_MODEL: GenerationModel = 'gemini-2.5-flash-image';
 
 /** Human-readable labels for GenerationModel values (used by GenerationModelSelector). */
-export const GENERATION_MODEL_LABELS: Record<GenerationModel, string> = {
-  'gemini-2.5-flash-image': 'Gemini 2.5 Flash',
-  'gemini-3.1-flash-image': 'Gemini 3.1 Flash',
-  'gemini-3-pro-image': 'Gemini 3 Pro',
-  'recraftv4_1': 'Recraft (raster)',
-  'recraftv4_1_vector': 'Recraft (vector)',
-  // Utility: Recraft's variant tuned for "flat lighting, front-facing
-  // composition, and simple scenes" — closest fit to AAC pictogram style.
-  'recraftv4_1_utility_vector': 'Recraft Utility (vector)',
-  'recraftv4_1_pro_vector': 'Recraft Pro (vector)',
-};
+export const GENERATION_MODEL_LABELS = Object.fromEntries(
+  modelIdsForPhase(3).map(id => [id, MODEL_CATALOG[id].label]),
+) as Record<GenerationModel, string>;
 
 /**
  * Generation models that are configured but NOT operational right now, mapped
@@ -338,10 +387,7 @@ export function migrateImageModel(imageModel: string | undefined): GenerationMod
   return DEFAULT_GENERATION_MODEL;
 }
 
-const VALID_GENERATION_MODELS: readonly GenerationModel[] = [
-  'gemini-2.5-flash-image', 'gemini-3.1-flash-image', 'gemini-3-pro-image',
-  'recraftv4_1', 'recraftv4_1_vector', 'recraftv4_1_utility_vector', 'recraftv4_1_pro_vector',
-];
+const VALID_GENERATION_MODELS = modelIdsForPhase(3);
 
 /** Migrates a stored generationModel string — maps removed -preview IDs to stable IDs. */
 export function migrateGenerationModel(model: string | undefined): GenerationModel {
@@ -359,6 +405,7 @@ export interface Phase3Result {
   /** Present for all bitmap-producing models — base64 PNG data URL. */
   bitmap?: string;
   generationModel: GenerationModel;
+  generationQuality?: OpenAIImageQuality;
 }
 
 // ── Config ───────────────────────────────────────────────────────────────────
@@ -385,6 +432,8 @@ export interface GlobalConfig {
   componerModel?: NluModel;
   /** Phase 3 generation model. Persisted in localStorage. */
   generationModel: GenerationModel;
+  /** OpenAI rendering quality; missing values use low. Does not alter existing images. */
+  openaiImageQuality?: OpenAIImageQuality;
   /** Phase 5 structuring model. Persisted in localStorage. Defaults to DEFAULT_PHASE5_MODEL. */
   phase5Model?: Phase5StructuringModel;
   /** Whether the "Configuración avanzada" panel section is expanded. Persisted. */
@@ -411,6 +460,8 @@ export interface GlobalConfig {
   libraryViewMode?: 'list' | 'grid';
   /** Preferred colors sent to Recraft as controls.colors (hex strings, max 10). Recraft-specific; ignored by Gemini. */
   paletteColors?: string[];
+  /** Existing Recraft style UUID. Required by V4 Styles; no paid style creation is implicit. */
+  recraftStyleId?: string;
 }
 
 

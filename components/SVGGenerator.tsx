@@ -1,9 +1,12 @@
+import { ModelPricing } from './ModelPricing';
+import { formatModelPrice } from '../services/modelPricing';
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from '../hooks/useTranslation';
 import { Download, AlertCircle, FileCode, Edit, Layers, Trash2, Scan } from 'lucide-react';
 import { RowData, VisualElement, NLUData, StructuringMapping, PHASE5_MODELS, DEFAULT_PHASE5_MODEL } from '../types';
 import { structureSVG, assembleFromMapping, canStructureSVG } from '../services/svgStructureService';
+import { captureSvgSource, prepareSvgPromotion, observedSvgProvenance } from '../services/svgCanonical';
 import { Phase5ReviewPanel } from './Phase5ReviewPanel';
 import useSVGLibrary from '../hooks/useSVGLibrary';
 import { GlobalConfig } from '../types';
@@ -48,7 +51,10 @@ interface SVGGeneratorProps {
 
 export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, onUpdate, onOpenEditor, layout = 'stacked', onDiscardSvg, onOpenVectorizer, phase5Model = DEFAULT_PHASE5_MODEL, onPhase5ModelChange }) => {
     const { t } = useTranslation();
-    const { addSVG, getSVGByRowId, removeSVGByRowId } = useSVGLibrary();
+    const { getSVGByRowId, removeSVGByRowId } = useSVGLibrary();
+    const latestRow = useRef(row);
+    latestRow.current = row;
+    const pendingSource = useRef<{ row: RowData; config: GlobalConfig; model: string } | null>(null);
     const [status, setStatus] = useState<'idle' | 'traced' | 'structuring' | 'completed' | 'error'>('idle');
     const [error, setError] = useState<string | undefined>();
     const [progress, setProgress] = useState(0);
@@ -101,6 +107,7 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
         bitmap: bitmapRef,
         NLU: row.NLU,
         elements: row.elements,
+        prompt: row.prompt,
     });
 
     // Dynamic Style Injection (Visual only)
@@ -301,6 +308,8 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
                 nlu: nluData,
                 elements: row.elements || [],
                 utterance: row.UTTERANCE,
+                prompt: row.prompt || '',
+                provenance: observedSvgProvenance(row, phase5Model),
                 config,
                 phase5Model,
                 // Redraw reference: the source bitmap shows clean intent (solid
@@ -315,11 +324,13 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
             const sEnd = performance.now();
 
             if (!result.success) {
+                if (result.draftSvg) onUpdate({ structuredSvgDraft: result.draftSvg });
                 throw new Error(result.error || t('svgGenerator.structureFailed'));
             }
 
             // Recording mode: mapping awaits user review
             if (result.pendingReview && result.mapping) {
+                pendingSource.current = { row: structuredClone(row), config: structuredClone(config), model: phase5Model };
                 onLog('info', t('svgGenerator.mappingReadyForReview'));
                 setPendingMapping(result.mapping);
                 setStatus('idle');
@@ -332,16 +343,9 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
 
             onLog('success', t('svgGenerator.structureCompleted', { duration: ((sEnd - sStart) / 1000).toFixed(2) }));
 
-            addSVG({
-                id: row.id,
-                utterance: row.UTTERANCE,
-                svg: result.svg,
-                createdAt: new Date().toISOString(),
-                sourceRowId: row.id,
-                lang: nluData.lang,
-            });
-
-            onUpdate({ structuredSvg: result.svg, structuredSvgDiscarded: false });
+            const promotion = await prepareSvgPromotion(row, result.svg);
+            if (captureSvgSource(latestRow.current) !== promotion.svgSourceSnapshot) throw new Error('SVG inputs changed during generation; previous canonical revision preserved');
+            onUpdate(promotion);
 
             activeStructuring.delete(row.id);
             setStatus('completed');
@@ -642,23 +646,33 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
                             {pendingMapping ? (
                                 <Phase5ReviewPanel
                                     mapping={pendingMapping}
-                                    onConfirm={(selectionOverrides, labelOverrides) => {
+                                    onConfirm={async (selectionOverrides, labelOverrides) => {
                                         setPendingMapping(null);
-                                        const nluData = typeof row.NLU === 'object' ? row.NLU as NLUData : undefined;
+                                        const captured = pendingSource.current;
+                                        pendingSource.current = null;
+                                        if (!captured || captureSvgSource(captured.row) !== captureSvgSource(latestRow.current)) { onLog('error', t('svgGenerator.inputsChangedDuringReview')); return; }
+                                        const sourceRow = captured.row;
+                                        const nluData = typeof sourceRow.NLU === 'object' ? sourceRow.NLU as NLUData : undefined;
                                         if (!nluData) { onLog('error', t('svgGenerator.nluUnavailableForAssembly')); return; }
                                         const assembled = assembleFromMapping(pendingMapping, {
-                                            rawSvg: row.rawSvg!,
+                                            rawSvg: sourceRow.rawSvg!,
                                             nlu: nluData,
-                                            elements: row.elements || [],
-                                            utterance: row.UTTERANCE,
-                                            config,
+                                            elements: sourceRow.elements || [],
+                                            utterance: sourceRow.UTTERANCE,
+                                            prompt: sourceRow.prompt || '',
+                                            provenance: observedSvgProvenance(sourceRow, captured.model),
+                                            config: captured.config,
                                             onProgress: (msg) => onLog('info', msg),
                                         }, selectionOverrides, labelOverrides);
                                         if (assembled.success && assembled.svg) {
-                                            addSVG({ id: row.id, utterance: row.UTTERANCE, svg: assembled.svg, createdAt: new Date().toISOString(), sourceRowId: row.id, lang: nluData.lang });
-                                            onUpdate({ structuredSvg: assembled.svg, structuredSvgDiscarded: false });
+                                            try {
+                                                const promotion = await prepareSvgPromotion(sourceRow, assembled.svg);
+                                                if (captureSvgSource(latestRow.current) !== promotion.svgSourceSnapshot) throw new Error('SVG inputs changed during review');
+                                                onUpdate(promotion);
+                                            } catch (error) { onLog('error', error instanceof Error ? error.message : 'SVG validation failed'); return; }
                                             onLog('success', t('svgGenerator.assembledAfterReview'));
                                         } else {
+                                            if (assembled.draftSvg) onUpdate({ structuredSvgDraft: assembled.draftSvg });
                                             onLog('error', assembled.error || t('svgGenerator.assemblyFailedAfterReview'));
                                         }
                                     }}
@@ -683,9 +697,10 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
                                         aria-label={t('svg.phase5ModelTitle')}
                                     >
                                         {PHASE5_MODELS.map(m => (
-                                            <option key={m.id} value={m.id}>{m.label}</option>
+                                            <option key={m.id} value={m.id}>{m.label} · {formatModelPrice(m.id, t)}</option>
                                         ))}
                                     </select>
+                                    <ModelPricing model={phase5Model} />
                                 </>
                             )}
                         </div>

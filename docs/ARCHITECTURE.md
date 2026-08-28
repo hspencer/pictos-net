@@ -97,10 +97,11 @@ pictos-net/
 │   ├── functions/                 # Proxies server-side (Claude, Recraft, Gemini, quota)
 │   └── edge-functions/            # (reservado)
 │
-├── schemas/                       # Git submodules
-│   ├── nlu-schema/                # NLU v1.0 JSON schema + tests
+├── schemas/                       # Fuentes canónicas, directorios normales
+│   ├── nlu-schema/                # Contratos NLU versionados + validadores + tests
+│   ├── pictogram-composition-schema/ # Contrato de composición + tests
 │   ├── mf-svg-schema/             # Esquema para pictogramas SVG estructurados
-│   └── ICAP/                      # Corpus ICAP-50
+│   └── ICAP/                      # Recurso histórico opcional (puede no existir)
 │
 ├── public/
 │   ├── wasm/vtracer/              # WASM binary servido estáticamente
@@ -407,21 +408,22 @@ El servidor de desarrollo usa `netlify dev` (no `vite` directamente) para que la
 
 Flujo: `dev` → `main` (fast-forward).
 
-### Submodules
+### Productos de esquemas
 
-```bash
-git clone --recurse-submodules https://github.com/hspencer/pictos-net.git
-# o post-clone:
-git submodule update --init --recursive
-```
+PictoNet es la fuente canónica de NLU, composición y SVG semántico. Los tres se desarrollan y
+comitean en `schemas/` como parte del repositorio. La exportación independiente
+conserva sus archivos, pruebas y versiones, y registra el commit fuente y hashes.
+No se usan gitlinks ni actualizaciones automáticas desde repositorios externos.
 
-Los submodules (`nlu-schema`, `mf-svg-schema`, `ICAP`) se copian a `public/schemas/` automáticamente en `postinstall`.
+`postinstall` copia solo contratos `*.schema.json` públicos a `public/schemas/`;
+no publica repositorios ni paquetes. La preparación local y las puertas humanas
+para publicar están documentadas en [SCHEMA_PUBLICATION.md](SCHEMA_PUBLICATION.md).
 
 ## Referencias cruzadas
 
 | Documento | Cubre |
 |-----------|-------|
-| `docs/CONTRIBUTING.md` | Setup local, submodules, i18n, flujo de contribución |
+| `docs/CONTRIBUTING.md` | Setup local, esquemas canónicos, i18n, flujo de contribución |
 | `docs/SECURITY.md` | Modelo de seguridad, API keys, proxies, headers |
 | `docs/ESTRUCTURAR.md` | Fase 4: pipeline interno, set-of-marks, geometría local |
 | `docs/CSS_STYLING_ARCHITECTURE.md` | Modelo de estilos SVG (dos niveles, overrides) |

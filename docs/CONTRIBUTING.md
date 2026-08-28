@@ -4,24 +4,17 @@ Esta guía contiene instrucciones técnicas para desarrolladores que deseen cont
 
 ## Configuración Inicial
 
-### 1. Clonar el Repositorio con Submodules
+### 1. Clonar el repositorio
 
 ```bash
-git clone --recurse-submodules https://github.com/hspencer/pictos-net.git
+git clone https://github.com/hspencer/pictos-net.git
 cd pictos-net
 ```
 
-Si ya clonaste el repositorio sin submodules:
-
-```bash
-git submodule update --init --recursive
-```
-
-**Submodules incluidos:**
-
-- `schemas/nlu-schema` — NLU v1.0 JSON schema + tests
-- `schemas/ICAP` — Corpus ICAP-50 y framework de evaluación
-- `schemas/mf-svg-schema` — Esquema para pictogramas SVG estructurados
+Los tres productos canónicos se editan dentro de `schemas/nlu-schema`,
+`schemas/pictogram-composition-schema` y `schemas/mf-svg-schema`, como directorios
+normales con el mismo flujo de exportación trazable. No se inicializan submódulos ni se importa la copia hermana
+`../nlu-schema`.
 
 ### 2. Instalación de Dependencias
 
@@ -30,8 +23,8 @@ npm install
 ```
 
 Este comando también:
-- Inicializa submodules automáticamente (via `postinstall` hook)
-- Copia archivos necesarios de submodules a `public/schemas/`
+- Copia únicamente contratos JSON públicos desde `schemas/` a `public/schemas/`.
+- Genera el índice de bibliotecas públicas existente; no publica los productos.
 
 ### 3. Configuración de Variables de Entorno
 
@@ -113,31 +106,20 @@ Si encuentras errores de API:
 - Confirma que `netlify dev` está corriendo (no `vite` directamente)
 - Revisa la consola de la función en la terminal de `netlify dev`
 
-## Trabajar con Submodules
+## Trabajar con los esquemas canónicos
 
-### Actualizar Submodules a la Última Versión
+1. Modifica el producto dentro de `schemas/` junto con sus pruebas y documentación.
+2. Conserva versiones publicadas; crea una versión nueva si cambia el contrato.
+3. Ejecuta `npm run test:schemas` y las pruebas de integración sin proveedores.
+4. Prepara una preview local o una exportación desde un commit concreto siguiendo
+   [SCHEMA_PUBLICATION.md](SCHEMA_PUBLICATION.md).
 
-```bash
-git submodule update --remote
-npm run copy-schemas
-```
+Los cambios externos se revisan e incorporan primero a PictoNet. Nunca ejecutar
+`git submodule update --remote` para actualizar estos productos.
 
-### Actualizar un Submodule Específico
-
-```bash
-cd schemas/ICAP
-git checkout main
-git pull origin main
-cd ../..
-npm run copy-schemas
-git add schemas/ICAP
-git commit -m "chore: update ICAP submodule"
-```
-
-### Scripts de Submodules
-
-- `npm run copy-schemas` — Copia archivos de submodules a `public/schemas/`
-- Los scripts `dev` y `build` ejecutan `copy-schemas` automáticamente
+`npm run copy-schemas` copia los contratos JSON públicos y prepara recursos locales;
+los scripts `dev` y `build` lo ejecutan automáticamente. No copia ejemplos, pruebas,
+licencias, credenciales ni corpus privados al directorio público.
 
 ## Internacionalización (i18n)
 

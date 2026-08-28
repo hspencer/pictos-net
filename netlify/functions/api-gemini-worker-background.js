@@ -6,11 +6,12 @@
  * api-gemini-poll. Auth: Identity JWT verified against GoTrue (_shared/identity.js).
  */
 
-import { checkAndCharge, logCall } from './_shared/usage.js';
+import { checkAndCharge, refundUnitsOnce, logCall } from './_shared/usage.js';
 import { getBlobStore as getStore, connectBlobs } from './_shared/blobs.js';
 import { consumeAuthGrant } from './_shared/identity.js';
 import { getVertexAccessToken, vertexModelUrl } from './_shared/vertex.js';
-import { fetchWithRetry, describeFetchError } from './_shared/httpRetry.js';
+import { fetchWithRetry } from './_shared/httpRetry.js';
+import { providerHttpError, providerFailure } from './_shared/providerError.js';
 
 const ALLOWED_MODELS = [
   'gemini-2.5-flash-image',
@@ -97,7 +98,7 @@ export const handler = async (event, context) => {
       retries: 4,
       baseDelayMs: 2000,
       retryOn429: true,
-      // Terminal result guaranteed before the client's 120s poll window ends.
+      // Bound provider work to leave room within the client polling window.
       maxTotalMs: 90000,
       // Publish retry progress so the UI can narrate the wait instead of
       // showing a mute spinner (api-gemini-poll forwards pending blobs as-is).
@@ -105,24 +106,7 @@ export const handler = async (event, context) => {
         store.setJSON(jobId, { pending: true, retrying: { attempt, of: total, waitMs, status } }),
     });
 
-    if (!geminiRes.ok) {
-      const errText = await geminiRes.text().catch(() => geminiRes.statusText);
-      console.error(`[api-gemini-worker] Gemini error ${geminiRes.status}: ${errText}`);
-      await logCall({
-        email, phase: 'gemini', model, units_charged: 1,
-        ms: Date.now() - startMs,
-        tokens_in: 0, tokens_out: 0, ok: false,
-        error_msg: `Gemini ${geminiRes.status}: ${errText.slice(0, 300)}`,
-      });
-      // 429 after retries = the Google project's daily quota for this model is
-      // exhausted (gemini-3-pro-image has a low allowance). Surface a clear,
-      // actionable message instead of the raw RESOURCE_EXHAUSTED payload.
-      const userError = geminiRes.status === 429
-        ? `Cuota diaria de Google agotada para ${model}. Intenta más tarde o elige otro modelo en Fase 3.`
-        : `Gemini error: ${errText.slice(0, 200)}`;
-      await store.setJSON(jobId, { error: userError });
-      return;
-    }
+    if (!geminiRes.ok) throw await providerHttpError(geminiRes, 'gemini', jobId);
 
     const data = await geminiRes.json();
     const parts = data?.candidates?.[0]?.content?.parts ?? [];
@@ -153,15 +137,20 @@ export const handler = async (event, context) => {
     await store.setJSON(jobId, { bitmap });
 
   } catch (error) {
-    // describeFetchError preserves error.cause (ECONNRESET, ENETUNREACH,
-    // UND_ERR_SOCKET...) so "fetch failed" is no longer opaque in logs/client.
-    const detail = describeFetchError(error);
-    console.error(`[api-gemini-worker] Error: ${detail}`);
+    const failure = providerFailure(error, { provider: 'gemini', requestId: jobId });
+    // A terminal 429 may be rate/capacity or billing; never call it a daily limit.
+    const providerQuota = failure.providerStatus === 429;
+    const refunded = providerQuota
+      ? await refundUnitsOnce(email, 1, `gemini:${jobId}`, failure.failureSource)
+      : false;
+    console.error(`[api-gemini-worker] Error: ${failure.error}`);
     await logCall({
-      email, phase: 'gemini', model, units_charged: 1,
-      ms: Date.now() - startMs,
-      tokens_in: 0, tokens_out: 0, ok: false, error_msg: detail,
+      email, phase: 'gemini', model, units_charged: providerQuota ? 0 : 1,
+      ms: Date.now() - startMs, tokens_in: null, tokens_out: null, ok: false,
+      error_msg: failure.error, provider: 'gemini', provider_status: failure.providerStatus,
+      request_id: failure.requestId, attempts: failure.attempts,
+      quota_failure_source: providerQuota ? failure.failureSource : null, refunded_units: refunded ? 1 : 0,
     });
-    await store.setJSON(jobId, { error: detail || 'Gemini service error' });
+    await store.setJSON(jobId, { ...failure, recoverable: failure.retryable, refundedUnits: refunded ? 1 : 0 });
   }
 };

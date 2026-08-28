@@ -37,6 +37,17 @@ test('tool maps to a functionDeclaration with parameters = input_schema', () => 
   assert.deepEqual(decl, { name: 'redraw_svg', description: 'd', parameters: { type: 'object', properties: {} } });
 });
 
+test('local references and constants are resolved before Gemini adaptation', () => {
+  const decl = claudeToolToGeminiFunctionDeclaration({
+    name: 'reference_test', input_schema: {
+      type: 'object', properties: { value: { $ref: '#/$defs/Version' } },
+      $defs: { Version: { const: '1.1.0' } },
+    },
+  });
+  assert.deepEqual(decl.parameters.properties.value, { type: 'string', enum: ['1.1.0'] });
+  assert.throws(() => claudeToolToGeminiFunctionDeclaration({ name: 'broken', input_schema: { $ref: '#/missing' } }), /Unresolved/);
+});
+
 test('output tokens are capped at the shared cap', () => {
   const body = buildGeminiRequest({
     model: 'gemini-2.5-flash',
@@ -112,4 +123,16 @@ test('geminiResponseToClaude tolerates an empty/blocked response', () => {
   const r = geminiResponseToClaude({});
   assert.equal(r.ok, false);
   assert.match(r.error, /did not invoke the tool/);
+});
+
+test('Gemini preserves actual model, raw token usage and reasoning output without inventing missing usage', () => {
+  const base = { candidates: [{ content: { parts: [{ functionCall: { name: 'compose_pictogram', args: {} } }] }, finishReason: 'STOP' }], modelVersion: 'gemini-2.5-pro-observed' };
+  const usage = { promptTokenCount: 10, candidatesTokenCount: 20, thoughtsTokenCount: 5, cachedContentTokenCount: 3 };
+  const response = geminiResponseToClaude({ ...base, usageMetadata: usage }).response;
+  assert.equal(response.model, base.modelVersion);
+  assert.equal(response.usage.output_tokens, 25);
+  assert.deepEqual(response.usage.provider_usage, usage);
+  assert.equal(geminiResponseToClaude(base).response.usage.input_tokens, null);
+  assert.equal(geminiResponseToClaude(base).response.usage.output_tokens, null);
+  assert.equal(geminiResponseToClaude({ ...base, candidates: [{ ...base.candidates[0], finishReason: 'MAX_TOKENS' }] }).ok, false);
 });

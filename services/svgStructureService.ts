@@ -12,7 +12,7 @@
  *              inputs: marked image + raw SVG source + VisualDOM + CSS palette
  *              tool: restructure_svg → StructuringMapping
  *          → if recording.enabled: return mapping for Phase5_Review
- *          → assembleFromMapping (local — geometry never leaves browser)
+ *          → assembleFromMapping (local — geometry operations computed locally; SVG source is sent to the model)
  *              → resolveMergeGeometry: model proposes merge.sources (path ids)
  *                only; the exact union is computed here via svgBooleanOps
  *                (Martinez sweep-line) + applySimplify, never model-authored.
@@ -35,6 +35,8 @@ import { isMicroBlob } from './svgGeometryUtils';
 import { detectMergeCandidates } from './svgMergeCandidates';
 import { shouldSimplify, roundPathD } from './svgPathPolish';
 
+import { assertSemanticInputs, assertValidSVG, createMetadata, parseSVG } from '../schemas/mf-svg-schema/index.js';
+
 const MARK_RENDER_SIZE = 800;
 
 // ─── Public helpers ──────────────────────────────────────────────────────────
@@ -53,6 +55,9 @@ export interface SVGStructureInput {
     nlu: NLUData;
     elements: VisualElement[];
     utterance: string;
+    prompt: string;
+    provenance?: { phaseExecutions?: object[]; generationModel?: string; generationQuality?: 'low' | 'medium' | 'high'; structuringModel?: string };
+    implicitBindings?: { elementId: string; implicit: true; performedBy: string }[];
     config: GlobalConfig;
     phase5Model?: string;
     /**
@@ -67,6 +72,7 @@ export interface SVGStructureInput {
 
 export interface SVGStructureResult {
     svg: string;
+    draftSvg?: string;
     success: boolean;
     error?: string;
     mapping?: StructuringMapping; // populated in recording mode (pending review)
@@ -998,7 +1004,9 @@ function renderGroup(
     const label = escapeXmlAttr(group.label || group.nodeId);
     // Concept comes from the composed VisualElement tree (NLU-derived);
     // only synthetic groups (e.g. the 'contexto' orphan bucket) fall back.
-    const concept = escapeXmlAttr(conceptById.get(group.nodeId) ?? guessConceptFromId(group.nodeId));
+    const knownConcept = conceptById.get(group.nodeId);
+    if (!knownConcept) throw new Error('Unknown semantic group cannot be promoted: ' + group.nodeId);
+    const concept = escapeXmlAttr(knownConcept);
     const lines: string[] = [];
     lines.push(`${indent}<g id="${group.nodeId}" role="group" tabindex="0" data-concept="${concept}" aria-label="${label}" class="${cls}">`);
 
@@ -1112,7 +1120,9 @@ export function assembleFromMapping(
     selectionOverrides?: Map<string, boolean>,
     labelOverrides?: Map<string, string>,
 ): SVGStructureResult {
+    let draftSvg: string | undefined;
     try {
+        assertSemanticInputs(input.nlu, { elements: input.elements, prompt: input.prompt }, input.utterance);
         const rawSvgWithIds = ensurePathIds(input.rawSvg);
         const inventory = buildPathInventory(rawSvgWithIds);
         const originalPaths = extractOriginalPaths(rawSvgWithIds);
@@ -1198,6 +1208,7 @@ export function assembleFromMapping(
         // Unaccounted paths → fallback contexto group
         const allOriginalIds = Array.from(originalPaths.keys()).filter(id => !inventory.backgroundPathIds.includes(id));
         const orphans = allOriginalIds.filter(id => !assignedIds.has(id));
+        if (orphans.length > 0) throw new Error('Unassigned geometry cannot be given an invented Context concept');
         if (orphans.length > 0) {
             console.warn(`[assemble] paths sin asignar (→ contexto): ${orphans.join(', ')}`);
             const existing = effectiveGroups.find(g => g.nodeId === 'contexto');
@@ -1258,7 +1269,7 @@ export function assembleFromMapping(
             filteredCSS = filteredCSS ? `${filteredCSS}\n\n/* User-defined styles */\n${inventory.rawStyleRules}` : inventory.rawStyleRules;
         }
 
-        const metadata = buildMetadataJSON(input);
+        const metadata = buildMetadataJSON(input, body);
         let svgContent = assembleStructuredSVG(body, input, metadata, filteredCSS, inventory.viewBox);
         svgContent = removeEmptyGroupsFromFragment(svgContent);
 
@@ -1270,6 +1281,8 @@ export function assembleFromMapping(
             svgContent = polishGeometry(svgContent, input.onProgress);
         }
 
+        draftSvg = svgContent;
+        assertValidSVG(svgContent);
         const groupCount = (svgContent.match(/<g /g) ?? []).length;
         input.onProgress?.(`[ESTRUCTURAR] completado — ${(svgContent.length / 1024).toFixed(1)} KB, ${groupCount} grupos semánticos`);
 
@@ -1277,6 +1290,7 @@ export function assembleFromMapping(
     } catch (error) {
         return {
             svg: '',
+            draftSvg,
             success: false,
             error: error instanceof Error ? error.message : 'Error desconocido en ensamblado',
         };
@@ -1404,46 +1418,25 @@ function validateXML(svg: string): string | null {
 
 // ─── Metadata ────────────────────────────────────────────────────────────────
 
-function buildMetadataJSON(input: SVGStructureInput): object {
-    const nlu = input.nlu;
-    const vg = nlu.visual_guidelines;
-    const config = input.config;
-    const naturalDesc = [
-        vg?.focus_actor,
-        vg?.action_core && `realizando: ${vg.action_core}`,
-        vg?.object_core && `con: ${vg.object_core}`,
-        vg?.context && `contexto: ${vg.context}`,
-    ].filter(Boolean).join(', ') || input.utterance;
-    return {
-        version: '1.0.0',
-        schema: 'mediafranca/mf-svg-schema',
-        pipeline: 'claude+recraft',
-        utterance: input.utterance,
-        lang: nlu.lang || config.lang || 'es-419',
-        domain: nlu.domain ?? 'general',
-        region: config.geoContext?.region ?? null,
-        nsm: { explications: nlu.nsm_explications ?? {} },
-        frames: (nlu.frames ?? []).map(f => ({
-            frame: f.frame_name, label: f.frame_label ?? f.frame_name, lexicalUnit: f.lexical_unit,
-            roles: Object.fromEntries(Object.entries(f.roles ?? {}).map(([role, data]) => [role, { type: data.type, surface: data.surface, ref: data.ref }])),
-        })),
-        pragmatics: {
-            speechAct: nlu.metadata?.speech_act ?? 'assertive', intent: nlu.metadata?.intent ?? 'inform',
-            politeness: nlu.pragmatics?.politeness ?? null, formality: nlu.pragmatics?.formality ?? null,
-            expectedResponse: nlu.pragmatics?.expected_response ?? null,
-        },
-        visualGuidelines: { focusActor: vg?.focus_actor ?? null, actionCore: vg?.action_core ?? null, objectCore: vg?.object_core ?? null, context: vg?.context ?? null, temporal: vg?.temporal ?? null },
-        // Composed visual DOM (Phase 2) with NLU-derived concepts — the
-        // structured SVG's <g> hierarchy should be congruent with this tree.
-        visualDom: flattenElements(input.elements ?? []).map(n => ({ id: n.id, concept: n.concept, parentId: n.parentId })),
-        accessibility: { cognitiveDescription: input.utterance, visualDescription: naturalDesc, lang: nlu.lang || config.lang || 'es-419' },
-        provenance: { generator: 'PictoNet', generatedAt: new Date().toISOString(), sourceDataset: 'MediaFranca-PictoNet', licence: config.license || 'CC BY 4.0' },
-    };
+function buildMetadataJSON(input: SVGStructureInput, body: string, operation = 'assembly'): object {
+    const composition = { elements: input.elements, prompt: input.prompt };
+    const elements = assertSemanticInputs(input.nlu, composition, input.utterance);
+    const doc = parseSVG(`<svg xmlns="http://www.w3.org/2000/svg">${body}</svg>`);
+    const groupIds = new Set(Array.from(doc.getElementsByTagName('g')).map(g => g.getAttribute('id')));
+    const supplied = new Map((input.implicitBindings ?? []).map(binding => [binding.elementId, binding]));
+    const bindings = Array.from(elements.values()).filter((node: any) => node.concept !== 'Root').map((node: any) => {
+        if (groupIds.has(node.id)) return { elementId: node.id, groupId: node.id };
+        const implicit = supplied.get(node.id);
+        if (implicit) return implicit;
+        throw new Error('No geometry or supplied implicit binding for composition element: ' + node.id);
+    });
+    const desc = Array.from(doc.getElementsByTagName('desc'))[0]?.textContent?.trim() || input.utterance;
+    return createMetadata({ nlu: input.nlu, composition, bindings, provenance: input.provenance ?? {}, description: desc, operation });
 }
 
 function assembleStructuredSVG(body: string, input: SVGStructureInput, metadata: object, filteredCSS: string, viewBox: string): string {
     const lang = input.nlu.lang || input.config.lang || 'es-419';
-    const domain = input.nlu.domain ?? 'general';
+    const domainAttribute = input.nlu.domain ? ` data-domain="${escapeXmlAttr(input.nlu.domain)}"` : '';
     const utteranceEscaped = escapeXmlAttr(input.utterance);
     const descMatch = body.match(/<desc[^>]*>([\s\S]*?)<\/desc>/i);
     const descContent = descMatch ? descMatch[1].trim() : input.utterance;
@@ -1451,10 +1444,10 @@ function assembleStructuredSVG(body: string, input: SVGStructureInput, metadata:
     const descEscaped = descContent.replace(/&(?!amp;|lt;|gt;|quot;|apos;)/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     // Split ]]> so it cannot close the CDATA section prematurely.
     const metadataJSON = JSON.stringify(metadata, null, 2).replace(/\]\]>/g, ']]]]><![CDATA[>');
-    return `<svg id="pictogram" xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}" role="img" aria-labelledby="title desc" lang="${lang}" tabindex="0" focusable="true" data-domain="${domain}" data-utterance="${utteranceEscaped}">
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}" role="img" aria-labelledby="title desc" lang="${lang}" tabindex="0" focusable="true"${domainAttribute} data-utterance="${utteranceEscaped}">
   <title id="title">${utteranceEscaped}</title>
   <desc id="desc">${descEscaped}</desc>
-  <metadata id="mf-data"><![CDATA[
+  <metadata id="mf-accessibility"><![CDATA[
 ${metadataJSON}
   ]]></metadata>
   <defs>
@@ -1664,7 +1657,9 @@ function renderRedrawGroup(
 ): string {
     const semanticCls = paletteClasses.includes(group.cssClass) ? group.cssClass : (paletteClasses[0] || 'main');
     const label = escapeXmlAttr(group.label || group.nodeId);
-    const concept = escapeXmlAttr(conceptById.get(group.nodeId) ?? guessConceptFromId(group.nodeId));
+    const knownConcept = conceptById.get(group.nodeId);
+    if (!knownConcept) throw new Error('Unknown semantic group cannot be promoted: ' + group.nodeId);
+    const concept = escapeXmlAttr(knownConcept);
     const lines: string[] = [];
     lines.push(`${indent}<g id="${group.nodeId}" role="group" tabindex="0" data-concept="${concept}" aria-label="${label}">`);
     for (const d of group.paths) {
@@ -1689,7 +1684,9 @@ function renderRedrawGroup(
  * experimentation; runs via the background worker (no 90s timeout) when used.
  */
 export async function redrawSVG(input: SVGStructureInput): Promise<SVGStructureResult> {
+    let draftSvg: string | undefined;
     try {
+        assertSemanticInputs(input.nlu, { elements: input.elements, prompt: input.prompt }, input.utterance);
         const model = input.phase5Model ?? 'claude-sonnet-4-6';
 
         // Reference image: prefer the source bitmap (cleaner intent) over a
@@ -1734,7 +1731,7 @@ export async function redrawSVG(input: SVGStructureInput): Promise<SVGStructureR
         validGroups.forEach(g => { if (paletteClasses.includes(g.cssClass)) usedClasses.add(g.cssClass); });
         const filteredCSS = buildFilteredCSS(cssStyles, usedClasses);
 
-        const metadata = buildMetadataJSON(input);
+        const metadata = buildMetadataJSON(input, body, 'redraw');
         let svgContent = assembleStructuredSVG(body, input, metadata, filteredCSS, REDRAW_VIEWBOX);
         svgContent = removeEmptyGroupsFromFragment(svgContent);
 
@@ -1747,12 +1744,14 @@ export async function redrawSVG(input: SVGStructureInput): Promise<SVGStructureR
         }
 
         const pathCount = (svgContent.match(/<path /g) ?? []).length;
+        draftSvg = svgContent;
+        assertValidSVG(svgContent);
         const groupCount = (svgContent.match(/<g /g) ?? []).length;
         input.onProgress?.(`[ESTRUCTURAR] redibujo completado — ${(svgContent.length / 1024).toFixed(1)} KB, ${groupCount} grupos, ${pathCount} trazos limpios`);
 
         return { svg: svgContent, success: true };
     } catch (error) {
-        return { svg: '', success: false, error: error instanceof Error ? error.message : 'Error desconocido en ESTRUCTURAR (redibujo)' };
+        return { svg: '', draftSvg, success: false, error: error instanceof Error ? error.message : 'Error desconocido en ESTRUCTURAR (redibujo)' };
     }
 }
 
@@ -1842,6 +1841,7 @@ export async function structureSVG(input: SVGStructureInput): Promise<SVGStructu
         const model = input.phase5Model ?? 'claude-sonnet-4-6';
 
         input.onProgress?.('[ESTRUCTURAR] Pre-procesando SVG local…');
+        assertSemanticInputs(input.nlu, { elements: input.elements, prompt: input.prompt }, input.utterance);
         const rawSvgWithIds = ensurePathIds(input.rawSvg);
         const inventory = buildPathInventory(rawSvgWithIds);
 
@@ -1938,12 +1938,15 @@ export function canStructureSVG(row: {
     bitmap?: string;
     NLU?: NLUData | string;
     elements?: VisualElement[];
+    prompt?: string;
 }): { eligible: boolean; reason?: string } {
     // Relabel preserves and groups the traced geometry, so the trace is
     // required; the bitmap is an optional cleanup reference.
     if (!row.rawSvg) return { eligible: false, reason: 'Se requiere el trazado (ejecutar TRAZAR primero)' };
     if (!row.NLU || typeof row.NLU === 'string') return { eligible: false, reason: 'Se requiere análisis NLU' };
     if (!row.elements || row.elements.length === 0) return { eligible: false, reason: 'Se requieren elementos visuales' };
+    try { assertSemanticInputs(row.NLU, { elements: row.elements, prompt: row.prompt }); }
+    catch (error) { return { eligible: false, reason: error instanceof Error ? error.message : 'Invalid semantic inputs' }; }
     return { eligible: true };
 }
 

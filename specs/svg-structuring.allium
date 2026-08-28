@@ -1,99 +1,233 @@
 -- allium: 3
--- svg-structuring.allium
-
--- Scope: Phase 5 "Estructurar" — structuring a raw vectorized SVG into
---   a semantic, mf-svg-schema-compliant SVG using Gemini AI assignment.
--- Includes: Pre-processing, Gemini prompt, JSON parsing, SVG assembly,
---   style handling, metadata embedding, post-processing.
--- Excludes:
---   - Vectorization (Phase 4, VTracer)
---   - NLU analysis (Phase 1)
---   - Visual blueprint (Phase 2)
---   - Bitmap generation (Phase 3)
---   - SVG editor interactions (separate spec)
--- Dependencies: VisualElement from types.ts, NLUData from types.ts,
---   mf-svg-schema spec, aiClient for Gemini calls
-
-------------------------------------------------------------
--- Value Types
-------------------------------------------------------------
-
-value PathInfo {
-  id: String
-  fill: String
-  fillRole: dark | light | accent | unknown
-  cx: Number
-  cy: Number
-  vtracerGroup: String?
-}
-
-value PathInventory {
-  paths: [PathInfo]
-  vtracerGroups: Map<String, [String]>
-  groupClasses: Map<String, String>
-  pathClasses: Map<String, String>
-  standalonePathIds: [String]
-  viewBox: String
-  rawStyleRules: String
-  cssFillMap: Map<String, String>
-}
-
-value AssignmentNode {
-  concept: Agent | Object | Action | Context | Attribute
-  label: String
-  class: k | f
-  paths: [String]
-  children: Map<String, AssignmentNode>?
-  evenodd: Boolean?
-}
-
-value Assignment {
-  desc: String
-  groups: Map<String, AssignmentNode>
-}
+-- Phase 5 and the portable mf-svg artifact boundary.
+-- This specifies the 2.0.0-draft.1 candidate, not a published release.
+-- Existing 1.0 documents remain historical inputs under their frozen contract.
+-- Implementation gates below must be verified; this file alone does not prove
+-- conformance, cognitive accessibility, publication, or training readiness.
 
 ------------------------------------------------------------
 -- External Entities
 ------------------------------------------------------------
 
-external RawSVG {
-  -- SVG output from VTracer (Phase 4)
-  -- Contains paths, optional groups, optional <style> blocks
-  -- May have user-edited CSS classes from the SVG editor
-}
-
-external NLUData {
-  -- Semantic analysis from Phase 1
-  utterance: String
-  lang: String
-  domain: String?
-  frames: [Frame]
-  visual_guidelines: VisualGuidelines
-  nsm_explications: Map<String, String>
-  pragmatics: Pragmatics
-}
-
-external VisualElement {
-  -- Hierarchical element tree from Phase 2
-  id: String
-  children: [VisualElement]?
-}
-
-external GlobalConfig {
-  -- User configuration including style definitions
-  lang: String
-  svgStyleDefs: [StyleDefinition]?
-  svgKeyframes: [Keyframe]?
+external entity Editor {
+    id: String
 }
 
 ------------------------------------------------------------
--- Entities
+-- Value Types
 ------------------------------------------------------------
 
-entity StructuredSVG {
-  content: String
-  success: Boolean
-  error: String?
+value StructuringInput {
+    raw_svg: String
+    nlu: Any
+    composition: Any
+    known_provenance: Any
+    explicit_bindings: List<SemanticBinding>
+}
+
+value SemanticBinding {
+    composition_element_id: String?
+    kind: BindingKind
+    label: String
+    svg_group_id: String?
+    performed_by: String?
+}
+
+value SvgConformance {
+    profile_version: String
+    content_hash: String
+    valid: Boolean
+    issues: List<String>
+}
+
+value RevisionReference {
+    profile_version: String
+    content_hash: String
+}
+
+------------------------------------------------------------
+-- Contracts
+------------------------------------------------------------
+
+contract LocalGeometryAssembly {
+    assemble: (input: StructuringInput, mapping: Any) -> String
+
+    @invariant CoherentAssemblyInput
+        -- Assembly receives a frozen raw SVG, complete NLU document, complete
+        -- composition document including its prompt, and actually known
+        -- provenance. It cannot reconstruct absent semantics or execution
+        -- history from current settings, labels, or a hardcoded provider name.
+
+    @invariant MappingIsNotGeometry
+        -- The regrouping model proposes source path ids and semantic groups.
+        -- It does not author replacement geometry. Original geometry remains
+        -- local; effective ancestor transforms, fill, fill-rule, stroke and
+        -- opacity survive re-parenting. fill="none" never becomes solid fill.
+        -- Redraw, where explicitly selected, is a distinct geometric revision
+        -- and must not claim exact preservation of the original geometry.
+
+    @invariant GeometryAndStylePreservation
+        -- Existing unique ids and user style classes are preserved where
+        -- possible. Collision-free ids are assigned where missing. Id changes
+        -- update every local reference, including metadata and CSS references.
+        -- User styles override library defaults. Automatic classes cannot
+        -- recolour a path contrary to its observed fill role. Necessary defs,
+        -- focus styles and referenced keyframes survive style filtering.
+        -- Non-path primitives cannot be silently dropped: preserve them or
+        -- return a diagnostic draft that cannot claim geometry completeness.
+
+    @invariant EverySourcePathAccountedFor
+        -- Every source path is retained exactly once, included in an explicitly
+        -- gated merge, or recorded as deliberately discarded by the editor.
+        -- Missing assignments retain geometry in a diagnostic fallback group.
+        -- A fallback name such as contexto is not evidence that the paths
+        -- actually depict a semantic context. Duplicate or unknown assignments
+        -- are diagnostics, not permission to duplicate or invent geometry.
+
+    @invariant LocallyGatedMerges
+        -- The model only proposes merges. Local geometric compatibility checks
+        -- determine whether they are safe; rejected proposals keep original
+        -- separate paths. Even-odd holes must survive. A merge-free candidate
+        -- is preferred when it preserves more original ink. Fidelity warnings
+        -- remain visible and do not destroy or withhold the editable draft.
+        -- Structural conformance is not a claim of measured visual fidelity.
+        -- If an ink comparison exceeds config.fidelity_warning_ratio of the
+        -- original inked area, report added/removed coverage and compare the
+        -- merge-free candidate. This existing warning policy is non-blocking.
+
+    @invariant ParseFailureIsNotSemanticRepair
+        -- Empty, non-string, malformed or empty-group assignments fail with
+        -- diagnostics. No inferred group, performer or semantic label repairs
+        -- an invalid response into accepted meaning. Raw responses retained
+        -- for diagnosis remain unvalidated and are not embedded as reasoning.
+}
+
+contract PortablePictogramRevision {
+    validate: (content: String, profile_version: String) -> SvgConformance
+    reference: (content: String, conformance: SvgConformance) -> RevisionReference
+
+    @invariant OneRevisionOneTruth
+        -- A conforming SVG is the portable source of truth for one pictogram
+        -- revision: rendered geometry, full NLU, full composition, actual
+        -- semantic bindings, accessibility text and known provenance travel
+        -- together. A row is the editable workspace and history; any accepted
+        -- reference identifies exact SVG bytes and the declared profile.
+        -- Row caches are projections of that revision, not independently
+        -- editable competing copies of its final semantic truth.
+
+    @invariant CompleteVersionedPayloads
+        -- Metadata contains the complete accepted NLU and complete composition
+        -- documents, not lossy frames, invented NSM primes, or flattened tree
+        -- summaries. Their versioned contract identities are explicit. The
+        -- mf-svg product bundles matching canonical definitions for offline
+        -- validation; the SVG need not embed copies of the schemas themselves.
+        -- The utterance, language, title, descriptions and binding references
+        -- must agree where they express the same fact. No fake default intent,
+        -- speech act, generation model, source dataset, licence or timestamp
+        -- fills a historical gap. A current assembly time is labelled as such.
+
+    @invariant ClosedMetadataAndFailClosedValidation
+        -- The 2.0 profile closes structural metadata objects. Any explicitly
+        -- supported extension container is separate from normative fields and
+        -- never overrides them. Well-formed XML alone is insufficient: metadata
+        -- JSON, embedded contracts and cross-document references all validate.
+        -- Unknown profiles, malformed JSON, duplicate JSON keys, unavailable
+        -- validators or missing bundled schemas are failures, never warnings
+        -- converted into conformance. Historical validation remains versioned;
+        -- a readable 1.0 artifact is not silently relabelled 2.0.
+
+    @invariant ActualBindingsOnly
+        -- Explicit bindings identify an existing semantic SVG group. Present
+        -- composition references resolve to actual composition element ids.
+        -- Every semantic group has one unambiguous binding and a nonempty label;
+        -- bindings cannot point to missing, duplicate or non-group ids. Sparse
+        -- correspondence is allowed: a composition node without a rendered
+        -- binding remains unresolved, never silently converted into an action.
+        -- Unclassified fallback geometry cannot be labelled a known semantic
+        -- concept just to pass conformance; retain it in a diagnostic draft.
+
+    @invariant ImplicitMeaningIsRepresentable
+        -- An action may be expressed by posture or relations with no separate
+        -- drawn action group. A declared implicit binding has no own SVG
+        -- group id. A supplied performedBy reference must resolve to a rendered
+        -- explicit group. No performer is inferred solely from node order or
+        -- guessed from the first Agent. Absence remains unknown; it does not
+        -- require invention of an empty group or a decorative action symbol.
+
+    @invariant AccessibleResolvableDocument
+        -- SVG namespace and viewBox are valid. Document-wide ids are unique.
+        -- The root exposes an image role and resolvable title/description ids;
+        -- these texts and the document language are nonempty. Semantic groups
+        -- expose group role and nonempty accessible labels. Every local href,
+        -- URL reference, aria-labelledby and aria-describedby target exists.
+        -- Accessibility annotations express descriptions, not proof of
+        -- understanding, effectiveness or cognitive accessibility in users.
+
+    @invariant SelfContainedPassiveArtifact
+        -- A portable conforming SVG requires no remote image, font, stylesheet
+        -- or script to render or interpret its normative content. Scripts,
+        -- event handlers, external entities and executable foreign content are
+        -- rejected. Local SVG references resolve within the same artifact.
+        -- No validation step fetches remote schemas or referenced resources.
+
+    @invariant KnownEvidenceAndPrivacy
+        -- Embed only actually recorded, relevant provenance. API credentials,
+        -- private chain-of-thought, raw provider diagnostics, participant
+        -- identities, audio and the full interaction log are not automatically
+        -- copied from the workspace into a portable artifact. Full historical
+        -- NLU that contains sensitive data stays preserved in a local draft;
+        -- publication needs an explicit privacy decision, never silent
+        -- redaction disguised as the unchanged original accepted analysis.
+
+    @invariant ReviewIsSeparateEvidence
+        -- Technical conformance and a confirmed grouping screen never invent
+        -- human semantic/cognitive approval. Unreviewed artifacts are permitted
+        -- and labelled as such. Any actual review identifies its scope and the
+        -- exact evaluated content; reviewer identity is included only under an
+        -- approved disclosure policy. Editing geometry, meaning or descriptions
+        -- produces a new revision and cannot inherit the old approval.
+
+    @invariant FinalByteHashWithoutSelfReference
+        -- The workspace reference is SHA-256 of exact final UTF-8 SVG bytes,
+        -- computed only after id rewriting, geometry polish and final metadata
+        -- serialization. That file hash is stored outside the hashed SVG,
+        -- avoiding a circular self-hash. Known parent revision hashes and
+        -- separately scoped input hashes may be embedded as provenance.
+        -- No character, metadata field or style may change after hashing and
+        -- still claim the same accepted reference.
+
+    @invariant NoAutomaticPublicationOrTraining
+        -- Producing or validating a local SVG does not publish it, license its
+        -- contents, grant training eligibility, or certify human review.
+        -- Public distribution and corpus inclusion require their own explicit
+        -- approval and evidence under the publication and corpus contracts.
+}
+
+------------------------------------------------------------
+-- Enumerations
+------------------------------------------------------------
+
+enum BindingKind { explicit | implicit }
+enum RevisionStatus { draft | conforming | rejected }
+
+------------------------------------------------------------
+-- Entities and Variants
+------------------------------------------------------------
+
+entity StructuredRevision {
+    content: String
+    profile_version: String
+    content_hash: String
+    parent_hash: String?
+    status: RevisionStatus
+    conformance: SvgConformance?
+    accepted_reference: RevisionReference?
+
+    transitions status {
+        draft -> conforming
+        draft -> rejected
+        terminal: conforming, rejected
+    }
 }
 
 ------------------------------------------------------------
@@ -101,326 +235,121 @@ entity StructuredSVG {
 ------------------------------------------------------------
 
 config {
-  gemini_model: String = "gemini-2.5-flash"
-  gemini_temperature: Number = 0.1
-  max_output_tokens: Number = 8192
+    candidate_profile_version: String = "2.0.0-draft.1"
+    fidelity_warning_ratio: Decimal = 0.05
 }
 
 ------------------------------------------------------------
 -- Rules
 ------------------------------------------------------------
 
--- === Eligibility ===
-
-rule CheckEligibility {
-  when: user requests structuring for a row
-
-  requires: row has rawSvg (Phase 4 completed)
-  requires: row has NLU as parsed object (Phase 1 completed)
-  requires: row has elements with at least one item (Phase 2 completed)
-
-  -- All three upstream phases must be complete
+rule CaptureStructuredDraft {
+    when: StructuredDraftProduced(editor, content, parent_hash)
+    requires: content != ""
+    ensures:
+        StructuredRevision.created(
+            content: content,
+            profile_version: config.candidate_profile_version,
+            content_hash: sha256_utf8(content),
+            parent_hash: parent_hash,
+            status: draft,
+            conformance: null,
+            accepted_reference: null
+        )
+    @guidance
+        -- Captures final assembly or an explicit edit. It is a new snapshot;
+        -- a previous revision is never mutated or automatically reapproved.
 }
 
--- === Pre-processing (local) ===
-
-rule EnsurePathIds {
-  when: structuring begins
-
-  ensures: every <path> and <g> in rawSvg has a unique id attribute
-  -- VTracer output lacks ids; generate p0, p1, ... g0, g1, ...
-  -- Existing ids are preserved, no collisions
+rule AcceptConformingRevision {
+    when: ConformanceEvaluated(revision, conformance)
+    requires: revision.status = draft
+    requires: conformance.content_hash = revision.content_hash
+    requires: conformance.profile_version = revision.profile_version
+    requires: conformance.valid
+    requires: conformance.issues.count = 0
+    ensures: revision.conformance = conformance
+    ensures: revision.status = conforming
+    ensures: revision.accepted_reference = {
+        profile_version: revision.profile_version,
+        content_hash: revision.content_hash
+    }
 }
 
-rule BuildPathInventory {
-  when: ids assigned
-
-  ensures: PathInventory created with:
-    -- For each path: id, resolved fill, fillRole, centroid, vtracerGroup
-    -- Fill resolution order: inline fill attr > style attr > CSS class > #000000
-    -- FillRole classification by luminance/saturation:
-    --   dark (luminance < 0.2), light (luminance > 0.8),
-    --   accent (saturation > 0.4 AND luminance > 0.1), unknown (default)
-    -- Centroid: geometric center from path d attribute coordinates
-    -- User CSS classes from <style> blocks are captured in rawStyleRules
-    -- CSS class-to-fill mappings captured in cssFillMap
-}
-
--- === Gemini assignment ===
-
-rule SendAssignmentPrompt {
-  when: inventory built
-
-  ensures: Gemini receives a prompt containing:
-    1. System instruction defining the JSON schema for assignment
-    2. User message with:
-       a. Semantic context: utterance, actor, action, object, domain, frames
-       b. Element tree hierarchy with exact ids to use as group ids
-       c. Path inventory with fill colors, roles, centroids, vtracer groups
-
-  @invariant "element tree as target structure"
-    -- The element tree ids MUST be communicated as the preferred group ids.
-    -- Gemini should use these ids for <g> elements whenever a semantic
-    -- match exists. When paths don't correspond 1:1 with elements,
-    -- Gemini may group or split, but must stay as close as possible
-    -- to the provided hierarchy.
-
-  @invariant "path privacy"
-    -- Path geometry (d attribute) is NEVER sent to Gemini.
-    -- Only id, fill, fillRole, centroid, and vtracerGroup are sent.
-
-  @invariant "all paths assigned"
-    -- The prompt requires that every path id appears exactly once
-    -- in the JSON response.
-}
-
-rule ParseAssignment {
-  when: Gemini responds
-
-  requires: response is non-empty
-
-  ensures: response parsed as Assignment JSON
-  -- cleanGeminiJSON repairs: markdown fences, comments, trailing commas,
-  -- truncated strings, unclosed brackets
-
-  @invariant "type safety on response"
-    -- response.text MUST be verified as a string before calling
-    -- string methods (.trim, .match, .replace, .indexOf).
-    -- If response.text is undefined, null, or not a string,
-    -- return an error immediately rather than calling string methods.
-}
-
-rule HandleParseFailure {
-  when: JSON parsing fails after cleaning
-
-  ensures: StructuredSVG.success = false
-  ensures: StructuredSVG.error contains parse error details
-  -- Raw JSON logged for debugging
-}
-
-rule HandleEmptyGroups {
-  when: parsed JSON has no groups or groups is empty
-
-  ensures: StructuredSVG.success = false
-  ensures: StructuredSVG.error = "Gemini returned JSON without groups"
-}
-
--- === Style handling ===
-
-rule PreserveUserStyles {
-  when: assembling structured SVG
-
-  @invariant "user classes take precedence"
-    -- If a path or group in the raw SVG has user-applied CSS classes
-    -- (from manual editing in the SVG editor), those classes MUST be
-    -- preserved in the structured SVG.
-    -- Auto-calculated color classes (main, w, accent) are ONLY applied
-    -- when the element has NO user-defined classes that map to a fill.
-
-  @invariant "raw style rules preserved"
-    -- CSS rules from the raw SVG's <style> block are appended to
-    -- the final stylesheet. They are NOT replaced by library defaults.
-
-  @guidance "style layering order"
-    -- The final CSS in the structured SVG follows this order:
-    -- 1. Library stylesheet (filtered to used classes only)
-    -- 2. User-defined styles from raw SVG's <style> block
-    -- User styles appear AFTER library styles and thus override them.
-
-  @guidance "no auto-color when user class has fill"
-    -- When checking whether to apply auto-color class:
-    -- Look up user classes in cssFillMap. If ANY user class defines
-    -- a fill, skip the auto-color class entirely for that group.
-
-  @invariant "inherited presentation survives re-parenting"
-    -- SVG paint and geometry are inherited through <g> ancestors, and
-    -- assembly re-parents every path into new semantic groups. The
-    -- EFFECTIVE inherited values must therefore be baked onto each path
-    -- at extraction time:
-    --   - fill: own value, else nearest ancestor's; fill="none" is
-    --     preserved AS none (per-id rule) — a stroke-only outline must
-    --     never become a solid shape
-    --   - transform: the full ancestor chain composed outermost-first
-    --   - stroke*, opacity, fill-rule: inherited from the nearest
-    --     ancestor when absent on the path
-    -- Non-path primitives (rect, circle, …) are not yet structured;
-    -- their presence is surfaced as a warning, never silently dropped.
-}
-
--- === SVG assembly (local) ===
-
-rule AssembleSVG {
-  when: assignment parsed and styles resolved
-
-  ensures: structured SVG assembled locally with:
-    -- Semantic <g> elements with: id, role="group", tabindex="0",
-    --   data-concept, aria-label, class
-    -- Original path geometry preserved exactly (d, transform)
-    -- Path class attributes preserved from raw SVG
-
-  @invariant "geometry stays local"
-    -- Path d attributes are read from the original rawSvg DOM,
-    -- never from Gemini's response. Gemini only provides the
-    -- assignment map (which path goes in which group).
-}
-
-rule HandleMissingPaths {
-  when: some path ids from inventory are not in assignment
-
-  ensures: missing paths auto-assigned to a fallback "contexto" group
-    with concept=Context, class=f
-  -- Warning logged with list of missing path ids
-}
-
-rule MergeEvenoddPaths {
-  when: assignment node has evenodd = true AND multiple paths
-
-  ensures: paths merged into single <path> with fill-rule="evenodd"
-  -- Dark path provides the fill color
-  -- All path d strings concatenated (with transform offsets baked in)
-  -- This handles light "holes" nested inside dark shapes
-}
-
-rule MergeCompatibilityGate {
-  -- The model only PROPOSES merge sources; whether they are actually
-  -- double contours is decided locally, by the same geometric predicate
-  -- that detects merge candidates (bbox IoU >= 0.7, similar area, same
-  -- fill role). The model's judgment is never sufficient on its own.
-  when: a proposed merge is about to be resolved into a geometric union
-
-  requires: every source path passes the double-contour predicate
-    against every other source (one transitive cluster)
-  ensures: on failure, sources are kept as separate untouched paths
-    -- keeping paths separate is always visually safe; a wrong union
-    -- deforms the figure (an arm welded to the torso, a filled hole)
-}
-
-rule ColorClassFromOriginalFill {
-  -- The CSS class assigned to a group must agree with the ORIGINAL
-  -- colour of its paths (fillRole, measured locally). The model chooses
-  -- semantics among compatible classes (k vs f for dark shapes) but can
-  -- never recolour — e.g. an originally-black arrow must not become
-  -- 'accent' red because the model judges it "urgent".
-  when: a group's CSS class is emitted during assembly
-
-  ensures: class in { k, f, main } when dominant fillRole = dark
-  ensures: class = w when dominant fillRole = light
-  ensures: class = accent when dominant fillRole = accent
-  ensures: incompatible model class replaced by the fillRole-derived
-    class, with a warning
-  -- Custom (non-colour) palette classes pass through with the derived
-  -- colour class appended, as before.
-}
-
--- === Post-processing (local) ===
-
-rule FilterCSS {
-  when: SVG body assembled
-
-  ensures: only CSS rules whose selectors match classes used in the
-    SVG body are included in the final <style> block
-  -- Rules matching [role="group"] always kept (accessibility focus)
-  -- @keyframes kept only if referenced by animation properties
-}
-
-rule DeriveSemanticIds {
-  when: SVG passes XML validation
-
-  ensures: auto-generated path ids (p0, p1, ...) renamed to
-    semantic ids based on parent group: [groupId]-1, [groupId]-2, ...
-  -- CSS selectors referencing old ids updated to new ids
-  -- Only applies to ids matching vtracer patterns (p/g + digits)
-}
-
-rule RemoveEmptyGroups {
-  when: SVG assembled
-
-  ensures: completely empty <g></g> elements removed iteratively
-}
-
-rule EmbedMetadata {
-  when: SVG body complete
-
-  ensures: <metadata id="mf-data"> block embedded with:
-    -- version, schema reference, utterance, lang, domain
-    -- NSM explications, frames, pragmatics
-    -- Visual guidelines, accessibility descriptions
-    -- Provenance (generator, timestamp, licence)
-  -- Metadata embedded as JSON inside CDATA section
-}
-
-rule AssembleFinalSVG {
-  when: all post-processing complete
-
-  ensures: final SVG follows mf-svg-schema document order:
-    1. <title> (utterance)
-    2. <desc> (visual description from Gemini assignment)
-    3. <metadata> (semantic SSoT)
-    4. <defs><style> (filtered + user CSS)
-    5. Semantic <g> elements (structured content)
-
-  ensures: SVG root has:
-    -- id="pictogram"
-    -- xmlns, role="img", aria-labelledby="title desc"
-    -- lang, tabindex="0", focusable="true"
-    -- data-domain, data-utterance
+rule RetainNonconformingDraft {
+    when: ConformanceEvaluated(revision, conformance)
+    requires: revision.status = draft
+    requires: conformance.content_hash = revision.content_hash
+    requires: conformance.profile_version = revision.profile_version
+    requires: not conformance.valid
+    requires: conformance.issues.count > 0
+    ensures: revision.conformance = conformance
+    ensures: revision.status = rejected
+    @guidance
+        -- Rejection means not conforming, not deleted. The exact draft remains
+        -- editable and diagnosable. It cannot replace an accepted revision
+        -- reference or be labelled a conforming portable artifact.
 }
 
 ------------------------------------------------------------
 -- Invariants
 ------------------------------------------------------------
 
-invariant PathCompleteness {
-  -- Every path from the original SVG must appear exactly once
-  -- in the structured SVG (either in a semantic group or fallback)
-  for path in PathInventory.paths:
-    count(StructuredSVG where contains path.id) = 1
+invariant RevisionHashIdentifiesExactBytes {
+    for revision in StructuredRevisions:
+        revision.content_hash = sha256_utf8(revision.content)
 }
 
-invariant GeometryIntegrity {
-  -- Path geometry (d attribute) in structured SVG must be identical
-  -- to the original rawSvg. No modification by Gemini.
-  -- Exception: gated merges (MergeCompatibilityGate) and the local
-  -- deterministic polish — both locally computed, never model-authored.
-  for path in StructuredSVG.paths:
-    path.d = RawSVG.getPath(path.id).d
+invariant AcceptedRevisionHasMatchingEvidence {
+    for revision in StructuredRevisions:
+        revision.status = conforming implies
+            revision.conformance != null
+            and revision.conformance.valid
+            and revision.conformance.issues.count = 0
+            and revision.conformance.content_hash = revision.content_hash
+            and revision.conformance.profile_version = revision.profile_version
+            and revision.accepted_reference != null
+            and revision.accepted_reference.content_hash = revision.content_hash
+            and revision.accepted_reference.profile_version = revision.profile_version
 }
 
-invariant VisualFidelity {
-  -- The structured SVG, rasterized, should keep ink where the raw SVG had
-  -- it: no filled holes, no deformed shapes, no dropped elements.
-  -- Measured locally after assembly by comparing binary ink masks
-  -- (colour-tolerant: palette mapping may shift hues, coverage may not).
-  -- NON-BLOCKING (user decision 2026-07-18): a structured result with
-  -- issues beats no result. Above 5% of the raw drawing's inked area:
-  --   - the merge-free variant is also assembled and the LESS-altering
-  --     of the two is delivered
-  --   - the measurement is surfaced as a warning with an added/removed
-  --     ink breakdown, for diagnosis from the progress log
-  -- The measurement is never a reason to withhold the result.
+invariant UnverifiedRevisionHasNoAuthority {
+    for revision in StructuredRevisions:
+        revision.status in {draft, rejected} implies
+            revision.accepted_reference = null
 }
 
-invariant UserStylePreservation {
-  -- User-applied CSS classes survive structuring.
-  -- If raw SVG path had class="azul", structured SVG path
-  -- retains "azul" in its class list.
-  for pathId in PathInventory.pathClasses:
-    PathInventory.pathClasses[pathId] subset_of StructuredSVG.getPath(pathId).classes
+------------------------------------------------------------
+-- Actor Declarations
+------------------------------------------------------------
+
+actor PictogramEditor {
+    identified_by: Editor
 }
 
-invariant ElementTreeAlignment {
-  -- Group ids in structured SVG should match element tree ids
-  -- as closely as possible. Every element id that has corresponding
-  -- paths should appear as a <g> id in the output.
-  -- Unmatched paths go to a "contexto" fallback group.
+------------------------------------------------------------
+-- Surfaces
+------------------------------------------------------------
+
+surface StructuredArtifactBoundary {
+    facing editor: PictogramEditor
+    contracts:
+        fulfils LocalGeometryAssembly
+        fulfils PortablePictogramRevision
+    provides:
+        StructuredDraftProduced(editor, content: String, parent_hash: String?)
+        ConformanceEvaluated(revision: StructuredRevision, conformance: SvgConformance) when revision.status = draft
+    @guarantee CompletionRequiresFinalValidation
+        -- All generation routes, regrouping review, explicit redraw and editor
+        -- saves pass the same final conformance boundary before accepting a
+        -- new canonical reference. XML parsing and model success do not bypass
+        -- it. Invalid results preserve the previous reference and the draft.
 }
 
 ------------------------------------------------------------
 -- Open Questions
 ------------------------------------------------------------
 
-open question "Should the prompt explicitly list which element ids are mandatory vs optional in the output?"
-
-open question "When Gemini assigns paths incorrectly (wrong group), should there be a user-facing validation step before finalizing?"
-
-open question "Should the evenodd detection be done locally (bbox intersection check) instead of relying on Gemini to flag it?"
+open question "Which disclosed review evidence and cognitive evaluation criteria should the first public mf-svg profile support?"
+open question "What explicit privacy and redaction workflow permits publication of a revision whose original NLU contains participant-identifying content?"
+open question "How should unresolved composition nodes and retained unclassified geometry be reviewed before a draft becomes a public pictogram revision?"

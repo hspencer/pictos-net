@@ -1,0 +1,27 @@
+{
+  "name": "@mediafranca/mf-svg-schema",
+  "version": "2.0.0-draft.1",
+  "private": true,
+  "type": "module",
+  "license": "CC-BY-4.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mediafranca/mf-svg-schema.git"
+  },
+  "main": "./index.js",
+  "exports": {
+    ".": "./index.js",
+    "./metadata.schema.json": "./metadata-2.0.0-draft.1.schema.json"
+  },
+  "dependencies": {
+    "@xmldom/xmldom": "0.9.12",
+    "ajv": "8.20.0",
+    "ajv-formats": "3.0.1"
+  },
+  "scripts": {
+    "test": "node scripts/build-validators.js --check && node --test tests/*.test.mjs",
+    "validate": "node scripts/validate-svg.js",
+    "check:sync": "node scripts/sync-contracts.js --check",
+    "build:validators": "node scripts/build-validators.js"
+  }
+}

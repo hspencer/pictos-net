@@ -16,7 +16,9 @@
 
 import { checkAndCharge, refundUnits, logCall } from './_shared/usage.js';
 import { getBlobStore as getStore, connectBlobs } from './_shared/blobs.js';
+import { OPENAI_IMAGE_MODEL, OPENAI_IMAGE_QUALITIES, openaiApiKey } from './_shared/openaiImage.js';
 import { fetchFreshRoles } from './_shared/identity.js';
+import { MODEL_CATALOG, modelSupportsPhase, getModelProvider } from './_shared/modelCatalog.js';
 
 const MAX_ROWS = 25;
 const GRANT_TTL_MS = 120_000; // 2 min — sufficient for background cold start
@@ -78,6 +80,34 @@ export const handler = async (event, context) => {
       statusCode: 400, headers,
       body: JSON.stringify({ error: 'Every row needs rowId and a non-empty utterance' }),
     };
+  }
+
+  const selectedModels = [
+    [1, config?.comprenderModel ?? config?.nluModel ?? 'claude-haiku-4-5-20251001'],
+    [2, config?.componerModel ?? config?.nluModel ?? 'claude-haiku-4-5-20251001'],
+    [3, config?.generationModel ?? 'gemini-2.5-flash-image'],
+  ];
+  if (selectedModels.some(([phase, model]) => !modelSupportsPhase(model, phase))) {
+    return { statusCode: 400, headers, body: JSON.stringify({ error: 'Model is not supported for the selected phase' }) };
+  }
+  const imageModel = MODEL_CATALOG[selectedModels[2][1]];
+  const styleId = config?.recraftStyleId?.trim();
+  if (imageModel.provider === 'recraft' && ((imageModel.requiresStyle && !styleId) ||
+      (styleId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(styleId)))) {
+    return { statusCode: 400, headers, body: JSON.stringify({ error: 'A valid existing Recraft style UUID is required' }) };
+  }
+  if (selectedModels.some(([, model]) => getModelProvider(model) === 'openai')) {
+    try { openaiApiKey(); } catch {
+      return { statusCode: 503, headers, body: JSON.stringify({ error: 'OPENAI_API_KEY not configured' }) };
+    }
+  }
+  if (config?.generationModel === OPENAI_IMAGE_MODEL) {
+    if (!OPENAI_IMAGE_QUALITIES.includes(config.openaiImageQuality ?? 'low')) {
+      return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid OpenAI image quality' }) };
+    }
+    try { openaiApiKey(); } catch {
+      return { statusCode: 503, headers, body: JSON.stringify({ error: 'OPENAI_API_KEY not configured' }) };
+    }
   }
 
   const quota = await checkAndCharge(email, rows.length, roles);

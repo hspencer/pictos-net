@@ -8,6 +8,7 @@
 
 import { GlobalConfig, VisualElement, Phase3Result, GenerationModel, getModelFamily } from "../types";
 import { callRecraft } from "./aiClient";
+import { MODEL_CATALOG } from "../netlify/functions/_shared/modelCatalog.js";
 
 /**
  * Normalize SVG dimensions so it scales to its container.
@@ -98,22 +99,22 @@ export const generateImage = async (
         noTextLine,
     ].filter(s => s !== undefined).join('\n');
 
-    if (fullPrompt.length > 2000) {
-        const style = config.visualStylePrompt || defaultStyle;
-        const suffix = `\n\n${style}\n${noTextLine}`;
-        const header = isEs ? 'Pictograma AAC' : 'AAC Pictogram';
-        const elemLabel = isEs ? 'Elementos' : 'Elements';
-        const compLabel = isEs ? 'Composición espacial' : 'Spatial composition';
-        const prefix = `${header}: "${row.UTTERANCE}"\n${nluContext}\n\n${elemLabel}:\n${formatElements(elements)}\n\n${compLabel}:\n${prompt}`;
-        const maxPrefixLen = 1995 - suffix.length;
-        fullPrompt = prefix.slice(0, maxPrefixLen) + suffix;
+    if (fullPrompt.length > 10000) {
+        throw new Error('Recraft prompt exceeds 10000 characters; shorten the composition explicitly.');
+    }
+    const styleId = config.recraftStyleId?.trim();
+    if (MODEL_CATALOG[model].requiresStyle && !styleId) {
+        throw new Error('Recraft V4 Styles requires an existing style ID.');
+    }
+    if (styleId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(styleId)) {
+        throw new Error('Recraft style ID must be a UUID.');
     }
 
     onLog?.('info', '[PRODUCIR] Enviando prompt a Recraft…');
     const colors = config.paletteColors?.filter(c => /^#[0-9a-fA-F]{6}$/.test(c));
     // onStatus: narra los reintentos del worker (429 del proveedor) en el log
     // de la UI, para que la espera larga no parezca un cuelgue silencioso.
-    const response = await callRecraft({ prompt: fullPrompt, model, ...(colors?.length ? { colors } : {}) }, msg => onLog?.('info', msg));
+    const response = await callRecraft({ prompt: fullPrompt, model, ...(styleId ? { style_id: styleId } : {}), ...(colors?.length ? { colors } : {}) }, msg => onLog?.('info', msg));
 
     if (getModelFamily(model) === 'vector') {
         if (!response.svg?.includes('<svg')) {

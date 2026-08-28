@@ -28,7 +28,7 @@
         "./lib/style-editor/*"
       ],
       "@schema/*": [
-        "./lib/mf-schema/*"
+        "./schemas/mf-svg-schema/*"
       ]
     },
     "allowImportingTsExtensions": true,

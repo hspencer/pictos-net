@@ -11,7 +11,7 @@
  *     — Concept validation: invalid/Root concepts are stripped.
  *     — Defensive unwrap: model response wrapped under a root is transparently unwrapped.
  *   NLUModel catalog
- *     — All four models present; default is claude-haiku-4-5; Gemini models included.
+ *     — Current compatible models present; default is claude-haiku-4-5; Gemini models included.
  *
  * Run: node --test services/visualElementUtils.test.ts
  */
@@ -215,8 +215,10 @@ test('normalizeElements + injectRoot round-trip: old-style wrapped response stil
 
 // ── NLUModel catalog (spec: value NLUModel) ───────────────────────────────────
 
-test('NLU_MODELS contains exactly four entries', () => {
-    assert.equal(NLU_MODELS.length, 4);
+test('NLU_MODELS preserves existing choices and adds the three OpenAI candidates', () => {
+    const ids = NLU_MODELS.map(m => m.id);
+    assert.equal(new Set(ids).size, ids.length);
+    for (const id of ['gpt-5.6-luna', 'gpt-5.6-terra', 'gpt-5.6-sol']) assert.ok(ids.includes(id as any));
 });
 
 test('NLU_MODELS includes both Claude models', () => {

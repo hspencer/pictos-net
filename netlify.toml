@@ -13,13 +13,8 @@
   external_node_modules = ["@anthropic-ai/sdk", "google-auth-library"]
   node_bundler = "esbuild"
 
-[functions."api-claude"]
-  # Claude vision (phase 5) can take 20-40s; raised to 90s
-  timeout = 90
-
-[functions."api-gemini-structure"]
-  # Gemini vision + function calling (phase 5); same budget as api-claude
-  timeout = 90
+# Netlify synchronous functions have a non-configurable 60s limit. Text
+# provider budgets are bounded in code; long-running work uses background jobs.
 
 [functions."api-recraft"]
   # Recraft SVG generation + fetch
@@ -80,4 +75,4 @@
     Access-Control-Allow-Origin = "*"
 
 [build.environment]
-  NODE_VERSION = "18"
+  NODE_VERSION = "22"

@@ -1,176 +1,427 @@
 -- allium: 3
 -- visual-reasoning.allium
 
--- Scope: Generative pipeline from communicative intention to structured pictogram.
--- Includes: Phase 1 (COMPRENDER), Phase 2 (COMPONER), Phase 3 (PRODUCIR),
---   Phase 4 (VECTORIZAR, user-triggered), Phase 5 (ESTRUCTURAR),
---   artifact lifecycle, invalidation cascade, per-phase re-execution,
---   background execution pattern (timer, stop), phase error handling,
---   NLU model selection per phase (Phase 1: comprenderModel, Phase 2: componerModel),
---   Phase 5 model selection (session-only), timed review (recording mode),
---   Phase 5 fidelity verification and merge-free fallback.
--- Excludes:
---   - Generation model selection and library-level model config (generation-config.allium)
---   - Library backward-compatibility and migration (separate spec)
---   - Netlify function infrastructure, security, and quota (usage-enforcement.allium)
---   - SVG editor interactions (separate spec)
--- Dependencies: nlu-schema, mf-svg-schema, GlobalConfig, generation-config.allium
-
-------------------------------------------------------------
--- Value Types
-------------------------------------------------------------
-
-value StepStatus {
-  -- Status of a single pipeline phase.
-  -- Field names in RowData: nluStatus, visualStatus, bitmapStatus, structuredSvgStatus.
-  idle | processing | completed | error | outdated | review
-  -- review: exists in the type but is component-local only (Phase5_Review panel open);
-  --   structuredSvgStatus on RowData is never set to review — component tracks it locally.
-}
-
-value NLUModel {
-  -- Text model used for Phase 1 (COMPRENDER) and Phase 2 (COMPONER).
-  -- Catalog (claude-haiku-4-5-20251001 is the default for both phases):
-  --   claude-haiku-4-5-20251001  — fast, low cost, strong tool use (default)
-  --   claude-sonnet-4-6          — higher accuracy for complex utterances
-  --   gemini-2.5-flash           — Gemini equivalent of Haiku: fast and cheap
-  --   gemini-2.5-pro             — highest accuracy; use for difficult NLU tasks
-  -- Routing: claude-* → api-claude; gemini-* → api-gemini-nlu (text-only, synchronous)
-  -- Phases 1 and 2 use different fields in GlobalConfig (comprenderModel, componerModel)
-  --   so each can be tuned independently.
-  -- Migration: legacy GlobalConfig.nluModel is used as fallback for both phases
-  --   when the phase-specific field is absent.
-  modelId: String
-}
-
-value NLUData {
-  -- Semantic analysis of the communicative intention.
-  -- Schema enforced via Claude forced tool use (analyze_utterance).
-  -- Most fields required in the tool schema; domain is enum-constrained but NOT in the
-  -- required array (model may omit it — treat as optional in downstream consumers).
-  utterance: String
-  lang: String
-  domain: String?             -- constrained to VOCAB.domain enum at tool schema level;
-                              -- optional in practice (not in tool required[] array)
-  metadata: NLUMetadata       -- { speech_act: String, intent: String }
-  frames: [Frame]
-  visual_guidelines: VisualGuidelines
-  nsm_explications: Map<String, String>
-  logical_form: LogicalForm   -- { event: String, modality: String }
-  pragmatics: Pragmatics
-}
-
-value VisualElement {
-  -- One semantic node in the element tree produced by Phase 2.
-  -- Matches VisualElement interface in types.ts.
-  id: String              -- noun in utterance language; snake_case for compounds
-  concept: Concept        -- Root | Agent | Action | Object | Context | Element
-  children: [VisualElement]?
-}
-
-value ElementMark {
-  -- One indexed path extracted from rawSvg for set-of-marks rasterisation.
-  index: Number
-  boundingBox: BBox
-  centroid: Point
-}
-
-value MergeProposal {
-  -- Model's proposal to merge overlapping source paths into a single contour.
-  -- The model proposes sources only; no path geometry is returned by the model.
-  -- Local validation: bounding-box IoU ≥ 0.7, similar area ratio, matching fill-role.
-  -- On pass: Boolean union computed locally via Martinez sweep-line + Bezier refit.
-  -- On fail: sources kept as separate paths (silent, non-blocking fallback).
-  sources: [String]   -- path ids to merge
-}
-
-value StructuringGroup {
-  -- One semantic node in the Phase 5 restructured output.
-  -- Groups are flat (one per node) with parentId for hierarchy reconstruction.
-  nodeId: String              -- VisualElement id from Phase 2
-  label: String               -- human label (editable during Phase5_Review)
-  cssClass: String            -- CSS class from the style palette
-  parentId: String?           -- parent nodeId; null for top-level groups
-  keep: [String]              -- path ids to include verbatim from rawSvg
-  merge: MergeProposal?       -- optional merge proposal; geometry computed locally
-  selected: Boolean = true    -- user toggle during Phase5_Review (default: true)
-}
-
-value StructuringMapping {
-  -- Complete restructuring result from one Phase 5 model call.
-  description: String           -- visual description of the pictogram (1–2 sentences)
-  groups: [StructuringGroup]    -- flat list; hierarchy via parentId
-  discard: [String]             -- path ids excluded as tracing noise
-}
+use "./generation-config.allium" as generation
+use "./svg-structuring.allium" as structured
 
 ------------------------------------------------------------
 -- External Entities
 ------------------------------------------------------------
 
-external GlobalConfig {
-  -- User-level configuration forwarded to every pipeline phase.
-  -- Field names match GlobalConfig in types.ts.
-  lang: String
-  geoContext: GeoContext?
-  domainContext: String?       -- semantic domain injected into Phase 1 + Phase 2 system prompts;
-                               -- tells the model to interpret ALL utterances within this domain
-                               -- (e.g. "computer interface", "hospital", "cooking") to resolve
-                               -- lexical ambiguity. Separate from visual style.
-  visualStylePrompt: String   -- visual style hint injected into Phase 1 (as secondary "Contexto visual")
-                               -- and as the Recraft/Gemini generation prompt in Phase 3
-  comprenderModel: NLUModel?  -- Phase 1; falls back to nluModel, then claude-haiku-4-5-20251001
-  componerModel: NLUModel?    -- Phase 2; falls back to nluModel, then claude-haiku-4-5-20251001
-  nluModel: NLUModel?         -- @deprecated: migration fallback for both phases
-  generationModel: GenerationModel    -- see generation-config.allium
-  recording: RecordingSetting?        -- { enabled: Boolean }; enables Phase5_Review timer
-  svgStyleDefs: [StyleDefinition]?    -- CSS palette forwarded to Phase 5 as style context
+external entity GlobalConfig {
+    lang: String
+    domain_context: String?
+    visual_style_prompt: String
+    comprender_model: NLUModel?
+    componer_model: NLUModel?
+    legacy_nlu_model: NLUModel?
+    generation_model: generation/GenerationModel
+    openai_image_quality: generation/OpenAIImageQuality?
+    phase5_model: generation/Phase5StructuringModel?
+    recording_enabled: Boolean
 }
 
 ------------------------------------------------------------
--- Entities
+-- Value Types
+------------------------------------------------------------
+
+value NLUMetadata {
+    speech_act: String
+    intent: String
+    timestamp: String?
+    speaker_id: String?
+}
+
+value RoleFiller {
+    type: String
+    ref: String?
+    surface: String?
+    lemma: String?
+    definiteness: String?
+    ref_frame: String?
+}
+
+value SemanticFrame {
+    frame_name: String
+    frame_label: String?
+    lexical_unit: String
+    roles: Map<String, RoleFiller>
+    id: String?
+}
+
+value VisualGuidelines {
+    focus_actor: String?
+    secondary_actor: String?
+    action_core: String?
+    object_core: String?
+    context: String?
+    temporal: String?
+    salience: Map<String, Decimal>?
+}
+
+value LogicalForm {
+    event: String
+    modality: String?
+    negation: Boolean?
+    aspect: String?
+    tense: String?
+}
+
+value Pragmatics {
+    politeness: String?
+    formality: String?
+    expected_response: String?
+    urgency: String?
+    speaker_stance: String?
+}
+
+value NLUData {
+    utterance: String
+    lang: String
+    domain: String?
+    metadata: NLUMetadata?
+    frames: List<SemanticFrame>
+    visual_guidelines: VisualGuidelines?
+    nsm_explications: Map<String, String>?
+    logical_form: LogicalForm
+    pragmatics: Pragmatics?
+}
+
+-- Optionality above describes the historical document contract. The new
+-- generation profile is validated separately against the canonical product;
+-- a legacy document is not relabelled as newly generated by being readable.
+
+value VisualElement {
+    id: String
+    concept: VisualConcept
+    children: List<VisualElement>?
+}
+
+value CompositionArtifact {
+    elements: List<VisualElement>
+    prompt: String
+}
+
+value ContractValidation {
+    valid: Boolean
+    schema_id: String
+    schema_version: String
+    schema_hash: String
+    issues: List<String>
+}
+
+value Phase3InputSnapshot {
+    utterance: String
+    nlu: NLUData
+    elements: List<VisualElement>
+    prompt: String
+}
+
+value StructuringGroup {
+    node_id: String
+    label: String
+    css_class: String
+    parent_id: String?
+    kept_path_ids: List<String>
+    merge_source_ids: List<String>
+    selected: Boolean
+}
+
+value StructuringMapping {
+    description: String
+    groups: List<StructuringGroup>
+    discarded_path_ids: List<String>
+}
+
+------------------------------------------------------------
+-- Contracts
+------------------------------------------------------------
+
+contract UnderstandingBoundary {
+    understand: (utterance: String, config: GlobalConfig) -> NLUData
+
+    @invariant ForcedStructuredOutput
+        -- Provider tool forcing constrains delivery, not acceptance. Every new
+        -- Phase 1 result undergoes runtime validation against the generation
+        -- profile of the canonical schemas/nlu-schema product. Invalid fields,
+        -- unresolved local frame references, or malformed NSM data fail the
+        -- phase; normalization cannot silently discard semantic content.
+        -- Optional domain remains optional. Historical NSM_explications is
+        -- retained on legacy import; new generation uses nsm_explications.
+
+    @invariant SharedFullDocumentContract
+        -- Individual and batch paths use the same canonical contract and
+        -- validator. Phase 2 receives the complete accepted NLU document,
+        -- including metadata, frames, roles, logical_form, pragmatics, NSM,
+        -- and visual_guidelines when present, not a lossy summary projection.
+
+    @invariant FailedValidationPreservesPriorArtifacts
+        -- Invalid output never replaces a prior accepted NLU or composition.
+        -- The phase is visibly failed and cannot advance automatically. Any
+        -- captured raw response is an unvalidated diagnostic, never accepted
+        -- corpus truth. Historical read/import does not assert current validity.
+
+    @invariant ContextPrecedence
+        -- Domain context is the primary semantic instruction. Visual style is a
+        -- secondary hint and never replaces the communicative intention.
+
+    @invariant UnderstandingModelRouting
+        -- The effective model is comprender_model, then legacy_nlu_model, then
+        -- Claude Haiku. Claude models use the Claude boundary; Gemini text
+        -- models use the Gemini NLU boundary. OpenAI text models use their
+        -- own server boundary with the same canonical acceptance validator.
+}
+
+contract CompositionBoundary {
+    compose: (nlu: NLUData, config: GlobalConfig) -> CompositionArtifact
+
+    @invariant SingleResponseForTreeAndPrompt
+        -- One forced compose_pictogram response yields semantic children and
+        -- the spatial prompt together.
+
+    @invariant DeterministicSyntheticRoot
+        -- Local normalization injects exactly one root named pictograma for
+        -- Spanish or pictogram for English. The model never returns that root.
+        -- Provider children and the persisted rooted artifact have separate
+        -- canonical schema definitions. Both are validated before acceptance.
+
+    @invariant NoPhantomElements
+        -- Missing, duplicate, or unusable identifiers fail validation. No
+        -- semantic element is silently dropped and no unknown or fabricated
+        -- placeholder is introduced. All referenced element ids must exist.
+
+    @invariant SharedCompositionContract
+        -- Individual and batch paths consume schemas/pictogram-composition-schema
+        -- as the sole contract source. Recursive children are validated at
+        -- every depth; a forced compose_pictogram call is not that validation.
+        -- Phase 2 output is a composition artifact, never a Phase 5 mapping.
+
+    @invariant EveryElementAppearsInRegeneratedPrompt
+        -- Prompt regeneration uses the current tree and quotes every current
+        -- element id. Invalid output fails canonical validation and preserves
+        -- the accepted prompt; no automatic corrective model call is added.
+
+    @invariant CompositionModelRouting
+        -- The effective model is componer_model, then legacy_nlu_model, then
+        -- Claude Haiku, routed by provider family independently of Phase 1.
+        -- OpenAI follows the same shared full-document contract in individual
+        -- and batch execution; provider choice never removes semantic fields.
+}
+
+contract OpenAITextBoundary {
+    generate: (request: Any) -> Any
+
+    @invariant CanonicalMeaningSurvivesTransport
+        -- Responses function calling carries the existing semantic tools with
+        -- strict:false explicitly, a forced function name and parallel calls
+        -- disabled. Dynamic role/NSM/salience maps keep their canonical shape;
+        -- they are not stringified or changed to arrays to claim provider-side
+        -- strictness. The canonical validator remains the acceptance authority.
+        -- A function used to deliver output requires no second model call.
+
+    @invariant CompleteResponseRequired
+        -- Accept only a completed response without refusal or provider error.
+        -- Tool-based phases require exactly the expected function, parseable
+        -- complete JSON arguments and the phase's canonical validation. Plain
+        -- text routes accept only actual text content; reasoning items are not
+        -- response text or research provenance. Incomplete, missing, malformed
+        -- or wrong-tool output fails while preserving prior accepted artifacts.
+
+    @invariant TextVisionAndRedrawShareTheBoundary
+        -- Phase 1, Phase 2, spatial-prompt regeneration and Phase 5 use the same
+        -- model/phase admission and error/usage semantics in individual and
+        -- batch callers. Vision inputs retain their actual media type and
+        -- supported image content. Explicit SVG redraw still passes final SVG
+        -- conformance; a vision response is not permission to bypass it.
+
+    @invariant StatelessAndBounded
+        -- Requests use store:false, explicit low reasoning effort and a finite
+        -- output-token bound, with no web tools or conversation persistence.
+        -- The bound includes reasoning tokens. No automatic semantic retry or
+        -- higher output limit is introduced after refusal or invalid output.
+        -- Provider data-retention controls remain separate; store:false alone
+        -- is not a claim of zero retention or sovereign local execution.
+}
+
+contract Phase3GenerationBoundary {
+    generate: (snapshot: Phase3InputSnapshot, model: generation/GenerationModel, quality: generation/OpenAIImageQuality?) -> String
+
+    @invariant CoherentSnapshot
+        -- Utterance, current NLU, current elements, and current prompt are read
+        -- atomically at trigger time. An in-flight call never mixes versions.
+
+    @invariant SquareArtifact
+        -- Bitmap models produce square PNG; the vector model produces native
+        -- square SVG. A vector response never embeds a raster image.
+
+    @invariant OpenAIUsesTheCompleteTextPrompt
+        -- GPT Image 2 consumes the same textual prompt composition as Gemini:
+        -- semantic snapshot, element identities, spatial instructions, visual
+        -- style, palette, and communicative intention. No JSON schema, function
+        -- call, or XML output is required from the image model. Image editing
+        -- and reference-image input are outside this integration.
+
+    @invariant OpenAIOutputAndQuality
+        -- GPT Image 2 returns one square PNG at the configured image size.
+        -- Quality is frozen at trigger time, defaults to low when absent, and
+        -- is recorded with the model only after successful generation.
+
+    @invariant AllPhase3EntryPointsShareRouting
+        -- Individual generation, sequence-step generation, cascade, retry,
+        -- bulk regeneration, and full-pipeline batches route GPT Image 2 to
+        -- OpenAI while retaining the same complete semantic inputs.
+
+    @invariant BackgroundExecution
+        -- Phase 3 runs as a background job. Elapsed time starts at the trigger,
+        -- remains stable across navigation, and Stop is available while running.
+
+    @invariant RetryOnlyPhase3
+        -- Retrying a Phase 3 error does not execute Phase 1 or Phase 2 and does
+        -- not discard their completed artifacts or statuses.
+
+    @invariant NoSilentModelFallback
+        -- A terminal Gemini or OpenAI provider 429 after configured retries is recoverable,
+        -- remains attributed to the selected model, and never invokes another
+        -- Gemini, OpenAI, or Recraft model automatically.
+}
+
+contract VectorizationBoundary {
+    vectorize: (bitmap: String) -> String
+
+    @invariant LocalAndUserTriggered
+        -- VTracer runs locally and only after an explicit user action. It makes
+        -- no provider call, charges no quota, and preserves the source bitmap.
+}
+
+contract StructuringBoundary {
+    structure: (raw_svg: String, elements: List<VisualElement>) -> StructuringMapping
+    assemble_revision: (input: structured/StructuringInput, mapping: StructuringMapping) -> String
+
+    @invariant OneModelCall
+        -- Phase 5 makes one forced restructure_svg call per trigger, without an
+        -- automatic retry loop.
+
+    @invariant NLUExcluded
+        -- Utterance, frames, pragmatics, domain, and visual guidelines are not
+        -- sent to the structuring model. It receives visual evidence and elements.
+        -- This restriction concerns the regrouping model request. Local final
+        -- assembly receives and embeds the complete accepted NLU and complete
+        -- composition including its prompt, plus actually known provenance.
+
+    @invariant GeometryRemainsLocal
+        -- The model returns path ids and optional merge sources, never path
+        -- geometry. Kept geometry comes verbatim from raw SVG; accepted merges
+        -- are computed locally after IoU, area, and fill-role validation.
+
+    @invariant MergeFailureIsNonBlocking
+        -- An invalid merge silently falls back to its original paths and does
+        -- not change the Phase 5 status to error.
+
+    @invariant RecordingReviewIsTimed
+        -- Recording mode opens mandatory review with all groups selected,
+        -- editable labels, a bounded reading-time timer, and early confirmation.
+
+    @invariant ReviewDurationFormula
+        -- Review duration is three times the 200-words-per-minute reading time
+        -- for all group labels and node ids, clamped from 10 to 90 seconds.
+
+    @invariant AccessibleSchemaAssembly
+        -- Selected semantic groups reproduce the element hierarchy, expose group
+        -- roles and editable labels, use palette CSS classes without inline fill,
+        -- retain unassigned paths in a context group, and conform to mf-svg.
+        -- Retaining unassigned geometry preserves a draft, not evidence of a
+        -- known Context concept. Conformance is determined after all final
+        -- post-processing under the versioned structured artifact contract.
+
+    @invariant FinalRevisionAcceptance
+        -- Every entry point, reviewed assembly, redraw and editor save uses
+        -- the same final validation boundary. A failed candidate remains
+        -- available as a diagnostic draft, preserving the previous accepted
+        -- SVG. XML parsing or a confirmed mapping alone cannot mark completion.
+        -- Only exact validated final bytes acquire a canonical hash reference.
+        -- Import preserves old references as untrusted claims: hash and schema
+        -- must be revalidated before using them as verified authority.
+
+    @invariant WorkspaceChangesInvalidateCurrentAuthority
+        -- An edit to upstream semantics, composition, prompt or SVG makes the
+        -- old current-reference association stale. The earlier SVG remains
+        -- available as its own revision; it cannot certify the changed row.
+        -- Regeneration does not inherit human review. A late result cannot
+        -- overwrite a newer workspace snapshot as if it described that state.
+
+    @invariant FidelityPrefersLessLoss
+        -- Before completion, path coverage is compared with raw SVG. If needed,
+        -- a merge-free assembly replaces a lossier merged result.
+
+    @invariant ConsoleTraceIsComplete
+        -- Console output records prompt, image summary, model, duration, HTTP
+        -- status, token use, group assignment, discards, and merge decisions.
+}
+
+------------------------------------------------------------
+-- Enumerations
+------------------------------------------------------------
+
+enum StepStatus { idle | processing | completed | error | outdated }
+enum NLUModel {
+    `claude-haiku-4-5-20251001` |
+    `claude-sonnet-4-6` |
+    `gemini-2.5-flash` |
+    `gemini-2.5-pro` |
+    `gpt-5.6-luna` |
+    `gpt-5.6-terra` |
+    `gpt-5.6-sol`
+}
+enum VisualConcept { root | agent | action | object | context | element }
+enum Phase3AttemptStatus { processing | completed | error | cancelled }
+enum Phase3FailureKind { generation_error | external_provider_quota }
+enum Phase3ArtifactKind { bitmap | vector }
+enum Phase5AttemptStatus { processing | review | completed | error }
+
+------------------------------------------------------------
+-- Entities and Variants
 ------------------------------------------------------------
 
 entity VisualReasoning {
-  -- A single pictogram generation in progress.
-  -- One VisualReasoning instance per utterance being worked on.
-  -- Field names match RowData in types.ts.
+    config: GlobalConfig
+    utterance: String
+    nlu: NLUData?
+    nlu_status: StepStatus
+    elements: List<VisualElement>?
+    prompt: String?
+    visual_status: StepStatus
+    bitmap: String?
+    raw_svg: String?
+    generation_model: generation/GenerationModel?
+    generation_quality: generation/OpenAIImageQuality?
+    bitmap_status: StepStatus
+    structured_svg: String?
+    structured_svg_reference: structured/RevisionReference?
+    structured_svg_status: StepStatus
+    audio: String?
+    active_phase3_attempt: Phase3Attempt?
+    active_phase5_attempt: Phase5Attempt?
+}
 
-  utterance: String
+entity Phase3Attempt {
+    reasoning: VisualReasoning
+    snapshot: Phase3InputSnapshot
+    selected_model: generation/GenerationModel
+    selected_quality: generation/OpenAIImageQuality?
+    artifact_kind: Phase3ArtifactKind
+    status: Phase3AttemptStatus
+    failure_kind: Phase3FailureKind?
+    recoverable: Boolean
+    generation_unit_refunded: Boolean
+    started_at: Timestamp
+}
 
-  -- Phase 1
-  NLU: NLUData?
-  nluStatus: StepStatus = idle
-
-  -- Phase 2
-  elements: [VisualElement]?  -- element tree with a single injected root node
-  prompt: String?             -- spatial prompt delivered to Phase 3
-  visualStatus: StepStatus = idle
-
-  -- Phase 3
-  bitmap: String?             -- base64 PNG (square); set by bitmap-producing models
-  rawSvg: String?             -- native SVG; set by vector model (Phase 3) or VTrace (Phase 4)
-  generationModel: GenerationModel?   -- model that produced Phase 3 output; frozen at completion
-  bitmapStatus: StepStatus = idle
-
-  -- Phase 4 (user-triggered; only available for bitmap-producing model rows)
-  -- No dedicated status field on RowData. Completion is reflected by rawSvg being set.
-
-  -- Phase 5
-  structuredSvg: String?      -- mf-svg-schema structured SVG; single source of truth
-  structuredSvgStatus: StepStatus = idle  -- declared optional (?) in RowData TypeScript type;
-                                          -- treat as idle when absent
-
-  -- Audio (added by boards.allium)
-  audio: String?              -- recorded audio blob URL; null = no audio recorded
-                              -- set by the Board cell editor; shared across all
-                              -- Boards and cells that reference this Row
-  -- Phase 5 intermediate state (component-local; not persisted on RowData)
-  phase5Mapping: StructuringMapping?
-  phase5ReviewTimerMs: Number?  -- total review window; derived from label word count × 3
-
-  -- Phase 5 model comes from GlobalConfig.phase5Model (persisted per library).
-  -- Allowed: claude-sonnet-4-6, claude-opus-4-6, gemini-2.5-pro, gemini-2.5-flash
-  -- Default: claude-sonnet-4-6 (since 2026-07-18; gemini-2.0-flash removed 2026-06-13)
+entity Phase5Attempt {
+    reasoning: VisualReasoning
+    selected_model: generation/Phase5StructuringModel
+    status: Phase5AttemptStatus
+    mapping: StructuringMapping?
+    review_duration: Duration?
 }
 
 ------------------------------------------------------------
@@ -178,496 +429,410 @@ entity VisualReasoning {
 ------------------------------------------------------------
 
 config {
-  phase5_review_reading_wpm: Number = 200  -- words/min for review timer calculation
-  phase5_review_min_ms: Number = 10000     -- floor: 10 s
-  phase5_review_max_ms: Number = 90000     -- ceiling: 90 s
+    openai_image_size: Integer = 1024
+    default_nlu_model: NLUModel = `claude-haiku-4-5-20251001`
+    phase5_review_reading_wpm: Integer = 200
+    phase5_review_multiplier: Integer = 3
+    phase5_review_minimum: Duration = 10.seconds
+    phase5_review_maximum: Duration = 90.seconds
 }
 
 ------------------------------------------------------------
 -- Rules
 ------------------------------------------------------------
 
--- === Invalidation cascade ===
-
-rule InvalidateDownstream {
-  when: a phase of a VisualReasoning transitions to completed
-
-  ensures: every phase downstream of the completed phase
-    transitions to outdated if it was previously completed or error
-
-  -- Downstream order for bitmap-producing models:
-  --   nluStatus → visualStatus → bitmapStatus → (phase4) → structuredSvgStatus
-  -- Downstream order for vector-direct models (e.g. recraftv4_1_vector):
-  --   nluStatus → visualStatus → bitmapStatus → structuredSvgStatus
-  --   (phase4 is not applicable; rawSvg comes directly from Phase 3)
-  -- Example: bitmapStatus completing marks structuredSvgStatus as outdated.
-  -- Completing structuredSvgStatus marks nothing (terminal phase).
-
-  -- Artifact clearing on bitmapStatus completion:
-  --   bitmap-producing result: prior rawSvg (from Phase 4) and structuredSvg are cleared
-  --   vector result: prior bitmap is set to nil; structuredSvg is cleared
-  -- This ensures artifact fields are consistent with the new Phase 3 output type.
+rule StartUnderstanding {
+    when: Phase1Requested(reasoning)
+    requires: reasoning.utterance != ""
+    ensures: reasoning.nlu_status = processing
 }
 
--- === Phase 1: COMPRENDER ===
-
-rule Phase1_Comprender {
-  when: phase 1 is triggered for a VisualReasoning
-
-  requires: VisualReasoning.utterance is non-empty
-
-  ensures: model call with forced tool use dispatched to function matching comprenderModel:
-    -- effective model: GlobalConfig.comprenderModel ?? GlobalConfig.nluModel ?? claude-haiku-4-5-20251001
-    -- claude-* models → api-claude; gemini-* models → api-gemini-nlu
-    -- tool name: "analyze_utterance"
-    -- tool input_schema: nlu-schema JSON Schema; domain field enum-constrained to VOCAB.domain
-    -- tool_choice: forced to "analyze_utterance"
-    -- inputs forwarded: utterance, GlobalConfig (lang, geoContext, domainContext, visualStylePrompt)
-    --   domainContext → "Contexto de dominio" (primary semantic instruction, if present)
-    --   visualStylePrompt → "Contexto visual" (secondary visual hint, if present)
-  ensures: on success:
-    VisualReasoning.NLU = parsed NLUData from tool call arguments
-    VisualReasoning.nluStatus = completed
-  ensures: on tool-use failure (model does not invoke tool, or parse error):
-    VisualReasoning.nluStatus = error
+rule CompleteUnderstanding {
+    when: Phase1Succeeded(reasoning, nlu, validation)
+    requires: reasoning.nlu_status = processing
+    requires: validation.valid
+    requires: canonical_nlu_valid(nlu, validation)
+    ensures: reasoning.nlu = nlu
+    ensures: reasoning.nlu_status = completed
+    ensures:
+        if reasoning.visual_status in {completed, error}:
+            reasoning.visual_status = outdated
+        if reasoning.bitmap_status in {completed, error}:
+            reasoning.bitmap_status = outdated
+        if reasoning.structured_svg_status in {completed, error}:
+            reasoning.structured_svg_status = outdated
 }
 
-rule Phase1_Failure {
-  when: VisualReasoning.nluStatus transitions to error
-
-  ensures: full error detail logged to console (provider error, raw response)
-  ensures: phase 1 indicator shown as failed in UI
-  -- User manually re-triggers phase 1 to retry.
+rule FailUnderstanding {
+    when: Phase1Failed(reasoning)
+    requires: reasoning.nlu_status = processing
+    ensures: reasoning.nlu_status = error
 }
 
--- === Phase 2: COMPONER ===
-
-rule Phase2_Componer {
-  when: phase 2 is triggered for a VisualReasoning
-
-  requires: VisualReasoning.nluStatus = completed
-  requires: VisualReasoning.NLU is present
-
-  ensures: model call with forced tool use dispatched to function matching componerModel:
-    -- effective model: GlobalConfig.componerModel ?? GlobalConfig.nluModel ?? claude-haiku-4-5-20251001
-    -- claude-* models → api-claude; gemini-* models → api-gemini-nlu
-    -- tool name: "compose_pictogram"
-    -- tool input_schema: { elements: [VisualElement], prompt: String }
-        where elements contains only semantic child nodes (Agent, Action, Object,
-        Context, Element) — the root node is never returned by the model
-    -- system prompt includes: GlobalConfig.domainContext (if present) as "Domain context" instruction
-    -- user message: filtered NLUData (frames, visual_guidelines, lang only)
-    -- tool_choice: forced to "compose_pictogram"
-  ensures: on success:
-    parsed elements wrapped under a synthetic root node injected by local code:
-      root.id      = 'pictograma' (Spanish) | 'pictogram' (English)
-      root.concept = Root
-      root.children = parsed elements
-    VisualReasoning.elements = [VisualElement] with that single-root tree
-    VisualReasoning.prompt = prompt string from tool arguments
-    VisualReasoning.visualStatus = completed
-  ensures: on tool-use failure:
-    VisualReasoning.visualStatus = error
-
-  @invariant "single response delivers both artifacts"
-    -- elements and prompt are produced in one tool call response.
-    -- They are not generated by separate Claude calls.
-
-  @invariant "single-root element tree"
-    -- elements always has exactly one top-level node ('pictograma' or 'pictogram'),
-    --   injected deterministically by local code post-parse.
-    -- The model is never asked to return this root; it returns only semantic children.
-
-  @invariant "no phantom elements"
-    -- Every node in elements has a real id and concept sourced from the model.
-    -- The tool schema requires both fields on elements and their children.
-    -- Any node that arrives without a usable id is DROPPED during normalisation —
-    --   never fabricated into an 'unknown' placeholder.
-    -- This holds on every regeneration, not just the first run.
+rule StartComposition {
+    when: Phase2Requested(reasoning)
+    requires: reasoning.nlu_status = completed
+    requires: reasoning.nlu != null
+    ensures: reasoning.visual_status = processing
 }
 
-rule Phase2_Failure {
-  when: VisualReasoning.visualStatus transitions to error
-
-  ensures: full error detail logged to console
-  ensures: phase 2 indicator shown as failed in UI
+rule CompleteComposition {
+    when: Phase2Succeeded(reasoning, composition, validation)
+    requires: reasoning.visual_status = processing
+    requires: validation.valid
+    requires: canonical_composition_valid(composition, validation)
+    requires: composition.elements.count > 0
+    requires: composition.prompt != ""
+    ensures: reasoning.elements = composition.elements
+    ensures: reasoning.prompt = composition.prompt
+    ensures: reasoning.visual_status = completed
+    ensures:
+        if reasoning.bitmap_status in {completed, error}:
+            reasoning.bitmap_status = outdated
+        if reasoning.structured_svg_status in {completed, error}:
+            reasoning.structured_svg_status = outdated
 }
 
--- === Phase 2: spatial prompt regeneration ===
-
-rule Phase2_RegenerateSpatialPrompt {
-  -- Triggered when the user has manually edited the element tree and asks
-  -- to rebuild only the spatial prompt — the tree itself is not re-derived.
-  -- See element-tree.allium for the edit events that arm this.
-  when: user triggers spatial prompt regeneration for a VisualReasoning
-
-  requires: VisualReasoning.NLU is present
-  requires: VisualReasoning.elements has at least one element
-
-  ensures: a plain-text prompt is generated from the CURRENT element tree
-    -- the model is given the current tree verbatim; no prior prompt is reused
-    -- prompt describes only topology and composition, in the NLU language,
-    --   with every element id wrapped in single quotes
-  ensures: VisualReasoning.prompt = the regenerated prompt
-  ensures: VisualReasoning.bitmapStatus = outdated
-    -- the produced pictogram (Phase 3) no longer reflects its inputs
-
-  @invariant "every element is referenced"
-    -- The regenerated prompt references EVERY element id in the current tree
-    --   (root and all nested children), none omitted and none invented.
-    -- Verification checks for each id wrapped in single quotes (e.g. 'mesa'),
-    --   not as a bare substring, to avoid false positives (e.g. 'mano' ≠ 'manos').
-    -- ids missing from the prompt trigger one corrective retry naming them explicitly;
-    --   any still missing after the retry are surfaced as an error in the log.
-
-  @invariant "tree and prompt are the Phase 3 inputs"
-    -- Phase 3 (PRODUCIR) consumes BOTH elements and prompt.
-    -- Every element referenced in the prompt has a counterpart in the tree.
+rule FailComposition {
+    when: Phase2Failed(reasoning)
+    requires: reasoning.visual_status = processing
+    ensures: reasoning.visual_status = error
 }
 
--- === Phase 3: PRODUCIR ===
-
-rule Phase3_Producir {
-  when: phase 3 is triggered for a VisualReasoning
-
-  requires: VisualReasoning.visualStatus = completed
-  requires: VisualReasoning.prompt is present
-
-  ensures: generation call dispatched to the function matching GlobalConfig.generationModel:
-    -- Gemini models → api-gemini function; output: bitmap (PNG, square, base64)
-    -- Recraft raster (recraftv4_1) → api-recraft function; output: bitmap (PNG, square, base64)
-    -- Recraft vector (recraftv4_1_vector) → api-recraft function; output: native SVG string
-    -- All calls use background function + polling pattern (see Phase3_BackgroundExecution)
-    -- Pictograms are always square: Gemini imageConfig.aspectRatio "1:1",
-    --   Recraft size "1024×1024" (or the model's square equivalent)
-  ensures: on success with bitmap output:
-    VisualReasoning.bitmap = base64 PNG (square)
-    VisualReasoning.rawSvg = nil         -- prior Phase 4 rawSvg cleared
-    VisualReasoning.structuredSvg = nil  -- prior Phase 5 output cleared
-    VisualReasoning.generationModel = GlobalConfig.generationModel at trigger time
-    VisualReasoning.bitmapStatus = completed
-    VisualReasoning.structuredSvgStatus = outdated (if previously completed or error)
-  ensures: on success with vector output:
-    VisualReasoning.rawSvg = native SVG content
-    VisualReasoning.bitmap = nil         -- no bitmap produced by vector models
-    VisualReasoning.structuredSvg = nil  -- prior Phase 5 output cleared
-    VisualReasoning.generationModel = GlobalConfig.generationModel at trigger time
-    VisualReasoning.bitmapStatus = completed
-    VisualReasoning.structuredSvgStatus = outdated (if previously completed or error)
-  ensures: on any generation error (timeout, malformed response, empty body):
-    VisualReasoning.bitmapStatus = error
+rule RejectInvalidUnderstanding {
+    when: Phase1ValidationFailed(reasoning, validation)
+    requires: reasoning.nlu_status = processing
+    requires: not validation.valid
+    ensures: reasoning.nlu_status = error
 }
 
-rule Phase3_BackgroundExecution {
-  -- Applies to Phase 3 for all generation models.
-  -- Phase 3 is a long-running operation (2–30 s); it runs via background function
-  -- and is polled until a result is available.
-
-  when: bitmapStatus transitions to processing
-
-  ensures: elapsed time is tracked from this exact moment
-  ensures: elapsed time is visible in the UI while bitmapStatus = processing
-    -- the timer must not wait for the row to be expanded, focused, or scrolled
-    -- the timer is not reset by any UI interaction (collapse, row switch, navigation)
-  ensures: a Stop action is available in the UI while bitmapStatus = processing
-
-  @invariant "timer origin is trigger time"
-    -- The elapsed counter reflects wall-clock time since Phase 3 was triggered.
-    -- It does not start over when the row is first rendered or expanded.
+rule RejectInvalidComposition {
+    when: Phase2ValidationFailed(reasoning, validation)
+    requires: reasoning.visual_status = processing
+    requires: not validation.valid
+    ensures: reasoning.visual_status = error
 }
 
-rule Phase3_Stop {
-  when: user triggers Stop on a VisualReasoning while bitmapStatus = processing
-
-  ensures: the in-flight background job is cancelled (poll loop terminated)
-  ensures: bitmapStatus transitions to idle
-    -- idle, not error: user-initiated stop is not an error
-  ensures: any partial bitmap or rawSvg from the incomplete run is discarded
-  ensures: VisualReasoning.generationModel is NOT updated
-    -- provenance is set only on successful Phase 3 completion
+rule RegenerateSpatialPrompt {
+    when: SpatialPromptRegenerationRequested(reasoning, prompt)
+    requires: reasoning.nlu != null
+    requires: reasoning.elements != null
+    requires: reasoning.elements.count > 0
+    requires: prompt != ""
+    requires: current_composition_with_prompt_valid(reasoning.elements, prompt)
+    ensures: reasoning.prompt = prompt
+    ensures: reasoning.visual_status = completed
+    ensures: reasoning.bitmap_status = outdated
+    ensures:
+        if reasoning.structured_svg_status in {completed, error}:
+            reasoning.structured_svg_status = outdated
 }
 
-rule Phase3_Failure {
-  when: VisualReasoning.bitmapStatus transitions to error
-
-  ensures: full error detail logged to console (model id, raw error, elapsed time)
-  ensures: phase 3 indicator shown as failed in UI
-  -- User manually re-triggers phase 3 to retry.
+rule StartBitmapPhase3 {
+    when: BitmapPhase3Requested(reasoning)
+    requires: reasoning.nlu_status = completed
+    requires: reasoning.visual_status = completed
+    requires: reasoning.nlu != null
+    requires: reasoning.elements != null
+    requires: reasoning.prompt != null
+    requires: not generation_model_is_vector(reasoning.config.generation_model)
+    ensures:
+        let attempt = Phase3Attempt.created(
+            reasoning: reasoning,
+            snapshot: {
+                utterance: reasoning.utterance,
+                nlu: reasoning.nlu,
+                elements: reasoning.elements,
+                prompt: reasoning.prompt
+            },
+            selected_model: reasoning.config.generation_model,
+            selected_quality: effective_openai_quality(reasoning.config),
+            artifact_kind: bitmap,
+            status: processing,
+            failure_kind: null,
+            recoverable: false,
+            generation_unit_refunded: false,
+            started_at: now
+        )
+        reasoning.active_phase3_attempt = attempt
+        reasoning.bitmap_status = processing
 }
 
--- === Phase 4: VECTORIZAR (user-triggered) ===
-
-rule Phase4_Vectorizar {
-  when: user triggers Vectorizar on a VisualReasoning
-
-  requires: VisualReasoning.bitmapStatus = completed
-  requires: VisualReasoning.bitmap is present
-  requires: modelFamily(VisualReasoning.generationModel) = bitmap
-    -- Phase 4 is never triggered for rows where generationModel = recraftv4_1_vector
-
-  ensures: VTracer WASM runs locally on VisualReasoning.bitmap
-    -- no API call; no quota charge; geometry stays in the browser
-  ensures: on success:
-    VisualReasoning.rawSvg = SVG string produced by VTracer
-    -- Phase 4 has no dedicated status field; completion is reflected by rawSvg being set
-  ensures: on VTracer error: error surfaced in UI; rawSvg unchanged
-
-  @invariant "user-triggered only"
-    -- Phase 4 is never invoked automatically by the pipeline cascade.
-    -- It runs only on explicit user action.
-
-  @invariant "bitmap preserved after vectorization"
-    -- Completing Phase 4 does not clear VisualReasoning.bitmap.
-    -- The bitmap remains available after rawSvg is produced.
+rule StartVectorPhase3 {
+    when: VectorPhase3Requested(reasoning)
+    requires: reasoning.nlu_status = completed
+    requires: reasoning.visual_status = completed
+    requires: reasoning.nlu != null
+    requires: reasoning.elements != null
+    requires: reasoning.prompt != null
+    requires: generation_model_is_vector(reasoning.config.generation_model)
+    ensures:
+        let attempt = Phase3Attempt.created(
+            reasoning: reasoning,
+            snapshot: {
+                utterance: reasoning.utterance,
+                nlu: reasoning.nlu,
+                elements: reasoning.elements,
+                prompt: reasoning.prompt
+            },
+            selected_model: reasoning.config.generation_model,
+            selected_quality: null,
+            artifact_kind: vector,
+            status: processing,
+            failure_kind: null,
+            recoverable: false,
+            generation_unit_refunded: false,
+            started_at: now
+        )
+        reasoning.active_phase3_attempt = attempt
+        reasoning.bitmap_status = processing
 }
 
--- === Phase 5: ESTRUCTURAR ===
-
-rule Phase5_Estructurar {
-  when: phase 5 is triggered for a VisualReasoning
-
-  requires: VisualReasoning.rawSvg is present
-    -- rawSvg may come from Phase 4 (VTrace of a bitmap) or Phase 3 (vector model)
-  requires: VisualReasoning.elements is present
-
-  ensures: structuredSvgStatus transitions to processing
-  ensures: Phase5_SingleCall executes (one API call; no retry loop)
-  ensures: Phase5_Console logs throughout execution
-  ensures: if GlobalConfig.recording.enabled = true:
-    -- mapping and timer are held in component-local state; not written to RowData
-    phase5Mapping = returned StructuringMapping (component-local)
-    phase5ReviewTimerMs = computed per Phase5_Review formula (component-local)
-    Phase5_Review begins
-    -- structuredSvgStatus remains processing until Phase5_Review confirm
-  ensures: if GlobalConfig.recording.enabled = false:
-    Phase5_Assemble runs immediately on returned mapping
-    Phase5_FidelityVerification runs on assembled result
-    VisualReasoning.structuredSvg = final assembled SVG
-    structuredSvgStatus transitions to completed
-  ensures: on API error or tool-use failure:
-    structuredSvgStatus transitions to error
+rule CompleteBitmapPhase3 {
+    when: BitmapPhase3Succeeded(attempt, bitmap_artifact)
+    requires: attempt.status = processing
+    requires: attempt.artifact_kind = bitmap
+    ensures: attempt.status = completed
+    ensures: attempt.reasoning.bitmap = bitmap_artifact
+    ensures: attempt.reasoning.raw_svg = null
+    ensures: attempt.reasoning.structured_svg = null
+    ensures: attempt.reasoning.generation_model = attempt.selected_model
+    ensures: attempt.reasoning.generation_quality = attempt.selected_quality
+    ensures: attempt.reasoning.bitmap_status = completed
+    ensures:
+        if attempt.reasoning.structured_svg_status in {completed, error}:
+            attempt.reasoning.structured_svg_status = outdated
 }
 
-rule Phase5_SingleCall {
-  -- One API call per user trigger. No retry loop.
-  when: phase 5 begins
-
-  ensures: rawSvg preprocessed locally before the API call:
-    -- all paths assigned stable numeric marks (0, 1, 2, …)
-    -- path inventory built (id, centroid, fill-role, bounding box)
-    -- background paths detected and excluded from marks
-    -- merge candidates detected via local bounding-box IoU analysis
-  ensures: rawSvg rasterised to JPEG with numeric labels at path centroids:
-    -- two-image variant (when referenceImage is available):
-    --   Image A: clean reference bitmap (visual ground truth)
-    --   Image B: numbered trace JPEG
-    -- single-image variant (common case, no referenceImage):
-    --   Image: numbered trace JPEG (clean raster of rawSvg)
-  ensures: single API call dispatched to the session-selected Phase 5 model:
-    -- image(s): as described above
-    -- text: raw SVG source (up to 10 000 chars), elements (id + label + concept per node),
-             CSS palette (class names and declarations), merge candidate hints
-    -- system: restructuring instructions (Spanish)
-    -- tool: restructure_svg (returns StructuringMapping)
-    -- tool_choice: forced to restructure_svg
-    -- max_tokens: 8192
-    -- routing: claude-* models → api-claude; gemini-* models → api-gemini-structure
-  ensures: on success: StructuringMapping returned; proceed to assembly or review
-  ensures: on tool-use failure: structuredSvgStatus transitions to error immediately
-
-  @invariant "NLU excluded from prompt"
-    -- utterance, domain, frames, pragmatics, visual_guidelines are NOT sent to the model.
-    -- The model works from visual evidence (image + SVG source) only.
-
-  @invariant "single call, no retry loop"
-    -- Phase 5 makes exactly one API call per user trigger.
-    -- Low-confidence or wrong assignments are corrected by the user via
-    -- re-triggering or the review panel (recording mode), not by auto-retry.
+rule CompleteVectorPhase3 {
+    when: VectorPhase3Succeeded(attempt, svg_artifact)
+    requires: attempt.status = processing
+    requires: attempt.artifact_kind = vector
+    ensures: attempt.status = completed
+    ensures: attempt.reasoning.raw_svg = svg_artifact
+    ensures: attempt.reasoning.bitmap = null
+    ensures: attempt.reasoning.structured_svg = null
+    ensures: attempt.reasoning.generation_model = attempt.selected_model
+    ensures: attempt.reasoning.generation_quality = null
+    ensures: attempt.reasoning.bitmap_status = completed
+    ensures:
+        if attempt.reasoning.structured_svg_status in {completed, error}:
+            attempt.reasoning.structured_svg_status = outdated
 }
 
-rule Phase5_Console {
-  -- Verbosity requirements for the Phase 5 console output.
-  when: Phase 5 is running
-
-  ensures: console receives the following events in order:
-    1. full system prompt text sent to the model
-    2. image attachment summary:
-       "trazado numerado: {W}×{H}px JPEG, {sizeKB} KB"
-       and optionally "+ bitmap de referencia ({mediaType})" if referenceImage present
-    3. "llamando {model}…" when the API request is dispatched
-    4. elapsed ms and HTTP status when the response arrives
-    5. token usage: input_tokens and output_tokens
-    6. per-group summary: nodeId → path ids, cssClass, merge proposal indicator if present
-    7. discards: path ids with any justification text from the model
-    8. for each merge proposal: sources listed, IoU validation result
-    9. if IoU validation fails: path ids, IoU score, "fallback: usando paths originales"
+rule FailPhase3 {
+    when: Phase3Failed(attempt)
+    requires: attempt.status = processing
+    ensures: attempt.status = error
+    ensures: attempt.failure_kind = generation_error
+    ensures: attempt.recoverable = true
+    ensures: attempt.reasoning.bitmap_status = error
+    ensures: attempt.reasoning.nlu_status = completed
+    ensures: attempt.reasoning.visual_status = completed
+    ensures:
+        if attempt.selected_model = `gpt-image-2`:
+            attempt.generation_unit_refunded = true
 }
 
-rule Phase5_MergeValidation {
-  -- Local validation of model-proposed merges before Boolean union computation.
-  -- The model returns merge.sources (path ids) only; no geometry is authored by the model.
-  when: a StructuringGroup.merge is present in the returned StructuringMapping
-
-  ensures: local IoU analysis runs on proposed source paths:
-    -- bounding-box IoU ≥ 0.7 AND similar area ratio AND matching fill-role required
-  ensures: on validation pass:
-    Boolean union computed locally via Martinez sweep-line polygon clipping
-    result simplified via Bezier refit
-    merged path replaces source paths in the assembled group
-    console receives: "merge OK: {sources} → merged path"
-  ensures: on validation fail:
-    console receives: path ids, IoU score, "fallback: usando paths originales"
-    group.keep = merge.sources, group.merge = null
-    assembly continues with original paths unmodified
-    structuredSvgStatus is NOT affected — fallback is silent and non-blocking
-
-  @invariant "geometry never model-authored"
-    -- No path d attribute is generated or returned by the model.
-    -- All geometry in the output is sourced from rawSvg or computed locally
-    --   via Boolean operations (Martinez sweep-line + Bezier simplification).
+rule TerminalImageProviderQuota {
+    when: ImageProviderQuotaExhausted(attempt)
+    requires: attempt.status = processing
+    requires: attempt.selected_model in {
+        `gemini-2.5-flash-image`,
+        `gemini-3.1-flash-image`,
+        `gemini-3-pro-image`,
+        `gpt-image-2`
+    }
+    ensures: attempt.status = error
+    ensures: attempt.failure_kind = external_provider_quota
+    ensures: attempt.recoverable = true
+    ensures: attempt.generation_unit_refunded = true
+    ensures: attempt.reasoning.bitmap_status = error
+    ensures: attempt.reasoning.nlu_status = completed
+    ensures: attempt.reasoning.visual_status = completed
 }
 
-rule Phase5_Review {
-  -- Timed interactive review step. Active only when recording.enabled = true.
-  -- Timer and mapping state are held component-locally in SVGGenerator; not on RowData.
-  when: GlobalConfig.recording.enabled = true
-    AND StructuringMapping returned by Phase5_SingleCall without error
-
-  ensures: phase5ReviewTimerMs computed as:
-    words = total word count across all StructuringGroup.label and nodeId values
-    duration = clamp(
-      (words / config.phase5_review_reading_wpm) × 60 × 3 × 1000,
-      config.phase5_review_min_ms,
-      config.phase5_review_max_ms
-    )
-
-  ensures: review panel displayed with:
-    -- hierarchical tree following elements parent-child order (parentId)
-    -- each row: checkbox (default checked), label (editable), nodeId, path count, cssClass
-    -- countdown timer visible and decrementing
-    -- early-confirm action always available
-
-  ensures: during the timer the user may:
-    -- uncheck individual groups (excluded from assembly)
-    -- edit any label in-place (reflected in assembled SVG aria-label)
-    -- click confirm early (timer stops; assembly runs immediately)
-
-  ensures: on timer expiry OR early confirm:
-    Phase5_Assemble runs with current selections and label overrides
-    Phase5_FidelityVerification runs on assembled result
-    phase5Mapping cleared (component-local)
-    phase5ReviewTimerMs cleared (component-local)
-    VisualReasoning.structuredSvg = final assembled SVG
-    structuredSvgStatus transitions to completed
-
-  @invariant "all selected by default"
-    -- StructuringGroup.selected = true for all groups at review start.
-
-  @invariant "timer is mandatory in recording mode"
-    -- The review panel cannot be dismissed; only confirmed (early or on expiry).
+rule RetryBitmapPhase3Only {
+    when: BitmapPhase3RetryRequested(reasoning)
+    requires: reasoning.bitmap_status = error
+    requires: reasoning.nlu_status = completed
+    requires: reasoning.visual_status = completed
+    requires: reasoning.nlu != null
+    requires: reasoning.elements != null
+    requires: reasoning.prompt != null
+    requires: not generation_model_is_vector(reasoning.config.generation_model)
+    ensures:
+        let attempt = Phase3Attempt.created(
+            reasoning: reasoning,
+            snapshot: {
+                utterance: reasoning.utterance,
+                nlu: reasoning.nlu,
+                elements: reasoning.elements,
+                prompt: reasoning.prompt
+            },
+            selected_model: reasoning.config.generation_model,
+            selected_quality: effective_openai_quality(reasoning.config),
+            artifact_kind: bitmap,
+            status: processing,
+            failure_kind: null,
+            recoverable: false,
+            generation_unit_refunded: false,
+            started_at: now
+        )
+        reasoning.active_phase3_attempt = attempt
+        reasoning.bitmap_status = processing
+        reasoning.nlu_status = completed
+        reasoning.visual_status = completed
 }
 
-rule Phase5_Assemble {
-  -- Local SVG assembly from a final StructuringMapping.
-  when: mapping is final (after Phase5_SingleCall directly, or after Phase5_Review confirm)
-
-  ensures: local code assembles structuredSvg:
-    -- groups with selected = false are omitted entirely from output
-    -- for each selected group: paths in keep sourced verbatim from rawSvg
-    -- for groups with a validated merge: locally computed union path replaces keep paths
-    -- paths in discard are excluded from output
-    -- any rawSvg path not accounted for is placed in a fallback "contexto" group
-    -- hierarchy reconstructed from parentId: child groups nested inside parent <g>
-    -- each group: <g id=nodeId role="group" tabindex="0" aria-label=label class=cssClass>
-    -- no inline fill attributes — all colour via CSS classes from the palette
-    -- CSS: only classes actually used in the output included in <defs>
-    -- result conforms to mf-svg-schema document structure
-
-  @invariant "geometry stays local"
-    -- The model provides only the mapping (nodeId → path ids, optional merge.sources).
-    -- All path geometry is sourced from rawSvg or computed locally via Boolean operations.
-    -- No path d attribute is authored or returned by the model.
-
-  @invariant "label edits reflected"
-    -- Labels edited during Phase5_Review replace model labels in assembled
-    -- SVG aria-label attributes.
+rule StopPhase3 {
+    when: StopPhase3Requested(attempt)
+    requires: attempt.status = processing
+    ensures: attempt.status = cancelled
+    ensures: attempt.reasoning.bitmap_status = idle
+    ensures: attempt.reasoning.bitmap = null
+    ensures: attempt.reasoning.raw_svg = null
 }
 
-rule Phase5_FidelityVerification {
-  -- Structural diff between assembled and raw SVG to detect over-elimination.
-  -- Runs after Phase5_Assemble, before structuredSvgStatus transitions to completed.
-  when: Phase5_Assemble completes
-
-  ensures: path coverage compared between assembled structuredSvg and rawSvg
-  ensures: if fidelity check indicates significant path loss:
-    -- re-assembly attempted without any merge proposals (merge-free variant)
-    -- if merge-free result is a closer match to rawSvg, it is used instead
-    -- console receives: "fidelity: usando variante sin fusiones"
-  ensures: structuredSvgStatus transitions to completed with the better-fidelity result
+rule VectorizeBitmapLocally {
+    when: VectorizationSucceeded(reasoning, svg_artifact)
+    requires: reasoning.bitmap_status = completed
+    requires: reasoning.bitmap != null
+    requires: not generation_model_is_vector(reasoning.generation_model)
+    ensures: reasoning.raw_svg = svg_artifact
 }
 
-rule Phase5_Failure {
-  when: VisualReasoning.structuredSvgStatus transitions to error
+rule StartPhase5 {
+    when: Phase5Requested(reasoning, selected_model)
+    requires: reasoning.raw_svg != null
+    requires: reasoning.nlu != null
+    requires: reasoning.elements != null
+    requires: reasoning.prompt != null
+    ensures:
+        let attempt = Phase5Attempt.created(
+            reasoning: reasoning,
+            selected_model: selected_model,
+            status: processing,
+            mapping: null,
+            review_duration: null
+        )
+        reasoning.active_phase5_attempt = attempt
+        reasoning.structured_svg_status = processing
+}
 
-  ensures: console receives: model used, elapsed ms, full error message, raw response excerpt
-  ensures: phase 5 indicator shown as failed in UI
-  -- User can re-trigger phase 5. Model can be changed before retry.
+rule BeginPhase5Review {
+    when: Phase5MappingReturned(attempt, mapping, review_duration)
+    requires: attempt.status = processing
+    requires: attempt.reasoning.config.recording_enabled
+    requires: review_duration >= config.phase5_review_minimum
+    requires: review_duration <= config.phase5_review_maximum
+    ensures: attempt.mapping = mapping
+    ensures: attempt.review_duration = review_duration
+    ensures: attempt.status = review
+}
+
+rule CompletePhase5WithoutReview {
+    when: Phase5AssemblySucceeded(attempt, mapping, structured_svg, conformance)
+    requires: attempt.status = processing
+    requires: not attempt.reasoning.config.recording_enabled
+    requires: conformance.valid
+    requires: canonical_structured_svg_valid(structured_svg, conformance)
+    ensures: attempt.mapping = mapping
+    ensures: attempt.status = completed
+    ensures: attempt.reasoning.structured_svg = structured_svg
+    ensures: attempt.reasoning.structured_svg_status = completed
+    ensures: attempt.reasoning.structured_svg_reference = {
+        profile_version: conformance.profile_version,
+        content_hash: conformance.content_hash
+    }
+}
+
+rule ConfirmPhase5Review {
+    when: Phase5ReviewConfirmed(attempt, reviewed_mapping, structured_svg, conformance)
+    requires: attempt.status = review
+    requires: conformance.valid
+    requires: canonical_structured_svg_valid(structured_svg, conformance)
+    ensures: attempt.mapping = reviewed_mapping
+    ensures: attempt.status = completed
+    ensures: attempt.reasoning.structured_svg = structured_svg
+    ensures: attempt.reasoning.structured_svg_status = completed
+    ensures: attempt.reasoning.structured_svg_reference = {
+        profile_version: conformance.profile_version,
+        content_hash: conformance.content_hash
+    }
+}
+
+rule FailPhase5 {
+    when: Phase5Failed(attempt)
+    requires: attempt.status in {processing, review}
+    ensures: attempt.status = error
+    ensures: attempt.reasoning.structured_svg_status = error
 }
 
 ------------------------------------------------------------
 -- Invariants
 ------------------------------------------------------------
 
-invariant DownstreamConsistency {
-  -- A phase's outdated status propagates forward without gaps.
-  for r: VisualReasoning:
-    r.nluStatus = outdated →
-      r.visualStatus in {outdated, idle}
-      r.bitmapStatus in {outdated, idle}
-      r.structuredSvgStatus in {outdated, idle}
-    r.visualStatus = outdated →
-      r.bitmapStatus in {outdated, idle}
-      r.structuredSvgStatus in {outdated, idle}
-    r.bitmapStatus = outdated →
-      r.structuredSvgStatus in {outdated, idle}
+invariant Phase3ErrorRetainsCompletedUpstream {
+    for attempt in Phase3Attempts:
+        attempt.status = error implies
+            attempt.reasoning.nlu_status = completed
+            and attempt.reasoning.visual_status = completed
+            and attempt.reasoning.nlu != null
+            and attempt.reasoning.elements != null
+            and attempt.reasoning.prompt != null
 }
 
-invariant PartialGeometryIntegrity {
-  -- Path geometry in structuredSvg is sourced from rawSvg for all non-merged paths.
-  -- Merged paths are computed locally via Boolean union with local IoU validation.
-  for r: VisualReasoning where r.structuredSvgStatus = completed:
-    for path in non-merged-paths(r.structuredSvg):
-      path.d = getPath(r.rawSvg, path.id).d
+invariant ProviderQuotaRefundsSelectedAttempt {
+    for attempt in Phase3Attempts:
+        attempt.failure_kind = external_provider_quota implies
+            attempt.recoverable and attempt.generation_unit_refunded
 }
 
-invariant NativeSVGOnly {
-  -- rawSvg always contains real vector paths, never an embedded raster.
-  -- This applies whether rawSvg came from Phase 3 (vector model) or Phase 4 (VTrace).
-  for r: VisualReasoning where r.rawSvg is present:
-    r.rawSvg does not contain <image> elements
+invariant DownstreamOutdatedWithoutGaps {
+    for reasoning in VisualReasonings:
+        reasoning.nlu_status = outdated implies
+            reasoning.visual_status in {idle, outdated}
+            and reasoning.bitmap_status in {idle, outdated}
+            and reasoning.structured_svg_status in {idle, outdated}
 }
 
-invariant Phase4NeverAutoRuns {
-  -- VTracer runs only via explicit user action,
-  -- never as a consequence of Phase 3 completing.
-  VTracer runs
-    only when user explicitly triggers Vectorizar
+invariant NativeSvgIsNeverBitmapModelOutput {
+    for attempt in Phase3Attempts:
+        attempt.artifact_kind = vector implies
+            generation_model_is_vector(attempt.selected_model)
+}
+
+invariant OpenAIQualitySnapshot {
+    for attempt in Phase3Attempts:
+        (attempt.selected_model = `gpt-image-2` implies attempt.selected_quality != null)
+        and (attempt.selected_model != `gpt-image-2` implies attempt.selected_quality = null)
+}
+
+------------------------------------------------------------
+-- Surfaces
+------------------------------------------------------------
+
+surface VisualReasoningPipeline {
+    contracts:
+        fulfils OpenAITextBoundary
+        fulfils UnderstandingBoundary
+        fulfils CompositionBoundary
+        fulfils Phase3GenerationBoundary
+        fulfils VectorizationBoundary
+        fulfils StructuringBoundary
+        fulfils structured/PortablePictogramRevision
 }
 
 ------------------------------------------------------------
 -- Open Questions
 ------------------------------------------------------------
 
--- Resolved: confirming a non-empty utterance runs processCascade through
--- COMPRENDER → COMPONER → PRODUCIR. VECTORIZAR and ESTRUCTURAR remain explicit,
--- user-triggered operations; individual phases may also be re-run manually.
-
-open question "Should elements validation against mf-svg-schema happen in phase 2 (before bitmapStatus can proceed) or lazily at the start of phase 5?"
-
-open question "When a VisualElement has no paths assigned by the model, does Phase5_Assemble emit an empty <g id=node.id> or omit the node entirely? Empty group preserves schema compliance; omission reduces clutter."
-
-open question "Should the Phase5_Review timer formula use a minimum per-node floor (e.g., 2s per node) rather than a word-count formula, to ensure adequate time for complex pictograms?"
-
-open question "Should confirmed review data (user selections, label edits, final mapping) be captured as a training tuple alongside the assembled SVG for the long-term local model?"
-
-open question "Should Phase5_Review allow per-path selection within a node (not just per-node), for cases where a node has 5+ assigned paths and the user wants to prune individual ones?"
+-- Resolved: new composition is validated at the Phase 2 acceptance boundary.
+-- Phase 5 can additionally validate its input; it is not the first validator.
+-- Resolved: absent geometry does not require an invented empty action group.
+-- Explicitly supplied implicit bindings are allowed; otherwise the node stays
+-- unresolved in the retained complete composition, not silently inferred.
+open question "Should Phase 5 review include a minimum time per semantic node?"
+open question "Should confirmed Phase 5 review data be retained as a future training tuple?"
+open question "Should Phase 5 review allow individual path selection within a semantic node?"

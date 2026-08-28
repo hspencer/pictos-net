@@ -7,8 +7,8 @@
  * Replaces the static Generative Language API key (AIza…) with short-lived
  * OAuth access tokens (~1 h) signed by a Google service account. The
  * credential JSON lives in GOOGLE_SERVICE_ACCOUNT_JSON (Netlify env var and
- * local .env, single line). Because identity is cryptographic, Google no
- * longer sees a static key being used from Netlify's rotating egress IPs.
+ * local .env, single line). OAuth changes authentication, not capacity or
+ * provider policy controls; a service account is not exempt from suspension.
  */
 
 import { GoogleAuth } from 'google-auth-library';

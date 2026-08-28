@@ -1,387 +1,75 @@
+import { getModelProvider } from '../netlify/functions/_shared/modelCatalog.js';
 /**
  * Claude Service — Phases 1 (COMPRENDER), 2 (COMPONER), and spatial prompt regen.
  *
- * Uses Claude Haiku with forced tool use so every response is schema-validated JSON.
+ * Uses forced tool use followed by canonical runtime validation; tool use alone is not validation.
  * Phase 5 (ESTRUCTURAR / vision) lives in svgStructureService.ts.
  */
 
-import { NLUData, GlobalConfig, VisualElement, VOCAB_NSM, VOCAB, DEFAULT_NLU_MODEL } from "../types";
-import { callClaude, callGeminiNlu, extractToolUse, type ClaudeParams } from "./aiClient";
-import { CHILD_CONCEPTS, normalizeElements, injectRoot } from "./visualElementUtils";
+import { NLUData, GlobalConfig, VisualElement, PhaseExecution } from "../types";
+import { callClaude, callGeminiNlu, callOpenAIText, extractToolUse, type ClaudeParams } from "./aiClient";
+import { buildNluRequest, buildCompositionRequest, acceptNlu, acceptComposition, createPhaseExecution, requestSpatialPrompt } from "../netlify/functions/_shared/pipelineContracts.js";
+
+type ExecutionCallback = (execution: PhaseExecution) => void;
 
 /** Route a Claude-format params object to the correct NLU endpoint. */
 function callNluModel(model: string, params: ClaudeParams) {
-    return model.startsWith('gemini-') ? callGeminiNlu(params) : callClaude(params);
+    const provider = getModelProvider(model);
+    if (provider === 'openai') return callOpenAIText(params);
+    if (provider === 'gemini') return callGeminiNlu(params);
+    if (provider === 'claude') return callClaude(params);
+    throw new Error('Unsupported semantic model');
 }
 
 type LogFn = (type: 'info' | 'error' | 'success', msg: string) => void;
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
-const buildNSMPrimesBlock = (langTag: string): string => {
-    const isEs = langTag.startsWith('es');
-    const key = isEs ? 'es' : 'en';
-    const entries = Object.entries(VOCAB_NSM) as [string, { en: string[]; es: string[] }][];
-    return entries.map(([category, primes]) => {
-        const label = category.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-        return `*   **${label}:** ${primes[key].join(', ')}`;
-    }).join('\n');
-};
-
-const formatElements = (els: VisualElement[], depth = 0): string => {
-    if (!Array.isArray(els)) return '  (error: not an array)';
-    return els.map(el => {
-        const indent = '  '.repeat(depth);
-        const concept = el.concept ? ` [${el.concept}]` : '';
-        const children = el.children?.length ? '\n' + formatElements(el.children, depth + 1) : '';
-        return `${indent}- ${el.id}${concept}${children}`;
-    }).join('\n');
-};
-
 // ── Phase 1: COMPRENDER ──────────────────────────────────────────────────────
-
-const NLU_TOOL_SCHEMA = {
-    type: 'object' as const,
-    properties: {
-        utterance: { type: 'string' },
-        lang: { type: 'string' },
-        domain: { type: 'string', enum: VOCAB.domain },
-        metadata: {
-            type: 'object',
-            properties: {
-                speech_act: { type: 'string' },
-                intent: { type: 'string' },
-            },
-            required: ['speech_act', 'intent'],
-        },
-        frames: {
-            type: 'array',
-            items: {
-                type: 'object',
-                properties: {
-                    frame_name: { type: 'string' },
-                    frame_label: { type: 'string' },
-                    lexical_unit: { type: 'string' },
-                    roles: {
-                        type: 'object',
-                        description: 'Map of FrameNet role names to their fillers in the utterance.',
-                        minProperties: 1,
-                        additionalProperties: {
-                            type: 'object',
-                            required: ['type'],
-                            properties: {
-                                type: {
-                                    type: 'string',
-                                    enum: ['Agent', 'Addressee', 'Speaker', 'Experiencer', 'Patient',
-                                           'Theme', 'Beneficiary', 'Instrument', 'Object',
-                                           'Event', 'Location', 'Time', 'Other'],
-                                },
-                                surface: { type: 'string', description: 'Surface form as it appears in the utterance.' },
-                                lemma:   { type: 'string', description: 'Lemmatised base form.' },
-                                ref:     { type: 'string', description: 'Reference to an NSM prime or concept ID.' },
-                                ref_frame: { type: 'string', description: 'Reference to another frame_name in this analysis.' },
-                                definiteness: { type: 'string', enum: ['definite', 'indefinite', 'unspecified'] },
-                            },
-                        },
-                    },
-                },
-                required: ['frame_name', 'lexical_unit', 'roles'],
-            },
-        },
-        nsm_explications: {
-            type: 'object',
-            description: 'NSM explication for 1–3 key concepts from the utterance. Keys: simple lemma or concept label (e.g. "ayudar", "querer"). Values: NSM formula using ONLY the listed semantic primes in ALL CAPS, in sentence form. Example — key "ayudar", value: "ALGUIEN (YO) piensa: ALGO MALO está pasando para MÍ ahora. ESTE ALGUIEN quiere que ALGUIEN (TÚ) HAGA ALGO bueno para ESTE ALGUIEN. ESTE ALGUIEN DICE: YO QUIERO QUE TÚ HAGAS ALGO."',
-            additionalProperties: { type: 'string' },
-        },
-        logical_form: {
-            type: 'object',
-            properties: {
-                event: { type: 'string' },
-                modality: { type: 'string' },
-            },
-            required: ['event', 'modality'],
-        },
-        pragmatics: {
-            type: 'object',
-            properties: {
-                politeness: { type: 'string' },
-                formality: { type: 'string' },
-                expected_response: { type: 'string' },
-            },
-            required: ['politeness', 'formality', 'expected_response'],
-        },
-        visual_guidelines: {
-            type: 'object',
-            properties: {
-                focus_actor: { type: 'string' },
-                action_core: { type: 'string' },
-                object_core: { type: 'string' },
-                context: { type: 'string' },
-                temporal: { type: 'string' },
-            },
-            required: ['focus_actor', 'action_core', 'object_core', 'context', 'temporal'],
-        },
-    },
-    required: ['utterance', 'lang', 'metadata', 'frames', 'nsm_explications', 'logical_form', 'pragmatics', 'visual_guidelines'],
-};
 
 export const generateNLU = async (
     utterance: string,
     onLog?: LogFn,
     config?: GlobalConfig,
+    onExecution?: ExecutionCallback,
 ): Promise<NLUData> => {
-    onLog?.('info', `[NLU] Iniciando análisis semántico: "${utterance.substring(0, 50)}…"`);
-
-    const lang = config?.lang || 'es-419';
-    const isEs = lang.startsWith('es');
-    const geoRegion = config?.geoContext?.region || 'No especificado';
-    const nsmPrimesBlock = buildNSMPrimesBlock(lang);
-    const domainList = VOCAB.domain.join(', ');
-
-    const domainCtx = config?.domainContext?.trim()
-        ? `\n- Contexto de dominio: "${config.domainContext.trim()}" — interpreta TODAS las utterances dentro de este dominio semántico; úsalo para resolver cualquier ambigüedad léxica.`
-        : '';
-    const visualCtx = config?.visualStylePrompt?.trim()
-        ? `\n- Contexto visual: "${config.visualStylePrompt.trim()}"`
-        : '';
-
-    const explicLang = isEs
-        ? `Las explicaciones NSM (nsm_explications) deben estar escritas usando los primos en ESPAÑOL.
-Formato: clave = lema del concepto (p.ej. "ayudar"), valor = fórmula NSM usando SÓLO los primos en MAYÚSCULAS.
-Ejemplo correcto — clave "ayudar": "ALGUIEN (YO) piensa: ALGO MALO está pasando para MÍ. ESTE ALGUIEN quiere que ALGUIEN (TÚ) HAGA ALGO bueno para ESTE ALGUIEN ahora."`
-        : `The NSM explications (nsm_explications) must be written using the primes in ENGLISH.
-Format: key = concept lemma (e.g. "help"), value = NSM formula using ONLY the primes in ALL CAPS.
-Correct example — key "help": "SOMEONE (I) thinks: SOMETHING BAD is happening to ME now. THIS SOMEONE wants SOMEONE (YOU) to DO SOMETHING good for THIS SOMEONE."`;
-
-    const frameLabelLang = isEs
-        ? 'Genera frame_label como traducción al español del frame_name.'
-        : 'Generate frame_label as the English label for the frame_name.';
-
-    const system = `Operas como el nodo "NLU Schema Engine" en la arquitectura PictoNet.
-Tu tarea es analizar la intención comunicativa y devolver el resultado JSON vía la herramienta disponible.
-
-Contexto de uso:
-- Región geográfica: ${geoRegion}
-- Idioma del vocabulario: ${lang}${domainCtx}${visualCtx}
-
-Ontología NSM (Goddard & Wierzbicka v19, 2017):
-${nsmPrimesBlock}
-
-${explicLang}
-${frameLabelLang}
-
-Dominio — infiere uno de: ${domainList}${domainCtx ? ' — prioriza el más afín al contexto de dominio indicado.' : ''}
-
-Reglas:
-1. Invoca SIEMPRE la herramienta analyze_utterance con el JSON completo.
-2. Analiza semántica y pragmática profunda${domainCtx ? ' dentro del dominio indicado' : ''}, no solo la superficie.
-3. Todos los campos requeridos deben estar presentes.`;
-
-    const nluModel = config?.comprenderModel ?? config?.nluModel ?? DEFAULT_NLU_MODEL;
-    onLog?.('info', `[NLU] Enviando a ${nluModel}…`);
-    const response = await callNluModel(nluModel, {
-        model: nluModel,
-        max_tokens: 4096,
-        system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
-        tools: [{
-            name: 'analyze_utterance',
-            description: 'Return the NLU semantic analysis of the communicative intention.',
-            input_schema: NLU_TOOL_SCHEMA,
-            cache_control: { type: 'ephemeral' },
-        }],
-        tool_choice: { type: 'tool', name: 'analyze_utterance' },
-        messages: [{ role: 'user', content: `UTTERANCE: "${utterance}"` }],
-    });
-
-    const result = extractToolUse(response, 'analyze_utterance') as NLUData;
-    onLog?.('success', `[NLU] Completado. Intent: ${result.metadata?.intent || 'N/A'}`);
+    const request = buildNluRequest(utterance, config);
+    onLog?.('info', `[NLU] Enviando a ${request.model}…`);
+    const response = await callNluModel(request.model, request as ClaudeParams);
+    const result = acceptNlu(extractToolUse(response, 'analyze_utterance'), utterance) as NLUData;
+    if (onExecution) onExecution(await createPhaseExecution(1, request, result, response) as PhaseExecution);
+    onLog?.('success', `[NLU] Completado y validado. Intent: ${result.metadata?.intent || 'N/A'}`);
     return result;
 };
 
 // ── Phase 2: COMPONER ────────────────────────────────────────────────────────
-
-// Concept description shared by every level of the element schema.
-const CONCEPT_PROP = {
-    type: 'string' as const,
-    enum: CHILD_CONCEPTS,
-    description: 'Semantic concept derived from the NLU frame roles: Agent (Agent/Experiencer/Speaker/Addressee roles), Action (the lexical_unit event), Object (Patient/Theme/Object/Instrument/Beneficiary), Context (Location/Time/scenario/background), Element (anything else). Every element, including nested children, must carry one.',
-};
-const ID_PROP = { type: 'string' as const, description: 'Simple noun in utterance language, snake_case for compounds.' };
-
-// Two levels of nesting are spelled out concretely (no $ref) so the model gets
-// a fully-guided schema and always emits id + concept, including for children —
-// this is where empty/id-less trees came from. Deeper nesting is left lenient
-// and any residual id-less node is dropped by normalizeElements.
-const COMPOSE_TOOL_SCHEMA = {
-    type: 'object' as const,
-    properties: {
-        elements: {
-            type: 'array',
-            description: 'Semantic child elements of the pictogram. Do NOT include a root pictograma/pictogram node — that is added automatically. IDs are nouns in the utterance language.',
-            items: {
-                type: 'object',
-                properties: {
-                    id: ID_PROP,
-                    concept: CONCEPT_PROP,
-                    children: {
-                        type: 'array',
-                        items: {
-                            type: 'object',
-                            properties: {
-                                id: ID_PROP,
-                                concept: CONCEPT_PROP,
-                                children: { type: 'array', items: { type: 'object' } },
-                            },
-                            required: ['id', 'concept'],
-                        },
-                    },
-                },
-                required: ['id', 'concept'],
-            },
-        },
-        prompt: {
-            type: 'string',
-            description: 'Spatial composition text describing topology and layout of elements. Wrap element IDs in single quotes. 3–6 sentences max.',
-        },
-    },
-    required: ['elements', 'prompt'],
-};
-
 export const generateVisualBlueprint = async (
     nlu: NLUData,
     config: GlobalConfig,
     onLog?: LogFn,
+    onExecution?: ExecutionCallback,
 ): Promise<{ elements: VisualElement[]; prompt: string }> => {
-    if (!nlu) throw new Error('NLU data is required — run COMPRENDER first');
-    const targetLang = nlu.lang || config?.lang || 'es-419';
-
-    onLog?.('info', `[VISUAL] Generando blueprint visual (idioma: ${targetLang})…`);
-
-    const availableClasses = config.svgStyleDefs
-        ? config.svgStyleDefs.flatMap(s => s.selectors).join(', ')
-        : '.main, .secondary, .tertiary, .accent, .red, .green, .dashed, .glow, .anim-blink, .anim-beat, .anim-swing';
-
-    const system = `You are the "Visual Topology Node" in the PictoNet graph.
-Translate the semantic NLU graph into a list of visual child elements and a spatial prompt.
-
-Language context: **${targetLang}**
-— Element IDs and the prompt must be in **${targetLang}**.
-— IDs: simple nouns in ${targetLang}, snake_case for compounds.
-— Do NOT include a root pictograma/pictogram element — return only the semantic children.
-
-Concept mapping (REQUIRED on every element, including nested children):
-— Derive each element's \`concept\` from the NLU frame roles, never from the ID text:
-  · Agent — fillers of Agent, Experiencer, Speaker or Addressee roles (the protagonist).
-  · Action — the visual depiction of the lexical_unit / event itself (gesture, motion lines, arrows).
-  · Object — fillers of Patient, Theme, Object, Instrument or Beneficiary roles.
-  · Context — Location, Time, scenario or background elements.
-  · Element — anything that does not map to a frame role.
-
-Available CSS classes (optional suggestedClass hint only): ${availableClasses}
-
-Prompt rules:
-— Wrap every element ID in single quotes: 'persona', 'casa'.
-— Describe only TOPOLOGY (relative position, size, connections). No style.
-— 3–6 sentences maximum.
-
-${config.domainContext?.trim() ? `Domain context: "${config.domainContext.trim()}" — all element IDs and visual choices must be grounded in this domain.\n` : ''}You MUST invoke the compose_pictogram tool with both \`elements\` and \`prompt\`.`;
-
-    const nluModel = config?.componerModel ?? config?.nluModel ?? DEFAULT_NLU_MODEL;
-    onLog?.('info', `[VISUAL] Enviando NLU a ${nluModel}…`);
-    const response = await callNluModel(nluModel, {
-        model: nluModel,
-        max_tokens: 4096,
-        system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
-        tools: [{
-            name: 'compose_pictogram',
-            description: 'Return the visual DOM (elements hierarchy) and the spatial prompt for Recraft.',
-            input_schema: COMPOSE_TOOL_SCHEMA,
-            cache_control: { type: 'ephemeral' },
-        }],
-        tool_choice: { type: 'tool', name: 'compose_pictogram' },
-        messages: [{ role: 'user', content: `NLU Semantics: ${JSON.stringify({ utterance: nlu.utterance, lang: nlu.lang, frames: nlu.frames, visual_guidelines: nlu.visual_guidelines })}` }],
-    });
-
-    const raw = extractToolUse(response, 'compose_pictogram');
-    const children = normalizeElements(raw.elements ?? []);
-    const prompt = typeof raw.prompt === 'string' ? raw.prompt : (Array.isArray(raw.prompt) ? raw.prompt.join(' ') : '');
-
-    // Inject the root node deterministically — never delegated to the model.
-    const elements = injectRoot(children, targetLang);
-
-    onLog?.('success', `[VISUAL] Completado. Hijos: ${children.length}, Prompt: ${prompt.substring(0, 60)}…`);
-    return { elements, prompt };
+    const request = buildCompositionRequest(nlu, config);
+    onLog?.('info', `[VISUAL] Enviando NLU completo a ${request.model}…`);
+    const response = await callNluModel(request.model, request as ClaudeParams);
+    const result = acceptComposition(extractToolUse(response, 'compose_pictogram'), nlu.lang);
+    if (onExecution) onExecution(await createPhaseExecution(2, request, result, response) as PhaseExecution);
+    onLog?.('success', `[VISUAL] Composición validada. Prompt: ${result.prompt.substring(0, 60)}…`);
+    return result as { elements: VisualElement[]; prompt: string };
 };
 
-// ── Spatial prompt regen (prompt-only, user-initiated) ───────────────────────
-
-// Collect every element id in the tree (root + all nested children).
-const collectIds = (els: VisualElement[]): string[] => {
-    const ids: string[] = [];
-    const walk = (list: VisualElement[]) => {
-        for (const el of list) {
-            if (el?.id) ids.push(el.id);
-            if (el.children?.length) walk(el.children);
-        }
-    };
-    walk(Array.isArray(els) ? els : []);
-    return ids;
-};
-
-// IDs are wrapped in single quotes in the prompt ('mesa', 'persona').
-// Checking for `'id'` eliminates the substring false-positive (prompt.includes('mano')
-// matching 'manos') without needing a regex.
-const missingIds = (prompt: string, ids: string[]): string[] =>
-    ids.filter(id => !prompt.includes(`'${id}'`));
-
+// ── Spatial prompt regen (same Phase 2 validation and evidence boundary) ────────
 export const generateSpatialPrompt = async (
     nlu: NLUData,
     elements: VisualElement[],
     config: GlobalConfig,
     onLog?: LogFn,
+    onExecution?: ExecutionCallback,
 ): Promise<string> => {
-    if (!nlu) throw new Error('NLU data is required — run COMPRENDER first');
-    const targetLang = nlu.lang || config?.lang || 'es-419';
-    const allIds = collectIds(elements);
-
-    onLog?.('info', `[PROMPT] Regenerando prompt espacial (${targetLang})…`);
-
-    const system = `You are the "Spatial Articulation Node" in the PictoNet graph.
-Generate a spatial composition prompt for the given visual elements.
-
-Language: **${targetLang}** — write the prompt in ${targetLang}.
-You MUST reference EVERY element ID from the tree, each wrapped in single quotes
-(e.g. 'pictograma', 'persona'). Do not omit any element and do not invent ids
-that are not in the tree.
-Describe only TOPOLOGY and COMPOSITION. No style. 3–6 sentences.
-Reply with plain text — no JSON, no markdown.`;
-
-    const spatialModel = config?.componerModel ?? config?.nluModel ?? DEFAULT_NLU_MODEL;
-    const ask = async (extra = ''): Promise<string> => {
-        const response = await callNluModel(spatialModel, {
-            model: spatialModel,
-            max_tokens: 1024,
-            system,
-            messages: [{
-                role: 'user',
-                content: `NLU:\n${JSON.stringify({ lang: nlu.lang, visual_guidelines: nlu.visual_guidelines })}\n\nElements:\n${formatElements(elements)}\n\nRequired IDs — each MUST appear wrapped in single quotes in your output: ${allIds.map(id => `'${id}'`).join(', ')}\n\n${extra}Generate the spatial prompt.`,
-            }],
-        });
-        return response.content?.find(b => b.type === 'text')?.text?.trim() || '';
-    };
-
-    let prompt = await ask();
-    let missing = missingIds(prompt, allIds);
-    let retries = 0;
-    while (missing.length && retries < 2) {
-        retries++;
-        onLog?.('info', `[PROMPT] Faltan elementos (${missing.join(', ')}); reintentando (${retries}/2)…`);
-        const retry = await ask(`Your previous attempt omitted these element ids: ${missing.map(id => `'${id}'`).join(', ')}. Rewrite so EVERY element id appears.\n\n`);
-        if (retry) { prompt = retry; missing = missingIds(prompt, allIds); }
-    }
-    if (missing.length) {
-        onLog?.('error', `[PROMPT] El prompt no referencia: ${missing.join(', ')}`);
-    }
-    onLog?.('success', `[PROMPT] Prompt generado: ${prompt.substring(0, 80)}…`);
+    onLog?.('info', '[PROMPT] Regenerando composición con el NLU completo…');
+    const prompt = await requestSpatialPrompt(
+        nlu, elements, config,
+        (model: string, request: unknown) => callNluModel(model, request as ClaudeParams),
+        onExecution,
+    );
+    onLog?.('success', `[PROMPT] Composición validada: ${prompt.substring(0, 80)}…`);
     return prompt;
 };

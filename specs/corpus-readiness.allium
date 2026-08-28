@@ -1,0 +1,341 @@
+-- allium: 3
+-- Training readiness is an explicit assessment of a particular row snapshot.
+-- Current tranche: preserve legacy payloads and add truthful provenance for
+-- newly accepted NLU/composition executions. Review UI, training export,
+-- immutable artifact history and consent workflows below are specified goals,
+-- not assertions that these capabilities have already been implemented.
+
+------------------------------------------------------------
+-- External Entities
+------------------------------------------------------------
+
+external entity Researcher {
+    id: String
+    can_review: Boolean
+}
+
+------------------------------------------------------------
+-- Value Types
+------------------------------------------------------------
+
+value ExecutionProvenance {
+    phase: SemanticPhase
+    schema_id: String
+    schema_version: String
+    schema_hash: String
+    prompt_version: String
+    model: String
+    input_hash: String
+    output_hash: String
+    completed_at: Timestamp
+    request_id: String?
+}
+
+value ReadinessReview {
+    content_hash: String
+    criteria_version: String
+    reviewer_id: String
+    semantic_review: ReviewGate
+    output_review: ReviewGate
+    rights_review: ReviewGate
+    consent_review: ReviewGate
+    privacy_review: ReviewGate
+    provenance_review: ReviewGate
+    evidence_refs: List<String>
+    reviewed_at: Timestamp
+}
+
+value SnapshotEntry {
+    source_library_id: String
+    source_row_id: String
+    content_hash: String
+    lineage_group: String
+    review: ReadinessReview
+    partition: TrainingPartition
+}
+
+------------------------------------------------------------
+-- Contracts
+------------------------------------------------------------
+
+contract PortableResearchRecord {
+    import_record: (payload: Any) -> Any
+    export_record: (payload: Any) -> Any
+    record_execution: (payload: Any, execution: ExecutionProvenance) -> Any
+
+    @invariant PreserveHistoricalKnowledgeAndUnknowns
+        -- Existing row/library metadata and unknown extension fields survive
+        -- import, storage, export and copy. Invalid historical semantic content
+        -- remains inspectable with diagnostics; it is not silently rewritten,
+        -- deleted, or relabelled as current-schema output. Missing historical
+        -- model, timestamp, schema, prompt and input data remain unknown.
+
+    @invariant NewExecutionProvenanceIsActualEvidence
+        -- Newly accepted NLU/composition records identify the actual schema
+        -- id/version/hash, prompt revision, selected model, input/output hashes
+        -- and acceptance time of that execution. Inputs reflect the actual
+        -- request snapshot, including applicable configuration, not whatever
+        -- library settings happen to exist at export time. Provider request id
+        -- is recorded only if returned. Absence never becomes invented history.
+
+    @invariant AcceptedSidecarIsNotAttemptArchive
+        -- The initial additive provenance sidecar accompanies accepted outputs.
+        -- It does not claim to retain every failed call or superseded artifact.
+        -- Existing evidence is preserved; a future append-only attempt and
+        -- asset archive needs a separate migration and retention design.
+
+    @invariant SvgReferencesAreClaimsUntilVerified
+        -- Imported SVG references survive roundtrip as historical data, but
+        -- are not trusted from their presence or a stored valid flag. Verify
+        -- the exact final SVG bytes, declared profile and conformance before
+        -- treating the reference as authoritative for a pictogram revision.
+        -- Its complete embedded NLU/composition are the revision's semantics;
+        -- changed workspace values do not silently change that frozen revision.
+
+    @invariant HumanEvidenceIsNotInference
+        -- Model output, inferred metadata, structural validation, participant
+        -- edits and explicit human review are distinct evidence types. A valid
+        -- JSON document, completed generation, manual edit, or empty error list
+        -- alone never certifies semantic correctness or training eligibility.
+
+    @invariant LogsRemainParticipantControlled
+        -- Existing intervention logs remain participant-editable/removable.
+        -- Their absence or deletion cannot be reconstructed as an automatic
+        -- approval or a complete immutable history. SVG metric summaries do
+        -- not substitute for missing source or target image artifacts.
+}
+
+contract TrainingCorpusReview {
+    assess: (record: CorpusRecord) -> List<String>
+    snapshot: (records: List<CorpusRecord>) -> CorpusSnapshot
+
+    @invariant RightsAreSpecificToTraining
+        -- Rights, consent and privacy are reviewed for the intended training
+        -- use and distribution, covering participant data and provider outputs.
+        -- A public library, schema licence or provider success does not grant
+        -- those permissions. Unknown evidence blocks eligibility.
+
+    @invariant SnapshotReproducibility
+        -- A corpus snapshot freezes its source row/library identities, exact
+        -- content hashes, review criteria and decisions, and artifact lineage.
+        -- Training export must resolve the approved input/target artifacts;
+        -- URLs or hashes without retained retrievable content are insufficient.
+        -- Later source changes never silently mutate a previously frozen set.
+
+    @invariant CopiesDoNotBecomeIndependentExamples
+        -- Copies, imports, template derivatives and related row variants retain
+        -- their known source lineage. Unknown lineage requires review. Related
+        -- examples are grouped before partitioning to prevent train/evaluation
+        -- leakage; a new row id alone does not establish independence.
+}
+
+------------------------------------------------------------
+-- Enumerations
+------------------------------------------------------------
+
+enum SemanticPhase { nlu | composition }
+enum ReadinessStatus { unassessed | review_needed | eligible | excluded }
+enum ReviewGate { unknown | approved | rejected }
+enum TrainingPartition { train | validation | test }
+
+------------------------------------------------------------
+-- Entities and Variants
+------------------------------------------------------------
+
+entity CorpusRecord {
+    source_library_id: String
+    source_row_id: String
+    payload: Any
+    content_hash: String
+    lineage_group: String?
+    observed_at: Timestamp
+    status: ReadinessStatus
+    structural_validity: Boolean?
+    issues: List<String>
+    review: ReadinessReview?
+
+    transitions status {
+        unassessed -> review_needed
+        review_needed -> eligible
+        review_needed -> excluded
+        eligible -> review_needed
+        eligible -> excluded
+        excluded -> review_needed
+        terminal: excluded
+    }
+}
+
+entity CorpusSnapshot {
+    entries: List<SnapshotEntry>
+    criteria_version: String
+    content_hash: String
+    created_at: Timestamp
+}
+
+------------------------------------------------------------
+-- Rules
+------------------------------------------------------------
+
+rule ObserveRowSnapshot {
+    when: RowSnapshotObserved(source_library_id, source_row_id, payload, content_hash, lineage_group)
+    requires: content_hash != ""
+    ensures:
+        CorpusRecord.created(
+            source_library_id: source_library_id,
+            source_row_id: source_row_id,
+            payload: payload,
+            content_hash: content_hash,
+            lineage_group: lineage_group,
+            observed_at: now,
+            status: unassessed,
+            structural_validity: null,
+            issues: [],
+            review: null
+        )
+}
+
+rule AuditWithoutAutomaticEligibility {
+    when: StructuralAuditCompleted(record, valid, issues)
+    requires: record.status = unassessed
+    ensures: record.structural_validity = valid
+    ensures: record.issues = issues
+    ensures: record.status = review_needed
+}
+
+rule AttachExplicitReview {
+    when: ReviewSubmitted(record, reviewer, review)
+    requires: record.status = review_needed
+    requires: reviewer.can_review
+    requires: review.reviewer_id = reviewer.id
+    requires: review.content_hash = record.content_hash
+    requires: review.criteria_version != ""
+    requires: review.evidence_refs.count > 0
+    ensures: record.review = review
+}
+
+rule ApproveTrainingEligibility {
+    when: EligibilityRequested(record)
+    requires: record.status = review_needed
+    requires: record.structural_validity = true
+    requires: record.lineage_group != null
+    requires: record.review != null
+    requires: record.review.content_hash = record.content_hash
+    requires: record.review.semantic_review = approved
+    requires: record.review.output_review = approved
+    requires: record.review.rights_review = approved
+    requires: record.review.consent_review = approved
+    requires: record.review.privacy_review = approved
+    requires: record.review.provenance_review = approved
+    ensures: record.status = eligible
+}
+
+rule ExcludeFromTraining {
+    when: ExclusionRequested(record, reviewer)
+    requires: reviewer.can_review
+    requires: record.status in {review_needed, eligible}
+    ensures: record.status = excluded
+}
+
+rule ReopenReadinessReview {
+    when: ReassessmentRequested(record)
+    requires: record.status in {eligible, excluded}
+    ensures: record.status = review_needed
+    ensures: record.review = null
+    @guidance
+        -- Changed criteria, withdrawn permission or newly identified risks
+        -- require reassessment. Editing source content creates a new observed
+        -- snapshot, which starts unassessed; it never inherits approval.
+}
+
+rule FreezeApprovedCorpus {
+    when: CorpusSnapshotRequested(records, entries, criteria_version, content_hash)
+    requires: records.count > 0
+    requires: records.all(r => r.status = eligible)
+    requires: records.all(r => r.review.criteria_version = criteria_version)
+    requires: entries_correspond_to_approved_records(entries, records)
+    requires: lineage_partitions_are_disjoint(entries)
+    requires: approved_artifacts_are_retrievable(entries)
+    requires: content_hash != ""
+    ensures:
+        CorpusSnapshot.created(
+            entries: entries,
+            criteria_version: criteria_version,
+            content_hash: content_hash,
+            created_at: now
+        )
+}
+
+------------------------------------------------------------
+-- Invariants
+------------------------------------------------------------
+
+invariant EligibilityRequiresEveryReviewGate {
+    for record in CorpusRecords:
+        record.status = eligible implies
+            record.structural_validity = true
+            and record.lineage_group != null
+            and record.review != null
+            and record.review.content_hash = record.content_hash
+            and record.review.semantic_review = approved
+            and record.review.output_review = approved
+            and record.review.rights_review = approved
+            and record.review.consent_review = approved
+            and record.review.privacy_review = approved
+            and record.review.provenance_review = approved
+}
+
+invariant LineageNeverCrossesPartitions {
+    for snapshot in CorpusSnapshots:
+        for first in snapshot.entries:
+            for second in snapshot.entries:
+                first.lineage_group = second.lineage_group implies
+                    first.partition = second.partition
+}
+
+invariant SnapshotReviewsIdentifyExactContent {
+    for snapshot in CorpusSnapshots:
+        snapshot.entries.all(entry =>
+            entry.review.content_hash = entry.content_hash
+            and entry.review.criteria_version = snapshot.criteria_version)
+}
+
+------------------------------------------------------------
+-- Actor Declarations
+------------------------------------------------------------
+
+actor CorpusReviewer {
+    identified_by: Researcher where can_review = true
+}
+
+------------------------------------------------------------
+-- Surfaces
+------------------------------------------------------------
+
+surface CorpusCuration {
+    facing reviewer: CorpusReviewer
+    contracts:
+        fulfils PortableResearchRecord
+        fulfils TrainingCorpusReview
+    provides:
+        RowSnapshotObserved(source_library_id: String, source_row_id: String, payload: Any, content_hash: String, lineage_group: String?)
+        StructuralAuditCompleted(record: CorpusRecord, valid: Boolean, issues: List<String>) when record.status = unassessed
+        ReviewSubmitted(record: CorpusRecord, reviewer, review: ReadinessReview) when record.status = review_needed
+        EligibilityRequested(record: CorpusRecord) when record.status = review_needed
+        ExclusionRequested(record: CorpusRecord, reviewer) when record.status in {review_needed, eligible}
+        ReassessmentRequested(record: CorpusRecord) when record.status in {eligible, excluded}
+        CorpusSnapshotRequested(records: List<CorpusRecord>, entries: List<SnapshotEntry>, criteria_version: String, content_hash: String)
+    @guarantee NoTrainingByDefault
+        -- Structural validation and provenance capture do not start training,
+        -- transmit a corpus, or set automatic eligibility. Review/snapshot
+        -- operations are planned boundaries pending implementation and policy.
+}
+
+------------------------------------------------------------
+-- Open Questions
+------------------------------------------------------------
+
+open question "Which communicative and visual evaluation criteria, reviewers and minimum agreement establish a training pair as acceptable?"
+open question "Which model objective should each corpus snapshot target: intention-to-bitmap, intention-to-SVG, composition prediction, or multiple explicitly separated tasks?"
+open question "What consent, withdrawal, privacy and provider-output rights evidence is required for each intended training and publication use?"
+open question "How should an append-only artifact/attempt archive coexist with participant-controlled deletion and redaction of intervention logs?"
+open question "Which lineage rules identify paraphrases and shared templates as related examples before a reproducible train/validation/test split?"

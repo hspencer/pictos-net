@@ -9,42 +9,32 @@ on:
 jobs:
   ci:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-
       - run: npm ci
-
-      - name: Type check
-        # Filter out known pre-existing errors in in-progress components.
-        # Fails if any NEW error appears outside these files.
+      - name: Strict type check
+        run: npm run typecheck
+      - name: Canonical contracts
+        run: npm run test:schemas
+      - name: Unit tests without live providers
+        shell: bash
         run: |
-          known_bad="components/LibraryHome|components/ParticipateModal|components/SequenceEditor|components/SequenceList|components/SVGEditor/SemanticTree|components/SVGEditor/SVGCanvas|hooks/useDialogA11y|lib/style-editor|utils/styleUtils|services/aiClient"
-          errors=$(npx tsc --noEmit 2>&1 | grep "error TS" | grep -vE "$known_bad" || true)
-          if [ -n "$errors" ]; then
-            echo "$errors"
-            exit 1
-          fi
-
-      - name: Unit tests (TypeScript)
+          tests=(netlify/functions/_shared/*.test.mjs scripts/*.test.mjs)
+          for file in services/*.test.ts; do
+            [[ "$file" == *.integration.test.ts ]] || tests+=("$file")
+          done
+          node --test --experimental-strip-types "${tests[@]}"
+      - name: Independent product snapshots
+        shell: bash
         run: |
-          node --test --experimental-strip-types \
-            services/svgBooleanOps.test.ts \
-            services/svgGeometryUtils.test.ts \
-            services/svgMergeCandidates.test.ts \
-            services/svgPathPolish.test.ts \
-            services/svgTreeUtils.test.ts \
-            services/visualElementUtils.test.ts
-
-      - name: Unit tests (ESM)
-        run: |
-          node --test \
-            netlify/functions/_shared/geminiTranslate.test.mjs \
-            netlify/functions/_shared/vertexBatch.test.mjs
+          source_commit=$(git rev-parse HEAD)
+          for product in nlu-schema pictogram-composition-schema mf-svg-schema; do
+            target="$RUNNER_TEMP/$product"
+            node scripts/export-schema.mjs committed "$product" --ref "$source_commit" --output "$target"
+            npm ci --prefix "$target" --ignore-scripts
+            npm test --prefix "$target"
+          done

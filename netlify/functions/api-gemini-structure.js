@@ -11,6 +11,8 @@
  */
 
 import { logCall } from './_shared/usage.js';
+import { fetchWithRetry } from './_shared/httpRetry.js';
+import { providerHttpError, providerFailure } from './_shared/providerError.js';
 import { connectBlobs } from './_shared/blobs.js';
 import { getVertexAccessToken, vertexModelUrl } from './_shared/vertex.js';
 import { buildGeminiRequest, geminiResponseToClaude } from './_shared/geminiTranslate.js';
@@ -52,9 +54,9 @@ async function handleRequest(event, context) {
     return { statusCode: 401, headers, body: JSON.stringify({ error: 'Unauthorized' }) };
   }
 
-  let model, max_tokens, system, tools, tool_choice, messages;
+  let model, max_tokens, system, tools, tool_choice, messages, _requestId;
   try {
-    ({ model, max_tokens, system, tools, tool_choice, messages } = JSON.parse(event.body));
+    ({ model, max_tokens, system, tools, tool_choice, messages, _requestId } = JSON.parse(event.body));
   } catch {
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid JSON body' }) };
   }
@@ -74,7 +76,7 @@ async function handleRequest(event, context) {
 
   // ── Translate to Gemini format (pure — see _shared/geminiTranslate.js) ─────
   // Output cap lifted and Gemini "thinking" disabled so geometry-authoring
-  // calls (redraw) don't truncate or blow past the 90s function timeout.
+  // calls (redraw) don't truncate or blow past the 60s function timeout.
   const geminiBody = buildGeminiRequest({ model, system, tools, tool_choice, messages, max_tokens });
 
   // ── Call Gemini via Vertex AI (service-account OAuth, no static API key) ──
@@ -85,43 +87,33 @@ async function handleRequest(event, context) {
   try {
     const accessToken = await getVertexAccessToken();
     const url = vertexModelUrl(model);
-    const geminiRes = await fetch(url, {
+    const geminiRes = await fetchWithRetry(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${accessToken}`,
       },
       body: JSON.stringify(geminiBody),
-    });
+    }, { retries: 2, baseDelayMs: 1000, retryOn429: true, maxTotalMs: 45000 });
 
-    if (!geminiRes.ok) {
-      const errText = await geminiRes.text().catch(() => geminiRes.statusText);
-      console.error(`[api-gemini-structure] Gemini error ${geminiRes.status}: ${errText.slice(0, 400)}`);
-      ok = false;
-      errorMsg = `Gemini ${geminiRes.status}: ${errText.slice(0, 200)}`;
-
-      await logCall({
-        email, phase: 'gemini-structure', model, units_charged: 0,
-        ms: Date.now() - startMs,
-        tokens_in: 0, tokens_out: 0, ok: false, error_msg: errorMsg,
-      });
-
-      return { statusCode: 500, headers, body: JSON.stringify({ error: errorMsg }) };
-    }
+    if (!geminiRes.ok) throw await providerHttpError(geminiRes, 'gemini', _requestId);
 
     geminiData = await geminiRes.json();
   } catch (error) {
     ok = false;
-    errorMsg = error.message;
+    const failure = providerFailure(error, { provider: 'gemini', requestId: _requestId });
+    errorMsg = failure.error;
     console.error(`[api-gemini-structure] fetch error: ${error.message}`);
 
     await logCall({
       email, phase: 'gemini-structure', model, units_charged: 0,
       ms: Date.now() - startMs,
-      tokens_in: 0, tokens_out: 0, ok: false, error_msg: errorMsg,
+      tokens_in: null, tokens_out: null, ok: false, error_msg: errorMsg,
+      provider: 'gemini', provider_status: failure.providerStatus, request_id: failure.requestId,
+      attempts: failure.attempts, quota_failure_source: failure.failureSource,
     });
 
-    return { statusCode: 500, headers, body: JSON.stringify({ error: errorMsg }) };
+    return { statusCode: failure.providerStatus || (error.name === 'TimeoutError' ? 504 : 500), headers, body: JSON.stringify(failure) };
   }
 
   const ms = Date.now() - startMs;

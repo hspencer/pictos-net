@@ -18,6 +18,7 @@ Usage:
 import argparse
 import json
 import sys
+import subprocess
 from pathlib import Path
 from typing import Dict, List, Tuple
 import xml.etree.ElementTree as ET
@@ -27,8 +28,6 @@ try:
     JSONSCHEMA_AVAILABLE = True
 except ImportError:
     JSONSCHEMA_AVAILABLE = False
-    print("Warning: jsonschema not installed. Metadata validation will be limited.")
-    print("Install with: pip install jsonschema")
 
 
 # Namespace definitions
@@ -178,23 +177,18 @@ class SVGValidator:
         if JSONSCHEMA_AVAILABLE:
             self._validate_metadata_schema()
         else:
-            self.warnings.append("Skipping JSON schema validation (jsonschema not installed)")
-            self._validate_metadata_basic()
+            raise ValidationError("jsonschema is required; refusing incomplete legacy validation")
 
     def _validate_metadata_schema(self):
         """Validate metadata against the JSON schema."""
         if not self.schema_path.exists():
-            self.warnings.append(f"Schema file not found: {self.schema_path}")
-            self._validate_metadata_basic()
-            return
+            raise ValidationError(f"Schema file not found: {self.schema_path}")
 
         try:
             with open(self.schema_path, 'r', encoding='utf-8') as f:
                 schema = json.load(f)
         except Exception as e:
-            self.warnings.append(f"Could not load schema: {e}")
-            self._validate_metadata_basic()
-            return
+            raise ValidationError(f"Could not load schema: {e}")
 
         try:
             jsonschema.validate(instance=self.metadata, schema=schema)
@@ -387,7 +381,7 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python validator.py examples/canonical-bed.svg
+  python validator.py examples/canonical.svg
   python validator.py --schema custom-schema.json my-pictogram.svg
 
 Exit codes:
@@ -418,6 +412,26 @@ Exit codes:
     if not args.svg_file.exists():
         print(f"Error: File not found: {args.svg_file}", file=sys.stderr)
         return 2
+
+    # v2 has exactly one implementation: the portable Node validator used by
+    # the browser too. Never approximate its result with the historical checks.
+    try:
+        source = args.svg_file.read_text(encoding='utf-8')
+        if '<!DOCTYPE' in source.upper() or '<!ENTITY' in source.upper():
+            raise ValueError('DTD/entities are forbidden')
+        root = ET.fromstring(source)
+        block = root.find('svg:metadata', NS)
+        if block is None:
+            block = root.find('metadata')
+        metadata = json.loads(block.text) if block is not None else {}
+        if metadata.get('schemaVersion') == '2.0.0-draft.1':
+            if args.schema:
+                raise ValueError('v2 uses its packaged canonical profile; custom schema override is forbidden')
+            script = Path(__file__).parent.parent / 'scripts' / 'validate-svg.js'
+            return subprocess.run(['node', str(script), str(args.svg_file.resolve())], check=False).returncode
+    except Exception as error:
+        print(f'Validation unavailable or invalid SVG: {error}', file=sys.stderr)
+        return 1
 
     # Create validator
     validator = SVGValidator(args.svg_file, args.schema)

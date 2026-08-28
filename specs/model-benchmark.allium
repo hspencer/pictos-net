@@ -1,0 +1,267 @@
+-- allium: 3
+-- Local experiment preparation and explicitly authorized text-only execution.
+-- Specifying this boundary does not authorize a paid run or prove model quality.
+
+------------------------------------------------------------
+-- External Entities
+------------------------------------------------------------
+
+external entity Researcher {
+    id: String
+}
+
+------------------------------------------------------------
+-- Value Types
+------------------------------------------------------------
+
+value BenchmarkLimits {
+    budget_usd: Decimal
+    max_calls: Integer
+    max_output_tokens: Integer
+}
+
+value BenchmarkResult {
+    requested_model: String
+    returned_model: String?
+    phase: BenchmarkPhase
+    milliseconds: Integer
+    input_tokens: Integer?
+    output_tokens: Integer?
+    estimated_cost_usd: Decimal?
+    canonical_valid: Boolean
+    failure: String?
+    output_hash: String?
+}
+
+------------------------------------------------------------
+-- Contracts
+------------------------------------------------------------
+
+contract ReproducibleTextBenchmark {
+    prepare: (case_file: String, models: List<String>, limits: BenchmarkLimits?) -> Any
+
+    @invariant DryRunIsTheDefault
+        -- Planning validates the explicitly selected synthetic case file,
+        -- model/phase selections and limits, then prints a manifest without
+        -- contacting providers. Paid execution requires explicit --run and
+        -- positive budget, maximum call count and output-token limit. A key
+        -- being configured is not authorization. No paid run is implicit in
+        -- installation, tests, dry-run, model selection or schema validation.
+
+    @invariant ComparableInputs
+        -- Initial scope is Phase 1 and Phase 2 only, with no image generation.
+        -- Phase 2 compares models against the same fixed, validated complete
+        -- NLU for each case, not another model's newly generated interpretation.
+        -- Use the application's canonical request builders and validators.
+        -- The manifest freezes case/config/prompt/schema hashes, model ids,
+        -- reasoning effort, planned order and dated price conditions. No
+        -- private library or corpus is selected automatically as test input.
+
+    @invariant ConservativeReservationIsNotInvoiceGuarantee
+        -- Before dispatch, reserve a conservative cost estimate using the
+        -- frozen applicable rates, input bound and output cap including any
+        -- reasoning tokens. Unknown prices or an unavailable conservative
+        -- bound block execution. Image costs and unsupported long-context
+        -- pricing cannot be approximated as ordinary short text for admission.
+        -- Enforce both the call cap and remaining estimated budget. Record the
+        -- actual usage returned, but label calculated dollars as estimates,
+        -- not an absolute invoice ceiling. If consumption becomes uncertain,
+        -- retain its reservation and stop before dispatching another call.
+
+    @invariant EveryAttemptRemainsVisible
+        -- Keep successes, invalid outputs, refusals, timeouts and provider
+        -- failures with latency, selected/returned model, available usage,
+        -- input/output hashes and canonical validation diagnostics. Record
+        -- failures that consumed tokens; never substitute zero for unknown
+        -- usage or hide failed cases when computing aggregate results.
+        -- No automatic semantic retries, fallback models or output-cap raises
+        -- expand the planned experiment. Outputs remain local by default.
+
+    @invariant StructuralScoresAreNotCommunicativeScores
+        -- Automatic conformance metrics measure structure, not semantic
+        -- fidelity, cognitive accessibility or CAA usefulness. Report costs
+        -- and timing with failures included. Human evaluation and appropriate
+        -- repeated comparisons are required before declaring a better model;
+        -- running a benchmark never changes production defaults automatically.
+}
+
+------------------------------------------------------------
+-- Enumerations
+------------------------------------------------------------
+
+enum BenchmarkPhase { phase1 | phase2 }
+enum BenchmarkState { planned | running | completed | stopped }
+enum AttemptState { reserved | recorded }
+
+------------------------------------------------------------
+-- Entities and Variants
+------------------------------------------------------------
+
+entity BenchmarkRun {
+    plan: Any
+    plan_hash: String
+    planned_calls: Integer
+    limits: BenchmarkLimits?
+    estimated_exposure_usd: Decimal
+    state: BenchmarkState
+    stop_reason: String?
+
+    attempts: BenchmarkAttempt with run = this
+
+    transitions state {
+        planned -> running
+        running -> completed
+        running -> stopped
+        terminal: completed, stopped
+    }
+}
+
+entity BenchmarkAttempt {
+    run: BenchmarkRun
+    request_hash: String
+    reserved_usd: Decimal
+    state: AttemptState
+    result: BenchmarkResult?
+
+    transitions state {
+        reserved -> recorded
+        terminal: recorded
+    }
+}
+
+------------------------------------------------------------
+-- Rules
+------------------------------------------------------------
+
+rule PrepareWithoutProviderCalls {
+    when: BenchmarkPlanPrepared(researcher, plan, plan_hash, planned_calls, limits)
+    requires: plan_hash != ""
+    requires: planned_calls > 0
+    requires: synthetic_inputs_and_fixed_nlu_valid(plan)
+    ensures: BenchmarkRun.created(
+        plan: plan,
+        plan_hash: plan_hash,
+        planned_calls: planned_calls,
+        limits: limits,
+        estimated_exposure_usd: 0,
+        state: planned,
+        stop_reason: null
+    )
+}
+
+rule StartExplicitPaidRun {
+    when: PaidBenchmarkRequested(researcher, run, approved_plan_hash)
+    requires: run.state = planned
+    requires: approved_plan_hash = run.plan_hash
+    requires: run.limits != null
+    requires: run.limits.budget_usd > 0
+    requires: run.limits.max_calls > 0
+    requires: run.limits.max_output_tokens > 0
+    requires: explicit_run_authorized(researcher, run)
+    ensures: run.state = running
+}
+
+rule ReserveBeforeDispatch {
+    when: BenchmarkAttemptRequested(run, request_hash, reservation_usd)
+    requires: run.state = running
+    requires: run.attempts.all(a => a.state = recorded)
+    requires: run.attempts.count < run.limits.max_calls
+    requires: run.attempts.count < run.planned_calls
+    requires: reservation_usd > 0
+    requires: conservative_reservation_valid(run.plan, request_hash, reservation_usd, run.limits.max_output_tokens)
+    requires: run.estimated_exposure_usd + reservation_usd <= run.limits.budget_usd
+    ensures: run.estimated_exposure_usd = run.estimated_exposure_usd + reservation_usd
+    ensures: BenchmarkAttempt.created(
+        run: run,
+        request_hash: request_hash,
+        reserved_usd: reservation_usd,
+        state: reserved,
+        result: null
+    )
+}
+
+rule RecordAttemptIncludingFailure {
+    when: BenchmarkAttemptFinished(attempt, result)
+    requires: attempt.state = reserved
+    requires: result.milliseconds >= 0
+    requires: result.estimated_cost_usd = null or result.estimated_cost_usd >= 0
+    requires: result_matches_request(result, attempt.request_hash)
+    ensures: attempt.result = result
+    ensures: attempt.state = recorded
+    ensures:
+        if result.estimated_cost_usd = null:
+            attempt.run.state = stopped
+            attempt.run.stop_reason = "usage_uncertain"
+        else:
+            attempt.run.estimated_exposure_usd = attempt.run.estimated_exposure_usd - attempt.reserved_usd + result.estimated_cost_usd
+            if attempt.run.estimated_exposure_usd >= attempt.run.limits.budget_usd:
+                attempt.run.state = stopped
+                attempt.run.stop_reason = "estimated_budget_reached"
+}
+
+rule CompletePlannedExperiment {
+    when: BenchmarkCompletionRequested(run)
+    requires: run.state = running
+    requires: run.attempts.count = run.planned_calls
+    requires: run.attempts.all(a => a.state = recorded)
+    ensures: run.state = completed
+}
+
+rule StopBeforeAnotherCall {
+    when: BenchmarkStopRequested(run, reason)
+    requires: run.state = running
+    requires: reason != ""
+    ensures: run.state = stopped
+    ensures: run.stop_reason = reason
+    @guidance
+        -- Includes call cap, insufficient next reservation, user cancellation,
+        -- missing credentials, provider billing/access failure and uncertainty.
+        -- A dispatched call remains accounted for even if cancellation leaves
+        -- its final upstream consumption unknown.
+}
+
+------------------------------------------------------------
+-- Invariants
+------------------------------------------------------------
+
+invariant CallsRespectExplicitCap {
+    for run in BenchmarkRuns:
+        run.limits != null implies run.attempts.count <= run.limits.max_calls
+}
+
+invariant DryRunNeverDispatches {
+    for run in BenchmarkRuns:
+        run.state = planned implies run.attempts.count = 0
+}
+
+------------------------------------------------------------
+-- Actor Declarations
+------------------------------------------------------------
+
+actor BenchmarkOperator {
+    identified_by: Researcher
+}
+
+------------------------------------------------------------
+-- Surfaces
+------------------------------------------------------------
+
+surface LocalBenchmark {
+    facing researcher: BenchmarkOperator
+    contracts:
+        fulfils ReproducibleTextBenchmark
+    provides:
+        BenchmarkPlanPrepared(researcher, plan: Any, plan_hash: String, planned_calls: Integer, limits: BenchmarkLimits?)
+        PaidBenchmarkRequested(researcher, run: BenchmarkRun, approved_plan_hash: String) when run.state = planned
+        BenchmarkAttemptRequested(run: BenchmarkRun, request_hash: String, reservation_usd: Decimal) when run.state = running
+        BenchmarkAttemptFinished(attempt: BenchmarkAttempt, result: BenchmarkResult) when attempt.state = reserved
+        BenchmarkCompletionRequested(run: BenchmarkRun) when run.state = running
+        BenchmarkStopRequested(run: BenchmarkRun, reason: String) when run.state = running
+}
+
+------------------------------------------------------------
+-- Open Questions
+------------------------------------------------------------
+
+open question "What concrete budget, case set, repetition count and randomized order are authorized for the first paid comparison?"
+open question "Which human semantic and CAA evaluation criteria and reviewers will establish comparative quality beyond canonical conformance?"

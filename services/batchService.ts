@@ -9,7 +9,7 @@
  * "generate the library overnight" mode, not a live one.
  */
 
-import type { RowData, GlobalConfig, VisualElement } from '../types';
+import type { RowData, GlobalConfig, VisualElement, OpenAIImageQuality, PhaseExecution } from '../types';
 import { composeGeminiPrompt } from './geminiService';
 import {
     callBatchCreate, callBatchStatus, callBatchRowResult, type BatchJobView,
@@ -55,9 +55,10 @@ export async function submitLibraryBatch(
     rows: RowData[],
     config: GlobalConfig,
 ): Promise<{ jobId: string; rowCount: number }> {
-    const model = BATCH_MODELS.includes(config.generationModel)
-        ? config.generationModel
-        : BATCH_MODELS[0];
+    if (!BATCH_MODELS.includes(config.generationModel)) {
+        throw new Error('Vertex batch only supports Gemini image models');
+    }
+    const model = config.generationModel;
 
     const payload = batchableRows(rows).map(row => ({
         rowId: row.id,
@@ -114,6 +115,7 @@ export async function submitPipelineBatch(
             comprenderModel: config.comprenderModel,
             componerModel: config.componerModel,
             generationModel: config.generationModel,
+            openaiImageQuality: config.openaiImageQuality ?? 'low',
             visualStylePrompt: config.visualStylePrompt,
             domainContext: config.domainContext,
             svgStyleDefs: config.svgStyleDefs,
@@ -128,6 +130,8 @@ export async function fetchPipelineBatchJob(libraryId: string): Promise<Pipeline
 }
 
 export interface PipelineDrainedRow {
+    phaseExecutions?: PhaseExecution[];
+    generationQuality?: OpenAIImageQuality;
     rowId: string;
     nluData?: any;
     elements?: any[];
@@ -136,6 +140,10 @@ export interface PipelineDrainedRow {
     bitmap?: string;
     error?: string;
     pending?: boolean;
+    deferred?: boolean;
+    rowState?: 'completed' | 'error' | 'phase3_error' | 'deferred';
+    failureSource?: string;
+    recoverable?: boolean;
 }
 
 /**

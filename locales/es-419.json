@@ -242,11 +242,16 @@
     "tutorialTooltip": "Ver el tutorial de introducción a PICTOS.net",
     "pipelineModels": "Modelos de IA por fase",
     "comprenderModel": "Fase 1: COMPRENDER",
-    "comprenderModelTooltip": "Modelo para el análisis semántico de la utterance. Haiku y Gemini Flash son suficientes; Sonnet o Pro para casos complejos.",
+    "comprenderModelTooltip": "Modelo para el análisis semántico de la utterance. Compara fidelidad, correcciones y coste antes de elegir un modelo preferido.",
     "componerModel": "Fase 2: COMPONER",
     "componerModelTooltip": "Modelo para la composición visual (árbol de elementos + prompt). Puede ser distinto al de la Fase 1.",
     "generationModel": "Fase 3: PRODUCIR",
-    "generationModelTooltip": "Modelo de IA para la generación del pictograma. Los modelos Gemini producen bitmap; Recraft produce SVG vectorial.",
+    "generationModelTooltip": "Modelo de IA para la generación del pictograma. Gemini y OpenAI producen bitmap; Recraft ofrece bitmap y SVG vectorial.",
+    "openaiQuality": "Calidad de imagen OpenAI",
+    "openaiQualityLow": "Baja · económica",
+    "openaiQualityMedium": "Media",
+    "openaiQualityHigh": "Alta",
+    "openaiCostNote": "Salida PNG 1024×1024. Estimaciones en USD; se suma el texto del prompt. Baja recomendada para comenzar. La comprobación de conexión no genera imágenes ni garantiza permiso para generarlas.",
     "generationModels": {
       "gemini-2.5-flash-image": "Gemini 2.5 Flash",
       "gemini-3.1-flash-image": "Gemini 3.1 Flash",
@@ -262,7 +267,26 @@
     "connectionChecking": "Verificando…",
     "connectionOk": "OK",
     "connectionError": "Error",
-    "advancedConfig": "Configuración avanzada"
+    "advancedConfig": "Configuración avanzada",
+    "priceUnknown": "Precio no disponible",
+    "tokenPrice": "{input} entrada / {output} salida por 1M tokens",
+    "imagePrice": "≈ {price} / imagen",
+    "priceSource": "Tarifa oficial",
+    "priceChecked": "Consultada {date}",
+    "tokenCostNote": "Tarifas API estándar en USD, no un precio por pictograma. Los tokens reales (incluido razonamiento), caché, descuentos e impuestos aplicables afectan el cobro.",
+    "imageCostNote": "Precio de referencia de generación en USD; las unidades internas de PictoNet son distintas.",
+    "longContextPrice": "Sobre {threshold} tokens de entrada: {input} entrada / {output} salida por 1M tokens.",
+    "imagePriceSize": "Salida de referencia: {size}.",
+    "imagePromptExtra": "La entrada y eventual salida de texto se cobran aparte.",
+    "openaiReasoningNote": "Esfuerzo de razonamiento OpenAI: bajo. La calidad debe compararse mediante un benchmark.",
+    "recraftCreditsNote": "Requiere créditos API prepagados de Recraft, separados de la suscripción Studio. Comprobar saldo no garantiza generación.",
+    "recraftStyleRequired": "Este modelo requiere un ID de estilo Recraft existente. No se crea un estilo automáticamente.",
+    "recraftStyleId": "ID de estilo Recraft",
+    "recraftStyleIdHint": "UUID de un estilo existente; obligatorio para V4 Styles, opcional para V4.1.",
+    "recraftStyleMissing": "Configura un ID de estilo antes de generar.",
+    "connectionScopeNote": "Comprueba credenciales/metadatos del modelo o una respuesta mínima de texto; no garantiza generación de imágenes ni cuota futura.",
+    "recraftCreditBalance": "Unidades API Recraft disponibles: {credits}.",
+    "checkedTextModel": "Credenciales comprobadas con {model}; no se generó con el modelo de imagen seleccionado."
   },
   "console": {
     "title": "Consola PICTOS",
@@ -400,6 +424,7 @@
     "processStoppedAtStep": "Proceso detenido por el usuario en el paso {step}.",
     "stepFailed": "{step} falló para «{utterance}»: {error}",
     "cascadeStarted": "Iniciando propagación en grafo para: {utterance}",
+    "runLog": "[ejecución:{runId}] {message}",
     "cascadeStopped": "Cascada detenida en {step} para {utterance}",
     "stepComplete": "{step} completado: {duration}s para \"{utterance}\"",
     "storageQuotaExceeded": "⚠️ Almacenamiento lleno. Exporte su trabajo y borre pictogramas antiguos. Las imágenes no se guardarán automáticamente.",
@@ -755,7 +780,8 @@
     "submitted": "[LOTE] Enviado: {{count}} pictogramas. Puedes cerrar el navegador; el lote sigue en Google.",
     "draining": "[LOTE] Recuperando {{count}} resultados del lote…",
     "noEligible": "[LOTE] No hay pictogramas con Fase 2 completa para enviar",
-    "rowError": "[LOTE] Error en un pictograma: {{error}}"
+    "rowError": "[LOTE] Error en un pictograma: {{error}}",
+    "providerQuotaDeferred": "[LOTE] Fila {rowId} diferida por cuota externa del proveedor"
   },
   "auth": {
     "important": "Importante",
@@ -845,6 +871,7 @@
     "processFailed": "Falló el proceso SVG: {error}",
     "nluUnavailableForAssembly": "NLU no está disponible para ensamblar.",
     "assembledAfterReview": "SVG estructurado ensamblado tras la revisión.",
-    "assemblyFailedAfterReview": "Falló el ensamblado tras la revisión."
+    "assemblyFailedAfterReview": "Falló el ensamblado tras la revisión.",
+    "inputsChangedDuringReview": "Los datos del SVG cambiaron mientras la revisión estaba pendiente. Se conservó la revisión anterior."
   }
 }

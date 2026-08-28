@@ -1,0 +1,290 @@
+-- allium: 3
+-- Schema products evolve from empirical work inside PictoNet. This describes
+-- the release contract, not a claim that remote publication has happened.
+
+------------------------------------------------------------
+-- External Entities
+------------------------------------------------------------
+
+external entity Maintainer {
+    id: String
+    can_release: Boolean
+}
+
+------------------------------------------------------------
+-- Value Types
+------------------------------------------------------------
+
+value ValidationEvidence {
+    content_hash: String
+    tests_passed: Boolean
+    examples_passed: Boolean
+    declared_versions_agree: Boolean
+    compatibility_documented: Boolean
+}
+
+------------------------------------------------------------
+-- Contracts
+------------------------------------------------------------
+
+contract CanonicalSchemaProducts {
+    validate: (revision: SchemaRevision) -> ValidationEvidence
+    preview: (revision: SchemaRevision) -> String
+
+    @invariant LocalAuthority
+        -- schemas/nlu-schema, schemas/pictogram-composition-schema and
+        -- schemas/mf-svg-schema within PictoNet are canonical product sources.
+        -- They are authored and committed here, not tracked as submodules.
+        -- Standalone repositories
+        -- under mediafranca are independently consumable projections. An
+        -- external change is reviewed and incorporated locally before adoption;
+        -- no sibling checkout or remote branch silently overrides this source.
+
+    @invariant OneVersionOneContract
+        -- A released product/version identifies one immutable schema content
+        -- hash. Different contract contents cannot reuse that release version.
+        -- Documentation, package metadata, schema identifiers and examples
+        -- identify the same contract version and its compatibility policy.
+
+    @invariant SeparateGenerationAndHistoricalReading
+        -- The canonical product distinguishes the new-generation profile from
+        -- the historical document contract. A historical example is checked
+        -- against its declared version, never against an unrelated draft.
+        -- Legacy readability does not certify current-generation conformity.
+
+    @invariant PortableSvgContractsStaySynchronized
+        -- The mf-svg product bundles the exact versioned NLU and composition
+        -- definitions needed to validate embedded payloads without PictoNet or
+        -- network access. Tests compare these bundled definitions with their
+        -- canonical local products; copying them does not create another
+        -- independently editable authority. Schema resolution never falls back
+        -- silently to an unversioned remote definition or a newer profile.
+
+    @invariant PreviewIsNotRelease
+        -- A preview may contain uncommitted local changes but is labelled a
+        -- preview with its content hash. It never claims those bytes belong to
+        -- a clean source commit. A release is reproducible from its source
+        -- commit and hash, with schema, tests, examples and documentation.
+
+    @invariant BoundedIndependentExport
+        -- Export contains only the product's reviewed allowlist. Symlinks,
+        -- traversal paths, secrets and files outside the canonical product
+        -- boundary fail closed. An exported product validates independently
+        -- of PictoNet's application checkout; an application-only passing test
+        -- does not establish independent product validity.
+}
+
+contract IndependentPublication {
+    publish: (revision: SchemaRevision, target_parent_commit: String) -> String
+
+    @invariant ExplicitApproval
+        -- Publication requires an explicit maintainer approval for the exact
+        -- product, revision, destination and licence. Preparing files locally
+        -- does not authorize creating a remote repository, pushing, or tagging.
+
+    @invariant PreserveRemoteHistory
+        -- Existing independent repository history is retained. Publication
+        -- checks the observed target parent and stops on divergence; no force
+        -- push, history replacement or automatic merge bypass is permitted.
+
+    @invariant SchemaLicenceDoesNotGrantCorpusRights
+        -- A product licence covers only material to which the publisher has
+        -- the necessary rights. It does not license participant records,
+        -- provider outputs or private library contents by implication.
+}
+
+------------------------------------------------------------
+-- Enumerations
+------------------------------------------------------------
+
+enum ProductName { nlu_schema | pictogram_composition_schema | mf_svg_schema }
+enum RevisionStatus { draft | validated | exportable }
+
+------------------------------------------------------------
+-- Entities and Variants
+------------------------------------------------------------
+
+entity SchemaProduct {
+    name: ProductName
+    canonical_path: String
+    target_repository: String
+}
+
+entity SchemaRevision {
+    product: SchemaProduct
+    version: String
+    content_hash: String
+    source_commit: String?
+    source_clean: Boolean
+    status: RevisionStatus
+    evidence: ValidationEvidence?
+
+    transitions status {
+        draft -> validated
+        validated -> exportable
+        terminal: exportable
+    }
+}
+
+entity PublicationReceipt {
+    revision: SchemaRevision
+    approved_by: Maintainer
+    licence: String
+    target_parent_commit: String
+    target_commit: String
+    force_applied: Boolean
+}
+
+------------------------------------------------------------
+-- Defaults
+------------------------------------------------------------
+
+default SchemaProduct nlu = {
+    name: nlu_schema,
+    canonical_path: "schemas/nlu-schema",
+    target_repository: "mediafranca/nlu-schema"
+}
+
+default SchemaProduct composition = {
+    name: pictogram_composition_schema,
+    canonical_path: "schemas/pictogram-composition-schema",
+    target_repository: "mediafranca/pictogram-composition-schema"
+}
+
+default SchemaProduct structured_svg = {
+    name: mf_svg_schema,
+    canonical_path: "schemas/mf-svg-schema",
+    target_repository: "mediafranca/mf-svg-schema"
+}
+
+------------------------------------------------------------
+-- Rules
+------------------------------------------------------------
+
+rule CaptureCandidate {
+    when: CandidateCaptured(product, version, content_hash, source_commit, source_clean)
+    requires: version != ""
+    requires: content_hash != ""
+    requires: source_clean implies source_commit != null
+    ensures:
+        SchemaRevision.created(
+            product: product,
+            version: version,
+            content_hash: content_hash,
+            source_commit: source_commit,
+            source_clean: source_clean,
+            status: draft,
+            evidence: null
+        )
+    @guidance
+        -- Editing a candidate creates a new snapshot. Validation evidence is
+        -- never carried across different bytes, even within the same version.
+}
+
+rule AcceptCandidateValidation {
+    when: ValidationCompleted(revision, evidence)
+    requires: revision.status = draft
+    requires: evidence.content_hash = revision.content_hash
+    requires: evidence.tests_passed
+    requires: evidence.examples_passed
+    requires: evidence.declared_versions_agree
+    requires: evidence.compatibility_documented
+    ensures: revision.evidence = evidence
+    ensures: revision.status = validated
+}
+
+rule PrepareCommittedExport {
+    when: ExportPreparationRequested(revision)
+    requires: revision.status = validated
+    requires: revision.source_clean
+    requires: revision.source_commit != null
+    requires: source_commit_contains(revision.source_commit, revision.content_hash)
+    ensures: revision.status = exportable
+}
+
+rule RecordApprovedPublication {
+    when: PublicationConfirmed(revision, maintainer, licence, target_parent_commit, target_commit)
+    requires: revision.status = exportable
+    requires: maintainer.can_release
+    requires: licence != ""
+    requires: target_commit != ""
+    requires: exact_publication_approved(revision, maintainer, licence, target_parent_commit)
+    requires: target_history_preserved(target_parent_commit, target_commit)
+    ensures:
+        PublicationReceipt.created(
+            revision: revision,
+            approved_by: maintainer,
+            licence: licence,
+            target_parent_commit: target_parent_commit,
+            target_commit: target_commit,
+            force_applied: false
+        )
+}
+
+------------------------------------------------------------
+-- Invariants
+------------------------------------------------------------
+
+invariant ValidatedContentMatchesEvidence {
+    for revision in SchemaRevisions:
+        revision.status in {validated, exportable} implies
+            revision.evidence != null
+            and revision.evidence.content_hash = revision.content_hash
+            and revision.evidence.tests_passed
+            and revision.evidence.examples_passed
+            and revision.evidence.declared_versions_agree
+            and revision.evidence.compatibility_documented
+}
+
+invariant ExportableHasCommittedSource {
+    for revision in SchemaRevisions:
+        revision.status = exportable implies
+            revision.source_clean and revision.source_commit != null
+}
+
+invariant PublishedVersionsAreUnambiguous {
+    for first in PublicationReceipts:
+        for second in PublicationReceipts:
+            (first.revision.product = second.revision.product
+             and first.revision.version = second.revision.version) implies
+                first.revision.content_hash = second.revision.content_hash
+}
+
+invariant PublicationNeverForcesHistory {
+    for receipt in PublicationReceipts:
+        not receipt.force_applied
+}
+
+------------------------------------------------------------
+-- Actor Declarations
+------------------------------------------------------------
+
+actor ProductMaintainer {
+    identified_by: Maintainer where can_release = true
+}
+
+------------------------------------------------------------
+-- Surfaces
+------------------------------------------------------------
+
+surface ProductDevelopment {
+    facing maintainer: ProductMaintainer
+    contracts:
+        fulfils CanonicalSchemaProducts
+        demands IndependentPublication
+    provides:
+        CandidateCaptured(product: SchemaProduct, version: String, content_hash: String, source_commit: String?, source_clean: Boolean)
+        ValidationCompleted(revision: SchemaRevision, evidence: ValidationEvidence)
+        ExportPreparationRequested(revision: SchemaRevision) when revision.status = validated
+        PublicationConfirmed(revision: SchemaRevision, maintainer, licence: String, target_parent_commit: String, target_commit: String) when revision.status = exportable
+    @guarantee PublicationIsSeparateFromLocalValidation
+        -- Local schema/runtime validation may complete while remote creation,
+        -- publication, licence selection and release approval remain pending.
+}
+
+------------------------------------------------------------
+-- Open Questions
+------------------------------------------------------------
+
+open question "Which publication and licensing policy is approved for each of the three products, preserving existing rights and distinguishing specifications, examples and executable validators?"
+open question "What release/version compatibility policy is required once independent consumers rely on these products?"

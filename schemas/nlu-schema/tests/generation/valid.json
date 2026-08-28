@@ -1,0 +1,44 @@
+{
+  "utterance": "Beber agua",
+  "lang": "es-419",
+  "metadata": {
+    "speech_act": "directive",
+    "intent": "request"
+  },
+  "frames": [
+    {
+      "id": "f1",
+      "frame_name": "Ingestion",
+      "lexical_unit": "beber",
+      "roles": {
+        "Agent": {
+          "type": "Agent",
+          "surface": "persona"
+        },
+        "Theme": {
+          "type": "Theme",
+          "surface": "agua"
+        }
+      }
+    }
+  ],
+  "nsm_explications": {
+    "beber": "ALGUIEN QUIERE HACER ALGO"
+  },
+  "logical_form": {
+    "event": "beber(persona, agua)",
+    "modality": "want"
+  },
+  "pragmatics": {
+    "politeness": "neutral",
+    "formality": "neutral",
+    "expected_response": "compliance"
+  },
+  "visual_guidelines": {
+    "focus_actor": "persona",
+    "action_core": "beber",
+    "object_core": "agua",
+    "context": "",
+    "temporal": "immediate"
+  }
+}

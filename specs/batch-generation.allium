@@ -1,57 +1,49 @@
 -- allium: 3
 -- batch-generation.allium
 
--- Scope: Two bulk generation modes:
---   (A) Vertex batch — Phase 3 only (Gemini image models; 50% cost, async, minutes-to-hours).
---   (B) Pipeline batch — Phases 1→2→3 server-side (all NLU+image models; synchronous
---       Netlify background function, up to 25 rows, ~15 min budget).
--- Includes: batch job lifecycle, content-based correlation manifest,
---   quota charging, per-row outcome application, cross-session resumption,
---   pipeline batch lifecycle and model allowlist.
--- Excludes:
---   - Online (interactive) generation (see visual-reasoning.allium)
---   - Quota model internals (see usage-enforcement.allium)
---   - Recraft models for Vertex batch (Recraft has no batch API)
---   - GCS bucket provisioning and IAM (operational setup, see
---     docs/BATCH_GENERATION_DESIGN.md)
--- Dependencies: Netlify Identity (user.email), Netlify Blobs (batch-jobs, pipeline-jobs stores),
---   Vertex AI Batch API, Cloud Storage bucket, usage-enforcement quota.
+use "./generation-config.allium" as generation
+use "./usage-enforcement.allium" as usage
+use "./visual-reasoning.allium" as visual
 
 ------------------------------------------------------------
 -- External Entities
 ------------------------------------------------------------
 
--- The Vertex batch prediction job, managed by Google. Its states are
--- JOB_STATE_PENDING / RUNNING / SUCCEEDED / FAILED / CANCELLED / PAUSED.
--- Completed lines are exported continuously; jobs queue up to 72h and are
--- cancelled after 24h of running time (completed lines are still delivered).
-external entity VertexBatchJob {
-  name: String            -- projects/{p}/locations/global/batchPredictionJobs/{id}
-  state: String
-  successful_count: Integer
-  failed_count: Integer
+external entity Library {
+    id: String
 }
 
--- A pictogram row of the active library (managed by visual-reasoning /
--- library-manager specs). Only the fields batch generation touches.
 external entity Row {
-  id: String
-  prompt: String?         -- Phase 2 output; batch requires it
-  bitmap_status: String   -- idle | processing | completed | error
+    id: String
+    utterance: String
+    nlu: visual/NLUData?
+    elements: List<visual/VisualElement>?
+    prompt: String?
+    bitmap: String?
+    raw_svg: String?
+    nlu_status: visual/StepStatus
+    visual_status: visual/StepStatus
+    bitmap_status: visual/StepStatus
+    generation_model: generation/GenerationModel?
+    generation_quality: generation/OpenAIImageQuality?
 }
 
--- A sequence of the active library (managed by sequences.allium). Only the
--- fields sequence batching touches; steps resolve to Rows via rowId.
 external entity Sequence {
-  id: String
-  name: String
-  reference_row_id: String?   -- key pictogram chosen as visual reference
+    id: String
+    name: String
+    reference_row: Row?
 }
 
--- Library-level config (managed by generation-config.allium / library-manager).
--- Only the field batch reference resolution touches.
 external entity LibraryConfig {
-  reference_row_id: String?   -- library-wide visual identity reference
+    library: Library
+    reference_row: Row?
+}
+
+external entity GlobalConfig {
+    comprender_model: visual/NLUModel?
+    componer_model: visual/NLUModel?
+    generation_model: generation/GenerationModel
+    openai_image_quality: generation/OpenAIImageQuality?
 }
 
 ------------------------------------------------------------
@@ -59,62 +51,182 @@ external entity LibraryConfig {
 ------------------------------------------------------------
 
 value BatchItem {
-  -- One manifest entry per submitted row. Correlation is content-based:
-  -- Vertex output lines carry no custom id, only an echo of the request,
-  -- so the full prompt is hashed to recover which row an output belongs to.
-  row_id: String
-  prompt_hash: String     -- sha256 of the exact prompt text sent in the JSONL line
+    row_id: String
+    prompt_hash: String
 }
 
 value BatchOutcome {
-  -- Per-row terminal result applied when collecting.
-  row_id: String
-  ok: Boolean
-  error_msg: String?      -- Vertex per-line status when ok = false
+    row_id: String
+    succeeded: Boolean
+    bitmap: String?
+    error_message: String?
+}
+
+------------------------------------------------------------
+-- Contracts
+------------------------------------------------------------
+
+contract VertexBatchBoundary {
+    submit: (job: BatchJob) -> String
+    poll: (job: BatchJob) -> VertexState
+    collect: (job: BatchJob) -> List<BatchOutcome>
+
+    @invariant GeminiImageOnly
+        -- Vertex batch accepts Gemini 2.5 Flash Image and Gemini 3.1 Flash
+        -- Image only. OpenAI, Recraft, and Gemini 3 Pro are excluded. When
+        -- OpenAI is selected, the deferred Vertex action is unavailable and
+        -- direct submission is rejected; no Gemini replacement is selected.
+
+    @invariant ContentBasedCorrelation
+        -- Each exact composed prompt is hashed in the manifest because Vertex
+        -- output echoes requests but provides no custom row identifier.
+
+    @invariant IncrementalCollection
+        -- Completed output lines may be collected while the Vertex job is still
+        -- running, so individual pictograms become available early.
+
+    @invariant CrossSessionResumption
+        -- Server-side job state is authoritative. Reopening the library resumes
+        -- polling and collection without depending on browser-only state.
+
+    @invariant PartialVertexOutputIsCollected
+        -- Failed, cancelled, and expired Vertex jobs still collect exported
+        -- successful lines; rows with no output receive an explicit error.
+
+    @invariant QuotaReservedOnceAtSubmission
+        -- One generation unit per submitted row is reserved before creation.
+        -- Polling and collection never charge again; a job that never starts is
+        -- refunded through usage enforcement.
+
+    @invariant TemporaryArtifactsAreCleaned
+        -- Input JSONL, output prefixes, and reference copies are removed after
+        -- collection on a best-effort basis with storage lifecycle as fallback.
+}
+
+contract ReferencePictogramBoundary {
+    resolve_reference: (sequence: Sequence, library_config: LibraryConfig) -> Row
+
+    @invariant SequenceReferencePrecedesLibraryReference
+        -- A sequence reference overrides the library reference. Missing or
+        -- unusable references fall back to textual anchors without deadlock.
+
+    @invariant JobOwnsReferenceCopy
+        -- Each submitted job stores its own immutable reference copy. Later
+        -- deletion, regeneration, or re-selection cannot alter an active job.
+
+    @invariant CompletedPictogramsOnly
+        -- Only a row with completed Phase 3 output may become a reference.
+
+    @invariant SequenceAnchorsArePhase3Only
+        -- Sequence submission derives one shared character, palette, objects,
+        -- setting, and step-position preamble without changing Phase 1 meaning.
+}
+
+contract PipelineBatchBoundary {
+    run_full_pipeline: (job: PipelineBatchJob) -> PipelineBatchState
+
+    @invariant SequentialRows
+        -- Rows run in position order so a provider-quota circuit can stop before
+        -- any provider call is attempted for remaining rows.
+
+    @invariant CoherentPhase3Snapshot
+        -- Phase 3 consumes one atomic snapshot of the current row utterance,
+        -- returned NLU, returned elements, and returned prompt.
+        -- GPT Image 2 uses the same complete textual composition as individual
+        -- generation. The submitted model and effective quality are frozen
+        -- for the job and persisted with every successful result.
+
+    @invariant ProviderQuotaCircuitBreaker
+        -- The first terminal provider 429 in Phase 1, 2 or 3, including Recraft
+        -- and non-retryable billing exhaustion, marks the actual failing phase
+        -- as error, preserves already accepted phases and their provenance,
+        -- defers every unattempted later row,
+        -- records provider-quota blocking on the job, and makes no further
+        -- Phase 1, Phase 2, or Phase 3 provider call for that job.
+
+    @invariant NoSilentFallback
+        -- The circuit never invokes another Gemini, OpenAI, or Recraft model automatically.
+
+    @invariant ScopedExactlyOnceRefund
+        -- The current row's precharged generation unit and all deferred rows
+        -- are refunded once, even if text failed before image generation. Rows
+        -- completed before the circuit remain charged. Other failed OpenAI or
+        -- Recraft Phase 3 rows are refunded individually; their row keys must
+        -- neither duplicate nor suppress a later circuit refund.
+
+    @invariant SuccessfulApplicationCompletesUpstreamStatuses
+        -- Applying a completed result writes NLU, elements, prompt, and image to
+        -- the library row and marks Phase 1, Phase 2, and Phase 3 completed.
 }
 
 ------------------------------------------------------------
 -- Enumerations
 ------------------------------------------------------------
 
-enum BatchState { submitted | queued | running | collecting | completed | failed | expired }
+enum VertexState { pending | running | succeeded | failed | cancelled | expired }
+enum BatchState { submitted | queued | running | collecting | completed | failed }
+enum PipelineBatchState { running | completed | failed | provider_quota_blocked }
+enum PipelineBatchRowState { pending | processing | completed | error | provider_error | deferred }
 
 ------------------------------------------------------------
 -- Entities and Variants
 ------------------------------------------------------------
 
 entity BatchJob {
-  -- Persisted server-side in Netlify Blobs (store "batch-jobs", key = library_id)
-  -- so the job survives browser sessions and devices.
-  id: String
-  library_id: String
-  owner_email: String     -- Identity user who submitted; only they may collect
-  model: String           -- gemini image model frozen at submission
-  sequence_id: String?    -- present when the job batches one sequence
-  anchors: String?        -- shared visual-anchor preamble (sequence jobs only)
-  reference_row_id: String?   -- key pictogram used as image reference, if any
-  reference_gcs_uri: String?  -- the job's OWN copy of the reference in GCS;
-                              -- set iff reference_row_id is set
-  vertex_job_name: String
-  state: BatchState
-  items: List<BatchItem>
-  row_count: Integer
-  succeeded_count: Integer
-  failed_count: Integer
-  created_at: Timestamp
-  collected_at: Timestamp when state = completed
+    id: String
+    library: Library
+    owner: usage/IdentityUser
+    reservation: usage/BatchReservation
+    model: generation/GenerationModel
+    sequence: Sequence?
+    anchors: String?
+    reference_row: Row?
+    reference_copy_uri: String?
+    vertex_job_name: String
+    last_vertex_state: VertexState
+    state: BatchState
+    items: List<BatchItem>
+    row_count: Integer
+    succeeded_count: Integer
+    failed_count: Integer
+    created_at: Timestamp
+    collected_at: Timestamp?
+}
 
-  transitions state {
-    submitted -> queued
-    submitted -> running
-    queued -> running
-    queued -> expired
-    running -> collecting
-    running -> failed
-    collecting -> completed
-    collecting -> failed
-    terminal: completed, failed, expired
-  }
+entity PipelineBatchJob {
+    id: String
+    library: Library
+    owner: usage/IdentityUser
+    config: GlobalConfig
+    selected_model: generation/GenerationModel
+    selected_quality: generation/OpenAIImageQuality?
+    reservation: usage/BatchReservation
+    state: PipelineBatchState
+    row_count: Integer
+    provider_quota_blocked_at_row_id: String?
+    provider_quota_phase: usage/GenerationPhase?
+    provider_quota_provider: usage/Provider?
+    provider_quota_failure_source: usage/QuotaFailureSource?
+    refunded_generation_units: Integer
+    unresolved_after_timeout: Boolean
+    created_at: Timestamp
+
+    rows: PipelineBatchRow with job = this
+}
+
+entity PipelineBatchRow {
+    job: PipelineBatchJob
+    source_row: Row
+    position: Integer
+    state: PipelineBatchRowState
+    nlu: visual/NLUData?
+    elements: List<visual/VisualElement>?
+    prompt: String?
+    bitmap: String?
+    phase1_status: visual/StepStatus
+    phase2_status: visual/StepStatus
+    phase3_status: visual/StepStatus
+    error_message: String?
 }
 
 ------------------------------------------------------------
@@ -122,459 +234,477 @@ entity BatchJob {
 ------------------------------------------------------------
 
 config {
-  max_rows_per_batch: Number = 200   -- app-level cap; Vertex allows 200,000 but
-                                     -- collection memory and quota argue for less
-  poll_interval: Duration = 60.seconds
-  batch_models: Set<String> = { "gemini-2.5-flash-image", "gemini-3.1-flash-image" }
-  -- gemini-3-pro-image excluded: per-project daily quota too low for batch workloads
-  -- (high 429 risk mid-job). Use single-row generation only for that model.
-  gcs_input_prefix: String = "batch/input"
-  gcs_output_prefix: String = "batch/output"
+    max_rows_per_vertex_batch: Integer = 200
+    max_rows_per_pipeline_batch: Integer = 25
+    pipeline_timeout: Duration = 15.minutes
+    poll_interval: Duration = 60.seconds
+    vertex_batch_models: Set<generation/GenerationModel> = {
+        `gemini-2.5-flash-image`,
+        `gemini-3.1-flash-image`
+    }
 }
 
 ------------------------------------------------------------
--- Rules — Reference pictogram
+-- Rules
 ------------------------------------------------------------
 
--- A reference lives at two levels with clear precedence: the sequence's key
--- pictogram (the protagonist of that transaction) wins over the library's
--- reference (its global visual identity). Choosing an approved pictogram IS
--- the professional's curation gesture: they point at an image that came out
--- right instead of editing a textual description of a character.
-
-rule UserSelectsSequenceReference {
-  -- @aspirational: not yet implemented. Code comment in api-batch-create.js marks this as Fase B4.
-  when: UserSelectsSequenceReference(sequence, row)
-  requires: row.bitmap_status = "completed"
-    -- only a generated pictogram can serve as reference (bootstrap: the
-    -- online path always exists, so batching "from nothing" simply falls
-    -- back to textual anchors — no deadlock)
-  ensures: sequence.reference_row_id = row.id
+rule SelectSequenceReference {
+    when: SequenceReferenceSelected(sequence, row)
+    requires: row.bitmap_status = completed
+    requires: row.bitmap != null or row.raw_svg != null
+    ensures: sequence.reference_row = row
 }
 
-rule UserSelectsLibraryReference {
-  -- @aspirational: not yet implemented.
-  when: UserSelectsLibraryReference(library_config, row)
-  requires: row.bitmap_status = "completed"
-  ensures: library_config.reference_row_id = row.id
+rule SelectLibraryReference {
+    when: LibraryReferenceSelected(library_config, row)
+    requires: row.bitmap_status = completed
+    requires: row.bitmap != null or row.raw_svg != null
+    ensures: library_config.reference_row = row
 }
 
-rule ClearDanglingReference {
-  when: RowRemoved(row_id)
-    -- emitted by the row lifecycle (visual-reasoning / library-manager)
-    -- when a row is deleted; regeneration keeps the id, so a regenerated
-    -- reference simply changes meaning — the professional re-curates if
-    -- the new image no longer represents the intended style.
-  ensures:
-    for s in Sequences where reference_row_id = row_id:
-      s.reference_row_id = null
-    if library_config.reference_row_id = row_id:
-      library_config.reference_row_id = null
-
-  @guidance
-    -- Same dangling-pointer hygiene sequences already apply to step.rowId.
-    -- Active BatchJobs are NOT touched: they hold their own GCS copy
-    -- (reference_gcs_uri), so deleting the source row never breaks a
-    -- running job. See invariant "active jobs immune to reference mutation".
+rule ClearRemovedSequenceReference {
+    when: ReferencedRowRemoved(sequence, row)
+    requires: sequence.reference_row = row
+    ensures: sequence.reference_row = null
 }
 
-------------------------------------------------------------
--- Rules — Submission
-------------------------------------------------------------
+rule ClearRemovedLibraryReference {
+    when: ReferencedLibraryRowRemoved(library_config, row)
+    requires: library_config.reference_row = row
+    ensures: library_config.reference_row = null
+}
 
-rule SubmitBatch {
-  when: UserSubmitsBatch(library, rows, model)
-
-  requires: model in config.batch_models
-  requires: rows.count >= 1 and rows.count <= config.max_rows_per_batch
-  requires: rows.all(r => r.prompt != null)
-    -- every row must have completed Phase 2; batch never runs Phases 1-2
-  requires: not exists BatchJob{library_id: library.id, state: submitted}
-    and not exists BatchJob{library_id: library.id, state: queued}
-    and not exists BatchJob{library_id: library.id, state: running}
-    and not exists BatchJob{library_id: library.id, state: collecting}
-    -- one active batch per library
-
-  ensures:
-    -- Quota: rows.count units charged up-front via usage-enforcement.
-    -- Google bills only completed lines, but our quota counts generation
-    -- attempts; failed lines are not refunded (see open question).
-    QuotaCharged(email: submitter.email, units: rows.count)
-
-    -- Reference resolution (precedence: none at library scope beyond the
-    -- library reference itself). resolve_reference is a black box: reads
-    -- library_config.reference_row_id; if set and that row's artifact
-    -- exists, rasterizes it when it is SVG (Recraft output), uploads the
-    -- job's own copy to gs://{bucket}/{gcs_input_prefix}/{job_id}/reference.png
-    -- and returns its uri; otherwise returns null.
-    let reference = resolve_reference(library_config)
-
-    -- If vertex_create_batch_job throws (JSONL upload or Vertex API error),
-    -- units are refunded immediately (refundUnits call before returning 500).
-    let job = BatchJob.created(
-      library_id: library.id,
-      owner_email: submitter.email,
-      model: model,
-      reference_row_id: library_config.reference_row_id,
-      reference_gcs_uri: reference,
-      vertex_job_name: vertex_create_batch_job(rows, model, reference),
-        -- black box: builds JSONL (one generateContent request per row,
-        -- responseModalities IMAGE, 1:1, 1K — batch caps output at 1K);
-        -- when reference != null each line includes it as fileData
-        -- (image reference for character and style consistency);
-        -- uploads to gs://{bucket}/{gcs_input_prefix}/{job_id}.jsonl,
-        -- creates the Vertex job on the global endpoint,
-        -- output to gs://{bucket}/{gcs_output_prefix}/{job_id}/
-      state: submitted,
-      items: manifest_of(rows),
-        -- black box: [{row_id, prompt_hash: sha256(prompt_text)}]
-      row_count: rows.count,
-      succeeded_count: 0,
-      failed_count: 0,
-      created_at: now
+rule SubmitVertexBatch {
+    when: VertexBatchSubmitted(
+        library,
+        owner,
+        reservation,
+        rows,
+        model,
+        manifest,
+        vertex_job_name,
+        reference_row,
+        reference_copy_uri
     )
-    for r in rows:
-      r.bitmap_status = "processing"
-
-  @guidance
-    -- Implemented by api-batch-create (Netlify background function).
-    -- Identity JWT verified via _shared/identity.js like all workers.
-    -- The BatchJob blob is the single source of truth; the client keeps
-    -- only {library_id} pointers and re-reads state via api-batch-status.
-    -- UI entry point: "Generar en lote" at library level (logistic gesture:
-    -- produce many, cheap, overnight).
-}
-
-rule SubmitSequenceBatch {
-  -- @aspirational: not yet implemented. api-batch-create.js accepts no sequenceId or anchors.
-  when: UserSubmitsSequenceBatch(library, sequence, rows, model)
-    -- rows are the sequence's steps resolved to Rows, in step order
-
-  requires: model in config.batch_models
-  requires: rows.count >= 1 and rows.count <= config.max_rows_per_batch
-  requires: rows.all(r => r.prompt != null)
-  requires: not exists BatchJob{library_id: library.id, state: submitted}
-    and not exists BatchJob{library_id: library.id, state: queued}
-    and not exists BatchJob{library_id: library.id, state: running}
-    and not exists BatchJob{library_id: library.id, state: collecting}
-
-  ensures:
-    -- Phase 2.5: derive_sequence_anchors is a black box — one Claude call
-    -- (0 units, api-claude is quota-free per usage-enforcement) that reads
-    -- ALL utterances of the sequence and produces a shared visual-anchor
-    -- preamble: one recurring character described once (appearance, age,
-    -- clothing), a fixed palette, the recurring objects and setting of the
-    -- transaction. The sequence stays semantically self-contained (Phase 1
-    -- is untouched); consistency travels to Phase 3 only.
-    let anchors = derive_sequence_anchors(sequence, rows)
-    QuotaCharged(email: submitter.email, units: rows.count)
-
-    -- Reference resolution with precedence sequence > library: the
-    -- sequence's key pictogram (protagonist of this transaction) wins over
-    -- the library-wide visual identity. Same black box as SubmitBatch.
-    let reference = resolve_reference(sequence, library_config)
-    let reference_row = sequence.reference_row_id ?? library_config.reference_row_id
-
-    let job = BatchJob.created(
-      library_id: library.id,
-      owner_email: submitter.email,
-      model: model,
-      sequence_id: sequence.id,
-      anchors: anchors,
-      reference_row_id: reference_row,
-      reference_gcs_uri: reference,
-      vertex_job_name: vertex_create_sequence_batch_job(rows, model, anchors, reference),
-        -- black box: like vertex_create_batch_job, but each JSONL line's
-        -- prompt = anchors + "Step {position} of {rows.count} in the
-        -- sequence '{sequence.name}'." + row.prompt, and when reference !=
-        -- null each line carries it as fileData. Image reference and
-        -- textual anchors are complementary: the image pins character and
-        -- style, the text pins step position and scene. The manifest hashes
-        -- the COMPOSED prompt, since that is the text Vertex echoes back.
-      state: submitted,
-      items: manifest_of_composed(rows, anchors),
-      row_count: rows.count,
-      succeeded_count: 0,
-      failed_count: 0,
-      created_at: now
+    requires: model in config.vertex_batch_models
+    requires: rows.count >= 1
+    requires: rows.count <= config.max_rows_per_vertex_batch
+    requires: rows.all(r => r.prompt != null)
+    requires: manifest.count = rows.count
+    requires: reservation.reserved_units = rows.count
+    ensures: BatchJob.created(
+        id: vertex_job_name,
+        library: library,
+        owner: owner,
+        reservation: reservation,
+        model: model,
+        sequence: null,
+        anchors: null,
+        reference_row: reference_row,
+        reference_copy_uri: reference_copy_uri,
+        vertex_job_name: vertex_job_name,
+        last_vertex_state: pending,
+        state: submitted,
+        items: manifest,
+        row_count: rows.count,
+        succeeded_count: 0,
+        failed_count: 0,
+        created_at: now,
+        collected_at: null
     )
-    for r in rows:
-      r.bitmap_status = "processing"
-
-  @guidance
-    -- UI entry point: "Generar secuencia en lote" in the sequence editor
-    -- toolbar (semantic gesture: visual consistency across the steps of one
-    -- transaction). Monitoring and collection are shared with SubmitBatch:
-    -- PollBatch, CollectResults and ApplyRowOutcome operate on any BatchJob
-    -- regardless of sequence_id.
+    ensures:
+        for row in rows:
+            row.bitmap_status = processing
 }
 
-------------------------------------------------------------
--- Rules — Monitoring
-------------------------------------------------------------
-
-rule PollBatch {
-  when: ClientPollsBatch(library)
-
-  let job = BatchJob{library_id: library.id}
-  requires: exists job
-  requires: job.state in {submitted, queued, running}
-
-  ensures:
-    -- vertex_get_job is a black box: GET batchPredictionJobs/{id}.
-    let v = vertex_get_job(job.vertex_job_name)
-    job.succeeded_count = v.successful_count
-    job.failed_count = v.failed_count
-    if v.state = "JOB_STATE_PENDING":
-      job.state = queued
-    else if v.state = "JOB_STATE_RUNNING":
-      job.state = running
-      -- Incremental collection: if v.successful_count > job.partialCollected,
-      -- kick the collector immediately so finished pictograms appear before the job ends.
-      if v.successful_count > job.partialCollected:
-        CollectRequested(job: job, partial: true)
-    else if v.state = "JOB_STATE_SUCCEEDED":
-      job.state = collecting
-      CollectRequested(job: job)
-    else if v.state in {"JOB_STATE_FAILED", "JOB_STATE_CANCELLED", "JOB_STATE_EXPIRED"}:
-      -- 24h-cancelled and Vertex-expired jobs still export completed lines: collect partials.
-      job.state = collecting
-      CollectRequested(job: job)
-
-  -- Self-healing: if the collector was kicked but has not finished within 3 minutes,
-  -- the next poll re-kicks it with a fresh auth grant (handles collector cold-start failures).
-
-  @guidance
-    -- Implemented by api-batch-status (sync function). The client polls it
-    -- every poll_interval while the app is open and a job pointer exists;
-    -- on app load, any library with an unfinished BatchJob resumes polling
-    -- (cross-session resumption comes free because state lives in Blobs).
+rule SubmitSequenceVertexBatch {
+    when: SequenceVertexBatchSubmitted(
+        library,
+        owner,
+        reservation,
+        sequence,
+        rows,
+        model,
+        anchors,
+        manifest,
+        vertex_job_name,
+        reference_row,
+        reference_copy_uri
+    )
+    requires: model in config.vertex_batch_models
+    requires: rows.count >= 1
+    requires: rows.count <= config.max_rows_per_vertex_batch
+    requires: rows.all(r => r.prompt != null)
+    requires: manifest.count = rows.count
+    requires: reservation.reserved_units = rows.count
+    requires: anchors != ""
+    ensures: BatchJob.created(
+        id: vertex_job_name,
+        library: library,
+        owner: owner,
+        reservation: reservation,
+        model: model,
+        sequence: sequence,
+        anchors: anchors,
+        reference_row: reference_row,
+        reference_copy_uri: reference_copy_uri,
+        vertex_job_name: vertex_job_name,
+        last_vertex_state: pending,
+        state: submitted,
+        items: manifest,
+        row_count: rows.count,
+        succeeded_count: 0,
+        failed_count: 0,
+        created_at: now,
+        collected_at: null
+    )
+    ensures:
+        for row in rows:
+            row.bitmap_status = processing
 }
 
-rule BatchExpires {
-  -- Vertex reports queued-too-long jobs as JOB_STATE_EXPIRED.
-  -- Code maps this to collecting (same path as FAILED/CANCELLED) to collect any partial results,
-  -- rather than failing all rows terminally. The BatchState.expired value exists in the enum
-  -- but is never written; jobs transition queued → collecting on expiry.
-  when: Vertex reports JOB_STATE_EXPIRED for a job in {submitted, queued}
-  ensures:
-    job.state = collecting
-    CollectRequested(job: job)
-    -- rows with no output line receive ok = false via the normal CollectResults path
+rule QueueVertexBatch {
+    when: VertexBatchQueued(job)
+    requires: job.state = submitted
+    ensures: job.state = queued
+    ensures: job.last_vertex_state = pending
 }
 
-------------------------------------------------------------
--- Rules — Collection
-------------------------------------------------------------
-
-rule CollectResults {
-  when: CollectRequested(job)
-
-  requires: job.state = collecting
-
-  ensures:
-    -- parse_batch_output is a black box: streams predictions*.jsonl from the
-    -- job's GCS output prefix; for each line, hashes the echoed request
-    -- prompt text, resolves row_id via job.items, and yields a BatchOutcome
-    -- (ok = line status empty AND an image part is present).
-    let outcomes = parse_batch_output(job)
-    for o in outcomes:
-      RowOutcomeApplied(row_id: o.row_id, ok: o.ok, error_msg: o.error_msg)
-    -- Rows with no output line (job cancelled mid-run) fail explicitly:
-    for item in job.items where not outcomes.any(o => o.row_id = item.row_id):
-      RowOutcomeApplied(row_id: item.row_id, ok: false, error_msg: "No result in batch output")
-    if outcomes.any(o => o.ok):
-      job.state = completed
-      job.collected_at = now
-    else:
-      job.state = failed
-    GcsArtifactsCleaned(job: job)
-      -- input JSONL and output prefix deleted after collection (best-effort:
-      -- a cleanup failure does not fail the job; bucket lifecycle rule is the safety net)
-
-  @guidance
-    -- Implemented by api-batch-collect-background. Images are written one
-    -- blob per row into the existing gemini-jobs store keyed
-    -- "batch-{job.id}-{row_id}", so the client fetches each result through
-    -- the existing api-gemini-poll path and IndexedDB persistence applies
-    -- unchanged. This keeps function response sizes small: the collector
-    -- never returns image bytes to the client directly.
+rule StartVertexBatch {
+    when: VertexBatchStarted(job)
+    requires: job.state in {submitted, queued}
+    ensures: job.state = running
+    ensures: job.last_vertex_state = running
 }
 
-rule ApplyRowOutcome {
-  when: RowOutcomeApplied(row_id, ok, error_msg?)
-  let row = Row{id: row_id}
-  requires: exists row
-  ensures:
-    if ok:
-      row.bitmap_status = "completed"
-    else:
-      row.bitmap_status = "error"
+rule RequestIncrementalCollection {
+    when: VertexBatchHasNewOutput(job, succeeded_count, failed_count)
+    requires: job.state = running
+    requires: succeeded_count > job.succeeded_count
+    ensures: job.succeeded_count = succeeded_count
+    ensures: job.failed_count = failed_count
+    ensures: IncrementalCollectionRequested(job)
 }
 
-------------------------------------------------------------
--- Pipeline Batch (Phases 1 → 2 → 3, server-side)
-------------------------------------------------------------
-
--- A separate bulk mode that runs the full NLU + composition + generation pipeline
--- server-side for rows that have only utterances (no pre-computed prompts).
--- Uses Netlify background functions (not Vertex); supports all NLU and image models.
--- Implemented by: api-pipeline-batch-create, api-pipeline-batch-background, api-pipeline-batch-poll.
--- State persisted in Netlify Blobs store "pipeline-batch-jobs".
-
-config {
-  pipeline_batch_max_rows: Number = 25  -- bounded by Netlify background function 15-min budget
-  pipeline_batch_timeout_ms: Number = 900000  -- 15 minutes
+rule BeginFinalCollection {
+    when: VertexBatchTerminal(job, terminal_state, succeeded_count, failed_count)
+    requires: job.state in {submitted, queued, running}
+    requires: terminal_state in {succeeded, failed, cancelled, expired}
+    ensures: job.succeeded_count = succeeded_count
+    ensures: job.failed_count = failed_count
+    ensures: job.last_vertex_state = terminal_state
+    ensures: job.state = collecting
+    ensures: FinalCollectionRequested(job)
 }
 
-entity PipelineBatchJob {
-  id: String               -- "pb-{timestamp}-{random5}" generated at create time
-  library_id: String
-  owner_email: String
-  rows: [PipelineBatchRow]
-  config: GlobalConfig     -- library config snapshot frozen at submission; models validated
-  state: PipelineBatchState
-  created_at: Timestamp
+rule CompleteVertexCollection {
+    when: VertexCollectionSucceeded(job, outcomes)
+    requires: job.state = collecting
+    ensures:
+        for outcome in outcomes:
+            BatchOutcomeReady(outcome)
+        if outcomes.any(o => o.succeeded):
+            job.state = completed
+            job.collected_at = now
+        else:
+            job.state = failed
 }
 
-value PipelineBatchState {
-  running | completed | failed
+rule ApplySuccessfulVertexOutcome {
+    when: BatchOutcomeApplied(row, outcome)
+    requires: outcome.row_id = row.id
+    requires: outcome.succeeded
+    requires: outcome.bitmap != null
+    ensures: row.bitmap = outcome.bitmap
+    ensures: row.bitmap_status = completed
 }
 
-value PipelineBatchRow {
-  rowId: String
-  utterance: String
-  state: PipelineBatchRowState
-  error: String?
-}
-
-value PipelineBatchRowState {
-  pending | completed | error
+rule ApplyFailedVertexOutcome {
+    when: BatchOutcomeApplied(row, outcome)
+    requires: outcome.row_id = row.id
+    requires: not outcome.succeeded
+    ensures: row.bitmap_status = error
 }
 
 rule SubmitPipelineBatch {
-  when: UserSubmitsPipelineBatch(library, rows, config)
-
-  requires: rows.count >= 1 and rows.count <= config.pipeline_batch_max_rows
-  requires: rows.all(r => r.utterance is non-empty)
-  requires: config.comprenderModel in NLU_ALLOWED_MODELS (or absent → default)
-  requires: config.componerModel in NLU_ALLOWED_MODELS (or absent → default)
-    -- NLU_ALLOWED_MODELS: claude-haiku-4-5-20251001, claude-sonnet-4-6, claude-opus-4-6,
-    --   gemini-2.5-flash, gemini-2.5-pro. Validated in pipelineRunner.js; invalid model throws.
-
-  ensures:
-    QuotaCharged(email: submitter.email, units: rows.count)
-      -- 1 unit per row (image generation); Claude calls within the pipeline are 0 units
-    PipelineBatchJob created with state = running
-    api-pipeline-batch-background kicked asynchronously
-    -- If the background kick fails, units are refunded immediately.
-
-  @guidance
-    -- api-pipeline-batch-create deposits a single-use auth grant (same pattern as
-    -- Recraft/Gemini background workers) because background functions cannot verify
-    -- a JWT directly. The background worker consumes the grant before calling pipelineRunner.
+    when: PipelineBatchSubmitted(job_id, library, owner, rows, pipeline_config, reservation)
+    requires: rows.count >= 1
+    requires: rows.count <= config.max_rows_per_pipeline_batch
+    requires: rows.all(r => r.utterance != "")
+    requires: reservation.reserved_units = rows.count
+    ensures:
+        let job = PipelineBatchJob.created(
+            id: job_id,
+            library: library,
+            owner: owner,
+            config: pipeline_config,
+            selected_model: pipeline_config.generation_model,
+            selected_quality: effective_openai_quality(pipeline_config),
+            reservation: reservation,
+            state: running,
+            row_count: rows.count,
+            provider_quota_blocked_at_row_id: null,
+            provider_quota_phase: null,
+            provider_quota_provider: null,
+            provider_quota_failure_source: null,
+            refunded_generation_units: 0,
+            unresolved_after_timeout: false,
+            created_at: now
+        )
+        for row in rows:
+            PipelineBatchRow.created(
+                job: job,
+                source_row: row,
+                position: position_of(rows, row),
+                state: pending,
+                nlu: null,
+                elements: null,
+                prompt: null,
+                bitmap: null,
+                phase1_status: idle,
+                phase2_status: idle,
+                phase3_status: idle,
+                error_message: null
+            )
 }
 
-rule RunPipelineBatch {
-  when: PipelineBatchJob.state = running
+rule StartPipelineRow {
+    when: PipelineRowStarted(row)
+    requires: row.job.state = running
+    requires: row.state = pending
+    ensures: row.state = processing
+    ensures: row.phase1_status = processing
+}
 
-  ensures: for each row in job.rows, sequentially:
-    Phase 1 (COMPRENDER): runPhase1(row.utterance, job.config)
-    Phase 2 (COMPONER): runPhase2(nluData, job.config)
-    Phase 3 (PRODUCIR): runPhase3(elements, prompt, job.config)
-    on row success: row.state = completed; result blob written for client polling
-    on row error: row.state = error; error message stored; next row continues
-  ensures: on all rows processed:
-    job.state = completed (even if some rows errored — partial success is valid)
-  ensures: on unrecoverable function failure (budget exceeded):
-    remaining rows stay pending; job state is not updated
-    -- client polls until timeout and surfaces unresolved rows as errors
+rule CompletePipelinePhase1 {
+    when: PipelinePhase1Succeeded(row, nlu)
+    requires: row.job.state = running
+    requires: row.state = processing
+    requires: row.phase1_status = processing
+    ensures: row.nlu = nlu
+    ensures: row.phase1_status = completed
+    ensures: row.phase2_status = processing
+}
 
-  @invariant "model allowlist enforced server-side"
-    -- pipelineRunner.js validates comprenderModel and componerModel against
-    -- NLU_ALLOWED_MODELS before each call. Invalid model throws, failing the row.
+rule CompletePipelinePhase2 {
+    when: PipelinePhase2Succeeded(row, elements, prompt)
+    requires: row.job.state = running
+    requires: row.state = processing
+    requires: row.phase1_status = completed
+    requires: row.phase2_status = processing
+    requires: elements.count > 0
+    requires: prompt != ""
+    ensures: row.elements = elements
+    ensures: row.prompt = prompt
+    ensures: row.phase2_status = completed
+    ensures: row.phase3_status = processing
+}
 
-  @invariant "quota charged at submit, not per-row"
-    -- All units are consumed at SubmitPipelineBatch. Individual row failures
-    -- within the background function do not trigger additional charges or refunds.
+rule CompletePipelinePhase3 {
+    when: PipelinePhase3Succeeded(row, bitmap)
+    requires: row.job.state = running
+    requires: row.state = processing
+    requires: row.phase1_status = completed
+    requires: row.phase2_status = completed
+    requires: row.phase3_status = processing
+    requires: row.nlu != null
+    requires: row.elements != null
+    requires: row.prompt != null
+    ensures: row.bitmap = bitmap
+    ensures: row.phase3_status = completed
+    ensures: row.state = completed
+}
+
+rule FailPipelinePhase1 {
+    when: PipelinePhase1Failed(row, error_message)
+    requires: row.job.state = running
+    requires: row.state = processing
+    requires: row.phase1_status = processing
+    ensures: row.phase1_status = error
+    ensures: row.state = error
+    ensures: row.error_message = error_message
+}
+
+rule FailPipelinePhase2 {
+    when: PipelinePhase2Failed(row, error_message)
+    requires: row.job.state = running
+    requires: row.state = processing
+    requires: row.phase2_status = processing
+    ensures: row.phase2_status = error
+    ensures: row.state = error
+    ensures: row.error_message = error_message
+}
+
+rule FailPipelinePhase3 {
+    when: PipelinePhase3Failed(row, error_message)
+    requires: row.job.state = running
+    requires: row.state = processing
+    requires: row.phase3_status = processing
+    ensures: row.phase3_status = error
+    ensures: row.state = error
+    ensures: row.error_message = error_message
+    ensures:
+        if row.job.selected_model = `gpt-image-2`:
+            row.job.refunded_generation_units = row.job.refunded_generation_units + usage/config.image_generation_units
+            usage/OpenAIPipelineRowFailed(
+                reservation: row.job.reservation,
+                row_id: row.source_row.id
+            )
+        if generation_model_is_recraft(row.job.selected_model):
+            row.job.refunded_generation_units = row.job.refunded_generation_units + usage/config.image_generation_units
+            usage/RecraftPipelineRowFailed(
+                reservation: row.job.reservation,
+                row_id: row.source_row.id
+            )
+}
+
+rule OpenProviderQuotaCircuit {
+    when: PipelineProviderQuotaExhausted(row, phase, provider, failure_source, error_message)
+    requires: row.job.state = running
+    requires: row.state = processing
+    requires: phase in {phase1, phase2, phase3}
+    requires: failure_source in {external_provider_quota, external_provider_billing}
+    requires: phase_is_processing(row, phase)
+    let deferred_rows = row.job.rows where position > row.position and state = pending
+    let refundable_units = deferred_rows.count + 1
+    ensures:
+        if phase = phase1:
+            row.phase1_status = error
+        if phase = phase2:
+            row.phase2_status = error
+        if phase = phase3:
+            row.phase3_status = error
+    ensures: row.state = provider_error
+    ensures: row.error_message = error_message
+    ensures: row.job.state = provider_quota_blocked
+    ensures: row.job.provider_quota_blocked_at_row_id = row.source_row.id
+    ensures: row.job.provider_quota_phase = phase
+    ensures: row.job.provider_quota_provider = provider
+    ensures: row.job.provider_quota_failure_source = failure_source
+    ensures: row.job.refunded_generation_units = row.job.refunded_generation_units + refundable_units
+    ensures:
+        for deferred in deferred_rows:
+            deferred.state = deferred
+        usage/PipelineProviderQuotaCircuitOpened(
+            reservation: row.job.reservation,
+            refundable_units: refundable_units
+        )
+}
+
+rule CompletePipelineBatch {
+    when: PipelineBatchFinished(job)
+    requires: job.state = running
+    requires: job.rows.all(r => r.state in {completed, error})
+    ensures: job.state = completed
+}
+
+rule FailPipelineBatchInfrastructure {
+    when: PipelineBatchInfrastructureFailed(job)
+    requires: job.state = running
+    ensures: job.unresolved_after_timeout = true
+
+    @guidance
+        -- Preserve pending rows and the running job record so polling can expose
+        -- unresolved work after the background-function budget is exceeded.
+}
+
+rule ApplyCompletedPipelineRow {
+    when: CompletedPipelineRowApplied(pipeline_row)
+    requires: pipeline_row.state = completed
+    requires: pipeline_row.phase1_status = completed
+    requires: pipeline_row.phase2_status = completed
+    requires: pipeline_row.phase3_status = completed
+    requires: pipeline_row.nlu != null
+    requires: pipeline_row.elements != null
+    requires: pipeline_row.prompt != null
+    requires: pipeline_row.bitmap != null
+    ensures: pipeline_row.source_row.nlu = pipeline_row.nlu
+    ensures: pipeline_row.source_row.elements = pipeline_row.elements
+    ensures: pipeline_row.source_row.prompt = pipeline_row.prompt
+    ensures: pipeline_row.source_row.bitmap = pipeline_row.bitmap
+    ensures: pipeline_row.source_row.generation_model = pipeline_row.job.selected_model
+    ensures: pipeline_row.source_row.generation_quality = pipeline_row.job.selected_quality
+    ensures: pipeline_row.source_row.nlu_status = completed
+    ensures: pipeline_row.source_row.visual_status = completed
+    ensures: pipeline_row.source_row.bitmap_status = completed
 }
 
 ------------------------------------------------------------
 -- Invariants
 ------------------------------------------------------------
 
-invariant OneActiveBatchPerLibrary {
-  for a in BatchJobs:
-    for b in BatchJobs:
-      a != b and a.library_id = b.library_id
-        implies a.state in {completed, failed, expired}
-          or b.state in {completed, failed, expired}
+invariant OneActiveVertexBatchPerLibrary {
+    for a in BatchJobs:
+        for b in BatchJobs:
+            a != b and a.library = b.library implies
+                a.state in {completed, failed} or b.state in {completed, failed}
 }
 
-invariant ManifestCoversAllRows {
-  for job in BatchJobs:
-    job.items.count = job.row_count
+invariant ManifestCoversSubmittedRows {
+    for job in BatchJobs:
+        job.items.count = job.row_count
 }
 
-@invariant "batch is gemini-image only"
-  -- SubmitBatch rejects any model outside config.batch_models. Recraft and
-  -- structuring models are never batched.
+invariant ProviderQuotaBlockedPartition {
+    for job in PipelineBatchJobs:
+        job.state = provider_quota_blocked implies
+            job.provider_quota_blocked_at_row_id != null
+            and job.provider_quota_phase in {phase1, phase2, phase3}
+            and job.provider_quota_provider != null
+            and job.provider_quota_failure_source in {external_provider_quota, external_provider_billing}
+            and filter(job.rows, r => r.state = provider_error).count = 1
+            and job.rows.all(r => r.state in {completed, error, provider_error, deferred})
+            and job.refunded_generation_units =
+                filter(job.rows, r => r.state in {provider_error, deferred}).count
+                + filter(job.rows, r => r.state = error and r.phase3_status = error
+                    and (job.selected_model = `gpt-image-2` or generation_model_is_recraft(job.selected_model))).count
+}
 
-@invariant "quota charged exactly once per submission"
-  -- rows.count units at SubmitBatch; PollBatch and CollectResults charge 0.
-  -- A failed or expired job does not refund (open question below).
+invariant DeferredRowsOnlyBelongToBlockedJobs {
+    for job in PipelineBatchJobs:
+        job.rows.any(r => r.state = deferred) implies job.state = provider_quota_blocked
+}
 
-@invariant "geometry of trust unchanged"
-  -- No API key or service-account credential ever reaches the browser; the
-  -- client talks only to Netlify functions, which hold GCS/Vertex access.
+invariant Phase3QuotaErrorRetainsUpstreamArtifacts {
+    for row in PipelineBatchRows:
+        row.state = provider_error and row.phase3_status = error implies
+            row.phase1_status = completed
+            and row.phase2_status = completed
+            and row.phase3_status = error
+            and row.nlu != null
+            and row.elements != null
+            and row.prompt != null
+}
 
-@invariant "active jobs immune to reference mutation"
-  -- A BatchJob carries its own GCS copy of the reference image
-  -- (reference_gcs_uri), uploaded at submission. Deleting, regenerating or
-  -- re-pointing the source pictogram after submission cannot alter or break
-  -- a queued or running job.
+invariant Phase2QuotaErrorRetainsUnderstanding {
+    for row in PipelineBatchRows:
+        row.state = provider_error and row.phase2_status = error implies
+            row.phase1_status = completed and row.nlu != null
+}
 
-@invariant "reference is always a completed pictogram"
-  -- Both selection rules require bitmap_status = completed, and
-  -- resolve_reference returns null when the referenced artifact is missing.
-  -- Batching without any reference is always possible (textual anchors
-  -- only): the bootstrap is by design, never a deadlock.
+invariant DeferredRowsWereNotAttempted {
+    for row in PipelineBatchRows:
+        row.state = deferred implies
+            row.phase1_status = idle
+            and row.phase2_status = idle
+            and row.phase3_status = idle
+}
+
+------------------------------------------------------------
+-- Surfaces
+------------------------------------------------------------
+
+surface BatchGeneration {
+    contracts:
+        fulfils VertexBatchBoundary
+        fulfils ReferencePictogramBoundary
+        fulfils PipelineBatchBoundary
+}
 
 ------------------------------------------------------------
 -- Open Questions
 ------------------------------------------------------------
 
-open question RefundPolicy {
-  -- Failed/expired lines charged 1 unit each. Refund on collect (units back
-  -- for ok = false), or keep charge-at-submit for simplicity and abuse
-  -- resistance? Current spec: no refund.
-}
-
-open question PromptHashCollisions {
-  -- Two rows with identical prompts hash identically; outputs become
-  -- interchangeable. Acceptable (images are equivalent), or should
-  -- SubmitBatch salt each prompt with an invisible per-row suffix?
-}
-
--- RESOLVED (2026-08) LiveProgressGranularity: collector runs incrementally during
--- running jobs when v.successful_count > job.partialCollected (see PollBatch rule).
--- Finished pictograms are written to gemini-jobs blobs one by one and appear in the
--- UI as they complete, before the full job ends. Count-only progress ("12/38") is
--- augmented by per-pictogram availability as collection drains partial results.
-
--- RESOLVED (2026-07-03) ImageReferenceConsistency: instead of a two-pass
--- batch, the reference is a key pictogram already generated in the library,
--- chosen by the professional (sequence-level, falling back to a
--- library-level reference). Single-pass submission; the job uploads its own
--- copy. Bootstrap via the always-available online path; no reference means
--- textual anchors only.
-
-open question AnchorAuthorship {
-  -- Partially resolved: choosing the key pictogram IS the professional's
-  -- curation of character and style — pointing at an approved image instead
-  -- of editing a textual description. Remaining question: should the
-  -- recurring persona be able to resemble the END USER (their photo or
-  -- avatar as reference input), and what consent does that require? This
-  -- stays a doctoral control-point question. v1: machine proposes textual
-  -- anchors; professional optionally pins a reference pictogram.
-}
+open question "Should ordinary failed or expired Vertex output lines be refunded, or remain charged as attempts?"
+open question "Should identical Vertex prompts be salted to prevent manifest hash collisions?"
+open question "May a recurring sequence persona resemble the end user, and what consent would that require?"

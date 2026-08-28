@@ -1,0 +1,371 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pictos.net/schemas/pictonet-nlu-1.1.0.schema.json",
+  "title": "PictoNet NLU document 1.1.0",
+  "description": "Communicative intention and semantic analysis. The 1.1.0 document contract preserves 1.0.1 compatibility; new generation must additionally satisfy the generation profile.",
+  "type": "object",
+  "unevaluatedProperties": false,
+  "required": [
+    "utterance",
+    "lang",
+    "frames",
+    "logical_form"
+  ],
+  "properties": {
+    "utterance": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Surface string as received."
+    },
+    "lang": {
+      "type": "string",
+      "description": "IETF BCP-47 language tag (e.g., en-GB, es-419).",
+      "pattern": "^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$"
+    },
+    "domain": {
+      "type": "string",
+      "description": "Thematic domain inferred from the utterance.",
+      "enum": [
+        "transporte",
+        "salud",
+        "alimentación",
+        "educación",
+        "vida_cotidiana",
+        "trabajo",
+        "emociones",
+        "tiempo_libre",
+        "dinero",
+        "seguridad",
+        "comunicación",
+        "lugar",
+        "trámites"
+      ]
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Lightweight communicative metadata.",
+      "unevaluatedProperties": false,
+      "required": [
+        "speech_act",
+        "intent"
+      ],
+      "properties": {
+        "speech_act": {
+          "type": "string",
+          "description": "Dialogue-act class.",
+          "enum": [
+            "assertive",
+            "directive",
+            "commissive",
+            "expressive",
+            "declarative",
+            "interrogative"
+          ]
+        },
+        "intent": {
+          "type": "string",
+          "description": "Sub-type of communicative intention.",
+          "enum": [
+            "request",
+            "command",
+            "suggestion",
+            "reminder",
+            "warning",
+            "inform",
+            "ask_info",
+            "confirm",
+            "deny",
+            "greet",
+            "other"
+          ]
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 timestamp of utterance capture."
+        },
+        "speaker_id": {
+          "type": "string",
+          "description": "Optional speaker identifier."
+        }
+      }
+    },
+    "frames": {
+      "type": "array",
+      "description": "Frame-semantic analysis units.",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/FrameObject"
+      }
+    },
+    "nsm_explications": {
+      "type": "object",
+      "description": "NSM primes or paraphrases keyed by concept label (preferred key).",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "default": {},
+      "deprecated": false
+    },
+    "NSM_explications": {
+      "type": "object",
+      "description": "Legacy/alternate key for NSM content (accepted for compatibility).",
+      "$comment": "Use `nsm_explications`. This legacy key will be removed in v2.",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "default": {},
+      "deprecated": true
+    },
+    "logical_form": {
+      "$ref": "#/$defs/LogicalForm"
+    },
+    "pragmatics": {
+      "$ref": "#/$defs/Pragmatics"
+    },
+    "visual_guidelines": {
+      "$ref": "#/$defs/VisualGuidelines"
+    },
+    "schemaVersion": {
+      "const": "1.1.0",
+      "description": "Optional explicit document version; never retroactively inferred."
+    }
+  },
+  "$defs": {
+    "FrameObject": {
+      "type": "object",
+      "unevaluatedProperties": false,
+      "required": [
+        "frame_name",
+        "lexical_unit",
+        "roles"
+      ],
+      "properties": {
+        "frame_name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Canonical FrameNet-like label in English (e.g., Directed_action, Desire)."
+        },
+        "frame_label": {
+          "type": "string",
+          "description": "Translated label for UI display in the utterance language (e.g., 'Costo' for 'Expensiveness')."
+        },
+        "lexical_unit": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Triggering lemma or expression."
+        },
+        "roles": {
+          "type": "object",
+          "description": "Map of frame elements to role fillers.",
+          "minProperties": 1,
+          "additionalProperties": {
+            "$ref": "#/$defs/RoleFiller"
+          }
+        },
+        "id": {
+          "type": "string",
+          "description": "Optional local ID for cross-referencing between frames.",
+          "pattern": "^[A-Za-z0-9_-]{1,64}$"
+        }
+      }
+    },
+    "RoleFiller": {
+      "type": "object",
+      "description": "Participant, object, or event filling a frame role.",
+      "unevaluatedProperties": false,
+      "required": [
+        "type"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "ref"
+          ]
+        },
+        {
+          "required": [
+            "surface"
+          ]
+        },
+        {
+          "required": [
+            "lemma"
+          ]
+        },
+        {
+          "required": [
+            "ref_frame"
+          ]
+        }
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "Agent",
+            "Addressee",
+            "Speaker",
+            "Experiencer",
+            "Patient",
+            "Theme",
+            "Beneficiary",
+            "Instrument",
+            "Object",
+            "Event",
+            "Location",
+            "Time",
+            "Other"
+          ]
+        },
+        "ref": {
+          "type": "string",
+          "description": "External or discourse reference ID."
+        },
+        "surface": {
+          "type": "string",
+          "description": "Surface string span."
+        },
+        "lemma": {
+          "type": "string",
+          "description": "Canonical lemma."
+        },
+        "definiteness": {
+          "type": "string",
+          "enum": [
+            "definite",
+            "indefinite",
+            "unspecified"
+          ]
+        },
+        "ref_frame": {
+          "type": "string",
+          "description": "ID of another FrameObject this filler points to."
+        }
+      }
+    },
+    "LogicalForm": {
+      "type": "object",
+      "unevaluatedProperties": false,
+      "required": [
+        "event"
+      ],
+      "properties": {
+        "event": {
+          "type": "string"
+        },
+        "modality": {
+          "type": "string"
+        },
+        "negation": {
+          "type": "boolean"
+        },
+        "aspect": {
+          "type": "string",
+          "enum": [
+            "none",
+            "progressive",
+            "perfective",
+            "habitual",
+            "inceptive",
+            "custom"
+          ]
+        },
+        "tense": {
+          "type": "string",
+          "enum": [
+            "past",
+            "present",
+            "future",
+            "unspecified"
+          ]
+        }
+      }
+    },
+    "Pragmatics": {
+      "type": "object",
+      "unevaluatedProperties": false,
+      "properties": {
+        "politeness": {
+          "type": "string",
+          "enum": [
+            "polite",
+            "neutral",
+            "impolite"
+          ]
+        },
+        "formality": {
+          "type": "string",
+          "enum": [
+            "informal",
+            "neutral",
+            "formal"
+          ]
+        },
+        "expected_response": {
+          "type": "string",
+          "enum": [
+            "compliance",
+            "refusal",
+            "acknowledgment",
+            "question",
+            "silence",
+            "other"
+          ]
+        },
+        "urgency": {
+          "type": "string",
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ]
+        },
+        "speaker_stance": {
+          "type": "string"
+        }
+      }
+    },
+    "VisualGuidelines": {
+      "type": "object",
+      "unevaluatedProperties": false,
+      "properties": {
+        "focus_actor": {
+          "type": "string"
+        },
+        "secondary_actor": {
+          "type": "string"
+        },
+        "action_core": {
+          "type": "string"
+        },
+        "object_core": {
+          "type": "string"
+        },
+        "context": {
+          "type": "string"
+        },
+        "temporal": {
+          "type": "string",
+          "enum": [
+            "immediate",
+            "near_future",
+            "future",
+            "past",
+            "habitual",
+            "unspecified"
+          ]
+        },
+        "salience": {
+          "type": "object",
+          "$comment": "Keys SHOULD be FrameObject ids or role labels; values are weights in [0,1].",
+          "additionalProperties": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      }
+    }
+  }
+}

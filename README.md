@@ -9,7 +9,7 @@ This document is in Spanish. For a complete English version, please see [the Eng
 **Pictogramas generativos para la Comunicación Aumentativa y Alternativa (CAA)**
 
 * [![Netlify Status](https://api.netlify.com/api/v1/badges/24f068d3-f368-4526-a503-2f09af1def0b/deploy-status)](https://app.netlify.com/projects/pictos/deploys)
-* ![version](https://img.shields.io/badge/version-2.3.11-violet)
+* ![version](https://img.shields.io/badge/version-2.6.0-violet)
 * ![opensource](https://img.shields.io/badge/opensource--always-available-blue)
 
 PICTOS.NET transforma intenciones comunicativas expresadas en lenguaje natural en pictogramas mediante un pipeline de razonamiento semántico. Es parte de la investigación doctoral de [Herbert Spencer](https://herbertspencer.net/cc) en diseño para la Comunicación Aumentativa y Alternativa.
@@ -29,7 +29,7 @@ El sistema implementa un pipeline de tres fases automáticas más una de post-pr
 
 **(3) Producir** (Gemini image — por defecto: Gemini 2.5 Flash) — Genera el pictograma a partir del contexto semántico, los elementos, el prompt espacial y el estilo visual configurado. Los modelos vectoriales producen SVG nativo directamente editable; los modelos raster producen un bitmap PNG. El modelo se configura por librería.
 
-**(4) Estructurar** (Claude Sonnet, opcional) — Reorganiza los paths del SVG crudo en grupos semánticos congruentes con la jerarquía de la fase 2, embebiendo metadatos de accesibilidad según [mf-svg-schema](https://github.com/mediafranca/mf-svg-schema). Combina medición geométrica local (anclas reales por `getBBox` + CTM, candidatos de fusión pre-calculados), una sola llamada de visión (set-of-marks con anti-colisión y líneas guía), ensamblaje local con redes de seguridad y pulido geométrico determinístico: la geometría nunca sale del navegador ni la escribe el modelo. Documentación detallada en [docs/ESTRUCTURAR.md](docs/ESTRUCTURAR.md).
+**(4) Estructurar** (Claude Sonnet, opcional) — Reorganiza los paths del SVG crudo en grupos semánticos congruentes con la jerarquía de la fase 2, embebiendo metadatos de accesibilidad según [mf-svg-schema](https://github.com/mediafranca/mf-svg-schema). Combina medición geométrica local (anclas reales por `getBBox` + CTM, candidatos de fusión pre-calculados), una sola llamada de visión (set-of-marks con anti-colisión y líneas guía), ensamblaje local con redes de seguridad y pulido geométrico determinístico: las operaciones geométricas se calculan localmente; se envían referencias visuales y un fragmento del SVG al modelo para proponer la estructura. Documentación detallada en [docs/ESTRUCTURAR.md](docs/ESTRUCTURAR.md).
 
 La cascada automática (1 → 2 → 3) se ejecuta al crear una nueva frase o presionar Play. La fase 4 es opcional y la inicia el usuario manualmente. Los pictogramas pueden evaluarse con el marco [ICAP](https://github.com/mediafranca/ICAP).
 
@@ -260,11 +260,12 @@ PICTOS.NET se apoya en los siguientes esquemas y plataformas de código abierto 
 | Repositorio | Descripción |
 |---|---|
 | [nlu-schema](https://github.com/mediafranca/nlu-schema) | Esquema de análisis lingüístico profundo basado en NSM |
+| [pictogram-composition-schema](schemas/pictogram-composition-schema) | Contrato de composición visual; producto local aún no publicado |
 | [mf-svg-schema](https://github.com/mediafranca/mf-svg-schema) | Estándar para pictogramas SVG semánticos y autocontenidos |
 | [ICAP](https://github.com/mediafranca/ICAP) | Marco de evaluación de pictogramas (6 dimensiones cognitivas) |
 | [pictos.cl](https://pictos.cl) | Plataforma de apoyos visuales para servicios públicos (Núcleo Accesibilidad PUCV) |
 
-`nlu-schema` y `mf-svg-schema` se incluyen como git submodules en este repositorio.
+`schemas/nlu-schema`, `schemas/pictogram-composition-schema` y `schemas/mf-svg-schema` son productos canónicos desarrollados dentro de PictoNet. Se preparan exportaciones independientes para `mediafranca`; no son submódulos ni copias que se actualicen desde otro repositorio. Véase [publicación de esquemas](docs/SCHEMA_PUBLICATION.md).
 
 ---
 
@@ -281,7 +282,7 @@ Puedes compartir tu grafo exportado con comentarios a [contact@pictos.net](mailt
 ## Desarrollo local
 
 ```bash
-git clone --recurse-submodules https://github.com/hspencer/pictos-net.git
+git clone https://github.com/hspencer/pictos-net.git
 cd pictos-net
 cp .env.example .env        # agrega ANTHROPIC_API_KEY y credenciales de Vertex AI
 npm install
@@ -317,7 +318,7 @@ Ver [docs/CONTRIBUTING.md](./docs/CONTRIBUTING.md) para instrucciones completas.
 | Documento | Descripción |
 |---|---|
 | [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) | Arquitectura técnica, modelos de datos, servicios |
-| [docs/CONTRIBUTING.md](./docs/CONTRIBUTING.md) | Guía de desarrollo, submodules, i18n, deployment |
+| [docs/CONTRIBUTING.md](./docs/CONTRIBUTING.md) | Guía de desarrollo, esquemas canónicos, i18n, deployment |
 | [docs/SECURITY.md](./docs/SECURITY.md) | Gestión de API keys, consideraciones de seguridad |
 | [docs/PRIVACY.md](./docs/PRIVACY.md) | Arquitectura de datos y privacidad: qué sale del navegador, soberanía del usuario |
 | [docs/PIPELINE_MIGRATION_CLAUDE_RECRAFT.md](./docs/PIPELINE_MIGRATION_CLAUDE_RECRAFT.md) | Notas de la migración Gemini → Claude + Recraft (v1.x → v2.0) |

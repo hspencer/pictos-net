@@ -15,7 +15,7 @@
 
 import fs from "fs";
 import path from "path";
-import { globSync } from "glob";
+
 import Ajv from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
 
@@ -36,7 +36,8 @@ const validate = ajv.compile(schema);
 
 /** Validate all JSON files in a directory pattern. */
 function runSet(label, pattern, expectValid) {
-  const files = globSync(pattern, { cwd: base, absolute: true });
+  const directory = path.join(base, pattern.split("/**")[0]);
+  const files = fs.readdirSync(directory, { recursive: true }).filter(file => file.endsWith(".json")).map(file => path.join(directory, file));
   let passed = 0;
 
   console.log(`\n🔹 ${label} TESTS\n`);

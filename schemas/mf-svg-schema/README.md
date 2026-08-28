@@ -1,131 +1,120 @@
-# MediaFranca SVG Schema
+# MediaFranca semantic SVG schema — 2.0.0-draft.1
 
-**A formal specification for semantically rich, accessible SVG pictograms in Augmentative and Alternative Communication**
+This product defines a portable, self-contained SVG revision for AAC pictograms.
+Its canonical development source is `schemas/mf-svg-schema` inside PictoNet.
+The independent repository is an export of that source, not an upstream copy
+that overwrites empirical work in the platform. Publication remains approval gated.
 
-## Overview
+## What is implemented
 
-The MediaFranca SVG Schema defines a standard for AAC pictograms that function as **Single Sources of Truth (SSoT)**. Each SVG file encapsulates not only visual geometry but also:
+The draft embeds the complete NLU generation profile 1.1.0 and composition
+artifact 0.1.0, including the spatial prompt, in one metadata block. It preserves
+these documents rather than rewriting them into a second lossy semantic model.
+A valid SVG records its actual revision operation/time, geometry bindings and
+known provenance. Unknown origin, model, licence or human review is not invented.
 
-- Natural Language Understanding (NLU) analysis. <br>*Check the **[nlu-schema](https://github.com/mediafranc/nlu-schema)** repository.*
-- Semantic role mappings (Agent, Patient, Action, etc.)
-- Human-in-the-loop validation data (VCSCI). <br>*Check the **[VCSCI](https://github.com/mediafranc/VCSCI)** repository.*
-- Comprehensive accessibility metadata for screen readers and high-contrast rendering
+`metadata-2.0.0-draft.1.schema.json` contains both canonical contracts in `$defs`.
+`scripts/sync-contracts.js --check` compares those definitions with the canonical
+sibling products during PictoNet development. Standalone validation never fetches
+those definitions from another checkout or the network.
 
-## Philosophy
+Every composition element except the synthetic Root must have either a real
+SVG group binding or an explicitly supplied implicit Action binding whose
+`performedBy` points to an explicitly bound element. This draft deliberately
+uses a stricter complete-binding profile: a missing group does not imply an
+implicit action. The current platform does not offer an implicit-binding editor.
+Unassigned geometry cannot silently become a Context concept.
 
-Traditional icon sets separate visual assets from their semantic intent. The MediaFranca approach integrates these layers within a single, portable SVG file, ensuring that assistive technologies, generative models, and human curators all access the same canonical information.
+The validator checks XML syntax, duplicate JSON keys, the complete metadata
+contract, unique IDs, semantic bindings, ARIA references, accessible-text agreement,
+language, positive finite viewBox dimensions and self-contained resources. It
+rejects DTDs, processing instructions, active SVG elements, event handlers and
+external resources. This is a conservative structural profile, not a general
+SVG sanitizer and not proof of semantic correctness, cognitive accessibility,
+visual fidelity or training rights.
 
-### The Single Source of Truth Principle
+## Validate independently
 
-In standard systems, a pictogram's meaning is often stored in a separate database, whilst its visual representation lives in an image folder and its accessibility description is hard-coded into a website's HTML. This fragmentation leads to "data rot"—where the image and its meaning become desynchronised.
+Requires Node 22 or later.
 
-By adopting SSoT, the SVG file contains the **entire chain of thought**:
-
-* **The Intent:** What the user wanted to say.
-* **The Logic:** How the generative model (PictoNet) decomposed that intent (NLU).
-* **The Visuals:** The geometry (SVG paths) that represents those concepts.
-* **The Validation:** The human audit (VCSCI) that proves the pictogram is effective.
-
-### Core Principles
-
-#### 1. Unified Intelligence
-
-The SVG file is not merely a drawing—it is an intelligent document that encapsulates linguistic, conceptual, structural, and evaluative layers within a single, cohesive artefact.
-
-#### 2. Semantic Geometry
-
-We believe that the **structure of the drawing should mirror the structure of the thought.** If a sentence has a subject (Agent) and an object (Patient), the SVG DOM must have corresponding groups (`<g>`) with those specific roles.
-
-This makes the drawing "machine-readable" in a linguistic sense. A screen reader or an AAC device doesn't just see "an image of a person making a bed"; it sees a structured relationship where the **Agent** is acting upon the **Patient**.
-
-#### 3. Radical Portability
-
-Because the SVG is the SSoT, it is **platform-agnostic.** You can move a MediaFranca pictogram from a web app to a mobile device, or even an offline communication board, and it carries its intelligence with it.
-
-* If a system needs to display it in **High Contrast**, the instructions are already inside the CSS definitions within the file.
-* If an assistive technology needs to **narrate** the image, the cognitive and visual descriptions are embedded in the `<metadata>` and `<desc>` tags.
-
-#### 4. Deterministic Accessibility
-
-In cognitive accessibility, ambiguity is the enemy. By formalising the metadata and the DOM, we eliminate the guesswork for assistive software. The SSoT ensures that every time this pictogram is rendered, it provides a **consistent, validated, and accessible experience** for the end-user, regardless of the interface.
-
-#### 5. Cognitive Accessibility
-
-Structures prioritise clarity, predictability, and semantic richness to assist users with diverse cognitive needs, ensuring that the pictogram serves its communicative purpose effectively.
-
-### The SSoT Layers
-
-| Layer | Component | Function |
-| --- | --- | --- |
-| **Linguistic** | `metadata > utterance` | Defines the original communicative goal. |
-| **Conceptual** | `metadata > nsm / concepts` | Maps the geometry to human-primitive meanings. |
-| **Structural** | `svg > g[role="group"]` | Organises the visual elements into a semantic hierarchy. |
-| **Visual** | `svg > path / circle` | The actual drawing, governed by internal styles (`.f`, `.k`). |
-| **Evaluative** | `metadata > vcsci` | Records the human "seal of approval" for cognitive clarity. |
-
-### Key Features
-
-- **Explicit and Implicit Concepts**: Actions may be explicit (with dedicated SVG groups) or implicit (performed through an Agent's posture)
-- **Semantic Role Mappings**: Agent, Patient, Action, Instrument, Location, and more
-- **NSM Integration**: Maps visual concepts to universal semantic primes
-- **VCSCI Validation**: Human-in-the-loop quality assurance with clarity scoring
-- **Full Accessibility**: ARIA roles, keyboard navigation, high-contrast support, and screen reader compatibility
-- **Platform Independence**: Self-contained SVG files with embedded styles and metadata
-
-## Repository Structure
-
-```text
-mediafranca-svg-schema/
-├── .github/                 # CI/CD for validation
-├── schemas/                 # Formal definitions
-│   ├── metadata.schema.json # JSON Schema for the <metadata> block
-│   └── styles.css           # Base CSS for .f (foreground) and .k (key/contrast)
-├── examples/                # Canonical references
-│   └── canonical.svg        # The gold-standard implementation
-├── docs/                    # Detailed specifications (British English)
-│   ├── specification.md     # The main technical standard
-│   ├── nlu-mapping.md       # Integration with mediafranca/nlu-schema
-│   └── accessibility.md     # Cognitive and visual accessibility guidelines
-├── tools/                   # Utility scripts
-│   └── validator.py         # Python tool to validate SVG against this schema
-├── LICENSE                  # CC BY 4.0
-└── README.md                # Project overview and usage
+```sh
+npm ci --ignore-scripts
+npm test
+npm run validate -- examples/v2example.svg
 ```
 
-## Quick Start
+Runtime validation uses generated ESM functions. No `eval` or `new Function` is
+required in the browser, and the platform's Content Security Policy is unchanged.
+Tests check that generated validators still correspond to the packaged contracts.
 
-See [`examples/canonical.svg`](examples/canonical.svg) for a reference implementation demonstrating:
-
-- Explicit concepts (Agent, Patient) with corresponding SVG groups
-- Implicit Action performed by the Agent through body posture
-- Proper z-index layering for visual depth
-- Complete metadata with NLU analysis and VCSCI validation
-
-Validate your SVG files:
-
-```bash
-python tools/validator.py your-pictogram.svg
+```js
+import { validateSVG, createSvgReference, verifySvgReference } from '@mediafranca/mf-svg-schema';
+const result = validateSVG(svg);
+const reference = await createSvgReference(svg); // validates first
+const matches = await verifySvgReference(svg, reference);
 ```
 
-## Documentation
+A reference holds the SHA-256 of the **exact final UTF-8 SVG bytes**, byte length,
+profile and revision ID. It lives outside the hashed SVG to avoid self-reference.
+Imported references remain claims until verification; a hash is not a signature
+or proof of authorship. Changes in whitespace alone change the byte hash.
 
-- [Technical Specification](docs/specification.md) — Detailed requirements for namespaces, attributes, and the CSS class system
-- [NLU Integration](docs/nlu-mapping.md) — How this schema integrates with the MediaFranca NLU pipeline
-- [Accessibility Guidelines](docs/accessibility.md) — Cognitive and visual accessibility best practices
+## Platform promotion
 
-## Role within the MediaFranca Architecture
+Assembly and redraw validate semantic inputs before a paid model request and
+validate final SVG bytes after post-processing. Invalid produced candidates are
+retained as `structuredSvgDraft`, separately from the previous canonical asset.
+Manual edits require validation, create a new unreviewed revision and reference
+the actual previous canonical byte hash. Invalid edits remain drafts.
 
-The MediaFranca SVG Schema serves as the terminal output specification for the broader MediaFranca AAC ecosystem, which includes:
+Promotion compares the captured workspace inputs and previous SVG with current
+state. A late completion cannot replace an SVG produced after it or attach old
+mapping results to newly edited semantic inputs. The SVG library mirror is updated
+only after the row accepts the revision and its byte reference verifies.
 
-1. **NLU Schema** — Natural language understanding and semantic decomposition
-2. **PictoNet** — Generative model for pictogram synthesis
-3. **SVG Schema (this repository)** — Formal specification for the final, portable artefact
-4. **VCSCI Framework** — Human-in-the-loop validation and quality assurance
+Provenance includes only observed execution identifiers, provider/model,
+contract/prompt/input/output hashes and optional request IDs. Original request
+snapshots, complete provider prompts and arbitrary logs are not embedded
+implicitly. Complete NLU and composition can themselves contain personal data;
+review rights and privacy before sharing an SVG.
 
-## Licence
+The UI may apply the current stylesheet to its preview. That display projection
+is not the canonical revision: downloads and the byte reference use the stored
+SVG. To change canonical styling, save and validate a new revision.
 
-This specification is released under [Creative Commons Attribution 4.0 International (CC BY 4.0)](LICENSE).
+## Historical compatibility
 
-## Contributing
+The original `schemas/metadata.schema.json`, `examples/canonical.svg` and LICENSE
+are byte-frozen in `FROZEN_RELEASES.json`. Their historical content is not relabelled
+as v2. The duplicate `lib/mf-schema` directory in PictoNet is a legacy snapshot;
+new development and schema aliases point here.
 
-Contributions are welcome. Please ensure all proposals align with the SSoT philosophy and maintain deterministic accessibility. See `docs/specification.md` for technical requirements.
+The Python CLI remains available for the historical profile:
+
+```sh
+python3 -m pip install -r requirements.txt
+python3 tools/validator.py examples/canonical.svg
+python3 tools/validator.py examples/v2example.svg
+```
+
+Missing Python dependencies or schema files fail closed for historical validation.
+For v2, that CLI delegates to the same Node validator, and fails if Node or the
+packaged implementation is unavailable. There is no second approximate v2 validator.
+Historical files do not migrate automatically; regenerate or explicitly correct
+invalid semantics while preserving their originals.
+
+The files under `docs/` describe the historical profile and are not the normative
+v2 contract. In particular, historical statements about guaranteed accessibility
+or complete model reasoning are not claims established by structural validation.
+The SVG contains observable artifacts and supplied evidence, not hidden reasoning.
+
+## Licence and research status
+
+The existing CC BY 4.0 LICENSE is unchanged. Package publication and any change of
+licence require separate approval. This licence does not grant training rights over
+participant data, library contents or provider images by implication. This package
+is private until publication is authorized; v2 is a draft, not a stable release.
+
+Immutable attempt archives, reviewed migrations, explicit rights/withdrawal,
+participant review and training export policy remain roadmap work. No corpus is
+published or model trained by these commands.

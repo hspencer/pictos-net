@@ -1,71 +1,19 @@
-name: MediaFranca SVG Schema Validation
-
-on:
-  push:
-    branches: [ main, develop ]
-    paths:
-      - 'examples/**/*.svg'
-      - 'schemas/**'
-      - 'tools/validator.py'
-  pull_request:
-    branches: [ main, develop ]
-    paths:
-      - 'examples/**/*.svg'
-      - 'schemas/**'
-      - 'tools/validator.py'
-
+name: Validate semantic SVG product
+on: [push, pull_request]
 jobs:
-  validate-examples:
-    name: Validate Example SVG Files
+  validate:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          python-version: '3.10'
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: Validate canonical-bed.svg
-        run: |
-          python tools/validator.py examples/canonical-bed.svg
-
-      - name: Validate all example SVG files
-        run: |
-          EXIT_CODE=0
-          for file in examples/*.svg; do
-            if [ -f "$file" ]; then
-              echo "Validating $file..."
-              python tools/validator.py "$file" || EXIT_CODE=1
-            fi
-          done
-          exit $EXIT_CODE
-
-  test-schema:
-    name: Validate JSON Schema
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm test
+      - run: npm run validate -- examples/v2example.svg
+      - uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install jsonschema check-jsonschema
-
-      - name: Validate metadata schema syntax
-        run: |
-          check-jsonschema --check-metaschema schemas/metadata.schema.json
+          python-version: '3.12'
+      - run: python -m pip install -r requirements.txt
+      - run: python tools/validator.py examples/canonical.svg

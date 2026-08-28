@@ -7,9 +7,9 @@
  * Bearer token must be validated against the site's GoTrue endpoint instead.
  *
  * Why this exists: decoding a JWT payload without checking its signature lets
- * anyone forge a token (any email, any roles) and consume the AI proxies —
- * this was the abuse vector behind the Google Cloud "hijacked resources"
- * suspension. GoTrue's /user endpoint only answers 200 when the token's
+ * anyone forge a token (any email, any roles) and consume the AI proxies.
+ * This is a security risk; it does not establish the historical cause of a
+ * Google project suspension. GoTrue's /user endpoint only answers 200 when the token's
  * signature and expiry are valid, so it acts as the source of truth.
  */
 
@@ -35,7 +35,7 @@ export async function consumeAuthGrant(jobId) {
   if (!jobId) return null;
   try {
     const store = getBlobStore(AUTH_GRANTS_STORE);
-    const grant = await store.get(jobId, { type: 'json' });
+    const grant = await store.get(jobId, { type: 'json', consistency: 'strong' });
     if (grant && typeof grant.exp === 'number' && grant.exp > Date.now()) {
       await store.delete(jobId).catch(() => {}); // single-use: prevent replay
       return { email: grant.email, app_metadata: { roles: grant.roles ?? [] } };

@@ -1,21 +1,26 @@
 {
   "name": "@mediafranca/nlu-schema",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "type": "module",
-
-  "devDependencies": {
-    "ajv": "^8.17.1",
-    "ajv-formats": "^3.0.1",
-    "glob": "^10.3.10"
-  },
   "repository": {
     "type": "git",
     "url": "https://github.com/mediafranca/nlu-schema.git"
   },
-    "scripts": {
-    "test": "node test-runner.js",
-    "validate:one": "node scripts/validate-one.js"
+  "scripts": {
+    "test": "node scripts/build-validators.js --check && node test-runner.js && node --test tests/contracts.test.mjs",
+    "validate:one": "node scripts/validate-one.js",
+    "build:validators": "node scripts/build-validators.js"
   },
   "author": "Herbert Spencer González <contact@pictos.net>",
-  "license": "CC-BY-4.0"
+  "license": "CC-BY-SA-4.0",
+  "main": "./index.js",
+  "exports": {
+    ".": "./index.js",
+    "./document.schema.json": "./pictonet-nlu-1.1.0.schema.json",
+    "./generation.schema.json": "./pictonet-nlu-generation-1.1.0.schema.json"
+  },
+  "dependencies": {
+    "ajv": "8.20.0",
+    "ajv-formats": "3.0.1"
+  }
 }

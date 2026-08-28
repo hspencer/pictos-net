@@ -1,3 +1,4 @@
+import { projectProviderSchema } from './pipelineContracts.js';
 /**
  * Pure Claude→Gemini request translation for the structuring proxy.
  *
@@ -35,47 +36,43 @@ export function claudeContentToGeminiParts(content) {
  * Objects typed with ONLY additionalProperties (dynamic maps, e.g. the NLU
  * `roles` field) are converted to type:'string' with a description hint.
  * Gemini cannot generate arbitrary keys from schema alone, but it CAN return
- * a JSON-encoded string which api-gemini-nlu.js then parses back to an object.
+ * a JSON-encoded string which the shared canonical acceptance boundary decodes
+ * before validating. Reference resolution must happen before this projection.
  */
 export function sanitizeSchemaForGemini(schema) {
   if (!schema || typeof schema !== 'object' || Array.isArray(schema)) return schema;
-
-  // Strip Anthropic/unsupported keywords
-  const {
-    minProperties, maxProperties,
-    additionalProperties, patternProperties,
-    $schema, $ref, $defs,
-    cache_control,
-    ...rest
-  } = schema;
-
-  // Dynamic-map object (additionalProperties only, no explicit properties):
-  // collapse to string so Gemini can return a JSON-encoded map.
-  if (rest.type === 'object' && !rest.properties && additionalProperties) {
+  if (schema.$ref) throw new Error('Resolve schema references before Gemini sanitization');
+  if ('const' in schema) {
+    const { const: value, ...rest } = schema;
+    return sanitizeSchemaForGemini({ ...rest, type: schema.type ?? typeof value, enum: [value] });
+  }
+  const { additionalProperties } = schema;
+  if (schema.type === 'object' && !schema.properties && additionalProperties && typeof additionalProperties === 'object') {
     return {
       type: 'string',
-      description: [
-        rest.description,
-        'Encode as a JSON object string mapping role names (Agent, Patient, Theme, etc.) to their filler objects.',
+      description: [schema.description, schema.minProperties ? `At least ${schema.minProperties} entries are required.` : '',
+        'Encode a JSON object string with arbitrary keys. Every value must satisfy this JSON Schema:',
+        JSON.stringify(additionalProperties),
       ].filter(Boolean).join(' '),
     };
   }
-
+  // A provider projection guides generation; the original canonical JSON Schema
+  // remains authoritative. Unsupported keywords are not represented as validation.
+  const allowed = new Set(['type', 'description', 'properties', 'required', 'items', 'enum', 'format', 'minimum', 'maximum', 'minItems', 'maxItems', 'anyOf', 'nullable']);
   const out = {};
-  for (const [k, v] of Object.entries(rest)) {
-    if (v && typeof v === 'object' && !Array.isArray(v)) {
-      out[k] = sanitizeSchemaForGemini(v);
-    } else if (k === 'items' || k === 'not') {
-      out[k] = sanitizeSchemaForGemini(v);
-    } else {
-      out[k] = v;
+  for (const [key, value] of Object.entries(schema)) {
+    if (!allowed.has(key)) continue;
+    if (key === 'properties') out.properties = Object.fromEntries(Object.entries(value).map(([name, child]) => [name, sanitizeSchemaForGemini(child)]));
+    else if (key === 'items') out.items = sanitizeSchemaForGemini(value);
+    else if (key === 'anyOf') {
+      // Required-only branches rely on sibling properties in JSON Schema, which
+      // cannot be represented as independent Gemini alternatives. Keep the rule
+      // as a generation hint; canonical Ajv still enforces the actual anyOf.
+      if (value.every(branch => Object.keys(branch).every(k => k === 'required'))) {
+        out.description = [out.description, `At least one of these fields must be present: ${value.flatMap(branch => branch.required ?? []).join(', ')}.`].filter(Boolean).join(' ');
+      } else out.anyOf = value.map(sanitizeSchemaForGemini);
     }
-  }
-  // Recurse into properties map
-  if (out.properties) {
-    out.properties = Object.fromEntries(
-      Object.entries(out.properties).map(([pk, pv]) => [pk, sanitizeSchemaForGemini(pv)])
-    );
+    else out[key] = value;
   }
   return out;
 }
@@ -85,7 +82,7 @@ export function claudeToolToGeminiFunctionDeclaration(tool) {
   return {
     name: tool.name,
     description: tool.description ?? '',
-    parameters: sanitizeSchemaForGemini(tool.input_schema ?? {}),
+    parameters: sanitizeSchemaForGemini(projectProviderSchema(tool.input_schema ?? {})),
   };
 }
 
@@ -141,15 +138,16 @@ export function geminiResponseToClaude(geminiData) {
   const candidate = geminiData?.candidates?.[0];
   const parts = candidate?.content?.parts ?? [];
   const usage = geminiData?.usageMetadata ?? {};
-  const funcCallPart = parts.find(p => p.functionCall);
+  const functionParts = parts.filter(p => p.functionCall);
+  const funcCallPart = functionParts[0];
 
-  if (!funcCallPart?.functionCall) {
-    const textParts = parts.filter(p => p.text).map(p => p.text).join('\n');
+  if (!funcCallPart?.functionCall || functionParts.length !== 1 || (candidate?.finishReason && candidate.finishReason !== 'STOP')) {
     const finish = candidate?.finishReason ? ` [finishReason=${candidate.finishReason}]` : '';
     return {
       ok: false,
-      error: `Gemini did not invoke the tool${finish}. ${textParts.slice(0, 200)}`.trim(),
+      error: `Gemini did not invoke the tool completely${finish}`,
       usage,
+      model: geminiData?.modelVersion ?? null,
     };
   }
 
@@ -159,12 +157,17 @@ export function geminiResponseToClaude(geminiData) {
       content: [{
         type: 'tool_use',
         name: funcCallPart.functionCall.name,
-        input: funcCallPart.functionCall.args ?? {},
+        input: funcCallPart.functionCall.args,
       }],
       stop_reason: 'tool_use',
+      model: geminiData?.modelVersion,
       usage: {
-        input_tokens: usage.promptTokenCount ?? 0,
-        output_tokens: usage.candidatesTokenCount ?? 0,
+        input_tokens: usage.promptTokenCount ?? null,
+        output_tokens: Number.isFinite(usage.candidatesTokenCount)
+          ? usage.candidatesTokenCount + (usage.thoughtsTokenCount ?? 0) : null,
+        input_tokens_details: { cached_tokens: usage.cachedContentTokenCount ?? null },
+        output_tokens_details: { reasoning_tokens: usage.thoughtsTokenCount ?? null },
+        provider_usage: structuredClone(usage),
       },
     },
     usage,

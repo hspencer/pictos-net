@@ -1,3 +1,6 @@
+import { ModelPricing } from './components/ModelPricing';
+import { formatModelPrice } from './services/modelPricing';
+import { MODEL_CATALOG, getModelProvider } from './netlify/functions/_shared/modelCatalog.js';
 
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import ReactDOM from 'react-dom';
@@ -15,12 +18,13 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSo
 import { CSS } from '@dnd-kit/utilities';
 import { RowData, LogEntry, StepStatus, NLUData, GlobalConfig, VOCAB, VisualElement, NLUFrameRole, ElementOpKind, RowInterventionLog, SvgMetrics, DEFAULT_PHASE5_MODEL, PHASE5_MODELS, Phase5StructuringModel, LibraryMeta, Sequence, Step, NluModel, NLU_MODELS, DEFAULT_NLU_MODEL, Board } from './types';
 import * as Claude from './services/claudeService';
-import * as Recraft from './services/recraftService';
-import * as Gemini from './services/geminiService';
+import { generateImage } from './services/imageGenerationService';
 import * as Batch from './services/batchService';
-import { QuotaExceededError, callCheck } from './services/aiClient';
-import { GenerationModel, DEFAULT_GENERATION_MODEL, migrateImageModel, migrateGenerationModel, GENERATION_MODEL_LABELS, INOPERATIVE_GENERATION_MODELS, Phase3Result, getModelFamily } from './types';
+import { ExternalProviderQuotaError, QuotaExceededError, callCheck } from './services/aiClient';
+import { GenerationModel, OpenAIImageQuality, DEFAULT_GENERATION_MODEL, migrateImageModel, migrateGenerationModel, GENERATION_MODEL_LABELS, INOPERATIVE_GENERATION_MODELS, Phase3Result, getModelFamily } from './types';
 import { structureSVG } from './services/svgStructureService';
+import { applySvgSafeUpdate, captureSvgSource, prepareSvgPromotion, observedSvgProvenance } from './services/svgCanonical';
+import { verifySvgReference } from './schemas/mf-svg-schema/index.js';
 import * as Recording from './services/interventionRecording';
 import { validBitmap, validRawSvg, validStructuredSvg, validDownstreamSvg, hasValidBitmap, hasAnyValidArtifact, hasAnyValidSvg } from './utils/rowArtifacts';
 import { useTranslation } from './hooks/useTranslation';
@@ -55,6 +59,9 @@ import { SequenceList } from './components/SequenceList';
 import { SequenceEditor } from './components/SequenceEditor';
 import { BoardList } from './components/BoardList';
 import { BoardEditor } from './components/BoardEditor';
+import { sanitizeRow, appendPhaseExecutions, migrateLibraryJson } from './services/rowSerialization';
+import type { PhaseExecution } from './types';
+import { canRetryPhase3Only } from './services/pipelineResume';
 
 
 
@@ -301,6 +308,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
   const [viewingLibraryHome, setViewingLibraryHome] = useState(true);
   const [libraryIndex, setLibraryIndex] = useState<LibraryMeta[]>([]);
   const [config, setConfig] = useState<GlobalConfig>(DEFAULT_APP_CONFIG);
+  const basicConfigVisible = basicConfigOpen && !config.advancedConfigOpen;
   const [modelChangeWarning, setModelChangeWarning] = useState<{
     pendingModel: GenerationModel;
     affectedCount: number;
@@ -380,16 +388,19 @@ const App: React.FC<AppProps> = ({ authUser }) => {
     status: 'idle' | 'checking' | 'ok' | 'error';
     latency?: number;
     error?: string;
+    model?: string;
+    credits?: number | null;
+    checkedModel?: string;
   }>>({});
 
   const checkConnection = async (key: string, service: string, model?: string) => {
-    setConnectionChecks(prev => ({ ...prev, [key]: { status: 'checking' } }));
+    setConnectionChecks(prev => ({ ...prev, [key]: { status: 'checking', model } }));
     const result = await callCheck(service, model);
     setConnectionChecks(prev => ({
       ...prev,
       [key]: result.ok
-        ? { status: 'ok', latency: result.latency }
-        : { status: 'error', latency: result.latency, error: result.error },
+        ? { status: 'ok', latency: result.latency, model, credits: result.credits, checkedModel: result.checkedModel }
+        : { status: 'error', latency: result.latency, error: result.error, model },
     }));
   };
   const [svgEditorState, setSvgEditorState] = useState<{
@@ -420,56 +431,6 @@ const App: React.FC<AppProps> = ({ authUser }) => {
   const homeImportRef = useRef<HTMLInputElement>(null);
   const stopFlags = useRef<Record<string, boolean>>({});
   const autoCascadeRef = useRef<string | null>(null);
-
-  // Sanitize row data to prevent corrupted JSON from breaking the app
-  const sanitizeRow = (row: any): RowData => {
-    return {
-      id: row.id || `R_${Date.now()}`,
-      UTTERANCE: typeof row.UTTERANCE === 'string' ? row.UTTERANCE : '',
-      NLU: row.NLU,
-      elements: Array.isArray(row.elements) ? row.elements : undefined,
-      prompt: typeof row.prompt === 'string' ? row.prompt : undefined,
-      bitmap: typeof row.bitmap === 'string' ? row.bitmap : undefined,
-      rawSvg: typeof row.rawSvg === 'string' ? row.rawSvg : undefined,
-      structuredSvg: typeof row.structuredSvg === 'string' ? row.structuredSvg : undefined,
-      status: ['idle', 'processing', 'completed', 'error'].includes(row.status) ? row.status : 'idle',
-      nluStatus: ['idle', 'processing', 'completed', 'error', 'outdated'].includes(row.nluStatus) ? row.nluStatus : 'idle',
-      visualStatus: ['idle', 'processing', 'completed', 'error', 'outdated'].includes(row.visualStatus) ? row.visualStatus : 'idle',
-      bitmapStatus: ['idle', 'processing', 'completed', 'error', 'outdated'].includes(row.bitmapStatus) ? row.bitmapStatus : 'idle',
-      nluDuration: typeof row.nluDuration === 'number' ? row.nluDuration : undefined,
-      visualDuration: typeof row.visualDuration === 'number' ? row.visualDuration : undefined,
-      bitmapDuration: typeof row.bitmapDuration === 'number' ? row.bitmapDuration : undefined,
-      interventionLog: sanitizeInterventionLog(row.interventionLog),
-    };
-  };
-
-  // Close any session left "active" by a previous tab close. Without this
-  // sweep, an orphaned active session would coexist with a new one on next
-  // open of the same row, violating SingleActiveSessionPerRow.
-  // Also migrates v1 event shape forward: drop event.context (it lived in
-  // the library config); promote a missing event.id to a fresh short hex.
-  const sanitizeInterventionLog = (log: any): RowInterventionLog | undefined => {
-    if (!log || !Array.isArray(log.sessions)) return undefined;
-    const orphanCutoff = new Date().toISOString();
-    const migrateEvent = (e: any) => {
-      if (!e || typeof e !== 'object') return e;
-      // Lift modelId out of legacy context, then drop the context wrapper.
-      if (e.context && typeof e.context === 'object') {
-        if (e.context.modelId && !e.modelId) e.modelId = e.context.modelId;
-        delete e.context;
-      }
-      if (!e.id) e.id = newId();
-      return e;
-    };
-    const sessions = log.sessions
-      .filter((s: any) => s && typeof s.startedAt === 'string' && Array.isArray(s.events))
-      .map((s: any) => ({
-        startedAt: s.startedAt,
-        endedAt: typeof s.endedAt === 'string' ? s.endedAt : orphanCutoff,
-        events: s.events.map(migrateEvent),
-      }));
-    return { sessions };
-  };
 
   useEffect(() => {
     const loadData = async () => {
@@ -754,7 +715,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
       // state — preventing it from overwriting the library with empty rows.
       const savedRows = libraryService.getLibraryRows(id);
       const savedConfig = libraryService.getLibraryConfig(id);
-      setRows(savedRows);
+      setRows(savedRows.map(sanitizeRow));
       // Merge over the baseline, NOT over prev — otherwise fields the library
       // never stored (svgStyleDefs, paletteColors, …) leak in from the
       // previously open library.
@@ -1136,65 +1097,6 @@ const App: React.FC<AppProps> = ({ authUser }) => {
     addLog('success', t('messages.exportPhrasesSuccess', { count: phrases.length }));
   };
 
-  /**
-   * Migrate a parsed library JSON forward to the current export schema.
-   * Idempotent: passing a current-schema document through it is a no-op.
-   *
-   * v1 → v2 changes:
-   *   - svgs: a JSON-stringified string → a real array
-   *   - InterventionEvent.context: drop (the library config carries it)
-   *   - InterventionEvent.id: generate if missing
-   *
-   * v2 → v3 changes:
-   *   - boards: absent → empty collection (new dumps carry the full array)
-   *
-   * Tolerant: if any step fails, the original sub-tree is preserved.
-   */
-  const migrateLibraryJson = (raw: any): any => {
-    if (!raw || typeof raw !== 'object') return raw;
-    const v = raw.schemaVersion ?? 1;
-    if (v >= EXPORT_SCHEMA_VERSION) return raw; // already current
-
-    // v1 had a doubly-encoded svgs string. Parse it into the proper array.
-    if (typeof raw.svgs === 'string') {
-      try {
-        const parsed = JSON.parse(raw.svgs);
-        if (Array.isArray(parsed)) raw.svgs = parsed;
-      } catch {
-        raw.svgs = [];
-      }
-    }
-
-    // v1/v2 predate communication boards. Treat their absence as an empty
-    // collection so importing an older full dump cannot retain stale boards.
-    if (!Array.isArray(raw.boards)) raw.boards = [];
-
-    // v1 events carried a context object and lacked stable ids.
-    if (Array.isArray(raw.rows)) {
-      for (const row of raw.rows) {
-        const log = row?.interventionLog;
-        if (!log || !Array.isArray(log.sessions)) continue;
-        for (const session of log.sessions) {
-          if (!Array.isArray(session?.events)) continue;
-          for (const event of session.events) {
-            // Lift modelId out of the legacy context (if it ever lived there).
-            const legacyContext = event?.context;
-            if (legacyContext && typeof legacyContext === 'object') {
-              if (legacyContext.modelId && !event.modelId) {
-                event.modelId = legacyContext.modelId;
-              }
-              delete event.context;
-            }
-            if (!event.id) event.id = newId();
-          }
-        }
-      }
-    }
-
-    raw.schemaVersion = EXPORT_SCHEMA_VERSION;
-    return raw;
-  };
-
   const handleImportProject = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -1211,7 +1113,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
         const content = event.target?.result as string;
         // Migrate forward as the very first step so the rest of the
         // import flow only ever sees the current schema.
-        const parsed = migrateLibraryJson(JSON.parse(content));
+        const parsed = migrateLibraryJson(JSON.parse(content), EXPORT_SCHEMA_VERSION);
         if (Array.isArray(parsed)) {
           const sanitized = parsed.map(sanitizeRow);
           setRows(sanitized);
@@ -1372,7 +1274,8 @@ const App: React.FC<AppProps> = ({ authUser }) => {
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
         const data = await response.json();
-        const typedRows = data.rows as RowData[];
+        if (!Array.isArray(data.rows)) throw new Error('Library rows must be an array');
+        const typedRows = data.rows.map(sanitizeRow);
         addLog('success', t('messages.libraryLoaded', { count: typedRows?.length || 0 }));
 
         const newLib = libraryService.createLibrary(displayName);
@@ -1470,11 +1373,29 @@ const App: React.FC<AppProps> = ({ authUser }) => {
     }
   };
 
+  const mirroredSvgBytes = useRef(new Map<string, string>());
+  const rowsForSvgRef = useRef(rows);
+  rowsForSvgRef.current = rows;
+  useEffect(() => {
+    let active = true;
+    for (const row of rows) {
+      if (!row.structuredSvg || !row.svgReference || row.structuredSvgDiscarded || row.structuredSvgStatus === 'outdated') continue;
+      const key = `${activeLibraryId}:${row.id}`;
+      if (mirroredSvgBytes.current.get(key) === row.structuredSvg) continue;
+      void verifySvgReference(row.structuredSvg, row.svgReference).then(valid => {
+        if (!active || !valid) return;
+        mirroredSvgBytes.current.set(key, row.structuredSvg!);
+        addSVG({ id: row.id, utterance: row.UTTERANCE, svg: row.structuredSvg!, createdAt: new Date().toISOString(), sourceRowId: row.id, lang: typeof row.NLU === 'object' ? row.NLU?.lang : undefined });
+      });
+    }
+    return () => { active = false; };
+  }, [rows, activeLibraryId, addSVG]);
+
   const updateRow = (index: number, updates: Partial<RowData>) => {
     setRows(prev => {
       const updated = [...prev];
       if (!updated[index]) return prev;
-      updated[index] = { ...updated[index], ...updates };
+      updated[index] = applySvgSafeUpdate(updated[index], updates);
       return updated;
     });
   };
@@ -1482,7 +1403,10 @@ const App: React.FC<AppProps> = ({ authUser }) => {
   // ID-based update: immune to array index shifts and stale closures.
   // Use this for callbacks passed to components with async operations.
   const updateRowById = (id: string, updates: Partial<RowData>) => {
-    setRows(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
+    setRows(prev => prev.map(r => r.id === id ? applySvgSafeUpdate(r, {
+      ...updates,
+      ...(updates.phaseExecutions ? { phaseExecutions: appendPhaseExecutions(r.phaseExecutions, updates.phaseExecutions) } : {}),
+    }) : r));
   };
 
   const handleStopProcess = (rowId: string) => {
@@ -1669,7 +1593,11 @@ const App: React.FC<AppProps> = ({ authUser }) => {
       }
 
       addLog('info', t('messages.promptRegenerating'));
-      const newPrompt = await Claude.generateSpatialPrompt(nluObj as NLUData, ensureElementsArray(row.elements), config, addLog);
+      const spatialExecutions: PhaseExecution[] = [];
+      const newPrompt = await Claude.generateSpatialPrompt(
+        nluObj as NLUData, ensureElementsArray(row.elements), config, addLog,
+        execution => { spatialExecutions.push(execution); },
+      );
 
       if (stopFlags.current[rowId]) {
         addLog('info', t('messages.promptRegenerationStopped'));
@@ -1682,7 +1610,10 @@ const App: React.FC<AppProps> = ({ authUser }) => {
         prompt: newPrompt,
         visualStatus: 'completed',
         visualDuration: duration,
-        bitmapStatus: 'outdated'
+        bitmapStatus: 'outdated',
+        structuredSvgStatus: row.structuredSvg || ['completed', 'error', 'review'].includes(row.structuredSvgStatus ?? '')
+          ? 'outdated' : row.structuredSvgStatus,
+        phaseExecutions: spatialExecutions,
       });
       recordPhaseRegen(rowId, 'prompt', beforePrompt, newPrompt);
       addLog('success', t('messages.promptRegenerated', { duration: duration.toFixed(1), preview: newPrompt.substring(0, 50) }));
@@ -1734,15 +1665,43 @@ const App: React.FC<AppProps> = ({ authUser }) => {
     rowId: string,
     result: Batch.PipelineRowResult,
   ) => {
+    const update: Record<string, any> = {
+      ...(result.phaseExecutions?.length ? { phaseExecutions: result.phaseExecutions } : {}),
+    };
+    if (result.nluData) {
+      update.NLU = result.nluData;
+      update.nluStatus = 'completed';
+    }
+    if (Array.isArray(result.elements) && result.prompt) {
+      update.elements = result.elements;
+      update.prompt = result.prompt;
+      update.visualStatus = 'completed';
+    }
+
+    if (result.deferred) {
+      update.bitmapStatus = 'idle';
+      update.status = 'idle';
+      updateRowById(rowId, update);
+      addLog('info', t('batch.providerQuotaDeferred', { rowId }));
+      return;
+    }
+
     if (result.error) {
-      updateRowById(rowId, { bitmapStatus: 'error', status: 'error' });
+      if (!result.nluData) {
+        update.nluStatus = 'error';
+        update.visualStatus = 'idle';
+        update.bitmapStatus = 'idle';
+      } else if (!Array.isArray(result.elements) || !result.prompt) {
+        update.visualStatus = 'error';
+        update.bitmapStatus = 'idle';
+      } else {
+        update.bitmapStatus = 'error';
+      }
+      update.status = 'error';
+      updateRowById(rowId, update);
       addLog('error', t('batch.rowError', { error: result.error.slice(0, 120) }));
       return;
     }
-    const update: Record<string, any> = {};
-    if (result.nluData) update.NLU = result.nluData;
-    if (Array.isArray(result.elements)) update.elements = result.elements;
-    if (result.prompt) update.prompt = result.prompt;
     if (result.svg) {
       update.rawSvg = result.svg;
       update.bitmap = undefined;
@@ -1754,6 +1713,9 @@ const App: React.FC<AppProps> = ({ authUser }) => {
     }
     if (result.svg || result.bitmap) {
       update.generationModel = jobModel;
+      update.generationQuality = result.generationQuality;
+      update.nluStatus = 'completed';
+      update.visualStatus = 'completed';
       update.bitmapStatus = 'completed';
       update.status = 'completed';
     }
@@ -1921,6 +1883,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
   // ── Model change warning & bulk regeneration ─────────────────────────────
 
   const handleGenerationModelChange = (newModel: GenerationModel) => {
+    setConnectionChecks(prev => ({ ...prev, generation: { status: 'idle' } }));
     const affected = rows.filter(r => r.generationModel && r.generationModel !== newModel && r.bitmapStatus === 'completed');
     if (affected.length === 0) {
       // ModelChangeNoWarning rule: no affected rows → commit immediately
@@ -1958,14 +1921,13 @@ const App: React.FC<AppProps> = ({ authUser }) => {
           structuredSvgStatus: 'idle',
         });
         try {
-          const p3Result: Phase3Result = newModel.startsWith('recraft')
-            ? await Recraft.generateImage(ensureElementsArray(row.elements), row.prompt || "", row, configWithNewModel, addLog)
-            : await Gemini.generateImage(ensureElementsArray(row.elements), row.prompt || "", row, configWithNewModel, addLog);
+          const p3Result = await generateImage(ensureElementsArray(row.elements), row.prompt || "", row, configWithNewModel, addLog);
           const isVector = !!p3Result.svg;
           updateRowById(row.id, {
             rawSvg: isVector ? p3Result.svg : undefined,
             bitmap: isVector ? undefined : p3Result.bitmap,
             generationModel: p3Result.generationModel,
+            generationQuality: p3Result.generationQuality,
             rawSvgDiscarded: isVector ? false : undefined,
             structuredSvg: undefined,
             structuredSvgStatus: isVector ? 'outdated' : 'idle',
@@ -2010,8 +1972,10 @@ const App: React.FC<AppProps> = ({ authUser }) => {
 
     try {
       let result: any;
+      const phaseExecutions: PhaseExecution[] = [];
+      const captureExecution = (execution: PhaseExecution) => { phaseExecutions.push(execution); };
       if (step === 'nlu') {
-        result = await Claude.generateNLU(row.UTTERANCE, addLog, config);
+        result = await Claude.generateNLU(row.UTTERANCE, addLog, config, captureExecution);
       } else if (step === 'visual') {
         if (!row.NLU) throw new Error('No NLU data — run COMPRENDER first');
         let nluObj;
@@ -2020,15 +1984,10 @@ const App: React.FC<AppProps> = ({ authUser }) => {
         } catch (parseError) {
           throw new Error(`Failed to parse NLU data: ${parseError}`);
         }
-        result = await Claude.generateVisualBlueprint(nluObj as NLUData, config, addLog);
+        result = await Claude.generateVisualBlueprint(nluObj as NLUData, config, addLog, captureExecution);
       } else if (step === 'produce') {
         // Phase 3: PRODUCIR — dispatch to correct service based on generationModel
-        const model = config.generationModel ?? DEFAULT_GENERATION_MODEL;
-        if (model.startsWith('recraft')) {
-          result = await Recraft.generateImage(ensureElementsArray(row.elements), row.prompt || "", row, config, addLog);
-        } else {
-          result = await Gemini.generateImage(ensureElementsArray(row.elements), row.prompt || "", row, config, addLog);
-        }
+        result = await generateImage(ensureElementsArray(row.elements), row.prompt || "", row, config, addLog);
       } else if (step === 'structure') {
         // Phase 5: ESTRUCTURAR — Claude Sonnet vision → structuredSvg
         if (!row.rawSvg) throw new Error('Se requiere SVG de Recraft (ejecutar PRODUCIR primero)');
@@ -2039,14 +1998,20 @@ const App: React.FC<AppProps> = ({ authUser }) => {
           nlu: nluObj as NLUData,
           elements: ensureElementsArray(row.elements),
           utterance: row.UTTERANCE,
+          prompt: row.prompt || '',
+          provenance: observedSvgProvenance(row, config.phase5Model),
           config,
           phase5Model: config.phase5Model,
           referenceImage: row.bitmapDiscarded ? undefined : row.bitmap,
           onProgress: (msg) => addLog('info', msg),
           onStatus: (s) => addLog('info', t('messages.structureStatus', { status: s })),
         });
-        if (!result.success) throw new Error(result.error || t('messages.structureFailed'));
-        result = result.svg; // structuredSvg string
+        if (!result.success) {
+          if (result.draftSvg) updateRowById(rowId, { structuredSvgDraft: result.draftSvg });
+          throw new Error(result.error || t('messages.structureFailed'));
+        }
+        if (result.pendingReview || !result.svg) throw new Error('SVG mapping requires review before canonical promotion');
+        result = await prepareSvgPromotion(row, result.svg);
       }
 
       if (stopFlags.current[rowId]) {
@@ -2055,10 +2020,14 @@ const App: React.FC<AppProps> = ({ authUser }) => {
         return false;
       }
 
+      if (step === 'structure' && captureSvgSource(rowsForSvgRef.current.find(r => r.id === rowId) ?? {}) !== result.svgSourceSnapshot) {
+        throw new Error('SVG inputs or canonical revision changed during generation; previous revision preserved');
+      }
       const duration = (Date.now() - startTime) / 1000;
       updateRowById(rowId, {
         [statusKey]: 'completed',
         [durationKey]: duration,
+        ...(phaseExecutions.length ? { phaseExecutions } : {}),
         ...(step === 'nlu' ? { NLU: result, visualStatus: 'outdated', bitmapStatus: 'outdated', structuredSvgStatus: 'outdated' } : {}),
         ...(step === 'visual' ? { elements: result.elements, prompt: result.prompt, bitmapStatus: 'outdated', structuredSvgStatus: 'outdated' } : {}),
         ...(step === 'produce' ? (() => {
@@ -2068,6 +2037,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
             rawSvg: isVector ? p3.svg : undefined,
             bitmap: isVector ? undefined : p3.bitmap,
             generationModel: p3.generationModel,
+            generationQuality: p3.generationQuality,
             rawSvgDiscarded: isVector ? false : row.rawSvgDiscarded,
             structuredSvg: undefined,
             structuredSvgDiscarded: false,
@@ -2075,7 +2045,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
             status: 'completed',
           };
         })() : {}),
-        ...(step === 'structure' ? { structuredSvg: result, structuredSvgDiscarded: false, status: 'completed' } : {}),
+        ...(step === 'structure' ? { ...result, status: 'completed' } : {}),
       });
       if (step === 'nlu') {
         recordPhaseRegen(rowId, 'nlu', beforeNLU, result);
@@ -2118,8 +2088,11 @@ const App: React.FC<AppProps> = ({ authUser }) => {
       return;
     }
 
+    const runId = newId();
+    const runLog = (type: 'info' | 'error' | 'success', message: string) =>
+      addLog(type, t('messages.runLog', { runId, message }));
     stopFlags.current[row.id] = false;
-    addLog('info', t('messages.cascadeStarted', { utterance: row.UTTERANCE }));
+    runLog('info', t('messages.cascadeStarted', { utterance: row.UTTERANCE }));
 
     // Settle pending manual edits before the cascade discards downstream artifacts.
     settleRowEdits(rowId);
@@ -2128,50 +2101,83 @@ const App: React.FC<AppProps> = ({ authUser }) => {
     const beforePrompt = row.prompt;
 
     const stepNames = { nlu: t('pipeline.understand'), visual: t('pipeline.compose'), produce: t('pipeline.produce') };
-    let finalUpdates: Partial<RowData> = { status: 'processing' };
+    const retryPhase3Only = canRetryPhase3Only(row);
+    let nluResult: NLUData | undefined = retryPhase3Only ? row.NLU as NLUData : undefined;
+    let visualResult: { elements: VisualElement[]; prompt: string } | undefined = retryPhase3Only
+      ? { elements: ensureElementsArray(row.elements), prompt: row.prompt! }
+      : undefined;
+    let finalUpdates: Partial<RowData> = retryPhase3Only
+      ? {
+          status: 'processing',
+          NLU: row.NLU,
+          nluStatus: 'completed',
+          nluDuration: row.nluDuration,
+          elements: row.elements,
+          prompt: row.prompt,
+          visualStatus: 'completed',
+          visualDuration: row.visualDuration,
+        }
+      : { status: 'processing' };
 
     try {
-      // --- NLU Step (Phase 1: COMPRENDER — Claude Haiku) ---
-      addLog('info', t('messages.cascadeStep', { current: 1, total: 3, step: stepNames.nlu }));
-      updateRowById(rowId, { nluStatus: 'processing', visualStatus: 'idle', bitmapStatus: 'idle', structuredSvgStatus: 'idle' });
-      const nluStartTime = Date.now();
-      const nluResult = await Claude.generateNLU(row.UTTERANCE, addLog, config);
-      if (stopFlags.current[row.id]) {
-        addLog('info', t('messages.cascadeStoppedAtStep', { step: stepNames.nlu }));
-        updateRowById(rowId, { nluStatus: 'idle', status: 'idle' });
-        return;
-      }
-      finalUpdates.NLU = nluResult;
-      finalUpdates.nluStatus = 'completed';
-      finalUpdates.nluDuration = (Date.now() - nluStartTime) / 1000;
-      addLog('success', t('messages.cascadeStepComplete', { current: 1, total: 3, duration: finalUpdates.nluDuration.toFixed(1) }));
+      if (retryPhase3Only) {
+        updateRowById(rowId, {
+          status: 'processing', nluStatus: 'completed', visualStatus: 'completed', bitmapStatus: 'processing',
+        });
+        runLog('info', `[CASCADA] resume=phase3 snapshot=preserved`);
+      } else {
+        // --- NLU Step (Phase 1: COMPRENDER — Claude Haiku) ---
+        runLog('info', t('messages.cascadeStep', { current: 1, total: 3, step: stepNames.nlu }));
+        updateRowById(rowId, { nluStatus: 'processing', visualStatus: 'idle', bitmapStatus: 'idle', structuredSvgStatus: 'idle' });
+        const nluStartTime = Date.now();
+        const nluExecutions: PhaseExecution[] = [];
+        nluResult = await Claude.generateNLU(row.UTTERANCE, runLog, config, execution => { nluExecutions.push(execution); });
+        if (stopFlags.current[row.id]) {
+          runLog('info', t('messages.cascadeStoppedAtStep', { step: stepNames.nlu }));
+          updateRowById(rowId, { nluStatus: 'idle', status: 'idle' });
+          return;
+        }
+        finalUpdates.NLU = nluResult;
+        finalUpdates.nluStatus = 'completed';
+        finalUpdates.nluDuration = (Date.now() - nluStartTime) / 1000;
+        runLog('success', t('messages.cascadeStepComplete', { current: 1, total: 3, duration: finalUpdates.nluDuration.toFixed(1) }));
 
-      // --- Visual Step (Phase 2: COMPONER — Claude Haiku) ---
-      addLog('info', t('messages.cascadeStep', { current: 2, total: 3, step: stepNames.visual }));
-      updateRowById(rowId, { nluStatus: 'completed', nluDuration: finalUpdates.nluDuration, NLU: nluResult, visualStatus: 'processing' });
-      const visualStartTime = Date.now();
-      const visualResult = await Claude.generateVisualBlueprint(nluResult, config, addLog);
-      if (stopFlags.current[row.id]) {
-        addLog('info', t('messages.cascadeStoppedAtStep', { step: stepNames.visual }));
-        updateRowById(rowId, { visualStatus: 'idle', status: 'idle' });
-        return;
+        // --- Visual Step (Phase 2: COMPONER — Claude Haiku) ---
+        runLog('info', t('messages.cascadeStep', { current: 2, total: 3, step: stepNames.visual }));
+        updateRowById(rowId, { nluStatus: 'completed', nluDuration: finalUpdates.nluDuration, NLU: nluResult, visualStatus: 'processing', phaseExecutions: nluExecutions });
+        const visualStartTime = Date.now();
+        const compositionExecutions: PhaseExecution[] = [];
+        visualResult = await Claude.generateVisualBlueprint(nluResult, config, runLog, execution => { compositionExecutions.push(execution); });
+        if (stopFlags.current[row.id]) {
+          runLog('info', t('messages.cascadeStoppedAtStep', { step: stepNames.visual }));
+          updateRowById(rowId, { visualStatus: 'idle', status: 'idle' });
+          return;
+        }
+        updateRowById(rowId, { elements: visualResult.elements, prompt: visualResult.prompt, phaseExecutions: compositionExecutions });
+        finalUpdates.elements = visualResult.elements;
+        finalUpdates.prompt = visualResult.prompt;
+        finalUpdates.visualStatus = 'completed';
+        finalUpdates.visualDuration = (Date.now() - visualStartTime) / 1000;
+        runLog('success', t('messages.cascadeStepComplete', { current: 2, total: 3, duration: finalUpdates.visualDuration.toFixed(1) }));
       }
-      finalUpdates.elements = visualResult.elements;
-      finalUpdates.prompt = visualResult.prompt;
-      finalUpdates.visualStatus = 'completed';
-      finalUpdates.visualDuration = (Date.now() - visualStartTime) / 1000;
-      addLog('success', t('messages.cascadeStepComplete', { current: 2, total: 3, duration: finalUpdates.visualDuration.toFixed(1) }));
+
+      if (!nluResult || !visualResult) throw new Error('Incomplete Phase 3 snapshot');
 
       // --- Produce Step (Phase 3: PRODUCIR — dispatch by generationModel) ---
-      addLog('info', t('messages.cascadeStep', { current: 3, total: 3, step: stepNames.produce }));
+      runLog('info', t('messages.cascadeStep', { current: 3, total: 3, step: stepNames.produce }));
       updateRowById(rowId, { visualStatus: 'completed', visualDuration: finalUpdates.visualDuration, elements: visualResult.elements, prompt: visualResult.prompt, bitmapStatus: 'processing' });
       const bitmapStartTime = Date.now();
-      const p3Model = config.generationModel ?? DEFAULT_GENERATION_MODEL;
-      const p3Result: Phase3Result = p3Model.startsWith('recraft')
-        ? await Recraft.generateImage(ensureElementsArray(visualResult.elements), visualResult.prompt || "", row, config, addLog)
-        : await Gemini.generateImage(ensureElementsArray(visualResult.elements), visualResult.prompt || "", row, config, addLog);
+      const phase3Snapshot: RowData = {
+        ...row,
+        NLU: nluResult,
+        elements: visualResult.elements,
+        prompt: visualResult.prompt,
+        nluStatus: 'completed',
+        visualStatus: 'completed',
+      };
+      const p3Result = await generateImage(ensureElementsArray(visualResult.elements), visualResult.prompt || "", phase3Snapshot, config, runLog);
       if (stopFlags.current[row.id]) {
-        addLog('info', t('messages.cascadeStoppedAtStep', { step: stepNames.produce }));
+        runLog('info', t('messages.cascadeStoppedAtStep', { step: stepNames.produce }));
         updateRowById(rowId, { bitmapStatus: 'idle', status: 'idle' });
         return;
       }
@@ -2179,22 +2185,27 @@ const App: React.FC<AppProps> = ({ authUser }) => {
       finalUpdates.rawSvg = p3IsVector ? p3Result.svg : undefined;
       finalUpdates.bitmap = p3IsVector ? undefined : p3Result.bitmap;
       finalUpdates.generationModel = p3Result.generationModel;
+      finalUpdates.generationQuality = p3Result.generationQuality;
       finalUpdates.rawSvgDiscarded = p3IsVector ? false : undefined;
       finalUpdates.structuredSvg = undefined;
       finalUpdates.structuredSvgStatus = p3IsVector ? 'outdated' : 'idle';
       finalUpdates.bitmapStatus = 'completed';
       finalUpdates.bitmapDuration = (Date.now() - bitmapStartTime) / 1000;
-      addLog('success', t('messages.cascadeStepComplete', { current: 3, total: 3, duration: finalUpdates.bitmapDuration.toFixed(1) }));
+      runLog('success', t('messages.cascadeStepComplete', { current: 3, total: 3, duration: finalUpdates.bitmapDuration.toFixed(1) }));
 
       finalUpdates.status = 'completed';
       updateRowById(rowId, finalUpdates);
 
-      recordPhaseRegen(rowId, 'nlu', beforeNLU, nluResult);
-      recordPhaseRegen(rowId, 'elements', beforeElements, visualResult.elements);
-      recordPhaseRegen(rowId, 'prompt', beforePrompt, visualResult.prompt);
+      if (!retryPhase3Only) {
+        recordPhaseRegen(rowId, 'nlu', beforeNLU, nluResult);
+        recordPhaseRegen(rowId, 'elements', beforeElements, visualResult.elements);
+        recordPhaseRegen(rowId, 'prompt', beforePrompt, visualResult.prompt);
+      }
 
-      const totalTime = (finalUpdates.nluDuration || 0) + (finalUpdates.visualDuration || 0) + (finalUpdates.bitmapDuration || 0);
-      addLog('success', t('messages.cascadeComplete', { duration: totalTime.toFixed(1), utterance: row.UTTERANCE }));
+      const totalTime = retryPhase3Only
+        ? (finalUpdates.bitmapDuration || 0)
+        : (finalUpdates.nluDuration || 0) + (finalUpdates.visualDuration || 0) + (finalUpdates.bitmapDuration || 0);
+      runLog('success', t('messages.cascadeComplete', { duration: totalTime.toFixed(1), utterance: row.UTTERANCE }));
 
       requestAnimationFrame(() => {
         const rowEl = document.getElementById(`picto-row-${row.id}`);
@@ -2206,7 +2217,13 @@ const App: React.FC<AppProps> = ({ authUser }) => {
       if (stopFlags.current[rowId]) return;
       if (err instanceof QuotaExceededError) {
         setQuotaModal({ units_used: err.units_used, limit: err.limit });
-        updateRowById(rowId, { status: 'idle', nluStatus: 'idle', visualStatus: 'idle', bitmapStatus: 'idle' });
+        const phase3Ready = finalUpdates.nluStatus === 'completed' && finalUpdates.visualStatus === 'completed';
+        updateRowById(rowId, {
+          status: phase3Ready ? 'error' : 'idle',
+          nluStatus: phase3Ready ? 'completed' : 'idle',
+          visualStatus: phase3Ready ? 'completed' : 'idle',
+          bitmapStatus: phase3Ready ? 'error' : 'idle',
+        });
         return;
       }
       let stepFailed: 'nlu' | 'visual' | 'produce' = 'nlu';
@@ -2215,7 +2232,10 @@ const App: React.FC<AppProps> = ({ authUser }) => {
 
       const failedStatusKey = stepFailed === 'produce' ? 'bitmapStatus' : `${stepFailed}Status`;
       updateRowById(rowId, { [failedStatusKey]: 'error', status: 'error' });
-      addLog('error', t('messages.cascadeFailed', { step: stepNames[stepFailed], error: err.message }));
+      const failure = err instanceof ExternalProviderQuotaError
+        ? `${err.message}; provider=${err.provider}; model=${err.model ?? config.generationModel ?? DEFAULT_GENERATION_MODEL}`
+        : err.message;
+      runLog('error', t('messages.cascadeFailed', { step: stepNames[stepFailed], error: failure }));
     }
   };
 
@@ -2300,34 +2320,25 @@ const App: React.FC<AppProps> = ({ authUser }) => {
     setVectorizerState({ isOpen: false, rowId: null });
   };
 
-  const handleSVGEditorSave = (updatedSvg: string) => {
+  const handleSVGEditorSave = async (updatedSvg: string) => {
     if (!svgEditorState.rowId) return;
     const source = svgEditorState.svgSource;
 
-    // Write only to the origin field — do not promote rawSvg to structuredSvg.
-    // Editing in the SVG editor also re-validates the artifact (clears the
-    // discard flag for the matching phase).
-    const update: Partial<RowData> = source === 'structured'
-      ? { structuredSvg: updatedSvg, structuredSvgDiscarded: false }
-      : { rawSvg: updatedSvg, rawSvgDiscarded: false };
-
-    updateRowById(svgEditorState.rowId, update);
-
-    // Only update the SVG Library for structured SVGs (the "official" pictogram)
-    if (source === 'structured') {
-      const savedRow = rows.find(r => r.id === svgEditorState.rowId);
-      if (savedRow) {
-        addSVG({
-          id: savedRow.id,
-          utterance: savedRow.UTTERANCE,
-          svg: updatedSvg,
-          createdAt: new Date().toISOString(),
-          sourceRowId: savedRow.id,
-          lang: (typeof savedRow.NLU === 'object' && savedRow.NLU !== null)
-            ? (savedRow.NLU as any).lang
-            : undefined
-        });
+    const rowBeforeSave = rows.find(r => r.id === svgEditorState.rowId);
+    if (!rowBeforeSave) return;
+    try {
+      const update = source === 'structured'
+        ? await prepareSvgPromotion(rowBeforeSave, updatedSvg, true)
+        : { rawSvg: updatedSvg, rawSvgDiscarded: false };
+      if ('svgSourceSnapshot' in update && captureSvgSource(rowsForSvgRef.current.find(r => r.id === rowBeforeSave.id) ?? {}) !== update.svgSourceSnapshot) {
+        throw new Error('SVG inputs or canonical revision changed while saving');
       }
+      if ('structuredSvg' in update) updatedSvg = update.structuredSvg;
+      updateRowById(svgEditorState.rowId, update);
+    } catch (error) {
+      if (source === 'structured') updateRowById(svgEditorState.rowId, { structuredSvgDraft: updatedSvg });
+      addLog('error', error instanceof Error ? error.message : 'SVG validation failed; previous revision preserved');
+      return;
     }
 
     const savedRow = rows.find(r => r.id === svgEditorState.rowId);
@@ -2697,19 +2708,24 @@ const App: React.FC<AppProps> = ({ authUser }) => {
           {/* ── Sección básica (collapsible) ── */}
           <button
             type="button"
-            onClick={() => setBasicConfigOpen(o => !o)}
+            onClick={() => {
+              setBasicConfigOpen(!basicConfigVisible);
+              if (!basicConfigVisible) {
+                setConfig(prev => ({ ...prev, advancedConfigOpen: false }));
+              }
+            }}
             className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500 hover:text-violet-700 transition-colors w-full text-left mb-4"
-            aria-expanded={basicConfigOpen}
+            aria-expanded={basicConfigVisible}
           >
             <ChevronRight
               size={14}
-              className={`transition-transform ${basicConfigOpen ? 'rotate-90' : ''}`}
+              className={`transition-transform ${basicConfigVisible ? 'rotate-90' : ''}`}
               aria-hidden="true"
             />
             {t('header.configureLibrary')}
           </button>
 
-          {basicConfigOpen && (
+          {basicConfigVisible && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4">
 
             {/* ── Col 1: Identidad ── */}
@@ -2907,13 +2923,16 @@ const App: React.FC<AppProps> = ({ authUser }) => {
             </div>
 
           </div>
-          )} {/* end basicConfigOpen */}
+          )} {/* end basicConfigVisible */}
 
           {/* ── Configuración avanzada (collapsible) ── */}
           <div className="border-t pt-4">
             <button
               type="button"
-              onClick={() => setConfig(prev => ({ ...prev, advancedConfigOpen: !prev.advancedConfigOpen }))}
+              onClick={() => {
+                setBasicConfigOpen(false);
+                setConfig(prev => ({ ...prev, advancedConfigOpen: !prev.advancedConfigOpen }));
+              }}
               className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500 hover:text-violet-700 transition-colors w-full text-left"
               aria-expanded={config.advancedConfigOpen ?? false}
             >
@@ -2933,32 +2952,37 @@ const App: React.FC<AppProps> = ({ authUser }) => {
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-2">
                     {t('config.pipelineModels')}
                   </p>
+                  <p className="text-[11px] text-slate-500 mb-2">{t('config.connectionScopeNote')}</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
 
                     {/* Phase 1: COMPRENDER */}
                     {(() => {
-                      const chk = connectionChecks['comprender'];
+                      const phaseCheck = connectionChecks['comprender'];
                       // Migration: fall back to legacy nluModel if per-phase field not yet set
                       const currentModel = config.comprenderModel ?? config.nluModel ?? DEFAULT_NLU_MODEL;
-                      const service = currentModel.startsWith('gemini-') ? 'gemini' : 'claude';
+                      const chk = phaseCheck?.model === currentModel ? phaseCheck : undefined;
+                      const service = Object.hasOwn(MODEL_CATALOG, currentModel) ? getModelProvider(currentModel) : undefined;
                       return (
                         <div className="border border-slate-200 rounded p-3 flex flex-col gap-2">
                           <FieldLabel label={t('config.comprenderModel')} tooltip={t('config.comprenderModelTooltip')} />
                           <select
+                            aria-label={t('config.comprenderModel')}
                             value={currentModel}
                             onChange={e => setComprenderModel(e.target.value)}
                             className="w-full text-xs border p-2 bg-slate-50 focus:bg-white transition-colors"
                           >
+                            {!NLU_MODELS.some(m => m.id === currentModel) && <option value={currentModel}>{currentModel} — {t('config.generationModels.unavailable')}</option>}
                             {NLU_MODELS.map(m => (
                               <option key={m.id} value={m.id}>
-                                {m.label}{m.id === DEFAULT_NLU_MODEL ? ` (${t('config.generationModels.default')})` : ''}
+                                {m.label} · {formatModelPrice(m.id, t)}{m.id === DEFAULT_NLU_MODEL ? ` (${t('config.generationModels.default')})` : ''}
                               </option>
                             ))}
                           </select>
+                          <ModelPricing model={currentModel} />
                           <button
                             type="button"
                             onClick={() => checkConnection('comprender', service, currentModel)}
-                            disabled={chk?.status === 'checking'}
+                            disabled={!service || chk?.status === 'checking'}
                             className="flex items-center justify-center gap-1.5 text-[11px] px-2 py-1.5 border border-slate-200 text-slate-500 hover:text-violet-700 hover:border-violet-300 rounded transition-colors disabled:opacity-50 w-full"
                             title={chk?.status === 'error' ? chk.error : undefined}
                           >
@@ -2977,27 +3001,31 @@ const App: React.FC<AppProps> = ({ authUser }) => {
 
                     {/* Phase 2: COMPONER */}
                     {(() => {
-                      const chk = connectionChecks['componer'];
+                      const phaseCheck = connectionChecks['componer'];
                       const currentModel = config.componerModel ?? config.nluModel ?? DEFAULT_NLU_MODEL;
-                      const service = currentModel.startsWith('gemini-') ? 'gemini' : 'claude';
+                      const chk = phaseCheck?.model === currentModel ? phaseCheck : undefined;
+                      const service = Object.hasOwn(MODEL_CATALOG, currentModel) ? getModelProvider(currentModel) : undefined;
                       return (
                         <div className="border border-slate-200 rounded p-3 flex flex-col gap-2">
                           <FieldLabel label={t('config.componerModel')} tooltip={t('config.componerModelTooltip')} />
                           <select
+                            aria-label={t('config.componerModel')}
                             value={currentModel}
                             onChange={e => setComponerModel(e.target.value)}
                             className="w-full text-xs border p-2 bg-slate-50 focus:bg-white transition-colors"
                           >
+                            {!NLU_MODELS.some(m => m.id === currentModel) && <option value={currentModel}>{currentModel} — {t('config.generationModels.unavailable')}</option>}
                             {NLU_MODELS.map(m => (
                               <option key={m.id} value={m.id}>
-                                {m.label}{m.id === DEFAULT_NLU_MODEL ? ` (${t('config.generationModels.default')})` : ''}
+                                {m.label} · {formatModelPrice(m.id, t)}{m.id === DEFAULT_NLU_MODEL ? ` (${t('config.generationModels.default')})` : ''}
                               </option>
                             ))}
                           </select>
+                          <ModelPricing model={currentModel} />
                           <button
                             type="button"
                             onClick={() => checkConnection('componer', service, currentModel)}
-                            disabled={chk?.status === 'checking'}
+                            disabled={!service || chk?.status === 'checking'}
                             className="flex items-center justify-center gap-1.5 text-[11px] px-2 py-1.5 border border-slate-200 text-slate-500 hover:text-violet-700 hover:border-violet-300 rounded transition-colors disabled:opacity-50 w-full"
                             title={chk?.status === 'error' ? chk.error : undefined}
                           >
@@ -3016,31 +3044,62 @@ const App: React.FC<AppProps> = ({ authUser }) => {
 
                     {/* Phase 3: PRODUCIR */}
                     {(() => {
-                      const chk = connectionChecks['generation'];
+                      const phaseCheck = connectionChecks['generation'];
                       const currentGenModel = config.generationModel ?? DEFAULT_GENERATION_MODEL;
-                      const genService = currentGenModel.startsWith('recraft') ? 'recraft' : 'gemini';
+                      const chk = phaseCheck?.model === currentGenModel ? phaseCheck : undefined;
+                      const genService = getModelProvider(currentGenModel);
                       return (
                         <div className="border border-slate-200 rounded p-3 flex flex-col gap-2">
                           <FieldLabel label={t('config.generationModel')} tooltip={t('config.generationModelTooltip')} />
                           <select
+                            aria-label={t('config.generationModel')}
                             value={currentGenModel}
                             onChange={e => handleGenerationModelChange(e.target.value as GenerationModel)}
                             className="w-full text-xs border p-2 bg-slate-50 focus:bg-white transition-colors"
                           >
                             {(Object.keys(GENERATION_MODEL_LABELS) as GenerationModel[]).map(m => {
                               const inoperativeReason = INOPERATIVE_GENERATION_MODELS[m];
+                              const needsStyle = MODEL_CATALOG[m].requiresStyle && !config.recraftStyleId?.trim();
                               return (
-                                <option key={m} value={m} disabled={!!inoperativeReason}>
-                                  {GENERATION_MODEL_LABELS[m]}
+                                <option key={m} value={m} disabled={!!inoperativeReason || needsStyle}>
+                                  {GENERATION_MODEL_LABELS[m]} · {formatModelPrice(m, t, config.openaiImageQuality ?? 'low')}
                                   {m === DEFAULT_GENERATION_MODEL ? ` (${t('config.generationModels.default')})` : ''}
                                   {inoperativeReason ? ` — ${t('config.generationModels.unavailable')} (${inoperativeReason})` : ''}
+                                  {needsStyle ? ` — ${t('config.recraftStyleMissing')}` : ''}
                                 </option>
                               );
                             })}
                           </select>
+                          {genService === 'openai' && (
+                            <>
+                              <label className="text-xs text-slate-600" htmlFor="openai-image-quality">{t('config.openaiQuality')}</label>
+                              <select
+                                id="openai-image-quality"
+                                value={config.openaiImageQuality ?? 'low'}
+                                onChange={e => setConfig(prev => ({ ...prev, openaiImageQuality: e.target.value as OpenAIImageQuality }))}
+                                className="w-full text-xs border p-2 bg-slate-50 focus:bg-white transition-colors"
+                              >
+                                <option value="low">{t('config.openaiQualityLow')}</option>
+                                <option value="medium">{t('config.openaiQualityMedium')}</option>
+                                <option value="high">{t('config.openaiQualityHigh')}</option>
+                              </select>
+
+                            </>
+                          )}
+                          <ModelPricing model={currentGenModel} quality={config.openaiImageQuality ?? 'low'} />
+                          {genService === 'recraft' && <>
+                            <label htmlFor="recraft-style-id" className="text-xs text-slate-600">{t('config.recraftStyleId')}</label>
+                            <input id="recraft-style-id" type="text" value={config.recraftStyleId ?? ''}
+                              onChange={e => setConfig(prev => ({ ...prev, recraftStyleId: e.target.value }))}
+                              className="w-full text-xs border p-2 bg-slate-50 focus:bg-white"
+                              aria-describedby="recraft-style-hint" />
+                            <p id="recraft-style-hint" className="text-[11px] text-slate-500">{t('config.recraftStyleIdHint')}</p>
+                            {MODEL_CATALOG[currentGenModel].requiresStyle && !config.recraftStyleId?.trim() &&
+                              <p role="status" className="text-[11px] text-amber-700">{t('config.recraftStyleMissing')}</p>}
+                          </>}
                           <button
                             type="button"
-                            onClick={() => checkConnection('generation', genService)}
+                            onClick={() => checkConnection('generation', genService, currentGenModel)}
                             disabled={chk?.status === 'checking'}
                             className="flex items-center justify-center gap-1.5 text-[11px] px-2 py-1.5 border border-slate-200 text-slate-500 hover:text-violet-700 hover:border-violet-300 rounded transition-colors disabled:opacity-50 w-full"
                             title={chk?.status === 'error' ? chk.error : undefined}
@@ -3054,33 +3113,42 @@ const App: React.FC<AppProps> = ({ authUser }) => {
                               : chk?.status === 'error' ? t('config.connectionError')
                               : t('config.checkConnection')}
                           </button>
+                          {chk?.status === 'ok' && typeof chk.credits === 'number' &&
+                            <p className="text-[11px] text-slate-500">{t('config.recraftCreditBalance', { credits: chk.credits })}</p>}
+                          {chk?.status === 'ok' && chk.checkedModel && chk.checkedModel !== currentGenModel &&
+                            <p className="text-[11px] text-slate-500">{t('config.checkedTextModel', { model: chk.checkedModel })}</p>}
+
                         </div>
                       );
                     })()}
 
                     {/* Phase 4: ESTRUCTURAR */}
                     {(() => {
-                      const chk = connectionChecks['structuring'];
+                      const phaseCheck = connectionChecks['structuring'];
                       const currentP5Model = config.phase5Model ?? DEFAULT_PHASE5_MODEL;
-                      const structService = currentP5Model.startsWith('claude') ? 'claude' : 'gemini';
+                      const chk = phaseCheck?.model === currentP5Model ? phaseCheck : undefined;
+                      const structService = Object.hasOwn(MODEL_CATALOG, currentP5Model) ? getModelProvider(currentP5Model) : undefined;
                       return (
                         <div className="border border-slate-200 rounded p-3 flex flex-col gap-2">
                           <FieldLabel label={t('config.phase5Model')} tooltip={t('config.phase5ModelTooltip')} />
                           <select
+                            aria-label={t('config.phase5Model')}
                             value={currentP5Model}
                             onChange={e => setPhase5Model(e.target.value)}
                             className="w-full text-xs border p-2 bg-slate-50 focus:bg-white transition-colors"
                           >
+                            {!PHASE5_MODELS.some(m => m.id === currentP5Model) && <option value={currentP5Model}>{currentP5Model} — {t('config.generationModels.unavailable')}</option>}
                             {PHASE5_MODELS.map(m => (
                               <option key={m.id} value={m.id}>
-                                {m.label}{m.id === DEFAULT_PHASE5_MODEL ? ` (${t('config.generationModels.default')})` : ''}
+                                {m.label} · {formatModelPrice(m.id, t)}{m.id === DEFAULT_PHASE5_MODEL ? ` (${t('config.generationModels.default')})` : ''}
                               </option>
                             ))}
                           </select>
+                          <ModelPricing model={currentP5Model} />
                           <button
                             type="button"
-                            onClick={() => checkConnection('structuring', structService, structService === 'claude' ? currentP5Model : undefined)}
-                            disabled={chk?.status === 'checking'}
+                            onClick={() => checkConnection('structuring', structService, currentP5Model)}
+                            disabled={!structService || chk?.status === 'checking'}
                             className="flex items-center justify-center gap-1.5 text-[11px] px-2 py-1.5 border border-slate-200 text-slate-500 hover:text-violet-700 hover:border-violet-300 rounded transition-colors disabled:opacity-50 w-full"
                             title={chk?.status === 'error' ? chk.error : undefined}
                           >

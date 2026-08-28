@@ -12,6 +12,8 @@
  */
 
 import { logCall } from './_shared/usage.js';
+import { fetchWithRetry } from './_shared/httpRetry.js';
+import { providerHttpError, providerFailure } from './_shared/providerError.js';
 import { connectBlobs } from './_shared/blobs.js';
 import { getVertexAccessToken, vertexModelUrl } from './_shared/vertex.js';
 import { buildGeminiRequest, geminiResponseToClaude } from './_shared/geminiTranslate.js';
@@ -53,9 +55,9 @@ async function handleRequest(event, context) {
     return { statusCode: 401, headers, body: JSON.stringify({ error: 'Unauthorized' }) };
   }
 
-  let model, max_tokens, system, tools, tool_choice, messages;
+  let model, max_tokens, system, tools, tool_choice, messages, _requestId;
   try {
-    ({ model, max_tokens, system, tools, tool_choice, messages } = JSON.parse(event.body));
+    ({ model, max_tokens, system, tools, tool_choice, messages, _requestId } = JSON.parse(event.body));
   } catch {
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid JSON body' }) };
   }
@@ -79,43 +81,33 @@ async function handleRequest(event, context) {
   try {
     const accessToken = await getVertexAccessToken();
     const url = vertexModelUrl(model);
-    const geminiRes = await fetch(url, {
+    const geminiRes = await fetchWithRetry(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${accessToken}`,
       },
       body: JSON.stringify(geminiBody),
-    });
+    }, { retries: 2, baseDelayMs: 1000, retryOn429: true, maxTotalMs: 45000 });
 
-    if (!geminiRes.ok) {
-      const errText = await geminiRes.text().catch(() => geminiRes.statusText);
-      console.error(`[api-gemini-nlu] Gemini error ${geminiRes.status}: ${errText.slice(0, 400)}`);
-      ok = false;
-      errorMsg = `Gemini ${geminiRes.status}: ${errText.slice(0, 200)}`;
-
-      await logCall({
-        email, phase: 'gemini-nlu', model, units_charged: 0,
-        ms: Date.now() - startMs,
-        tokens_in: 0, tokens_out: 0, ok: false, error_msg: errorMsg,
-      });
-
-      return { statusCode: 500, headers, body: JSON.stringify({ error: errorMsg }) };
-    }
+    if (!geminiRes.ok) throw await providerHttpError(geminiRes, 'gemini', _requestId);
 
     geminiData = await geminiRes.json();
   } catch (error) {
     ok = false;
-    errorMsg = error.message;
+    const failure = providerFailure(error, { provider: 'gemini', requestId: _requestId });
+    errorMsg = failure.error;
     console.error(`[api-gemini-nlu] fetch error: ${error.message}`);
 
     await logCall({
       email, phase: 'gemini-nlu', model, units_charged: 0,
       ms: Date.now() - startMs,
-      tokens_in: 0, tokens_out: 0, ok: false, error_msg: errorMsg,
+      tokens_in: null, tokens_out: null, ok: false, error_msg: errorMsg,
+      provider: 'gemini', provider_status: failure.providerStatus, request_id: failure.requestId,
+      attempts: failure.attempts, quota_failure_source: failure.failureSource,
     });
 
-    return { statusCode: 500, headers, body: JSON.stringify({ error: errorMsg }) };
+    return { statusCode: failure.providerStatus || (error.name === 'TimeoutError' ? 504 : 500), headers, body: JSON.stringify(failure) };
   }
 
   const ms = Date.now() - startMs;
@@ -132,31 +124,9 @@ async function handleRequest(event, context) {
     return { statusCode: 500, headers, body: JSON.stringify({ error: parsed.error }) };
   }
 
-  // Post-process: sanitizeSchemaForGemini converts additionalProperties maps to
-  // type:'string' so Gemini can generate arbitrary keys. Parse those strings back
-  // to objects here (frame.roles is the main case).
+  // Canonical shared Phase 1/2 acceptance decodes dynamic maps and validates.
+  // Keep the provider response unchanged so invalid output remains diagnosable.
   const responseBody = parsed.response;
-  try {
-    const toolBlock = responseBody?.content?.find(b => b.type === 'tool_use');
-    if (toolBlock?.input) {
-      // frame.roles and nsm_explications both have additionalProperties schemas that
-      // sanitizeSchemaForGemini collapses to type:'string'. Parse them back to objects.
-      if (toolBlock.input.frames) {
-        for (const frame of toolBlock.input.frames) {
-          if (typeof frame.roles === 'string') {
-            try { frame.roles = JSON.parse(frame.roles); } catch { frame.roles = {}; }
-          }
-          frame.roles = frame.roles && typeof frame.roles === 'object' ? frame.roles : {};
-        }
-      }
-      if (typeof toolBlock.input.nsm_explications === 'string') {
-        try { toolBlock.input.nsm_explications = JSON.parse(toolBlock.input.nsm_explications); }
-        catch { toolBlock.input.nsm_explications = {}; }
-      }
-    }
-  } catch (e) {
-    console.warn('[api-gemini-nlu] post-processing skipped:', e.message);
-  }
 
   await logCall({
     email, phase: 'gemini-nlu', model, units_charged: 0,

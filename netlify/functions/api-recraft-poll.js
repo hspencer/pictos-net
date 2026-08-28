@@ -25,14 +25,15 @@ export const handler = async (event, context) => {
     return { statusCode: 200, headers, body: '' };
   }
 
-  const { user } = context.clientContext || {};
+  if (event.httpMethod !== 'GET') return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) };
+  const { user } = context?.clientContext || {};
   const isLocalDev = process.env.NETLIFY_DEV === 'true';
-  if (!isLocalDev && !user) {
+  if (!isLocalDev && !user?.email) {
     return { statusCode: 401, headers, body: JSON.stringify({ error: 'Unauthorized' }) };
   }
 
   const jobId = event.queryStringParameters?.jobId;
-  if (!jobId) {
+  if (typeof jobId !== 'string' || !/^(job|recraft)-[a-zA-Z0-9-]{1,100}$/.test(jobId)) {
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'Missing jobId' }) };
   }
 
@@ -48,13 +49,16 @@ export const handler = async (event, context) => {
     return { statusCode: 200, headers, body: JSON.stringify({ pending: true }) };
   }
 
+  if (!isLocalDev && result.owner !== user.email) return { statusCode: 403, headers, body: JSON.stringify({ error: 'Forbidden' }) };
+  const { owner, ...payload } = result;
+
   // Si ya se procesó (con éxito o error), devolvemos el resultado y limpiamos el blob
   if (result.svg || result.bitmap || result.error) {
     await store.delete(jobId);
-    return { statusCode: 200, headers, body: JSON.stringify(result) };
+    return { statusCode: 200, headers, body: JSON.stringify(payload) };
   }
 
   // Pending: forward the blob as-is so retry progress written by the worker
   // (`retrying: { attempt, of, waitMs, status }`) reaches the client UI.
-  return { statusCode: 200, headers, body: JSON.stringify({ pending: true, ...result }) };
+  return { statusCode: 200, headers, body: JSON.stringify({ pending: true, ...payload }) };
 };

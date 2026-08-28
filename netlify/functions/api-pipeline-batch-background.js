@@ -18,62 +18,31 @@
 
 import { getBlobStore as getStore, connectBlobs } from './_shared/blobs.js';
 import { consumeAuthGrant } from './_shared/identity.js';
-import { logCall } from './_shared/usage.js';
+import { logCall, refundUnitsOnce } from './_shared/usage.js';
 import { runPhase1, runPhase2, composeRecraftPrompt, composeGeminiImagePrompt } from './_shared/pipelineRunner.js';
 import { getVertexAccessToken, vertexModelUrl } from './_shared/vertex.js';
-import { fetchWithRetry, describeFetchError } from './_shared/httpRetry.js';
+import { fetchWithRetry } from './_shared/httpRetry.js';
+import { generateOpenAIImage, OPENAI_IMAGE_MODEL } from './_shared/openaiImage.js';
+import { openProviderQuotaCircuit } from './_shared/pipelineQuotaCircuit.js';
+import { MODEL_CATALOG, getModelProvider } from './_shared/modelCatalog.js';
+import { providerHttpError, providerFailure } from './_shared/providerError.js';
+import { generateRecraftImage } from './_shared/recraftImage.js';
 
-const RECRAFT_API_URL = 'https://external.api.recraft.ai/v1/images/generations';
-const RECRAFT_MODELS = new Set(['recraftv4_1_vector', 'recraftv4_1', 'recraftv4_1_utility_vector', 'recraftv4_1_pro_vector']);
-const GEMINI_IMAGE_MODELS = new Set(['gemini-2.5-flash-image', 'gemini-3.1-flash-image', 'gemini-3-pro-image']);
+const RECRAFT_MODELS = new Set(Object.keys(MODEL_CATALOG).filter(id => MODEL_CATALOG[id].provider === 'recraft'));
+const GEMINI_IMAGE_MODELS = new Set(Object.keys(MODEL_CATALOG).filter(id => MODEL_CATALOG[id].provider === 'gemini' && MODEL_CATALOG[id].phases.includes(3)));
 
 // ── Phase 3 runners ───────────────────────────────────────────────────────────
 
 async function phase3Recraft(elements, prompt, utterance, nluData, config, email) {
-  const model = config.generationModel || 'recraftv4_1_vector';
-  const apiKey = process.env.RECRAFT_API_KEY;
-  if (!apiKey) throw new Error('RECRAFT_API_KEY not configured');
-
-  const fullPrompt = composeRecraftPrompt(elements, prompt, utterance, nluData, config);
-  const body = { model, prompt: fullPrompt, n: 1, size: '1:1' };
-  const colors = config.paletteColors?.filter(c => /^#[0-9a-fA-F]{6}$/.test(c));
-  if (colors?.length) {
-    body.controls = {
-      colors: colors.slice(0, 10).map(hex => ({
-        rgb: [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16)],
-      })),
-    };
-  }
-
   const startMs = Date.now();
-  const recraftRes = await fetchWithRetry(RECRAFT_API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-    body: JSON.stringify(body),
-  }, { retries: 3, baseDelayMs: 2000, retryOn429: true, maxTotalMs: 60000 });
-
-  if (!recraftRes.ok) {
-    const text = await recraftRes.text().catch(() => recraftRes.statusText);
-    throw new Error(`Recraft ${recraftRes.status}: ${text.slice(0, 200)}`);
-  }
-
-  const data = await recraftRes.json();
-  const imageUrl = data?.data?.[0]?.url;
-  if (!imageUrl) throw new Error('Recraft returned no image URL');
-
-  const imageRes = await fetchWithRetry(imageUrl, {});
-  if (!imageRes.ok) throw new Error(`Recraft CDN fetch failed: ${imageRes.status}`);
-
-  const ms = Date.now() - startMs;
-  await logCall({ email, phase: 'recraft-batch', model, units_charged: 0, ms, tokens_in: 0, tokens_out: 0, ok: true });
-
-  if (model.endsWith('_vector')) {
-    const svg = await imageRes.text();
-    if (!svg.includes('<svg')) throw new Error('Recraft response is not valid SVG');
-    return { svg };
-  }
-  const ab = await imageRes.arrayBuffer();
-  return { bitmap: `data:image/png;base64,${Buffer.from(ab).toString('base64')}` };
+  const model = config.generationModel || 'recraftv4_1_vector';
+  const result = await generateRecraftImage({
+    model, prompt: composeRecraftPrompt(elements, prompt, utterance, nluData, config),
+    colors: config.paletteColors, style_id: config.recraftStyleId,
+  }, { maxTotalMs: 60000 });
+  await logCall({ email, phase: 'recraft-batch', model, style_id: config.recraftStyleId ?? null, units_charged: 0,
+    ms: Date.now() - startMs, tokens_in: null, tokens_out: null, ok: true });
+  return result;
 }
 
 async function phase3Gemini(elements, prompt, utterance, nluData, config, email) {
@@ -93,10 +62,7 @@ async function phase3Gemini(elements, prompt, utterance, nluData, config, email)
     }),
   }, { retries: 3, baseDelayMs: 2000, retryOn429: true, maxTotalMs: 60000 });
 
-  if (!geminiRes.ok) {
-    const text = await geminiRes.text().catch(() => geminiRes.statusText);
-    throw new Error(`Gemini image ${geminiRes.status}: ${text.slice(0, 200)}`);
-  }
+  if (!geminiRes.ok) throw await providerHttpError(geminiRes, 'gemini');
 
   const data = await geminiRes.json();
   const parts = data?.candidates?.[0]?.content?.parts ?? [];
@@ -104,9 +70,29 @@ async function phase3Gemini(elements, prompt, utterance, nluData, config, email)
   if (!imagePart?.inlineData?.data) throw new Error('Gemini returned no image data');
 
   const ms = Date.now() - startMs;
-  await logCall({ email, phase: 'gemini-batch', model, units_charged: 0, ms, tokens_in: 0, tokens_out: 0, ok: true });
+  await logCall({ email, phase: 'gemini-batch', model, units_charged: 0, ms,
+    tokens_in: data.usageMetadata?.promptTokenCount ?? null,
+    tokens_out: Number.isFinite(data.usageMetadata?.candidatesTokenCount)
+      ? data.usageMetadata.candidatesTokenCount + (data.usageMetadata.thoughtsTokenCount ?? 0) : null,
+    usage: data.usageMetadata ?? null, actual_model: data.modelVersion ?? null, ok: true });
 
   return { bitmap: `data:${imagePart.inlineData.mimeType};base64,${imagePart.inlineData.data}` };
+}
+
+async function phase3OpenAI(elements, prompt, utterance, nluData, config, email) {
+  const startMs = Date.now();
+  const result = await generateOpenAIImage({
+    model: config.generationModel,
+    prompt: composeGeminiImagePrompt(elements, prompt, utterance, nluData, config),
+    quality: config.openaiImageQuality ?? 'low',
+  });
+  await logCall({
+    email, phase: 'openai-batch', model: config.generationModel, quality: result.generationQuality,
+    units_charged: 0, ms: Date.now() - startMs, ok: true,
+    tokens_in: result.usage?.input_tokens ?? null, tokens_out: result.usage?.output_tokens ?? null,
+    provider: 'openai', request_id: result.requestId, usage: result.usage,
+  });
+  return { bitmap: result.bitmap, generationQuality: result.generationQuality };
 }
 
 // ── Handler ───────────────────────────────────────────────────────────────────
@@ -144,7 +130,9 @@ export const handler = async (event, context) => {
   const isRecraft = RECRAFT_MODELS.has(genModel);
   const isGeminiImage = GEMINI_IMAGE_MODELS.has(genModel);
 
-  if (!isRecraft && !isGeminiImage) {
+  const isOpenAI = genModel === OPENAI_IMAGE_MODEL;
+
+  if (!isRecraft && !isGeminiImage && !isOpenAI) {
     console.error(`[pipeline-batch] Unsupported generation model: ${genModel}`);
     await jobs.setJSON(`${libraryId}/state`, {
       id: jobId, libraryId, state: 'failed',
@@ -171,27 +159,79 @@ export const handler = async (event, context) => {
 
   console.log(`[pipeline-batch] job=${jobId} user=${email} rows=${rows.length} model=${genModel}`);
 
-  for (const { rowId, utterance } of rows) {
+  for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+    const { rowId, utterance } = rows[rowIndex];
     const rowKey = `${jobId}/${rowId}`;
+    const phaseExecutions = [];
+    const captureExecution = execution => { phaseExecutions.push(execution); };
+    let nluData;
+    let elements;
+    let prompt;
+    let activePhase = 1;
+    const rowStartMs = Date.now();
     try {
       // Phase 1: NLU
-      const nluData = await runPhase1(utterance, config);
+      nluData = await runPhase1(utterance, config, captureExecution);
 
       // Phase 2: Compose
-      const { elements, prompt } = await runPhase2(nluData, config);
+      activePhase = 2;
+      ({ elements, prompt } = await runPhase2(nluData, config, captureExecution));
 
       // Phase 3: Image generation
+      activePhase = 3;
       const imageResult = isRecraft
         ? await phase3Recraft(elements, prompt, utterance, nluData, config, email)
-        : await phase3Gemini(elements, prompt, utterance, nluData, config, email);
+        : isOpenAI
+          ? await phase3OpenAI(elements, prompt, utterance, nluData, config, email)
+          : await phase3Gemini(elements, prompt, utterance, nluData, config, email);
 
-      await jobs.setJSON(rowKey, { nluData, elements, prompt, ...imageResult });
+      await jobs.setJSON(rowKey, { nluData, elements, prompt, phaseExecutions, ...imageResult });
       jobState.succeededCount++;
       console.log(`[pipeline-batch] job=${jobId} row=${rowId} ok`);
     } catch (err) {
-      const detail = describeFetchError(err);
-      console.error(`[pipeline-batch] job=${jobId} row=${rowId} error: ${detail}`);
-      await jobs.setJSON(rowKey, { error: detail.slice(0, 500) });
+      const failedModel = activePhase === 1 ? config.comprenderModel || config.nluModel || 'claude-haiku-4-5-20251001'
+        : activePhase === 2 ? config.componerModel || config.nluModel || 'claude-haiku-4-5-20251001' : genModel;
+      const provider = err.provider || (Object.hasOwn(MODEL_CATALOG, failedModel) ? getModelProvider(failedModel) : 'unknown');
+      const failure = providerFailure(err, { provider, requestId: jobId });
+      const partial = { nluData, elements, prompt, phaseExecutions, ...failure,
+        failedPhase: activePhase, failedModel, recoverable: failure.retryable };
+      if (failure.providerStatus === 429) {
+        const { deferredRows, refundableUnits } = openProviderQuotaCircuit(jobState, rows, rowIndex, false);
+        const refunded = await refundUnitsOnce(email, refundableUnits, `pipeline:${jobId}:provider-quota`, failure.failureSource);
+        const circuit = openProviderQuotaCircuit(jobState, rows, rowIndex, refunded, {
+          provider, phase: activePhase, failureSource: failure.failureSource,
+        });
+        await logCall({ email, phase: `phase${activePhase}-batch`, model: failedModel, units_charged: 0,
+          ms: Date.now() - rowStartMs, tokens_in: err.usage?.input_tokens ?? null, tokens_out: err.usage?.output_tokens ?? null,
+          usage: err.usage ?? null, actual_model: err.actualModel ?? null, ok: false,
+          error_msg: failure.error, provider, provider_status: 429, request_id: failure.requestId,
+          attempts: failure.attempts, quota_failure_source: failure.failureSource,
+          refunded_units: refunded ? refundableUnits : 0, job_id: jobId, row_id: rowId });
+        await jobs.setJSON(rowKey, { ...partial, rowState: activePhase === 3 ? 'phase3_error' : 'error' });
+        for (const deferred of deferredRows) {
+          await jobs.setJSON(`${jobId}/${deferred.rowId}`, { deferred: true, rowState: 'deferred',
+            error: `Deferred after ${provider} rejected phase ${activePhase}`, provider,
+            failureSource: failure.failureSource, recoverable: failure.retryable, retryable: failure.retryable });
+        }
+        jobState = circuit.state;
+        jobState.completedAt = new Date().toISOString();
+        await jobs.setJSON(`${libraryId}/state`, jobState);
+        break;
+      }
+      // No image was requested for failed Phase 1/2. Failed OpenAI/Recraft
+      // image jobs also release their reservation once; Gemini's existing
+      // non-429 image policy is unchanged.
+      const shouldRefund = activePhase < 3 || isOpenAI || isRecraft;
+      const refunded = shouldRefund
+        ? await refundUnitsOnce(email, 1, `pipeline:${jobId}:${rowId}:provider-error`, 'provider_error') : false;
+      jobState.refundedGenerationUnits = (jobState.refundedGenerationUnits ?? 0) + (refunded ? 1 : 0);
+      await logCall({ email, phase: `phase${activePhase}-batch`, model: failedModel, units_charged: 0,
+        ms: Date.now() - rowStartMs, tokens_in: err.usage?.input_tokens ?? null, tokens_out: err.usage?.output_tokens ?? null,
+          usage: err.usage ?? null, actual_model: err.actualModel ?? null, ok: false,
+        error_msg: failure.error, provider, provider_status: failure.providerStatus,
+        request_id: failure.requestId, attempts: failure.attempts, refunded_units: refunded ? 1 : 0,
+        job_id: jobId, row_id: rowId });
+      await jobs.setJSON(rowKey, { ...partial, rowState: 'error' });
       jobState.failedCount++;
     }
 
@@ -199,9 +239,11 @@ export const handler = async (event, context) => {
     await jobs.setJSON(`${libraryId}/state`, jobState);
   }
 
-  jobState.state = jobState.succeededCount > 0 ? 'completed' : 'failed';
-  jobState.completedAt = new Date().toISOString();
-  await jobs.setJSON(`${libraryId}/state`, jobState);
+  if (jobState.state === 'running') {
+    jobState.state = jobState.succeededCount > 0 ? 'completed' : 'failed';
+    jobState.completedAt = new Date().toISOString();
+    await jobs.setJSON(`${libraryId}/state`, jobState);
+  }
 
   console.log(`[pipeline-batch] job=${jobId} done ok=${jobState.succeededCount}/${jobState.rowCount}`);
 };

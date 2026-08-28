@@ -1,3 +1,4 @@
+import { getModelProvider } from '../netlify/functions/_shared/modelCatalog.js';
 /**
  * AI Client — always-proxy abstraction.
  *
@@ -9,18 +10,11 @@
  *   callRecraft(params)  → api-recraft function (phase 3)
  */
 
+import type { OpenAIImageQuality, PhaseExecution, GenerationModel } from "../types";
 import { getCurrentUser, requestLogin } from "../components/AuthGate";
 
-/**
- * Thrown by callProxy when the server returns HTTP 429 (quota exhausted).
- * Carries the user's current daily usage so the UI can display it.
- */
-export class QuotaExceededError extends Error {
-  constructor(public readonly units_used: number, public readonly limit: number) {
-    super('Daily quota exceeded');
-    this.name = 'QuotaExceededError';
-  }
-}
+import { QuotaExceededError, ExternalProviderQuotaError, ProviderRequestError, providerErrorFromPayload, isUnmanagedGatewayFailure } from './providerErrors';
+export { QuotaExceededError, ExternalProviderQuotaError, ProviderRequestError } from './providerErrors';
 
 export async function getAuthToken(): Promise<string> {
     let user = getCurrentUser();
@@ -50,6 +44,8 @@ export async function getAuthToken(): Promise<string> {
 
 async function callProxy(endpoint: string, params: object): Promise<any> {
     const MAX_RETRIES = 2;
+    const requestId = globalThis.crypto?.randomUUID?.()
+        ?? `req-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
     // In Vite dev mode (`netlify dev`), skip auth — the function has a NETLIFY_DEV bypass.
     const isLocalDev = import.meta.env.DEV;
@@ -60,28 +56,30 @@ async function callProxy(endpoint: string, params: object): Promise<any> {
     }
 
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-        const res = await fetch(`/.netlify/functions/${endpoint}`, {
-            method: 'POST',
-            headers: reqHeaders,
-            body: JSON.stringify(params),
-        });
+        let res: Response;
+        try {
+            res = await fetch(`/.netlify/functions/${endpoint}`, {
+                method: 'POST',
+                headers: reqHeaders,
+                body: JSON.stringify({ ...params, _requestId: requestId, _attempt: attempt + 1 }),
+            });
+        } catch (error) {
+            // A failed POST transport can follow a successful provider call; do not replay.
+            const message = error instanceof Error ? error.message : 'Network request failed';
+            throw new ProviderRequestError(message, 'network', null, requestId, true);
+        }
 
         if (res.ok) return res.json();
 
-        if (res.status === 429) {
-            const body = await res.json().catch(() => ({}));
-            throw new QuotaExceededError(body.units_used ?? 0, body.limit ?? 100);
-        }
-
-        if ([502, 503, 504].includes(res.status) && attempt < MAX_RETRIES) {
-            const delay = (attempt + 1) * 3000;
-            console.warn(`[aiClient] ${res.status} on attempt ${attempt + 1}, retrying in ${delay}ms…`);
-            await new Promise(r => setTimeout(r, delay));
+        const err = await res.json().catch(() => ({ error: res.statusText }));
+        if (isUnmanagedGatewayFailure(res.status, err) && attempt < MAX_RETRIES) {
+            await new Promise(r => setTimeout(r, (attempt + 1) * 3000));
             continue;
         }
-
-        const err = await res.json().catch(() => ({ error: res.statusText }));
-        throw new Error(err.error || `Proxy error ${res.status}`);
+        throw providerErrorFromPayload(err, {
+            provider: endpoint, model: (params as any).model, status: res.status,
+            requestId, attempts: attempt + 1,
+        });
     }
 
     throw new Error('Max retries exceeded');
@@ -111,6 +109,8 @@ export interface ClaudeResponse {
     content: Array<{ type: string; name?: string; input?: any; text?: string }>;
     stop_reason: string;
     usage: { input_tokens: number; output_tokens: number };
+    model?: string;
+    meta?: { provider: string; requestId: string; attempts: number; actualModel?: string; requestedModel?: string; reasoningEffort?: string; durationMs?: number };
 }
 
 /**
@@ -130,17 +130,22 @@ export async function callGeminiNlu(params: ClaudeParams): Promise<ClaudeRespons
     return callProxy('api-gemini-nlu', params);
 }
 
+/** OpenAI text/vision returns the same forced-tool envelope; canonical validation remains local. */
+export async function callOpenAIText(params: ClaudeParams): Promise<ClaudeResponse> {
+    return callProxy('api-openai-text', params);
+}
+
 /**
  * Call the Phase 5 structuring model (vision + tool use).
- * claude-* → api-claude (synchronous). gemini-* → background job + poll, so
- * slow geometry-authoring (redraw) is not bound by the 90s function timeout.
- * Both return a ClaudeResponse-compatible shape.
+ * Claude uses its synchronous proxy. Gemini/OpenAI use background jobs and
+ * polling beyond Netlify's 60s synchronous limit. Both stage image inputs
+ * through a synchronous gate to respect the 256 KB background payload limit.
  */
 export async function callStructuringModel(params: ClaudeParams): Promise<ClaudeResponse> {
-    if (params.model.startsWith('gemini-')) {
-        return callStructuringBackground(params);
-    }
-    return callProxy('api-claude', params);
+    const provider = getModelProvider(params.model);
+    if (provider === 'gemini' || provider === 'openai') return callStructuringBackground(params, provider);
+    if (provider === 'claude') return callProxy('api-claude', params);
+    throw new Error('Unsupported structuring model');
 }
 
 /**
@@ -165,21 +170,27 @@ async function authorizeJob(jobId: string, reqHeaders: Record<string, string>): 
     }
 }
 
-async function callStructuringBackground(params: ClaudeParams): Promise<ClaudeResponse> {
-    const jobId = 'struct-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9);
+async function callStructuringBackground(params: ClaudeParams, provider: 'gemini' | 'openai'): Promise<ClaudeResponse> {
     const isLocalDev = import.meta.env.DEV;
     const reqHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
     let authToken: string | null = null;
     if (!isLocalDev) {
         authToken = await getAuthToken();
         reqHeaders['Authorization'] = `Bearer ${authToken}`;
-        await authorizeJob(jobId, reqHeaders);
     }
 
-    const startRes = await fetch('/.netlify/functions/api-gemini-structure-background', {
+    const staged = await fetch('/.netlify/functions/api-structure-stage', {
+        method: 'POST', headers: reqHeaders, body: JSON.stringify(params),
+    });
+    const data = await staged.json().catch(() => ({}));
+    if (!staged.ok) throw providerErrorFromPayload(data, { provider, model: params.model, status: staged.status });
+    const jobId = data.jobId;
+    if (typeof jobId !== 'string' || !/^(?:openai-)?struct-[a-zA-Z0-9-]{1,100}$/.test(jobId)) throw new Error('Invalid structuring job ID');
+
+    const startRes = await fetch(`/.netlify/functions/api-${provider === 'openai' ? 'openai-text' : 'gemini-structure'}-background`, {
         method: 'POST',
         headers: reqHeaders,
-        body: JSON.stringify({ ...params, jobId, ...(authToken ? { _authToken: authToken } : {}) }),
+        body: JSON.stringify({ jobId }),
     });
     if (!startRes.ok && startRes.status !== 202) {
         throw new Error(`Fallo al iniciar el trabajo de estructurado: ${startRes.statusText}`);
@@ -189,19 +200,18 @@ async function callStructuringBackground(params: ClaudeParams): Promise<ClaudeRe
     for (let i = 0; i < 180; i++) {
         await new Promise(r => setTimeout(r, 2000));
 
-        const pollRes = await fetch(`/.netlify/functions/api-gemini-structure-poll?jobId=${jobId}`, {
+        const pollRes = await fetch(`/.netlify/functions/api-${provider === 'openai' ? 'openai-text' : 'gemini-structure'}-poll?jobId=${jobId}`, {
             headers: reqHeaders,
         });
         if (!pollRes.ok) {
             if ([502, 503, 504].includes(pollRes.status)) continue;
             const err = await pollRes.json().catch(() => ({}));
-            throw new Error(err.error || `Proxy error ${pollRes.status}`);
+            throw providerErrorFromPayload(err, { provider, model: params.model, status: pollRes.status, requestId: jobId });
         }
 
         const data = await pollRes.json();
         if (data.response) return data.response as ClaudeResponse;
-        if (data.quotaExceeded) throw new QuotaExceededError(data.units_used ?? 0, data.limit ?? 100);
-        if (data.error) throw new Error(data.error);
+        if (data.error || data.quotaExceeded || data.failureSource) throw providerErrorFromPayload(data,{ provider, model: params.model, requestId: jobId });
         if (data.pending) continue;
     }
 
@@ -225,7 +235,8 @@ export interface RecraftParams {
     /** Preferred colors in hex format (max 10). Sent as controls.colors to Recraft. */
     colors?: string[];
     /** Recraft model to use. Defaults to recraftv4_1_vector. */
-    model?: 'recraftv4_1' | 'recraftv4_1_vector' | 'recraftv4_1_utility_vector' | 'recraftv4_1_pro_vector';
+    model?: Extract<GenerationModel, `recraft${string}`>;
+    style_id?: string;
 }
 
 export interface RecraftResponse {
@@ -299,17 +310,14 @@ export async function callRecraft(params: RecraftParams, onStatus?: (msg: string
             // Ignorar errores temporales 5xx de red y seguir intentando
             if ([502, 503, 504].includes(pollRes.status)) continue;
             const err = await pollRes.json().catch(() => ({}));
-            throw new Error(err.error || `Proxy error ${pollRes.status}`);
+            throw providerErrorFromPayload(err, { provider: 'recraft', model: params.model, status: pollRes.status, requestId: jobId });
         }
 
         const data = await pollRes.json();
 
         if (data.svg) return { svg: data.svg };
         if (data.bitmap) return { bitmap: data.bitmap };
-        if (data.quotaExceeded) {
-            throw new QuotaExceededError(data.units_used ?? 0, data.limit ?? 100);
-        }
-        if (data.error) throw new Error(data.error);
+        if (data.error || data.quotaExceeded || data.failureSource) throw providerErrorFromPayload(data,{ provider: 'recraft', model: params.model, requestId: jobId });
         if (data.pending) {
             if (data.retrying && data.retrying.attempt !== lastRetryAttempt) {
                 lastRetryAttempt = data.retrying.attempt;
@@ -337,7 +345,20 @@ export interface GeminiResponse {
  * `onStatus` receives human-readable retry progress for the UI log.
  */
 export async function callGemini(params: GeminiParams, onStatus?: (msg: string) => void): Promise<GeminiResponse> {
-    const jobId = 'gemini-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9);
+    return callImageBackground('gemini', params, onStatus);
+}
+
+export async function callOpenAI(
+    params: GeminiParams & { quality: OpenAIImageQuality }, onStatus?: (msg: string) => void,
+): Promise<GeminiResponse & { generationQuality?: OpenAIImageQuality }> {
+    return callImageBackground('openai', params, onStatus);
+}
+
+async function callImageBackground(
+    provider: 'gemini' | 'openai', params: GeminiParams & { quality?: OpenAIImageQuality },
+    onStatus?: (msg: string) => void,
+): Promise<GeminiResponse & { generationQuality?: OpenAIImageQuality }> {
+    const jobId = provider + '-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9);
     const isLocalDev = import.meta.env.DEV;
     const reqHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
     let authToken: string | null = null;
@@ -347,40 +368,36 @@ export async function callGemini(params: GeminiParams, onStatus?: (msg: string) 
         await authorizeJob(jobId, reqHeaders);
     }
 
-    const startRes = await fetch('/.netlify/functions/api-gemini-worker-background', {
+    const startRes = await fetch(`/.netlify/functions/api-${provider}-worker-background`, {
         method: 'POST',
         headers: reqHeaders,
         body: JSON.stringify({ ...params, jobId, ...(authToken ? { _authToken: authToken } : {}) }),
     });
 
     if (!startRes.ok && startRes.status !== 202) {
-        throw new Error(`Fallo al iniciar el trabajo de Gemini: ${startRes.statusText}`);
+        throw new Error(`Fallo al iniciar el trabajo de ${provider}: ${startRes.statusText}`);
     }
 
-    // Polling hasta 120s: el worker reintenta 429 (cuota compartida de Vertex)
-    // con backoff exponencial (presupuesto interno de 90s), así que la espera
-    // puede superar los 60s.
+    // Gemini keeps its 120s window. OpenAI allows 220s to cover its bounded
+    // 180s request plus worker startup/storage; it never auto-replays generation.
     let lastRetryAttempt = 0;
-    for (let i = 0; i < 60; i++) {
+    for (let i = 0; i < (provider === 'openai' ? 110 : 60); i++) {
         await new Promise(r => setTimeout(r, 2000));
 
-        const pollRes = await fetch(`/.netlify/functions/api-gemini-poll?jobId=${jobId}`, {
+        const pollRes = await fetch(`/.netlify/functions/api-${provider}-poll?jobId=${jobId}`, {
             headers: reqHeaders,
         });
 
         if (!pollRes.ok) {
             if ([502, 503, 504].includes(pollRes.status)) continue;
             const err = await pollRes.json().catch(() => ({}));
-            throw new Error(err.error || `Proxy error ${pollRes.status}`);
+            throw providerErrorFromPayload(err, { provider: provider, model: params.model, status: pollRes.status, requestId: jobId });
         }
 
         const data = await pollRes.json();
 
-        if (data.bitmap) return { bitmap: data.bitmap };
-        if (data.quotaExceeded) {
-            throw new QuotaExceededError(data.units_used ?? 0, data.limit ?? 100);
-        }
-        if (data.error) throw new Error(data.error);
+        if (data.bitmap) return { bitmap: data.bitmap, ...(provider === 'openai' ? { generationQuality: data.generationQuality } : {}) };
+        if (data.error || data.quotaExceeded || data.failureSource) throw providerErrorFromPayload(data, { provider: provider, model: params.model, requestId: jobId });
         if (data.pending) {
             if (data.retrying && data.retrying.attempt !== lastRetryAttempt) {
                 lastRetryAttempt = data.retrying.attempt;
@@ -390,7 +407,7 @@ export async function callGemini(params: GeminiParams, onStatus?: (msg: string) 
         }
     }
 
-    throw new Error('Tiempo de espera agotado tras 120s generando imagen con Gemini');
+    throw new Error(`Tiempo de espera agotado generando imagen con ${provider}`);
 }
 
 // ── Batch generation (specs/batch-generation.allium) ───────────────────────
@@ -518,7 +535,7 @@ export interface PipelineBatchRow {
 export interface PipelineBatchJob {
     id: string;
     libraryId: string;
-    state: 'running' | 'completed' | 'failed';
+    state: 'running' | 'completed' | 'failed' | 'provider_quota_blocked';
     model: string;
     rowCount: number;
     rowIds: string[];
@@ -526,10 +543,14 @@ export interface PipelineBatchJob {
     failedCount: number;
     startedAt?: string;
     completedAt?: string;
+    providerQuotaBlockedAtRowId?: string;
+    refundedGenerationUnits?: number;
     none?: boolean;
 }
 
 export interface PipelineRowResult {
+    phaseExecutions?: PhaseExecution[];
+    generationQuality?: OpenAIImageQuality;
     nluData?: any;
     elements?: any[];
     prompt?: string;
@@ -537,6 +558,16 @@ export interface PipelineRowResult {
     bitmap?: string;
     error?: string;
     pending?: boolean;
+    deferred?: boolean;
+    rowState?: 'completed' | 'error' | 'phase3_error' | 'deferred';
+    failureSource?: string;
+    provider?: string;
+    providerStatus?: number;
+    requestId?: string;
+    retryable?: boolean;
+    retryAfterMs?: number | null;
+    attempts?: number;
+    recoverable?: boolean;
 }
 
 /**
@@ -607,6 +638,10 @@ export interface CheckResult {
     ok: boolean;
     latency: number;
     error?: string;
+    checkScope?: string;
+    checkedModel?: string;
+    credits?: number | null;
+    generationVerified?: false;
 }
 
 /**
@@ -632,7 +667,8 @@ export async function callCheck(service: string, model?: string): Promise<CheckR
             body: JSON.stringify({ service, model }),
         });
         const data = await res.json();
-        return { ok: data.ok ?? false, latency: data.latency ?? (Date.now() - t0), error: data.error };
+        return { ok: data.ok ?? false, latency: data.latency ?? (Date.now() - t0), error: data.error,
+            checkScope: data.checkScope, checkedModel: data.checkedModel, credits: data.credits, generationVerified: false };
     } catch (e) {
         return { ok: false, latency: Date.now() - t0, error: (e as Error).message };
     }

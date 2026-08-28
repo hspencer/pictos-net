@@ -1,89 +1,202 @@
 -- allium: 3
 -- generation-config.allium
 
--- Scope: Phase 3 and Phase 5 model selection, the advanced configuration panel,
---   library-level model change workflow (warning dialog + bulk regeneration),
---   and per-row generation provenance.
--- Includes:
---   GenerationModel type and family classification (Phase 3)
---   Phase5StructuringModel type (Phase 5)
---   GlobalConfig.generationModel (library-level Phase 3 setting, persisted)
---   GlobalConfig.phase5Model (library-level Phase 5 setting, persisted)
---   imageModel → generationModel migration (one-time, on load)
---   "Configuración avanzada" panel — contents and collapse behaviour
---   Model change warning dialog — trigger condition, copy, three actions
---   Bulk regeneration — affected-row selection, quota cost transparency,
---     Phase 3 dispatch and cascade
---   Per-row generationModel provenance — set at Phase 3 completion, frozen
--- Excludes:
---   Phase 3 execution logic and background-function pattern (visual-reasoning.allium)
---   Phase 5 execution logic, review timer, and mapping (visual-reasoning.allium)
---   Quota enforcement and audit logging (usage-enforcement.allium)
---   Library view modes and grid/list switching (library-views.allium)
---   aspectRatio — permanently hidden from UI; always square (1:1 for Gemini,
---     1024×1024 for Recraft); no UI or spec coverage needed
--- Dependencies: GlobalConfig, VisualReasoning (RowData), usage-enforcement.allium
-
-------------------------------------------------------------
--- Value Types
-------------------------------------------------------------
-
-value GenerationModel {
-  -- The five Phase 3 models, by stable API identifier.
-  -- DEFAULT: recraftv4_1_vector
-  gemini-2.5-flash-image   -- "Gemini 2.5 Flash" — bitmap output
-  gemini-3.1-flash-image   -- "Gemini 3.1 Flash" — bitmap output
-  gemini-3-pro-image       -- "Gemini 3 Pro" — bitmap output; low daily quota, may return 429
-  recraftv4_1              -- "Recraft (raster)" — bitmap output
-  recraftv4_1_vector       -- "Recraft (vector)" — native SVG output; no VTrace
-}
-
--- Operational notes (2026-06-13):
---   All three Gemini models verified operational (return image/png via Vertex AI).
---   gemini-3-pro-image has a low daily quota; intermittent 429 RESOURCE_EXHAUSTED
---   responses are expected. The client must degrade gracefully with a clear message
---   (e.g. "Cuota agotada — intenta más tarde o cambia a Gemini 2.5 Flash").
---   gemini-2.0-flash has been removed: returns 404 in all regions.
-
-value ModelFamily {
-  bitmap   -- Phase 3 produces a raster image; Phase 4 (VTrace) is available
-  vector   -- Phase 3 produces native SVG directly; Phase 4 never shown
-}
-
--- Family classification:
---   gemini-2.5-flash-image → bitmap
---   gemini-3.1-flash-image → bitmap
---   gemini-3-pro-image     → bitmap
---   recraftv4_1            → bitmap
---   recraftv4_1_vector     → vector
-
-value Phase5StructuringModel {
-  -- The four Phase 5 (ESTRUCTURAR) models. DEFAULT: gemini-2.5-flash
-  claude-sonnet-4-6   -- Claude Sonnet 4.6 (Anthropic)
-  claude-opus-4-6     -- Claude Opus 4.6 (Anthropic)
-  gemini-2.5-pro      -- Gemini 2.5 Pro (Vertex AI)
-  gemini-2.5-flash    -- Gemini 2.5 Flash (Vertex AI) — default
-}
-
--- Removed from Phase5StructuringModel (2026-06-13):
---   gemini-2.0-flash — returns 404 NOT_FOUND in pictos-vertex (global and us-central1)
-
 ------------------------------------------------------------
 -- External Entities
 ------------------------------------------------------------
 
-external GlobalConfig {
-  -- Application-wide configuration (persisted in localStorage).
-  generationModel: GenerationModel      -- library-level Phase 3 model selection
-  phase5Model: Phase5StructuringModel?  -- library-level Phase 5 model; nil → gemini-2.5-flash
-  -- imageModel: String (legacy, @deprecated) — migrated and removed on first load
+external entity GlobalConfig {
+    generation_model: GenerationModel
+    openai_image_quality: OpenAIImageQuality?
+    phase5_model: Phase5StructuringModel?
+    recraft_style_id: String?
+    legacy_image_model: String?
+    advanced_config_expanded: Boolean
 }
 
-external VisualReasoning {
-  -- Per-row pipeline state. This spec reads and sets generationModel (provenance).
-  generationModel: GenerationModel?   -- model that produced this row's Phase 3 output
-  bitmap: String?                     -- present iff Phase 3 used a bitmap-producing model
-  visualPrompt: String?               -- preserved through BulkRegeneration
+external entity VisualReasoning {
+    generation_model: GenerationModel?
+    generation_quality: OpenAIImageQuality?
+    bitmap_present: Boolean
+    nlu_status: PipelineStatus
+    visual_status: PipelineStatus
+    bitmap_status: PipelineStatus
+}
+
+external entity Phase3Attempt {
+    reasoning: VisualReasoning
+    selected_model: GenerationModel
+    selected_quality: OpenAIImageQuality?
+    family: ModelFamily
+    status: AttemptStatus
+    recoverable: Boolean
+    generation_unit_refunded: Boolean
+}
+
+------------------------------------------------------------
+-- Contracts
+------------------------------------------------------------
+
+contract ModelCatalogBoundary {
+    options: (phase: CatalogPhase) -> List<Any>
+    validate_selection: (phase: CatalogPhase, model: String) -> Boolean
+
+    @invariant OneCapabilityCatalog
+        -- User options and server admission use the same model identifiers,
+        -- providers and phase capabilities. A text or vision model is not an
+        -- image-generation model merely because it accepts images. OpenAI
+        -- GPT-5.6 Luna, Terra and Sol are selectable for Phases 1, 2 and 5,
+        -- including the explicit Phase 5 redraw/vision route.
+
+    @invariant SelectionIsProspectiveAndExplicit
+        -- Preserve existing defaults and saved selections. Adding a candidate
+        -- does not replace a user's model or regenerate existing artifacts.
+        -- Validate model and phase before any provider call. Unsupported
+        -- combinations fail explicitly, without provider/model substitution.
+        -- Every new OpenAI text call uses the configured explicit low reasoning
+        -- effort; it does not inherit an undocumented provider default.
+
+    @invariant PricesAreDatedConditionalEstimates
+        -- Display currency, token/image unit, input/output distinction, source
+        -- date and applicable context/quality conditions with catalog prices.
+        -- OpenAI standard text rates here apply only within the documented
+        -- short-context tier; longer requests cannot use that price silently.
+        -- PictoNet quota units are not dollars: zero internal text units does
+        -- not mean free provider usage. Price and capability are not benchmark
+        -- evidence of semantic quality, availability or account authorization.
+
+    @invariant RecraftCapabilitiesAreExplicit
+        -- Recraft V4.1 includes standard, Pro, Utility and Utility Pro, each in
+        -- raster and vector form. V4 Styles includes standard and Pro in raster
+        -- and vector form. The catalog distinguishes square 1K raster, square
+        -- 2K Pro raster and native square vectors; model names never substitute
+        -- for checking the actual returned artifact type.
+
+    @invariant RecraftStyleAdmission
+        -- V4 Styles requires an explicitly supplied nonempty valid style id
+        -- before charging or contacting the provider. Other V4.1 models may
+        -- use one optionally. No automatic paid style creation, reference
+        -- upload or silent style/model replacement accompanies selection.
+        -- Recraft prompts exceeding config.recraft_prompt_max_characters fail
+        -- locally rather than being silently truncated or rewritten.
+}
+
+contract GenerationConfigurationBoundary {
+    select_generation_model: (config: GlobalConfig, model: GenerationModel) -> ModelChangeRequest
+    select_openai_quality: (config: GlobalConfig, quality: OpenAIImageQuality) -> GlobalConfig
+    select_phase5_model: (config: GlobalConfig, model: Phase5StructuringModel) -> GlobalConfig
+    resolve_model_family: (model: GenerationModel) -> ModelFamily
+
+    @invariant SquareOutput
+        -- Every Phase 3 model produces a square artifact. Gemini uses 1:1 and
+        -- OpenAI and Recraft use their square equivalent; aspect ratio is not configurable.
+
+    @invariant OpenAIQualityIsProspective
+        -- OpenAI offers low, medium, and high quality, with low as the default
+        -- when absent. Changing quality affects future calls only and never
+        -- automatically regenerates existing artifacts or changes other models.
+
+    @invariant WarningBeforeAffectingExistingRows
+        -- A model change affecting existing rows is not committed until the
+        -- user chooses change-only, bulk regeneration, or cancel.
+
+    @invariant Phase5ChangeIsProspective
+        -- Changing the Phase 5 model does not mutate completed structured SVGs.
+
+    @invariant LibraryConfigurationPanelsAreExclusive
+        -- Basic settings and advanced model settings form one accordion in
+        -- the library configuration interface. Expanding either closes the
+        -- other; activating the expanded section closes it, allowing both
+        -- sections to remain collapsed. They are never expanded together.
+
+    @invariant AccordionVisibilityPreservesConfiguration
+        -- Expanding or collapsing either section changes visibility only.
+        -- It never resets edited settings, model selections or other stored
+        -- configuration, and never regenerates, discards or changes existing
+        -- generation artifacts or their statuses.
+
+    @invariant NoSilentProviderFallback
+        -- A terminal provider-quota failure remains attributed to the selected
+        -- model; no alternate Gemini, OpenAI, or Recraft model is invoked.
+}
+
+contract BulkRegenerationBoundary {
+    request_bulk_regeneration: (request: ModelChangeRequest) -> BulkRegeneration
+
+    @invariant UpstreamArtifactsPreserved
+        -- Bulk regeneration re-runs Phase 3 only. Completed Phase 1 and Phase 2
+        -- artifacts and statuses remain unchanged.
+
+    @invariant CoherentPhase3Inputs
+        -- Each affected row snapshots its current utterance, NLU, elements, and
+        -- prompt atomically when the Phase 3 retry begins.
+
+    @invariant PictoNetQuotaSkipsAreExplicit
+        -- If PictoNet user quota cannot admit every affected row, admitted rows
+        -- run and skipped rows retain their prior artifact and provenance.
+}
+
+------------------------------------------------------------
+-- Enumerations
+------------------------------------------------------------
+
+enum GenerationModel {
+    `gemini-2.5-flash-image` |
+    `gemini-3.1-flash-image` |
+    `gemini-3-pro-image` |
+    `gpt-image-2` |
+    recraftv4_1 |
+    recraftv4_1_vector |
+    recraftv4_1_pro |
+    recraftv4_1_pro_vector |
+    recraftv4_1_utility |
+    recraftv4_1_utility_vector |
+    recraftv4_1_utility_pro |
+    recraftv4_1_utility_pro_vector |
+    recraftv4_styles |
+    recraftv4_styles_vector |
+    recraftv4_styles_pro |
+    recraftv4_styles_pro_vector
+}
+
+enum Phase5StructuringModel {
+    `claude-sonnet-4-6` |
+    `claude-opus-4-6` |
+    `gemini-2.5-pro` |
+    `gemini-2.5-flash` |
+    `gpt-5.6-luna` |
+    `gpt-5.6-terra` |
+    `gpt-5.6-sol`
+}
+
+enum CatalogPhase { phase1 | phase2 | phase3 | phase5 }
+enum ModelFamily { bitmap | vector }
+enum OpenAIImageQuality { low | medium | high }
+enum PipelineStatus { idle | processing | completed | error | outdated }
+enum AttemptStatus { processing | completed | error }
+enum ModelChangeDecision { change_only | change_and_regenerate | cancel }
+enum ModelChangeState { awaiting_decision | accepted | cancelled }
+enum BulkRegenerationState { pending | running | completed | partial }
+
+------------------------------------------------------------
+-- Entities and Variants
+------------------------------------------------------------
+
+entity ModelChangeRequest {
+    config: GlobalConfig
+    current_model: GenerationModel
+    requested_model: GenerationModel
+    affected_count: Integer
+    decision: ModelChangeDecision?
+    state: ModelChangeState
+}
+
+entity BulkRegeneration {
+    request: ModelChangeRequest
+    requested_count: Integer
+    admitted_count: Integer
+    skipped_count: Integer
+    state: BulkRegenerationState
 }
 
 ------------------------------------------------------------
@@ -91,240 +204,209 @@ external VisualReasoning {
 ------------------------------------------------------------
 
 config {
-  default_generation_model:  GenerationModel      = recraftv4_1_vector
-  default_phase5_model:      Phase5StructuringModel = gemini-2.5-flash
+    recraft_prompt_max_characters: Integer = 10000
+    openai_text_reasoning_effort: String = "low"
+    openai_standard_context_limit: Integer = 272000
+    default_generation_model: GenerationModel = `gemini-2.5-flash-image`
+    default_openai_image_quality: OpenAIImageQuality = low
+    default_phase5_model: Phase5StructuringModel = `gemini-2.5-flash`
 }
 
 ------------------------------------------------------------
 -- Rules
 ------------------------------------------------------------
 
--- === Migration from imageModel ===
-
-rule MigrateImageModel {
-  when: application initialises AND GlobalConfig.imageModel is present (legacy field)
-
-  ensures: GlobalConfig.generationModel set according to the legacy value:
-    -- Gemini flash variants (e.g. "flash", "gemini-2.0-flash-exp") →
-    --   gemini-2.5-flash-image
-    -- Gemini pro variants (e.g. "pro") →
-    --   gemini-3-pro-image
-    -- "recraftv4_1" →
-    --   recraftv4_1
-    -- "recraftv4_1_vector" or absent (v2.0.0 shipped with Recraft vector as default) →
-    --   recraftv4_1_vector
-    -- any unrecognised value →
-    --   config.default_generation_model
-  ensures: GlobalConfig.imageModel is removed from the persisted config
+rule InitialiseGenerationConfig {
+    when: GenerationConfigInitialised(global_config)
+    ensures: global_config.generation_model = config.default_generation_model
+    ensures: global_config.openai_image_quality = config.default_openai_image_quality
+    ensures: global_config.phase5_model = config.default_phase5_model
+    ensures: global_config.advanced_config_expanded = false
 }
 
--- === Defaults ===
-
-rule DefaultGenerationModel {
-  when: GlobalConfig is initialised fresh (no prior persisted config)
-
-  ensures: GlobalConfig.generationModel = config.default_generation_model
-    -- recraftv4_1_vector is the default; Gemini models are opt-in
+rule ChangeOpenAIImageQuality {
+    when: OpenAIImageQualitySelected(global_config, selected_quality)
+    ensures: global_config.openai_image_quality = selected_quality
 }
 
-rule DefaultPhase5Model {
-  when: GlobalConfig.phase5Model is nil (not set)
-
-  ensures: effective Phase 5 model = config.default_phase5_model (gemini-2.5-flash)
-    -- nil means "use the default"; the field is optional in GlobalConfig
+rule MigrateLegacyGeminiFlash {
+    when: LegacyImageModelDetected(global_config, legacy_value)
+    requires: legacy_value in {"flash", "gemini-2.0-flash-exp"}
+    ensures: global_config.generation_model = `gemini-2.5-flash-image`
+    ensures: global_config.legacy_image_model = null
 }
 
--- === Advanced configuration panel ===
-
-rule AdvancedConfigSection {
-  -- The "Configuración avanzada" collapsible section in the config panel.
-
-  ensures: the following controls appear grouped under "Configuración avanzada",
-    in this order:
-    1. generationModel selector — Phase 3 model (see GenerationModelSelector surface)
-    2. phase5Model selector — Phase 5 model (see Phase5ModelSelector surface)
-    3. annotatedContext (free-text NLU context)
-    4. colorPalette (colour picker for generation guidance)
-    5. svgStyleDefs (CSS definitions for Phase 5)
-    6. svgKeyframes (animation keyframes for Phase 5)
-  ensures: visualStylePrompt is NOT in this section
-    -- it belongs in the main config panel
-  ensures: the section is collapsed on first load
-  ensures: collapsed/expanded state persists in GlobalConfig
-
-  @invariant "no controls outside the declared list"
-    -- aspectRatio and imageModel are never shown in any config section.
+rule MigrateLegacyGeminiPro {
+    when: LegacyImageModelDetected(global_config, legacy_value)
+    requires: legacy_value = "pro"
+    ensures: global_config.generation_model = `gemini-3-pro-image`
+    ensures: global_config.legacy_image_model = null
 }
 
--- === Model change warning (Phase 3 only) ===
-
-rule ModelChangeWarning {
-  when: user selects a new value for GlobalConfig.generationModel
-    AND at least one VisualReasoning in the library has
-      VisualReasoning.generationModel ≠ new value
-
-  ensures: a warning dialog is shown BEFORE the config change is committed
-  ensures: dialog content:
-    - names the current model and the newly selected model
-    - states the count N of rows where generationModel ≠ new value
-    - explains that existing pictograms will not be regenerated automatically
-  ensures: dialog offers exactly three actions:
-    1. "Solo cambiar"     -- commits model change; no regeneration
-    2. "Cambiar y regenerar todo (N unidades)"
-       -- commits the model change AND triggers BulkRegeneration
-    3. "Cancelar"         -- dismisses dialog; generationModel unchanged
-
-  @invariant "change never committed without acknowledgement"
+rule MigrateLegacyRecraftRaster {
+    when: LegacyImageModelDetected(global_config, legacy_value)
+    requires: legacy_value = "recraftv4_1"
+    ensures: global_config.generation_model = recraftv4_1
+    ensures: global_config.legacy_image_model = null
 }
 
-rule ModelChangeNoWarning {
-  when: user selects a new value for GlobalConfig.generationModel
-    AND (all existing rows already have generationModel = new value
-         OR the library has no rows)
-
-  ensures: config change committed immediately; no dialog shown
+rule MigrateLegacyRecraftVector {
+    when: LegacyImageModelDetected(global_config, legacy_value)
+    requires: legacy_value = "recraftv4_1_vector"
+    ensures: global_config.generation_model = recraftv4_1_vector
+    ensures: global_config.legacy_image_model = null
 }
 
-rule Phase5ModelChange {
-  when: user selects a new value for GlobalConfig.phase5Model
-
-  ensures: change committed immediately
-    -- Phase 5 is user-initiated per row; no bulk-regeneration applies
-    -- No warning dialog is needed: changing the model does not affect existing
-    --   structured SVGs (they are frozen at completion)
-  ensures: subsequent Phase 5 invocations use the new model
+rule MigrateUnknownLegacyModel {
+    when: LegacyImageModelDetected(global_config, legacy_value)
+    requires: legacy_value not in {
+        "flash",
+        "gemini-2.0-flash-exp",
+        "pro",
+        "recraftv4_1",
+        "recraftv4_1_vector"
+    }
+    ensures: global_config.generation_model = config.default_generation_model
+    ensures: global_config.legacy_image_model = null
 }
 
--- === Bulk regeneration ===
-
-rule BulkRegeneration {
-  when: user confirms "Cambiar y regenerar todo"
-
-  ensures: GlobalConfig.generationModel updated to the new value
-  ensures: for each VisualReasoning where generationModel ≠ new value:
-    Phase 3 is re-triggered with the new model
-    -- the row's existing visualPrompt (from Phase 2) is reused
-    -- Phase 1 and Phase 2 outputs (nluData, visualDom, visualPrompt) are preserved
-    -- bitmap, rawSvg, and pictograma are cleared before the new Phase 3 run
-    -- phase4Status and phase5Status are reset to idle
-    -- VisualReasoning.generationModel will be updated on Phase 3 completion
-  ensures: rows where generationModel = new value are NOT re-triggered
-  ensures: regenerations are dispatched concurrently
-  ensures: if the count of affected rows exceeds the user's remaining daily quota:
-    as many rows as quota allows are regenerated
-    remaining rows are left with prior Phase 3 output and original generationModel
-    the UI indicates which rows were skipped due to quota exhaustion
-
-  @invariant "only affected rows regenerated"
-  @invariant "Phase 2 outputs preserved"
+rule RequestAffectingModelChange {
+    when: AffectingGenerationModelChangeRequested(global_config, selected_model, affected_count)
+    requires: affected_count > 0
+    ensures: ModelChangeRequest.created(
+        config: global_config,
+        current_model: global_config.generation_model,
+        requested_model: selected_model,
+        affected_count: affected_count,
+        decision: null,
+        state: awaiting_decision
+    )
 }
 
--- === Provenance ===
-
-rule RecordProvenance {
-  when: Phase 3 completes successfully for a VisualReasoning
-
-  ensures: VisualReasoning.generationModel = GlobalConfig.generationModel
-    at the time Phase 3 was triggered
-    -- provenance is frozen at trigger time, not at the time the result arrives
-
-  @invariant "provenance set only by Phase 3 completion"
+rule ChangeModelWithoutAffectedRows {
+    when: UnaffectingGenerationModelChangeRequested(global_config, selected_model)
+    ensures: global_config.generation_model = selected_model
 }
 
--- === 429 degradation (Gemini quota) ===
+rule CancelModelChange {
+    when: ModelChangeDecided(request, cancel)
+    requires: request.state = awaiting_decision
+    ensures: request.decision = cancel
+    ensures: request.state = cancelled
+}
 
-rule GeminiQuotaDegrade {
-  when: Phase 3 call to a Gemini model returns 429 RESOURCE_EXHAUSTED
+rule AcceptModelChangeOnly {
+    when: ModelChangeDecided(request, change_only)
+    requires: request.state = awaiting_decision
+    ensures: request.decision = change_only
+    ensures: request.config.generation_model = request.requested_model
+    ensures: request.state = accepted
+}
 
-  ensures: the row shows a clear user-facing message explaining the quota limit
-    -- e.g. "Cuota de Gemini agotada. Intenta más tarde o cambia a Recraft."
-  ensures: the row does NOT fall into an unrecoverable error state
-    -- the user must be able to retry or switch model and regenerate
-  ensures: no quota unit is charged for a 429 response
+rule AcceptModelChangeAndRegenerate {
+    when: ModelChangeDecided(request, change_and_regenerate)
+    requires: request.state = awaiting_decision
+    ensures: request.decision = change_and_regenerate
+    ensures: request.config.generation_model = request.requested_model
+    ensures: request.state = accepted
+    ensures: BulkRegeneration.created(
+        request: request,
+        requested_count: request.affected_count,
+        admitted_count: 0,
+        skipped_count: 0,
+        state: pending
+    )
+}
+
+rule StartBulkRegeneration {
+    when: BulkRegenerationAdmitted(regeneration, admitted_count)
+    requires: regeneration.state = pending
+    requires: admitted_count >= 0
+    requires: admitted_count <= regeneration.requested_count
+    ensures: regeneration.admitted_count = admitted_count
+    ensures: regeneration.skipped_count = regeneration.requested_count - admitted_count
+    ensures: regeneration.state = running
+}
+
+rule CompleteBulkRegeneration {
+    when: BulkRegenerationFinished(regeneration)
+    requires: regeneration.state = running
+    ensures:
+        if regeneration.skipped_count = 0:
+            regeneration.state = completed
+        else:
+            regeneration.state = partial
+}
+
+rule ChangePhase5Model {
+    when: Phase5ModelChangeRequested(global_config, selected_model)
+    ensures: global_config.phase5_model = selected_model
+}
+
+rule RecordPhase3Provenance {
+    when: attempt: Phase3Attempt.status transitions_to completed
+    ensures: attempt.reasoning.generation_model = attempt.selected_model
+    ensures: attempt.reasoning.generation_quality = attempt.selected_quality
+}
+
+rule ImageProviderQuotaIsRecoverable {
+    when: ImageProviderQuotaExhausted(attempt)
+    requires: attempt.status = processing
+    requires: attempt.selected_model in {
+        `gemini-2.5-flash-image`,
+        `gemini-3.1-flash-image`,
+        `gemini-3-pro-image`,
+        `gpt-image-2`
+    }
+    ensures: attempt.status = error
+    ensures: attempt.recoverable = true
+    ensures: attempt.generation_unit_refunded = true
+    ensures: attempt.reasoning.bitmap_status = error
+
+    @guidance
+        -- Report this as the selected external provider's quota, distinct from the
+        -- user's PictoNet daily quota. Keep the selected model unchanged and
+        -- expose an explicit Phase 3 retry or user-selected model change.
 }
 
 ------------------------------------------------------------
 -- Invariants
 ------------------------------------------------------------
 
-invariant GenerationModelDefault {
-  for fresh GlobalConfig:
-    GlobalConfig.generationModel = recraftv4_1_vector
+invariant BulkCountsPartitionRequest {
+    for regeneration in BulkRegenerations:
+        regeneration.admitted_count + regeneration.skipped_count =
+            regeneration.requested_count
 }
 
-invariant Phase5ModelDefault {
-  effective_phase5_model = GlobalConfig.phase5Model ?? gemini-2.5-flash
-}
-
-invariant VTraceVisibilityByProvenance {
-  for r: VisualReasoning:
-    Vectorizar action visible iff r.bitmap is present
-}
-
-invariant ProvenanceFrozen {
-  for r: VisualReasoning where r.phase3Status = completed:
-    r.generationModel is set and does not change
-      until r.phase3Status transitions to running again
+invariant VTraceVisibilityByArtifact {
+    for reasoning in VisualReasonings:
+        reasoning.bitmap_present implies not generation_model_is_vector(reasoning.generation_model)
 }
 
 ------------------------------------------------------------
 -- Surfaces
 ------------------------------------------------------------
 
-surface GenerationModelSelector {
-  -- Picker in the "Configuración avanzada" section — Phase 3 model.
+surface GenerationConfiguration {
+    contracts:
+        fulfils ModelCatalogBoundary
+        fulfils GenerationConfigurationBoundary
+        fulfils BulkRegenerationBoundary
 
-  @guidance "option labels"
-    -- gemini-2.5-flash-image → "Gemini 2.5 Flash"
-    -- gemini-3.1-flash-image → "Gemini 3.1 Flash"
-    -- gemini-3-pro-image     → "Gemini 3 Pro"
-    -- recraftv4_1            → "Recraft (raster)"
-    -- recraftv4_1_vector     → "Recraft (vector)" + "(predeterminado)" suffix
-
-  @guidance "inoperative models"
-    -- If INOPERATIVE_GENERATION_MODELS is non-empty, disable those options
-    -- and append the reason (e.g. "— no disponible (quota agotada)").
-
-  exposes:
-    GlobalConfig.generationModel (read/write; triggers ModelChangeWarning flow)
-}
-
-surface Phase5ModelSelector {
-  -- Picker in the "Configuración avanzada" section — Phase 5 model.
-  -- Also appears inline in the Phase 5 structuring UI to allow per-invocation override.
-
-  @guidance "option labels"
-    -- claude-sonnet-4-6 → "Claude Sonnet 4.6"
-    -- claude-opus-4-6   → "Claude Opus 4.6"
-    -- gemini-2.5-pro    → "Gemini 2.5 Pro"
-    -- gemini-2.5-flash  → "Gemini 2.5 Flash" + "(predeterminado)" suffix
-
-  exposes:
-    GlobalConfig.phase5Model (read/write; change committed immediately, no warning)
-}
-
-surface ModelChangeWarningDialog {
-  @guidance "heading"
-    -- "¿Cambiar modelo de generación?" (es-419)
-
-  @guidance "body"
-    -- "[N] pictogramas de tu biblioteca se generaron con [modelo anterior].
-    --  Cambiar a [modelo nuevo] no los regenerará automáticamente. Las nuevas
-    --  generaciones usarán [modelo nuevo]."
-
-  @guidance "button order"
-    -- Primary:   "Cambiar y regenerar todo ([N] unidades)"
-    -- Secondary: "Solo cambiar"
-    -- Tertiary:  "Cancelar"
-
-  exposes:
-    confirmed action (Solo cambiar | Cambiar y regenerar todo | Cancelar)
+    @guarantee AdvancedControlsAreBounded
+        -- Advanced configuration contains generation model, Phase 5 model,
+        -- domain context, colour palette, SVG style definitions, and keyframes.
+        -- Selecting GPT Image 2 reveals its low/medium/high quality control.
+        -- GPT Image 2 belongs to the bitmap family and keeps VTrace available.
+        -- Existing persisted model selections are preserved; only fresh config
+        -- receives the Gemini default. Missing OpenAI quality resolves to low.
+        -- Aspect ratio and the legacy image-model field are never exposed.
 }
 
 ------------------------------------------------------------
 -- Open Questions
 ------------------------------------------------------------
 
-open question "When BulkRegeneration is interrupted (app closed or reloaded mid-batch), are incomplete rows resumed on next open, or is the partial batch abandoned silently?"
-
-open question "Should rows skipped by BulkRegeneration due to quota exhaustion receive a persistent visual indicator so the user can identify them and regenerate manually later?"
+open question "When bulk regeneration is interrupted by reload, should unfinished admitted rows resume automatically?"
+open question "Should PictoNet-quota-skipped bulk rows retain a persistent indicator until manually regenerated?"

@@ -1,46 +1,300 @@
 -- allium: 3
 -- usage-enforcement.allium
 
--- Scope: Per-user daily quota enforcement and audit logging for all AI API calls.
--- Covers: quota model, Netlify Blobs schema, enforcement flow per function,
---   admin report endpoint, dev bypass, 429 contract, Vertex AI authentication.
--- Excludes:
---   - Pipeline phase logic (see visual-reasoning.allium)
---   - Generation model selection and library config (see generation-config.allium)
---   - Netlify Identity JWT validation (enforced by each function independently)
---   - UI feedback for quota exhaustion (separate spec)
--- Dependencies: Netlify Identity (user.email), Netlify Blobs (pictonet-usage store)
+use "./generation-config.allium" as generation
+
+------------------------------------------------------------
+-- External Entities
+------------------------------------------------------------
+
+external entity IdentityUser {
+    email: String
+    roles: Set<String>
+    local_dev: Boolean
+}
 
 ------------------------------------------------------------
 -- Value Types
 ------------------------------------------------------------
 
-value QuotaRecord {
-  -- Stored in Blobs at quota/{email}/{date}.
-  units: Number           -- cumulative units charged today
-  first_call: Timestamp?
-  last_call: Timestamp
+value UserUsageSummary {
+    calls: Integer
+    units: Integer
+    errors: Integer
+    phases: Map<String, Integer>
+    models: Map<String, Integer>
+    first_call: Timestamp
+    last_call: Timestamp
 }
 
-value AuditRecord {
-  -- One blob per call at audit/{date}/{timestamp-safeEmail}.
-  -- Keyed by timestamp to avoid write contention.
-  ts: Timestamp
-  email: String
-  phase: String           -- "claude" | "recraft" | "gemini"
-  model: String           -- e.g. "claude-haiku-4-5-20251001", "recraftv4_1_vector", "gemini-2.5-flash-image"
-  units_charged: Number   -- 0 or 1
-  ms: Number              -- wall-clock milliseconds for the upstream call
-  tokens_in: Number       -- 0 for Recraft (no token concept)
-  tokens_out: Number
-  ok: Boolean
-  error_msg: String?      -- present only when ok = false
+value ModelUsageSummary {
+    calls: Integer
+    units: Integer
+    errors: Integer
+    total_milliseconds: Integer
+    average_milliseconds: Integer
+    label: String
+    phase_label: String
+    description: String
 }
 
-value QuotaCheckResult {
-  allowed: Boolean
-  units_used: Number      -- updated total after charging (if allowed)
-  limit: Number
+value DailyUsageSummary {
+    calls: Integer
+    units: Integer
+}
+
+------------------------------------------------------------
+-- Contracts
+------------------------------------------------------------
+
+contract ProviderRetryBoundary {
+    request: (input: Any, time_budget: Duration, max_attempts: Integer) -> Any
+
+    @invariant OneFiniteDeadline
+        -- A positive finite budget covers in-flight fetch, response-body reads,
+        -- backoff and all attempts. Expiration cancels active work. User
+        -- cancellation never retries. Attempt limits and the deadline both
+        -- apply; transport exceptions cannot reset or bypass either bound.
+
+    @invariant RespectProviderWait
+        -- Retry-After supports seconds and HTTP-date. A retry never starts
+        -- earlier than requested. If the full delay cannot fit the remaining
+        -- deadline, stop with a retryable diagnostic; never shorten the wait.
+        -- Missing Retry-After uses bounded backoff for transient failures only.
+
+    @invariant BillingAndAccessAreNotTransient
+        -- Exhausted credits, organization/project spend or usage limits and
+        -- insufficient_quota are external-provider billing, not transient rate
+        -- limits or PictoNet quota. Do not retry them. Suspended consumers,
+        -- authentication and permission failures likewise require intervention.
+        -- Transient rate/capacity failures retain distinct diagnostics.
+
+    @invariant OneLayerOwnsRetries
+        -- Server-managed retry metadata reaches the client, which must not
+        -- multiply completed server attempts with another automatic retry loop.
+        -- Preserve actual provider, phase, status, failure source, retryability
+        -- and attempt count without exposing credentials or raw private input.
+        -- Never change model, provider or region silently to evade a limit.
+}
+
+contract QuotaEnforcementBoundary {
+    admit: (request: GenerationRequest, quota: QuotaRecord) -> QuotaDecision
+    refund: (refund: RefundRequest, quota: QuotaRecord) -> QuotaRecord
+    classify_quota_failure: (response: QuotaResponse) -> QuotaFailureSource
+
+    @invariant CheckBeforeProviderCall
+        -- PictoNet user quota is checked and charged before any billable
+        -- provider call. A blocked request never reaches the provider.
+
+    @invariant FlatGenerationUnit
+        -- Every Phase 3 image generation attempt costs one PictoNet unit,
+        -- independent of Gemini, OpenAI, or Recraft model or image quality.
+        -- Text-only phases cost zero.
+
+    @invariant DistinctQuotaSources
+        -- PictoNet user quota is an admission failure. External provider quota
+        -- is a terminal provider 429 after applicable bounded retries in any
+        -- phase. Billing exhaustion is external_provider_billing and is not
+        -- automatically retryable. Neither source is PictoNet user quota.
+
+    @invariant MonotonicityWithEnumeratedRefunds
+        -- A daily quota total never decreases except for a batch that never
+        -- started, an individual terminal Gemini provider 429, a failed OpenAI
+        -- or Recraft
+        -- image generation, the current and
+        -- deferred rows of a provider-quota pipeline circuit, or explicit
+        -- administrator correction.
+
+    @invariant RefundsAreIdempotent
+        -- A stable request or job-and-row-set key makes repeated refund delivery
+        -- harmless. A refund changes the daily total at most once.
+}
+
+contract AuditBoundary {
+    record_call: (request: GenerationRequest) -> AuditRecord
+
+    @invariant AuditAfterEveryProviderCall
+        -- Every request reaching an upstream provider creates one audit record,
+        -- whether the provider succeeds or fails.
+
+    @invariant AuditNeverBlocksResponse
+        -- Audit persistence failures are reported operationally but never alter
+        -- the already determined provider response.
+
+    @invariant BlockedAdmissionsAreNotCalls
+        -- A PictoNet-quota-blocked request creates no provider-call audit record.
+
+    @invariant StableBlobKeys
+        -- Daily counters use quota/email/date keys. Call audits use unique
+        -- date/timestamp/safe-email keys and are write-once.
+
+    @invariant OpenAIActualUsage
+        -- OpenAI audit records retain the requested quality, actual returned
+        -- model, provider input/output token usage and available token details.
+        -- Catalog prices are estimates, never substituted for measured usage.
+        -- No prompt, image payload, or API key is required in usage records.
+        -- This includes text/vision calls, incomplete responses and outputs
+        -- rejected by canonical validation. Capture returned usage before
+        -- rejecting content. Missing usage is unknown, never fabricated zero;
+        -- cached input and reasoning output are subsets, not extra tokens to
+        -- add twice. A timeout can leave upstream consumption uncertain.
+}
+
+contract OpenAIAuthenticationBoundary {
+    authenticate_openai: (request: GenerationRequest) -> Boolean
+
+    @invariant ServerOnlyOpenAIKey
+        -- OPENAI_API_KEY is read only by the server. It never reaches the
+        -- browser, persisted library configuration, audit logs, or source.
+        -- Local development uses the same boundary; no VITE-prefixed key.
+
+    @invariant ValidateBeforeCharge
+        -- Unsupported OpenAI model, quality, or missing credentials is rejected
+        -- before charging a PictoNet unit or making a provider call.
+}
+
+contract VertexAuthenticationBoundary {
+    authenticate_vertex: (request: GenerationRequest) -> Boolean
+
+    @invariant ServerOnlyCredentials
+        -- Gemini functions obtain OAuth2 tokens from server-side service-account
+        -- JSON. Credentials and tokens never reach the browser.
+
+    @invariant SiteSpecificIdentity
+        -- Production and preview use their own service accounts and Identity
+        -- role assignments. Live roles are preferred over stale JWT snapshots.
+}
+
+contract UsageReportingBoundary {
+    report: (request: UsageReportRequest) -> UsageReport
+
+    @invariant AdminOnly
+        -- Usage data is returned only to the configured administrator, a valid
+        -- administrator API key, or local development.
+
+    @invariant CompleteReportShape
+        -- A report exposes its inclusive date range, current daily limit, total
+        -- calls and units, per-user and per-model summaries, hourly and weekday
+        -- distributions, a weekday-by-hour heatmap, and a daily series.
+
+    @invariant ValidDateRange
+        -- Invalid date syntax or an inverted range is rejected before reading
+        -- audit records. A single date remains a supported legacy alias.
+}
+
+------------------------------------------------------------
+-- Enumerations
+------------------------------------------------------------
+
+enum QuotaFailureSource { pictonet_user_quota | external_provider_quota | external_provider_billing }
+enum Provider { anthropic | gemini | openai | recraft }
+enum GenerationPhase { phase1 | phase2 | phase3 | phase5 }
+enum GenerationRequestStatus { pending | admitted | blocked | completed | failed }
+enum RefundReason { failed_start | external_provider_quota | openai_generation_failed | recraft_generation_failed | administrator_correction }
+enum QuotaDecision { allowed | denied }
+enum UsageReportStatus { pending | completed | rejected }
+enum UsageReportRejection { unauthenticated | forbidden | invalid_range }
+
+------------------------------------------------------------
+-- Entities and Variants
+------------------------------------------------------------
+
+entity QuotaRecord {
+    email: String
+    date: String
+    units: Integer
+    first_call: Timestamp?
+    last_call: Timestamp?
+}
+
+entity GenerationRequest {
+    idempotency_key: String
+    user: IdentityUser
+    provider: Provider
+    phase: GenerationPhase
+    selected_model: String
+    selected_quality: generation/OpenAIImageQuality?
+    effective_model: String
+    unit_cost: Integer
+    charged_units: Integer
+    refunded_units: Integer
+    decision: QuotaDecision
+    status: GenerationRequestStatus
+    failure_source: QuotaFailureSource?
+    recoverable: Boolean
+    upstream_called: Boolean
+    audit_written: Boolean
+}
+
+entity BatchReservation {
+    idempotency_key: String
+    user: IdentityUser
+    reserved_units: Integer
+    refunded_units: Integer
+    started: Boolean
+}
+
+entity RefundRequest {
+    idempotency_key: String
+    user: IdentityUser
+    units: Integer
+    reason: RefundReason
+    applied: Boolean
+    generation_request: GenerationRequest?
+    batch_reservation: BatchReservation?
+}
+
+entity AuditRecord {
+    request: GenerationRequest
+    occurred_at: Timestamp
+    email: String
+    provider: Provider
+    phase: GenerationPhase
+    model: String
+    quality: generation/OpenAIImageQuality?
+    units_charged: Integer
+    milliseconds: Integer
+    tokens_in: Integer?
+    tokens_out: Integer?
+    ok: Boolean
+    error_message: String?
+    quota_failure_source: QuotaFailureSource?
+}
+
+entity QuotaResponse {
+    request: GenerationRequest
+    http_status: Integer
+    error_message: String
+    units_used: Integer
+    limit: Integer
+    failure_source: QuotaFailureSource
+    recoverable: Boolean
+}
+
+entity UsageReportRequest {
+    requester: IdentityUser
+    from_date: String
+    to_date: String
+    admin_api_key_valid: Boolean
+    status: UsageReportStatus
+    rejection: UsageReportRejection?
+}
+
+entity UsageReport {
+    request: UsageReportRequest
+    from_date: String
+    to_date: String
+    daily_limit: Integer
+    total_calls: Integer
+    total_units: Integer
+    user_count: Integer
+    model_count: Integer
+    users: Map<String, UserUsageSummary>
+    models: Map<String, ModelUsageSummary>
+    heatmap: List<List<Integer>>
+    by_hour: List<Integer>
+    by_weekday: List<Integer>
+    by_date: Map<String, DailyUsageSummary>
 }
 
 ------------------------------------------------------------
@@ -48,299 +302,404 @@ value QuotaCheckResult {
 ------------------------------------------------------------
 
 config {
-  daily_limit: Number = 50          -- overridable via DAILY_LIMIT_PER_USER env var
-  blob_store: String = "pictonet-usage"
-  admin_email: String               -- read from ADMIN_EMAIL env var at function startup;
-                                    -- defaults to "contact@pictos.net" if absent
+    image_generation_units: Integer = 1
+    daily_limit: Integer = 50
+    blob_store: String = "pictonet-usage"
+    admin_email: String = "contact@pictos.net"
 }
 
 ------------------------------------------------------------
--- Quota Model
+-- Rules
 ------------------------------------------------------------
 
--- The "unit" is the pictogram-level cost atom.
--- One image generation call (any model) = one completed pictogram attempt = 1 unit.
--- All api-claude calls = 0 units (phases 1, 2, and 5 are not counted).
--- Quota tracks pictogram generation attempts, not AI token consumption.
-
-rule QuotaUnitsPerCall {
-  for each incoming request to a proxied function:
-
-  if function = api-recraft OR function = api-gemini:
-    units_to_charge = 1
-    -- flat rate: Gemini Flash, Gemini Pro, Recraft raster, Recraft vector
-    -- all charge 1 unit regardless of model
-
-  if function = api-claude:
-    units_to_charge = 0      -- haiku (phases 1+2) and sonnet (phase 5) both free
-
-  if function = api-batch-create OR function = api-pipeline-batch-create:
-    units_to_charge = rows.length   -- charged up-front, refunded if the batch never starts
-
-  if email = "dev" (local dev bypass) OR units_to_charge = 0:
-    quota check skipped entirely — request always allowed
-
-  @invariant "claude never blocked by quota"
-    -- No api-claude call (any model, any phase) is ever blocked by quota.
-    -- Only image generation calls (api-recraft, api-gemini) consume quota units.
-
-  @invariant "flat rate across generation models"
-    -- The unit cost does not vary by model within api-recraft or api-gemini.
-    -- Gemini Pro and Gemini Flash both cost 1 unit.
-
-  @invariant "dev bypass applies to local only"
-    -- NETLIFY_DEV is not set in deployed Netlify environments.
-    -- The 'dev' email path is unreachable in production or preview deployments.
+rule AdmitFreeRequest {
+    when: QuotaAdmissionRequested(request, quota)
+    requires: request.status = pending
+    requires: request.unit_cost = 0
+    ensures: request.status = admitted
+    ensures: request.decision = allowed
+    ensures: request.charged_units = 0
 }
 
-------------------------------------------------------------
--- Blob Schema
-------------------------------------------------------------
-
--- Store: "pictonet-usage"
---
--- quota/{email}/{YYYY-MM-DD}
---   type: QuotaRecord (JSON)
---   semantics: mutable; read-modify-write on each charged call
---   race condition: possible under concurrent requests; acceptable at current scale
---
--- audit/{YYYY-MM-DD}/{HH-MM-SS-mmm}-{safeEmail}
---   type: AuditRecord (JSON)
---   semantics: write-once; timestamp key guarantees uniqueness per call
---   race condition: none (unique key per invocation)
-
-rule BlobKeyFormat {
-  ensures: quota key = "quota/" + email + "/" + YYYY-MM-DD
-  ensures: audit key = "audit/" + YYYY-MM-DD + "/" + HH-MM-SS-mmm + "-" + safeEmail
-    where safeEmail = email with non-[a-zA-Z0-9@._-] replaced by "_", max 80 chars
-  ensures: audit blob written after every API call, regardless of outcome
-    -- ok=false entries are still written; they are the primary abuse signal
+rule AdmitLocalDevelopmentRequest {
+    when: QuotaAdmissionRequested(request, quota)
+    requires: request.status = pending
+    requires: request.unit_cost > 0
+    requires: request.user.local_dev
+    ensures: request.status = admitted
+    ensures: request.decision = allowed
+    ensures: request.charged_units = 0
 }
 
-------------------------------------------------------------
--- Enforcement Rules
-------------------------------------------------------------
-
-rule EnforceQuotaBefore {
-  when: an api-claude, api-recraft, or api-gemini function receives a POST request
-
-  requires: user authenticated (Netlify Identity JWT valid OR isLocalDev = true)
-
-  ensures:
-    1. email extracted from context.clientContext.user?.email ?? "dev"
-    2. if units_to_charge > 0:
-         QuotaRecord read from Blobs (missing = { units: 0 })
-         if QuotaRecord.units >= config.daily_limit:
-           return HTTP 429 { error, units_used, limit }
-         else:
-           QuotaRecord.units incremented and written back
-    3. upstream API call proceeds only after quota check passes
-
-  @invariant "check before call"
-    -- The upstream API (Anthropic / Recraft) is never called if quota is exhausted.
-    -- HTTP 429 is returned before any external cost is incurred.
+rule AdmitSuperuserRequest {
+    when: QuotaAdmissionRequested(request, quota)
+    requires: request.status = pending
+    requires: request.unit_cost > 0
+    requires: "superuser" in request.user.roles
+    ensures: request.status = admitted
+    ensures: request.decision = allowed
+    ensures: request.charged_units = 0
 }
 
-rule SuperuserBypass {
-  -- Users carrying the Netlify Identity role 'superuser' are never blocked
-  -- and never charged: checkAndCharge returns allowed with limit = Infinity.
-
-  when: quota is checked for a user whose roles include "superuser"
-
-  ensures: request allowed regardless of QuotaRecord.units
-  ensures: QuotaRecord not incremented (superuser usage is audit-logged but not charged)
-
-  @invariant "roles are read live, not from the JWT snapshot"
-    -- app_metadata.roles inside a JWT reflect token-ISSUE time; the Identity
-    -- widget caches tokens up to 1h, so a freshly assigned role would be
-    -- invisible until re-login. At quota-decision points (api-authorize grant
-    -- minting, batch create gates) roles are fetched live from GoTrue /user
-    -- via fetchFreshRoles(); the JWT snapshot is only a fallback when the
-    -- live lookup fails. Background workers receive roles via the auth grant,
-    -- which api-authorize mints from the live lookup.
-
-  @invariant "roles are per-site"
-    -- prod (pictos.net) and preview (next.pictos.net) run separate Identity
-    -- instances; the role must be assigned on each site independently.
+rule AdmitChargedRequest {
+    when: QuotaAdmissionRequested(request, quota)
+    requires: request.status = pending
+    requires: request.unit_cost > 0
+    requires: not request.user.local_dev
+    requires: "superuser" not in request.user.roles
+    requires: quota.units + request.unit_cost <= config.daily_limit
+    ensures: quota.units = quota.units + request.unit_cost
+    ensures: quota.last_call = now
+    ensures:
+        if quota.first_call = null:
+            quota.first_call = now
+    ensures: request.charged_units = request.unit_cost
+    ensures: request.decision = allowed
+    ensures: request.status = admitted
 }
 
-rule RefundOnFailedStart {
-  -- Up-front batch charges are returned when no work actually ran.
-
-  when: a batch create gate charged units AND the batch worker failed to start
-        (background kick failed, or Vertex job creation threw)
-
-  ensures: refundUnits(email, rows.length) decrements the QuotaRecord, floored at 0
-  ensures: refund failures are logged and swallowed — never alter the error response
+rule BlockPictoNetQuotaRequest {
+    when: QuotaAdmissionRequested(request, quota)
+    requires: request.status = pending
+    requires: request.unit_cost > 0
+    requires: not request.user.local_dev
+    requires: "superuser" not in request.user.roles
+    requires: quota.units + request.unit_cost > config.daily_limit
+    ensures: request.status = blocked
+    ensures: request.decision = denied
+    ensures: request.failure_source = pictonet_user_quota
+    ensures: request.recoverable = false
+    ensures: request.upstream_called = false
+    ensures: QuotaResponse.created(
+        request: request,
+        http_status: 429,
+        error_message: "Daily quota exceeded",
+        units_used: quota.units,
+        limit: config.daily_limit,
+        failure_source: pictonet_user_quota,
+        recoverable: false
+    )
 }
 
-rule LogAfterCall {
-  when: the upstream API call completes (success or failure)
-
-  ensures: AuditRecord written to Blobs with ok=true or ok=false
-  ensures: AuditRecord write is non-blocking
-    -- a Blobs write failure must not cause the function to return an error
-    -- the failure is logged to console and silently discarded
-  ensures: AuditRecord written even if the upstream call errored
-
-  @invariant "audit never blocks response"
-    -- logCall() runs after the response body is prepared.
-    -- Its failure path does not alter the HTTP response code or body.
+rule MarkProviderCallStarted {
+    when: ProviderCallStarted(request)
+    requires: request.status = admitted
+    ensures: request.upstream_called = true
 }
 
-rule DevBypass {
-  when: process.env.NETLIFY_DEV = "true" AND no user in clientContext
-
-  ensures: JWT validation skipped
-  ensures: email = "dev"
-  ensures: quota check skipped (dev is always allowed)
-  ensures: audit logging proceeds as normal — logCall() runs after each upstream call;
-           dev calls DO produce AuditRecord blobs in the local Netlify dev Blobs store
+rule CompleteProviderCall {
+    when: ProviderCallSucceeded(request, milliseconds, tokens_in, tokens_out)
+    requires: request.status = admitted
+    requires: request.upstream_called
+    ensures: request.status = completed
+    ensures: request.audit_written = true
+    ensures: AuditRecord.created(
+        request: request,
+        occurred_at: now,
+        email: request.user.email,
+        provider: request.provider,
+        phase: request.phase,
+        model: request.effective_model,
+        quality: request.selected_quality,
+        units_charged: request.charged_units,
+        milliseconds: milliseconds,
+        tokens_in: tokens_in,
+        tokens_out: tokens_out,
+        ok: true,
+        error_message: null,
+        quota_failure_source: null
+    )
 }
 
-------------------------------------------------------------
--- Vertex AI Authentication
-------------------------------------------------------------
-
-rule VertexServiceAccountAuth {
-  -- api-gemini functions (image generation and structuring) authenticate to
-  -- Google Vertex AI using a service account, not a static API key.
-  -- No API key of any kind reaches the browser or appears in request headers.
-
-  when: any api-gemini-* function handles a request
-
-  ensures: authentication via OAuth2 access token derived from
-           GOOGLE_SERVICE_ACCOUNT_JSON (single-line JSON, server env only)
-  ensures: token fetched by _shared/vertex.js (getVertexAccessToken())
-           before each upstream Vertex AI call
-  ensures: optional VERTEX_PROJECT_ID and VERTEX_LOCATION env vars override
-           the project/region from the service account JSON
-
-  @deployment "per-site service accounts"
-    -- prod (pictos.net)         → service account for project pictos-vertex
-    -- preview (next.pictos.net) → service account for project pictos-vertex-gmail
-    -- local dev (.env)          → either account; pictos-vertex recommended
-    -- The two projects are owned by different Google identities; roles assigned
-    --   in one project are not visible to the other.
-
-  @deployment "no static API keys"
-    -- GEMINI_LOCAL_API_KEY and GEMINI_PUBLIC_API_KEY are no longer used.
-    -- Do not set them; they are ignored by all current functions.
+rule FailProviderCall {
+    when: ProviderCallFailed(request, milliseconds, error_message, tokens_in, tokens_out, failure_source)
+    requires: request.status = admitted
+    requires: request.upstream_called
+    ensures: request.status = failed
+    ensures: request.failure_source = failure_source
+    ensures: request.audit_written = true
+    ensures: AuditRecord.created(
+        request: request,
+        occurred_at: now,
+        email: request.user.email,
+        provider: request.provider,
+        phase: request.phase,
+        model: request.effective_model,
+        quality: request.selected_quality,
+        units_charged: request.charged_units,
+        milliseconds: milliseconds,
+        tokens_in: tokens_in,
+        tokens_out: tokens_out,
+        ok: false,
+        error_message: error_message,
+        quota_failure_source: failure_source
+    )
+    ensures:
+        if request.provider = openai and request.phase = phase3:
+            OpenAIImageGenerationFailed(request)
+        if request.provider = recraft and request.phase = phase3:
+            RecraftImageGenerationFailed(request)
 }
 
-------------------------------------------------------------
--- Admin Report
-------------------------------------------------------------
-
-entity UsageReport {
-  -- Returned by api-usage-report on a successful GET.
-  from: String          -- YYYY-MM-DD (start of range)
-  to: String            -- YYYY-MM-DD (end of range, inclusive)
-  daily_limit: Number   -- current DAILY_LIMIT_PER_USER value
-  total_calls: Number   -- sum of all AuditRecord entries in the range
-  total_units: Number   -- sum of units_charged across all entries
-  users: Map<String, UserSummary>
-  models: Map<String, ModelSummary>  -- per-model aggregation with catalog metadata
-  heatmap: Number[][]  -- [weekday 0–6][hour 0–23] call counts
-  byHour: Number[]     -- [hour 0–23] call counts
-  byWeekday: Number[]  -- [weekday 0–6, 0=Sunday] call counts
-  byDate: Map<String, { calls: Number, units: Number }>  -- daily charting series
+rule TerminalImageProviderQuotaFailure {
+    when: ImageProviderQuotaExhausted(request, quota, milliseconds)
+    requires: request.status = admitted
+    requires: request.provider in {gemini, openai}
+    requires: request.phase = phase3
+    requires: request.upstream_called
+    requires: not exists RefundRequest{generation_request: request}
+    ensures: request.status = failed
+    ensures: request.failure_source = external_provider_quota
+    ensures: request.recoverable = true
+    ensures: request.refunded_units = request.charged_units
+    ensures: request.audit_written = true
+    ensures: quota.units = max(0, quota.units - request.charged_units)
+    ensures: quota.last_call = now
+    ensures: RefundRequest.created(
+        idempotency_key: request.idempotency_key,
+        user: request.user,
+        units: request.charged_units,
+        reason: external_provider_quota,
+        applied: true,
+        generation_request: request,
+        batch_reservation: null
+    )
+    ensures: AuditRecord.created(
+        request: request,
+        occurred_at: now,
+        email: request.user.email,
+        provider: request.provider,
+        phase: phase3,
+        model: request.selected_model,
+        quality: request.selected_quality,
+        units_charged: 0,
+        milliseconds: milliseconds,
+        tokens_in: null,
+        tokens_out: null,
+        ok: false,
+        error_message: provider_quota_message(request.provider),
+        quota_failure_source: external_provider_quota
+    )
+    ensures: QuotaResponse.created(
+        request: request,
+        http_status: 429,
+        error_message: provider_quota_message(request.provider),
+        units_used: quota.units,
+        limit: config.daily_limit,
+        failure_source: external_provider_quota,
+        recoverable: true
+    )
 }
 
-value UserSummary {
-  calls: Number
-  units: Number
-  errors: Number                  -- count of ok=false entries
-  phases: Map<String, Number>     -- phase → call count
-  models: Map<String, Number>     -- modelId → call count
-  first_call: Timestamp
-  last_call: Timestamp
+rule RefundFailedOpenAIImage {
+    when: OpenAIImageGenerationFailed(request)
+    requires: request.status = failed
+    requires: request.provider = openai
+    requires: request.phase = phase3
+    requires: request.charged_units > 0
+    requires: not exists RefundRequest{generation_request: request}
+    ensures: RefundRequest.created(
+        idempotency_key: request.idempotency_key,
+        user: request.user,
+        units: request.charged_units,
+        reason: openai_generation_failed,
+        applied: false,
+        generation_request: request,
+        batch_reservation: null
+    )
 }
 
-value ModelSummary {
-  calls: Number
-  units: Number
-  errors: Number
-  totalMs: Number
-  avgMs: Number
-  label: String         -- from MODEL_CATALOG
-  phaseLabel: String    -- from MODEL_CATALOG
-  description: String   -- from MODEL_CATALOG
+rule RefundFailedRecraftImage {
+    when: RecraftImageGenerationFailed(request)
+    requires: request.status = failed
+    requires: request.provider = recraft
+    requires: request.phase = phase3
+    requires: request.charged_units > 0
+    requires: not exists RefundRequest{generation_request: request}
+    ensures: RefundRequest.created(
+        idempotency_key: request.idempotency_key,
+        user: request.user,
+        units: request.charged_units,
+        reason: recraft_generation_failed,
+        applied: false,
+        generation_request: request,
+        batch_reservation: null
+    )
 }
 
-rule AdminReportEndpoint {
-  -- GET /.netlify/functions/api-usage-report?from=YYYY-MM-DD&to=YYYY-MM-DD[&email=...]
-  -- Legacy shorthand: ?date=YYYY-MM-DD  (equivalent to from=date&to=date)
-
-  when: GET request received
-
-  requires: one of:
-    (a) user authenticated via Netlify Identity AND user.email = config.admin_email, OR
-    (b) Authorization: Bearer <ADMIN_API_KEY> header matches process.env.ADMIN_API_KEY
-    -- isLocalDev (NETLIFY_DEV=true) bypasses auth entirely
-
-  ensures: all audit/{date}/ blobs in the range read and aggregated into UsageReport
-  ensures: optional email query param filters results to a single user
-  ensures: HTTP 200 with UsageReport JSON body
-  ensures: from/to default to today if absent; date= is a legacy single-day alias
-  ensures: HTTP 400 if from or to do not match /^\d{4}-\d{2}-\d{2}$/ or from > to
-  ensures: HTTP 401 if unauthenticated; HTTP 403 if authenticated but not admin
-
-  @invariant "admin-only"
-    -- No non-admin user, even authenticated, can access usage data via this endpoint.
-    -- config.admin_email is read from the ADMIN_EMAIL env var at function startup.
+rule RefundFailedRecraftPipelineRow {
+    when: RecraftPipelineRowFailed(reservation, row_id)
+    requires: reservation.started
+    let refund_key = reservation.idempotency_key + ":" + row_id + ":recraft-error"
+    requires: not exists RefundRequest{idempotency_key: refund_key}
+    ensures: RefundRequest.created(
+        idempotency_key: refund_key,
+        user: reservation.user,
+        units: config.image_generation_units,
+        reason: recraft_generation_failed,
+        applied: false,
+        generation_request: null,
+        batch_reservation: reservation
+    )
 }
 
-------------------------------------------------------------
--- HTTP Contract
-------------------------------------------------------------
+rule RefundFailedOpenAIPipelineRow {
+    when: OpenAIPipelineRowFailed(reservation, row_id)
+    requires: reservation.started
+    let refund_key = reservation.idempotency_key + ":" + row_id + ":openai-error"
+    requires: not exists RefundRequest{idempotency_key: refund_key}
+    ensures: RefundRequest.created(
+        idempotency_key: refund_key,
+        user: reservation.user,
+        units: config.image_generation_units,
+        reason: openai_generation_failed,
+        applied: false,
+        generation_request: null,
+        batch_reservation: reservation
+    )
+}
 
-rule HTTP429Contract {
-  when: quota exhausted for a user
+rule RefundBatchThatNeverStarted {
+    when: BatchStartFailed(reservation)
+    requires: not reservation.started
+    requires: reservation.refunded_units = 0
+    requires: not exists RefundRequest{batch_reservation: reservation}
+    ensures: RefundRequest.created(
+        idempotency_key: reservation.idempotency_key,
+        user: reservation.user,
+        units: reservation.reserved_units,
+        reason: failed_start,
+        applied: false,
+        generation_request: null,
+        batch_reservation: reservation
+    )
+}
 
-  ensures: HTTP 429 response
-  ensures: body = { error: "Daily quota exceeded", units_used: Number, limit: Number }
-  ensures: upstream API not called
-  ensures: no AuditRecord written for the blocked request
-    -- a blocked request is not a call; it is not billable and not auditable
+rule RefundProviderQuotaCircuit {
+    when: PipelineProviderQuotaCircuitOpened(reservation, refundable_units)
+    requires: reservation.started
+    requires: refundable_units > 0
+    requires: refundable_units <= reservation.reserved_units
+    let refund_key = reservation.idempotency_key + ":provider-quota"
+    requires: not exists RefundRequest{idempotency_key: refund_key}
+    ensures: RefundRequest.created(
+        idempotency_key: refund_key,
+        user: reservation.user,
+        units: refundable_units,
+        reason: external_provider_quota,
+        applied: false,
+        generation_request: null,
+        batch_reservation: reservation
+    )
+}
 
-  @invariant "429 is the only quota response code"
-    -- Quota exhaustion never returns 200, 400, or 500.
-    -- Callers can distinguish quota exhaustion from other errors by status code alone.
+rule ApplyRefundOnce {
+    when: ApplyQuotaRefund(refund, quota)
+    requires: not refund.applied
+    requires: quota.email = refund.user.email
+    ensures: quota.units = max(0, quota.units - refund.units)
+    ensures: quota.last_call = now
+    ensures: refund.applied = true
+    ensures:
+        if refund.generation_request != null:
+            refund.generation_request.refunded_units = refund.units
+        if refund.batch_reservation != null:
+            refund.batch_reservation.refunded_units = refund.batch_reservation.refunded_units + refund.units
+}
+
+rule CompleteAdminUsageReport {
+    when: UsageReportRequested(request, total_calls, total_units, user_count, model_count)
+    requires: request.status = pending
+    requires: request.requester.local_dev
+        or request.requester.email = config.admin_email
+        or request.admin_api_key_valid
+    ensures: request.status = completed
+    ensures: UsageReport.created(
+        request: request,
+        from_date: request.from_date,
+        to_date: request.to_date,
+        daily_limit: config.daily_limit,
+        total_calls: total_calls,
+        total_units: total_units,
+        user_count: user_count,
+        model_count: model_count,
+        users: aggregate_users(request),
+        models: aggregate_models(request),
+        heatmap: aggregate_heatmap(request),
+        by_hour: aggregate_by_hour(request),
+        by_weekday: aggregate_by_weekday(request),
+        by_date: aggregate_by_date(request)
+    )
+}
+
+rule RejectNonAdminUsageReport {
+    when: UsageReportRequested(request, total_calls, total_units, user_count, model_count)
+    requires: request.status = pending
+    requires: not request.requester.local_dev
+    requires: request.requester.email != config.admin_email
+    requires: not request.admin_api_key_valid
+    ensures: request.status = rejected
+    ensures: request.rejection = forbidden
 }
 
 ------------------------------------------------------------
 -- Invariants
 ------------------------------------------------------------
 
+invariant QuotaNeverNegative {
+    for quota in QuotaRecords:
+        quota.units >= 0
+}
+
+invariant RefundNeverExceedsCharge {
+    for request in GenerationRequests:
+        request.refunded_units <= request.charged_units
+}
+
+invariant RefundKeysAreUnique {
+    for a in RefundRequests:
+        for b in RefundRequests:
+            a != b implies a.idempotency_key != b.idempotency_key
+}
+
+invariant PictoNetQuotaNeverCallsProvider {
+    for request in GenerationRequests:
+        request.failure_source = pictonet_user_quota implies not request.upstream_called
+}
+
+invariant ProviderQuotaIsRecoverableWithoutFallback {
+    for request in GenerationRequests:
+        request.failure_source = external_provider_quota implies
+            request.recoverable
+            and request.effective_model = request.selected_model
+            and request.refunded_units = request.charged_units
+}
+
 invariant AuditCompleteness {
-  -- Every request that reaches the upstream API has a corresponding AuditRecord.
-  for each upstream API call:
-    exists AuditRecord where AuditRecord.ts is within 5s of call completion
+    for request in GenerationRequests:
+        request.upstream_called and request.status in {completed, failed}
+            implies request.audit_written
 }
 
-invariant QuotaMonotonicity {
-  -- A user's daily unit count never decreases within a calendar day,
-  -- EXCEPT via RefundOnFailedStart (batch charged but never ran) or manual
-  -- admin intervention on Blobs.
-  for each QuotaRecord:
-    QuotaRecord.units is non-decreasing across successive reads on the same date,
-    modulo refunds for batches that never started
-}
+------------------------------------------------------------
+-- Surfaces
+------------------------------------------------------------
 
-invariant AdminAccessControl {
-  -- api-usage-report returns 200 only for config.admin_email.
-  -- All other callers receive 401 (unauthenticated) or 403 (authenticated, not admin).
+surface UsageEnforcement {
+    contracts:
+        fulfils ProviderRetryBoundary
+        fulfils QuotaEnforcementBoundary
+        fulfils AuditBoundary
+        fulfils VertexAuthenticationBoundary
+        fulfils OpenAIAuthenticationBoundary
+        fulfils UsageReportingBoundary
 }
 
 ------------------------------------------------------------
 -- Open Questions
 ------------------------------------------------------------
 
-open question "Should audit blobs have an explicit TTL or cleanup policy? Currently they accumulate indefinitely."
-
-open question "When concurrent requests from the same user race on the quota counter, should the overflow be corrected retroactively or is best-effort sufficient?"
-
-open question "Should the 429 response include a Retry-After header indicating when the quota resets (midnight UTC)?"
-
-open question "Should quota limits be per-site (prod vs. preview) or shared across both deployments for the same user?"
+open question "Should audit records have an explicit retention period?"
+open question "Should concurrent quota admissions use strict serialization rather than best-effort counters?"
+open question "Should PictoNet quota responses include Retry-After for the next UTC reset?"
+open question "Should production and preview share one user's PictoNet quota?"
