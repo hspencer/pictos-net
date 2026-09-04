@@ -21,7 +21,7 @@ import { SvgEditorSource, RowData, LogEntry, StepStatus, NLUData, GlobalConfig, 
 import * as Claude from './services/claudeService';
 import { generateImage } from './services/imageGenerationService';
 import * as Batch from './services/batchService';
-import { ExternalProviderQuotaError, QuotaExceededError, callCheck } from './services/aiClient';
+import { ExternalProviderQuotaError, ProviderRequestError, QuotaExceededError, callCheck } from './services/aiClient';
 import { GenerationModel, OpenAIImageQuality, DEFAULT_GENERATION_MODEL, migrateImageModel, migrateGenerationModel, GENERATION_MODEL_LABELS, INOPERATIVE_GENERATION_MODELS, Phase3Result, getModelFamily } from './types';
 import { structureSVG } from './services/svgStructureService';
 import { applySvgSafeUpdate, captureSvgSource, prepareSvgPromotion, prepareSvgDraft, observedSvgProvenance, svgForEditing, prepareSvgEditorUpdate } from './services/svgCanonical';
@@ -534,6 +534,9 @@ const App: React.FC<AppProps> = ({ authUser }) => {
   // closing a library, and page hide, flush any pending write first.
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingSaveRef = useRef<(() => void) | null>(null);
+  // Tracks the last in-flight saveBitmapsBatch promise so openLibrary can
+  // chain its IDB read behind any concurrent write (race: flush → compress → write).
+  const pendingBitmapWriteRef = useRef<Promise<void>>(Promise.resolve());
   const flushPendingSave = useCallback(() => {
     if (saveTimerRef.current) { clearTimeout(saveTimerRef.current); saveTimerRef.current = null; }
     const fn = pendingSaveRef.current;
@@ -600,7 +603,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
         .filter((row: RowData) => row.bitmap)
         .map((row: RowData) => ({ id: row.id, bitmap: row.bitmap!, libraryId: activeLibraryId }));
       if (bitmapEntries.length > 0) {
-        IndexedDBService.saveBitmapsBatch(bitmapEntries)
+        pendingBitmapWriteRef.current = IndexedDBService.saveBitmapsBatch(bitmapEntries)
           .catch(err => console.error('[save] IDB bitmap write failed:', err));
       }
 
@@ -723,8 +726,11 @@ const App: React.FC<AppProps> = ({ authUser }) => {
       setConfig(savedConfig ? { ...DEFAULT_APP_CONFIG, ...savedConfig } : DEFAULT_APP_CONFIG);
 
       // Merge IDB binaries (SVGs / bitmaps) asynchronously after the sync load.
+      // Chain bitmap read behind any in-flight write to avoid a race where
+      // flushPendingSave starts PNG compression (async) and the read completes
+      // before the IDB transaction commits, returning an empty map.
       Promise.all([
-        IndexedDBService.getAllBitmapsForLibrary(id),
+        pendingBitmapWriteRef.current.then(() => IndexedDBService.getAllBitmapsForLibrary(id)),
         IndexedDBService.getAllSvgsForLibrary(id),
       ]).then(([bitmapsMap, svgsMap]) => {
         if (bitmapsMap.size > 0 || svgsMap.size > 0) {
@@ -1961,6 +1967,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
     stopFlags.current[rowId] = false;
     const statusKey = (step === 'structure' ? 'structuredSvgStatus' : step === 'produce' ? 'bitmapStatus' : `${step}Status`) as keyof RowData;
     const durationKey = (step === 'produce' ? 'bitmapDuration' : `${step}Duration`) as keyof RowData;
+    const startedAtKey = (step === 'structure' ? 'structuredSvgStartedAt' : step === 'produce' ? 'bitmapStartedAt' : `${step}StartedAt`) as keyof RowData;
 
     // Settle pending manual edits as edit events before recording any discards.
     if (step !== 'produce') settleRowEdits(rowId);
@@ -1968,8 +1975,8 @@ const App: React.FC<AppProps> = ({ authUser }) => {
     const beforeElements = row.elements;
     const beforePrompt = row.prompt;
 
-    updateRowById(rowId, { [statusKey]: 'processing' });
     const startTime = Date.now();
+    updateRowById(rowId, { [statusKey]: 'processing', [startedAtKey]: startTime });
 
     try {
       let result: any;
@@ -2031,6 +2038,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
       updateRowById(rowId, {
         [statusKey]: 'completed',
         [durationKey]: duration,
+        [startedAtKey]: undefined,
         ...(phaseExecutions.length ? { phaseExecutions } : {}),
         ...(step === 'nlu' ? { NLU: result, visualStatus: 'outdated', bitmapStatus: 'outdated', structuredSvgStatus: 'outdated' } : {}),
         ...(step === 'visual' ? { elements: result.elements, prompt: result.prompt, bitmapStatus: 'outdated', structuredSvgStatus: 'outdated' } : {}),
@@ -2071,13 +2079,28 @@ const App: React.FC<AppProps> = ({ authUser }) => {
       if (stopFlags.current[rowId]) return false;
       if (err instanceof QuotaExceededError) {
         setQuotaModal({ units_used: err.units_used, limit: err.limit });
-        updateRowById(rowId, { [statusKey]: 'idle' });
+        updateRowById(rowId, { [statusKey]: 'idle', [startedAtKey]: undefined });
         return false;
       }
-      updateRowById(rowId, { [statusKey]: 'error' });
-      addLog('error', t('messages.stepFailed', { step: step.toUpperCase(), utterance: row.UTTERANCE, error: step === 'structure' ? formatSvgStructureError(err, t) : err.message }));
+      updateRowById(rowId, { [statusKey]: 'error', [startedAtKey]: undefined });
+      addLog('error', t('messages.stepFailed', { step: step.toUpperCase(), utterance: row.UTTERANCE, error: step === 'structure' ? formatSvgStructureError(err, t) : formatProviderError(err) }));
       return false;
     }
+  };
+
+  /** Enrich provider/network errors with actionable details for the pipeline log. */
+  const formatProviderError = (err: any): string => {
+    if (err instanceof ExternalProviderQuotaError) {
+      const model = err.model ?? config.generationModel ?? DEFAULT_GENERATION_MODEL;
+      return `Cuota del proveedor agotada — provider=${err.provider}, model=${model}${err.requestId ? `, ref=${err.requestId}` : ''}${err.retryAfterMs ? `, retry-after=${Math.round(err.retryAfterMs / 1000)}s` : ''}`;
+    }
+    if (err instanceof ProviderRequestError) {
+      const status = err.providerStatus ? ` HTTP ${err.providerStatus}` : '';
+      const retry = err.retryable ? ' [reintentable]' : err.retryable === false ? ' [no reintentable]' : '';
+      const source = err.failureSource ? `, fuente=${err.failureSource}` : '';
+      return `Error del proveedor${status}${retry} — ${err.message}; provider=${err.provider}${source}${err.requestId ? `; ref=${err.requestId}` : ''}`;
+    }
+    return err.message ?? String(err);
   };
 
   const processCascade = async (rowId: string) => {
@@ -2132,13 +2155,13 @@ const App: React.FC<AppProps> = ({ authUser }) => {
       } else {
         // --- NLU Step (Phase 1: COMPRENDER — Claude Haiku) ---
         runLog('info', t('messages.cascadeStep', { current: 1, total: 3, step: stepNames.nlu }));
-        updateRowById(rowId, { nluStatus: 'processing', visualStatus: 'idle', bitmapStatus: 'idle', structuredSvgStatus: 'idle' });
         const nluStartTime = Date.now();
+        updateRowById(rowId, { nluStatus: 'processing', nluStartedAt: nluStartTime, visualStatus: 'idle', bitmapStatus: 'idle', structuredSvgStatus: 'idle' });
         const nluExecutions: PhaseExecution[] = [];
         nluResult = await Claude.generateNLU(row.UTTERANCE, runLog, config, execution => { nluExecutions.push(execution); });
         if (stopFlags.current[row.id]) {
           runLog('info', t('messages.cascadeStoppedAtStep', { step: stepNames.nlu }));
-          updateRowById(rowId, { nluStatus: 'idle', status: 'idle' });
+          updateRowById(rowId, { nluStatus: 'idle', nluStartedAt: undefined, status: 'idle' });
           return;
         }
         finalUpdates.NLU = nluResult;
@@ -2148,13 +2171,13 @@ const App: React.FC<AppProps> = ({ authUser }) => {
 
         // --- Visual Step (Phase 2: COMPONER — Claude Haiku) ---
         runLog('info', t('messages.cascadeStep', { current: 2, total: 3, step: stepNames.visual }));
-        updateRowById(rowId, { nluStatus: 'completed', nluDuration: finalUpdates.nluDuration, NLU: nluResult, visualStatus: 'processing', phaseExecutions: nluExecutions });
         const visualStartTime = Date.now();
+        updateRowById(rowId, { nluStatus: 'completed', nluDuration: finalUpdates.nluDuration, nluStartedAt: undefined, NLU: nluResult, visualStatus: 'processing', visualStartedAt: visualStartTime, phaseExecutions: nluExecutions });
         const compositionExecutions: PhaseExecution[] = [];
         visualResult = await Claude.generateVisualBlueprint(nluResult, config, runLog, execution => { compositionExecutions.push(execution); });
         if (stopFlags.current[row.id]) {
           runLog('info', t('messages.cascadeStoppedAtStep', { step: stepNames.visual }));
-          updateRowById(rowId, { visualStatus: 'idle', status: 'idle' });
+          updateRowById(rowId, { visualStatus: 'idle', visualStartedAt: undefined, status: 'idle' });
           return;
         }
         updateRowById(rowId, { elements: visualResult.elements, prompt: visualResult.prompt, phaseExecutions: compositionExecutions });
@@ -2169,8 +2192,8 @@ const App: React.FC<AppProps> = ({ authUser }) => {
 
       // --- Produce Step (Phase 3: PRODUCIR — dispatch by generationModel) ---
       runLog('info', t('messages.cascadeStep', { current: 3, total: 3, step: stepNames.produce }));
-      updateRowById(rowId, { visualStatus: 'completed', visualDuration: finalUpdates.visualDuration, elements: visualResult.elements, prompt: visualResult.prompt, bitmapStatus: 'processing' });
       const bitmapStartTime = Date.now();
+      updateRowById(rowId, { visualStatus: 'completed', visualDuration: finalUpdates.visualDuration, visualStartedAt: undefined, elements: visualResult.elements, prompt: visualResult.prompt, bitmapStatus: 'processing', bitmapStartedAt: bitmapStartTime });
       const phase3Snapshot: RowData = {
         ...row,
         NLU: nluResult,
@@ -2182,7 +2205,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
       const p3Result = await generateImage(ensureElementsArray(visualResult.elements), visualResult.prompt || "", phase3Snapshot, config, runLog);
       if (stopFlags.current[row.id]) {
         runLog('info', t('messages.cascadeStoppedAtStep', { step: stepNames.produce }));
-        updateRowById(rowId, { bitmapStatus: 'idle', status: 'idle' });
+        updateRowById(rowId, { bitmapStatus: 'idle', bitmapStartedAt: undefined, status: 'idle' });
         return;
       }
       const p3IsVector = !!p3Result.svg;
@@ -2195,6 +2218,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
       finalUpdates.structuredSvgStatus = p3IsVector ? 'outdated' : 'idle';
       finalUpdates.bitmapStatus = 'completed';
       finalUpdates.bitmapDuration = (Date.now() - bitmapStartTime) / 1000;
+      finalUpdates.bitmapStartedAt = undefined;
       runLog('success', t('messages.cascadeStepComplete', { current: 3, total: 3, duration: finalUpdates.bitmapDuration.toFixed(1) }));
 
       finalUpdates.status = 'completed';
@@ -2227,6 +2251,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
           nluStatus: phase3Ready ? 'completed' : 'idle',
           visualStatus: phase3Ready ? 'completed' : 'idle',
           bitmapStatus: phase3Ready ? 'error' : 'idle',
+          nluStartedAt: undefined, visualStartedAt: undefined, bitmapStartedAt: undefined,
         });
         return;
       }
@@ -2235,11 +2260,11 @@ const App: React.FC<AppProps> = ({ authUser }) => {
       else if (finalUpdates.visualStatus === 'completed') stepFailed = 'produce';
 
       const failedStatusKey = stepFailed === 'produce' ? 'bitmapStatus' : `${stepFailed}Status`;
-      updateRowById(rowId, { [failedStatusKey]: 'error', status: 'error' });
-      const failure = err instanceof ExternalProviderQuotaError
-        ? `${err.message}; provider=${err.provider}; model=${err.model ?? config.generationModel ?? DEFAULT_GENERATION_MODEL}`
-        : err.message;
-      runLog('error', t('messages.cascadeFailed', { step: stepNames[stepFailed], error: failure }));
+      updateRowById(rowId, {
+        [failedStatusKey]: 'error', status: 'error',
+        nluStartedAt: undefined, visualStartedAt: undefined, bitmapStartedAt: undefined,
+      });
+      runLog('error', t('messages.cascadeFailed', { step: stepNames[stepFailed], error: formatProviderError(err) }));
     }
   };
 
@@ -4134,7 +4159,7 @@ const RowComponent: React.FC<{
       {isOpen && (
         <>
           <div id={`row-detail-${row.id}`} className="p-8 border-t bg-slate-50/30 grid grid-cols-1 lg:grid-cols-3 gap-10 animate-in slide-in-from-top-2 max-h-[calc(100vh-7.5rem)] overflow-y-auto lg:overflow-y-hidden snap-y snap-mandatory lg:snap-none">
-            <StepBox id="block-nlu" label={t('pipeline.understand')} status={row.nluStatus} onRegen={() => onProcess('nlu')} onStop={onStop} onFocus={() => onFocus('nlu')} duration={row.nluDuration}>
+            <StepBox id="block-nlu" label={t('pipeline.understand')} status={row.nluStatus} onRegen={() => onProcess('nlu')} onStop={onStop} onFocus={() => onFocus('nlu')} duration={row.nluDuration} startedAt={row.nluStartedAt}>
               <SmartNLUEditor
                 data={row.NLU}
                 onUpdate={val => onUpdate({ NLU: val, visualStatus: 'outdated', bitmapStatus: 'outdated' })}
@@ -4155,6 +4180,7 @@ const RowComponent: React.FC<{
               onStop={onStop}
               onFocus={() => onFocus('visual')}
               duration={row.visualDuration}
+              startedAt={row.visualStartedAt}
             >
               <div className="flex flex-col h-full">
                 <div className="flex-1 flex flex-col gap-6 overflow-y-auto">
@@ -4239,7 +4265,7 @@ const RowComponent: React.FC<{
                 </div>
               </div>
             </StepBox>
-            <StepBox id="block-produce" label={t('pipeline.produce')} status={row.bitmapStatus} onRegen={() => onProcess('produce')} onStop={onStop} onFocus={() => onFocus('produce')} duration={row.bitmapDuration}
+            <StepBox id="block-produce" label={t('pipeline.produce')} status={row.bitmapStatus} onRegen={() => onProcess('produce')} onStop={onStop} onFocus={() => onFocus('produce')} duration={row.bitmapDuration} startedAt={row.bitmapStartedAt}
             >
               <div className="flex flex-col gap-4">
 
@@ -4399,24 +4425,19 @@ const RowComponent: React.FC<{
   );
 };
 
-const StepBox: React.FC<{ id?: string; label: string; status: StepStatus; onRegen: () => void; onStop: () => void; onFocus: () => void; duration?: number; children: React.ReactNode; actionNode?: React.ReactNode; }> = ({ id, label, status, onRegen, onStop, onFocus, duration, children, actionNode }) => {
+const StepBox: React.FC<{ id?: string; label: string; status: StepStatus; onRegen: () => void; onStop: () => void; onFocus: () => void; duration?: number; startedAt?: number; children: React.ReactNode; actionNode?: React.ReactNode; }> = ({ id, label, status, onRegen, onStop, onFocus, duration, startedAt, children, actionNode }) => {
   const { t } = useTranslation();
   const [elapsed, setElapsed] = useState(0);
-  const startRef = useRef(0);
   useEffect(() => {
+    if (status !== 'processing' || !startedAt) { setElapsed(0); return; }
     let raf: number;
-    if (status === 'processing') {
-      startRef.current = Date.now();
-      const tick = () => {
-        setElapsed((Date.now() - startRef.current) / 1000);
-        raf = requestAnimationFrame(tick);
-      };
+    const tick = () => {
+      setElapsed((Date.now() - startedAt) / 1000);
       raf = requestAnimationFrame(tick);
-    } else {
-      setElapsed(0);
-    }
+    };
+    raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [status]);
+  }, [status, startedAt]);
 
   const bg = status === 'processing' ? 'bg-orange-50/50' : status === 'completed' ? 'bg-white' : status === 'outdated' ? 'bg-amber-50/50' : 'bg-slate-50/50';
 

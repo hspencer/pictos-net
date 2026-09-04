@@ -297,6 +297,13 @@ export interface RowData {
   visualDuration?: number;
   bitmapDuration?: number;
 
+  // Runtime step timestamps (ms since epoch). Set when a step begins, cleared on completion/error.
+  // Not persisted — sanitizeRow deletes them on load.
+  nluStartedAt?: number;
+  visualStartedAt?: number;
+  bitmapStartedAt?: number;
+  structuredSvgStartedAt?: number;
+
   // Intervention recording (see specs/intervention-recording.allium)
   interventionLog?: RowInterventionLog;
 

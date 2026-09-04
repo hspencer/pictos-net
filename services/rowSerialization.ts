@@ -22,9 +22,20 @@ export function sanitizeRow(input: unknown): RowData {
   for (const key of ['prompt', 'bitmap', 'rawSvg', 'structuredSvg']) {
     fallback(key, row[key] === undefined || typeof row[key] === 'string', undefined);
   }
+  // Zombie guard: 'processing' persisted to disk means the session ended mid-run.
+  // Reset to a terminal state so no row opens with a pulsing orange spinner and no live runner.
+  if (row.status === 'processing') row.status = 'error';
   fallback('status', ['idle', 'processing', 'completed', 'error'].includes(row.status), 'idle');
-  for (const key of ['nluStatus', 'visualStatus', 'bitmapStatus']) fallback(key, stepStatuses.includes(row[key]), 'idle');
-  if (row.structuredSvgStatus !== undefined) fallback('structuredSvgStatus', stepStatuses.includes(row.structuredSvgStatus), 'idle');
+  for (const key of ['nluStatus', 'visualStatus', 'bitmapStatus']) {
+    if (row[key] === 'processing') row[key] = 'idle';
+    fallback(key, stepStatuses.includes(row[key]), 'idle');
+  }
+  if (row.structuredSvgStatus !== undefined) {
+    if (row.structuredSvgStatus === 'processing') row.structuredSvgStatus = 'idle';
+    fallback('structuredSvgStatus', stepStatuses.includes(row.structuredSvgStatus), 'idle');
+  }
+  // *StartedAt fields are runtime-only — meaningless without an active runner.
+  for (const key of ['nluStartedAt', 'visualStartedAt', 'bitmapStartedAt', 'structuredSvgStartedAt']) delete row[key];
   for (const key of ['nluDuration', 'visualDuration', 'bitmapDuration']) {
     fallback(key, row[key] === undefined || (typeof row[key] === 'number' && Number.isFinite(row[key])), undefined);
   }
