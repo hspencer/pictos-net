@@ -8,15 +8,19 @@ PICTOS.net is a public research prototype. No research study is currently recrui
 
 ## Local-first by design
 
-Everything you create in PICTOS.net (pictograms, libraries, working state) is stored in your own browser, on your own device, using IndexedDB and localStorage. There is no server-side database of user content. There are no user accounts held by the project, no analytics, no advertising cookies, no third-party trackers, and no behavioural profiling of any kind.
+Everything you create in PICTOS.net (pictograms, libraries, working state) is stored in your own browser, on your own device, using IndexedDB and localStorage. There is no server-side database of user content. There are no analytics, no advertising cookies, no third-party trackers, and no behavioural profiling of any kind.
 
 The practical consequence: your work belongs to you, lives with you, and disappears when you clear your browser storage. There is no central copy.
+
+## Authentication and identity
+
+PICTOS.net does not create user accounts. Sign-in exists solely as a human verification mechanism to prevent automated extraction of the AI services, not to identify or profile individuals. The system does not store profiles, does not track sessions across visits, and does not build a usage history tied to any identity. The costs of the artificial intelligence services are funded by the lead researcher's personal account; users incur no charges and no obligations by using the tool.
 
 ## What leaves your device
 
 Exactly two flows cross the boundary of your device, both visible in the source code.
 
-First, generation requests. When you ask the system to produce a pictogram, the text you typed is sent to external model APIs (Anthropic for linguistic analysis and composition, Recraft for SVG generation) and the result is returned to your browser. This is transient processing; the project retains nothing.
+First, generation requests. When you ask the system to produce a pictogram, the text you typed is sent to external model APIs (Anthropic for linguistic analysis and composition, Google Gemini for image generation) and the result is returned to your browser. This is transient processing; the project retains nothing.
 
 Second, sharing you initiate. You may choose to publish a pictogram library using a token that you configure yourself. Nothing is shared by default and nothing is shared silently. Shared libraries record authorship, library name, and provenance, so that attribution is preserved and content can be reviewed or withdrawn.
 

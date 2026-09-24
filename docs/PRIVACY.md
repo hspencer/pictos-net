@@ -8,15 +8,19 @@ PICTOS.net es un prototipo de investigación público. Actualmente no hay ningú
 
 ## Local por diseño
 
-Todo lo que creas en PICTOS.net (pictogramas, librerías, estado de trabajo) se almacena en tu propio navegador, en tu propio dispositivo, usando IndexedDB y localStorage. No existe una base de datos de contenido de usuarios en el servidor. No hay cuentas de usuario gestionadas por el proyecto, sin análisis, sin cookies publicitarias, sin rastreadores de terceros, y sin ningún tipo de perfilado de comportamiento.
+Todo lo que creas en PICTOS.net (pictogramas, librerías, estado de trabajo) se almacena en tu propio navegador, en tu propio dispositivo, usando IndexedDB y localStorage. No existe una base de datos de contenido de usuarios en el servidor. No hay análisis, no hay cookies publicitarias, no hay rastreadores de terceros, y no hay ningún tipo de perfilado de comportamiento.
 
 La consecuencia práctica: tu trabajo te pertenece, vive contigo, y desaparece cuando limpias el almacenamiento de tu navegador. No existe una copia central.
+
+## Autenticación e identidad
+
+PICTOS.net no crea cuentas de usuario. El inicio de sesión existe exclusivamente como mecanismo de verificación humana para evitar la extracción automatizada de los servicios de IA, no para identificar ni perfilar personas. El sistema no almacena perfiles, no rastrea sesiones entre visitas, y no construye un historial de uso asociado a una identidad. Los costos de los servicios de inteligencia artificial son financiados por la cuenta personal del investigador principal; el usuario no paga ni contrae obligación alguna al utilizar la herramienta.
 
 ## Qué sale de tu dispositivo
 
 Exactamente dos flujos cruzan el límite de tu dispositivo, ambos visibles en el código fuente.
 
-Primero, las solicitudes de generación. Cuando pides al sistema que produzca un pictograma, el texto que escribiste se envía a las APIs de modelos externos (Anthropic para el análisis lingüístico y la composición, Recraft para la generación de SVG) y el resultado se devuelve a tu navegador. Este es un procesamiento transitorio; el proyecto no retiene nada.
+Primero, las solicitudes de generación. Cuando pides al sistema que produzca un pictograma, el texto que escribiste se envía a las APIs de modelos externos (Anthropic para el análisis lingüistico y la composicion, Google Gemini para la generacion de imagenes) y el resultado se devuelve a tu navegador. Este es un procesamiento transitorio; el proyecto no retiene nada.
 
 Segundo, el intercambio que tú inicias. Puedes elegir publicar una librería de pictogramas usando un token que tú mismo configuras. Nada se comparte por defecto y nada se comparte en silencio. Las librerías compartidas registran la autoría, el nombre de la librería y la procedencia, de modo que la atribución se preserve y el contenido pueda revisarse o retirarse.
 

@@ -785,6 +785,7 @@
   },
   "auth": {
     "important": "Important",
+    "privacyNotice": "PICTOS.net does not create user accounts. Sign-in only verifies you are a real person. AI services are funded by the researcher.",
     "spamNotice": {
       "line1": "If you create an account with email, you will receive an email from",
       "line2": "to confirm.",

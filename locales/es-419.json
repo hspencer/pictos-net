@@ -785,6 +785,7 @@
   },
   "auth": {
     "important": "Importante",
+    "privacyNotice": "PICTOS.net no crea cuentas de usuario. El inicio de sesion solo verifica que eres una persona real. Los servicios de IA son financiados por el investigador.",
     "spamNotice": {
       "line1": "Si creas una cuenta con correo, recibiras un email de",
       "line2": "para confirmar.",

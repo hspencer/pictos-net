@@ -134,6 +134,7 @@ function showSpamNotice() {
         box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     `;
     notice.innerHTML = `
+        <div style="margin-bottom:6px;font-size:12px;opacity:0.85;">${t('auth.privacyNotice')}</div>
         <strong>${t('auth.important')}:</strong> ${t('auth.spamNotice.line1')}
         <code style="background:#fde68a;padding:2px 5px;border-radius:3px;">no-reply@netlify.com</code>
         ${t('auth.spamNotice.line2')} <strong>${t('auth.spamNotice.line3')}</strong>
