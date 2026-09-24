@@ -14,13 +14,13 @@ The practical consequence: your work belongs to you, lives with you, and disappe
 
 ## Authentication and identity
 
-PICTOS.net does not create user accounts. Sign-in exists solely as a human verification mechanism to prevent automated extraction of the AI services, not to identify or profile individuals. The system does not store profiles, does not track sessions across visits, and does not build a usage history tied to any identity. The costs of the artificial intelligence services are funded by the lead researcher's personal account; users incur no charges and no obligations by using the tool.
+PICTOS.net does not create user accounts. Sign-in exists solely as a human verification mechanism to prevent automated extraction of the AI services, not to identify or profile individuals. The sign-in record, consisting of your email address and an encrypted password, is the only information about you held on the server; it is linked to no content, records no usage, and is not used for research or to contact you. The system does not store profiles, does not track sessions across visits, and does not build a usage history tied to any identity. The costs of the artificial intelligence services are funded by the lead researcher's personal account; users incur no charges and no obligations by using the tool.
 
 ## What leaves your device
 
 Exactly two flows cross the boundary of your device, both visible in the source code.
 
-First, generation requests. When you ask the system to produce a pictogram, the text you typed is sent to external model APIs (Anthropic for linguistic analysis and composition, Google Gemini for image generation) and the result is returned to your browser. This is transient processing; the project retains nothing.
+First, generation requests. When you ask the system to produce a pictogram, the text you typed is sent to external model APIs (Anthropic for linguistic analysis and composition; Google Gemini or OpenAI for image generation, depending on the model selected in the tool) and the result is returned to your browser. This is transient processing; the project retains nothing. Do not type personal information about other people.
 
 Second, sharing you initiate. You may choose to publish a pictogram library using a token that you configure yourself. Nothing is shared by default and nothing is shared silently. Shared libraries record authorship, library name, and provenance, so that attribution is preserved and content can be reviewed or withdrawn.
 

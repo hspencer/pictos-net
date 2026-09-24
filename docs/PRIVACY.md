@@ -14,13 +14,13 @@ La consecuencia práctica: tu trabajo te pertenece, vive contigo, y desaparece c
 
 ## Autenticación e identidad
 
-PICTOS.net no crea cuentas de usuario. El inicio de sesión existe exclusivamente como mecanismo de verificación humana para evitar la extracción automatizada de los servicios de IA, no para identificar ni perfilar personas. El sistema no almacena perfiles, no rastrea sesiones entre visitas, y no construye un historial de uso asociado a una identidad. Los costos de los servicios de inteligencia artificial son financiados por la cuenta personal del investigador principal; el usuario no paga ni contrae obligación alguna al utilizar la herramienta.
+PICTOS.net no crea cuentas de usuario. El inicio de sesión existe exclusivamente como mecanismo de verificación humana para evitar la extracción automatizada de los servicios de IA, no para identificar ni perfilar personas. El registro de acceso, que consiste en tu correo electrónico y una contraseña cifrada, es la única información sobre ti que se guarda en el servidor; no está vinculado a ningún contenido, no registra uso y no se utiliza para investigación ni para contactarte. El sistema no almacena perfiles, no rastrea sesiones entre visitas, y no construye un historial de uso asociado a una identidad. Los costos de los servicios de inteligencia artificial son financiados por la cuenta personal del investigador principal; el usuario no paga ni contrae obligación alguna al utilizar la herramienta.
 
 ## Qué sale de tu dispositivo
 
 Exactamente dos flujos cruzan el límite de tu dispositivo, ambos visibles en el código fuente.
 
-Primero, las solicitudes de generación. Cuando pides al sistema que produzca un pictograma, el texto que escribiste se envía a las APIs de modelos externos (Anthropic para el análisis lingüistico y la composicion, Google Gemini para la generacion de imagenes) y el resultado se devuelve a tu navegador. Este es un procesamiento transitorio; el proyecto no retiene nada.
+Primero, las solicitudes de generación. Cuando pides al sistema que produzca un pictograma, el texto que escribiste se envía a las APIs de modelos externos (Anthropic para el análisis lingüístico y la composición; Google Gemini u OpenAI para la generación de imágenes, según el modelo elegido en la herramienta) y el resultado se devuelve a tu navegador. Este es un procesamiento transitorio; el proyecto no retiene nada. No escribas información personal sobre otras personas.
 
 Segundo, el intercambio que tú inicias. Puedes elegir publicar una librería de pictogramas usando un token que tú mismo configuras. Nada se comparte por defecto y nada se comparte en silencio. Las librerías compartidas registran la autoría, el nombre de la librería y la procedencia, de modo que la atribución se preserve y el contenido pueda revisarse o retirarse.
 
