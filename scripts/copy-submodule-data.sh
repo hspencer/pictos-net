@@ -10,10 +10,11 @@ mkdir -p public/schemas/ICAP/data
 mkdir -p public/schemas/nlu-schema
 mkdir -p public/schemas/mf-svg-schema
 mkdir -p public/schemas/pictogram-composition-schema
+mkdir -p public/schemas/pictos-api
 mkdir -p public/libraries
 
 # Never copy product tests, corpus, package files or local credentials.
-for product in nlu-schema pictogram-composition-schema mf-svg-schema; do
+for product in nlu-schema pictogram-composition-schema mf-svg-schema pictos-api; do
     source="schemas/$product"
     if [ -L "$source" ]; then
         echo "Refusing symlink schema product: $source" >&2

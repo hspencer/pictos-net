@@ -1,0 +1,37 @@
+{
+  "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\" role=\"img\" aria-labelledby=\"t\"><title id=\"t\">Beber agua</title><g id=\"pictograma\" data-concept=\"Root\"><g id=\"persona\" data-concept=\"Agent\"><path class=\"main\" d=\"M40 20h20v60H40z\"/></g></g></svg>",
+  "svg_schema": "https://pictos.net/schemas/metadata-2.0.0-draft.1.schema.json",
+  "losses": [
+    {
+      "kind": "vectorization",
+      "description": "El trazado del vaso se simplificó al vectorizar el bitmap; el contorno interior del agua se perdió.",
+      "element_id": "vaso"
+    },
+    {
+      "kind": "missing_element",
+      "description": "No se identificó geometría atribuible a 'beber'.",
+      "element_id": "beber"
+    }
+  ],
+  "orphan_marks": [
+    {
+      "mark_id": "12",
+      "reason": "Trazo pequeño sin correspondencia con ningún elemento de la composición."
+    }
+  ],
+  "ambiguous_assignments": [
+    {
+      "mark_id": "7",
+      "candidates": [
+        "vaso",
+        "agua"
+      ],
+      "chosen": "vaso"
+    }
+  ],
+  "provenance": {
+    "source_kind": "bitmap",
+    "reconstruction": "vectorized_from_bitmap",
+    "artifact_sha256": "e427046b9065448356fbf74a566c314d2538a7245140c8d042054420675db8f6"
+  }
+}

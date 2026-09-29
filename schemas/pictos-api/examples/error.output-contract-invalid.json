@@ -1,0 +1,20 @@
+{
+  "api_version": "v1",
+  "executor": "pictos.net",
+  "request_id": "7fcf23d2-cf24-491c-b3ba-df897a44a23a",
+  "process": {
+    "name": "comprender",
+    "version": "nlu-1.1.0"
+  },
+  "error": {
+    "code": "output_contract_invalid",
+    "message": "The model output did not satisfy the artifact contract and was rejected without repair.",
+    "retryable": true,
+    "issues": [
+      {
+        "path": "/frames",
+        "message": "must NOT have fewer than 1 items"
+      }
+    ]
+  }
+}

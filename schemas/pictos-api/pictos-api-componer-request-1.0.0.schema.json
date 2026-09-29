@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pictos.net/schemas/pictos-api/pictos-api-componer-request-1.0.0.schema.json",
+  "title": "PICTOS API v1 componer request 1.0.0",
+  "description": "POST /api/v1/componer. One valid NLU document in, one accepted composition out. The composition language and deterministic root follow nlu.lang.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "nlu"
+  ],
+  "properties": {
+    "nlu": {
+      "$ref": "https://pictos.net/schemas/pictonet-nlu-1.1.0.schema.json",
+      "description": "Any valid NLU 1.1.0 document, typically the output of comprender. Rejected with input_contract_invalid otherwise."
+    },
+    "config": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Subset of PICTOS GlobalConfig that affects COMPONER.",
+      "properties": {
+        "domainContext": {
+          "type": "string",
+          "maxLength": 300
+        }
+      }
+    },
+    "model": {
+      "type": "string",
+      "enum": [
+        "claude-haiku-4-5-20251001",
+        "claude-sonnet-4-6",
+        "gemini-2.5-flash",
+        "gemini-2.5-pro",
+        "gpt-5.6-luna",
+        "gpt-5.6-terra",
+        "gpt-5.6-sol"
+      ],
+      "default": "claude-haiku-4-5-20251001",
+      "description": "Text model for this phase. Omit to use the pictos.net default."
+    }
+  }
+}

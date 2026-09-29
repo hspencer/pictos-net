@@ -1,0 +1,10 @@
+{
+  "utterance": "Beber agua",
+  "config": {
+    "lang": "es-419",
+    "geoContext": {
+      "region": "Chile"
+    },
+    "domainContext": "hogar"
+  }
+}

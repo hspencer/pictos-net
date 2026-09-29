@@ -1,0 +1,65 @@
+{
+  "api_version": "v1",
+  "executor": "pictos.net",
+  "request_id": "f6abc88a-50b7-40c9-907f-4ef210dbce45",
+  "idempotency_key": null,
+  "replayed": false,
+  "process": {
+    "name": "componer",
+    "version": "composition-0.1.0"
+  },
+  "schema": {
+    "id": "https://pictos.net/schemas/pictogram-composition-0.1.0.schema.json",
+    "version": "0.1.0"
+  },
+  "model": {
+    "requested": "claude-haiku-4-5-20251001",
+    "actual": "claude-haiku-4-5-20251001",
+    "provider": "anthropic"
+  },
+  "evidence": {
+    "contract_hash": "7ae3fa9a64ea7b118929def671fef52cb31fa92617a72dc8670f0520c28d1fd6",
+    "prompt_hash": "45762ecea1d3939a5deac0ba8ec5958719750b6301382d68efc7f0aeda5af421",
+    "input_hash": "b4d7c479e6dfc738c795586dba7c7eede50fd8efcf18610e661cf853c29827c1",
+    "output_hash": "d1ee108ff26549fd0d15ca9040e10d99c47e5370b9ff9390a783db68be9a380b",
+    "usage": {
+      "input_tokens": 2310,
+      "output_tokens": 412
+    },
+    "duration_ms": 2480,
+    "provider_request_id": null
+  },
+  "quota": {
+    "used": 2,
+    "limit": 200
+  },
+  "output": {
+    "elements": [
+      {
+        "id": "pictograma",
+        "concept": "Root",
+        "children": [
+          {
+            "id": "persona",
+            "concept": "Agent"
+          },
+          {
+            "id": "vaso",
+            "concept": "Object",
+            "children": [
+              {
+                "id": "agua",
+                "concept": "Object"
+              }
+            ]
+          },
+          {
+            "id": "beber",
+            "concept": "Action"
+          }
+        ]
+      }
+    ],
+    "prompt": "'persona' de pie, centrada, sostiene 'vaso' a la altura de la boca. 'agua' visible dentro de 'vaso'. 'beber' se indica con el vaso inclinado hacia la boca."
+  }
+}

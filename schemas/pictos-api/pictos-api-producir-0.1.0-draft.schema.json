@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pictos.net/schemas/pictos-api/pictos-api-producir-0.1.0-draft.schema.json",
+  "title": "PICTOS API v1 producir boundary 0.1.0-draft",
+  "description": "DRAFT. Not served yet. Declares the boundary of the future asynchronous producir endpoint (job + polling). The result depends on the image provider, so the artifact is a tagged union. bitmap is the usual and higher-quality path; svg is only what a vector provider (Recraft) returns directly, which follows the prompt poorly and does not establish semantic coherence.",
+  "x-status": "draft",
+  "$defs": {
+    "Request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "utterance",
+        "nlu",
+        "composition"
+      ],
+      "properties": {
+        "utterance": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "nlu": {
+          "$ref": "https://pictos.net/schemas/pictonet-nlu-1.1.0.schema.json"
+        },
+        "composition": {
+          "$ref": "https://pictos.net/schemas/pictogram-composition-0.1.0.schema.json"
+        },
+        "config": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "visualStylePrompt": {
+              "type": "string",
+              "maxLength": 1000
+            }
+          }
+        },
+        "model": {
+          "type": "string",
+          "description": "A phase 3 model from the pictos.net catalog."
+        }
+      }
+    },
+    "BitmapArtifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "mime_type",
+        "artifact"
+      ],
+      "properties": {
+        "kind": {
+          "const": "bitmap"
+        },
+        "mime_type": {
+          "const": "image/png"
+        },
+        "artifact": {
+          "type": "string",
+          "contentEncoding": "base64",
+          "contentMediaType": "image/png",
+          "minLength": 1
+        }
+      }
+    },
+    "SvgArtifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "mime_type",
+        "artifact"
+      ],
+      "properties": {
+        "kind": {
+          "const": "svg"
+        },
+        "mime_type": {
+          "const": "image/svg+xml"
+        },
+        "artifact": {
+          "type": "string",
+          "contentMediaType": "image/svg+xml",
+          "minLength": 1,
+          "description": "Raw provider SVG. Not mf-svg-schema compliant; semantic structure is estructurar's job."
+        }
+      }
+    },
+    "Artifact": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/BitmapArtifact"
+        },
+        {
+          "$ref": "#/$defs/SvgArtifact"
+        }
+      ]
+    },
+    "Response": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "https://pictos.net/schemas/pictos-api/pictos-api-common-1.0.0.schema.json#/$defs/SuccessMeta"
+        }
+      ],
+      "unevaluatedProperties": false,
+      "required": [
+        "output"
+      ],
+      "properties": {
+        "process": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "const": "producir"
+            }
+          }
+        },
+        "output": {
+          "$ref": "#/$defs/Artifact"
+        }
+      }
+    }
+  }
+}

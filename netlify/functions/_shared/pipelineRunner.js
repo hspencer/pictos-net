@@ -105,20 +105,21 @@ function acceptModelOutput(request, response, accept) {
  * Phase 1: COMPRENDER — NLU semantic analysis.
  * Returns NLUData (same shape as claudeService.generateNLU).
  */
-export async function runPhase1(utterance, config, onExecution) {
+export async function runPhase1(utterance, config, onExecution, callOptions) {
   const request = buildNluRequest(utterance, config);
   if (!modelSupportsPhase(request.model, 1)) throw new Error(`Disallowed comprenderModel: ${request.model}`);
-  const response = await callTextModel(request);
+  const response = await callTextModel(request, callOptions);
   const result = acceptModelOutput(request, response, () => acceptNlu(extractToolUse(response.content, 'analyze_utterance'), utterance));
   if (onExecution) onExecution(await createPhaseExecution(1, request, result, response));
   return result;
 }
 
-/** Phase 2 shares the exact request and acceptance boundary with the browser. */
-export async function runPhase2(nluData, config, onExecution) {
+/** Phase 2 shares the exact request and acceptance boundary with the browser.
+ * callOptions ({ retries, maxTotalMs }) bounds provider time for synchronous callers. */
+export async function runPhase2(nluData, config, onExecution, callOptions) {
   const request = buildCompositionRequest(nluData, config);
   if (!modelSupportsPhase(request.model, 2)) throw new Error(`Disallowed componerModel: ${request.model}`);
-  const response = await callTextModel(request);
+  const response = await callTextModel(request, callOptions);
   const result = acceptModelOutput(request, response, () => acceptComposition(extractToolUse(response.content, 'compose_pictogram'), nluData.lang));
   if (onExecution) onExecution(await createPhaseExecution(2, request, result, response));
   return result;

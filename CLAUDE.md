@@ -35,6 +35,7 @@ Gemini image models deliver native SVG output so VTracer is no longer needed.
 - **Services**: `services/claudeService.ts` (phases 1-2), `services/geminiService.ts` (phase 3, default), `services/recraftService.ts` (phase 3, Recraft fallback), `services/svgStructureService.ts` (phase 4)
 - **API**: `services/aiClient.ts` — always-proxy client. All calls go through Netlify Functions (`callClaude`, `callRecraft`). No API key ever reaches the browser.
 - **Functions**: `netlify/functions/api-claude.js` (phases 1,2,4), `netlify/functions/api-gemini-worker-background.js` + `api-gemini-poll.js` (phase 3, default), `netlify/functions/api-recraft.js` (phase 3, Recraft fallback)
+- **Machine API v1**: `netlify/functions/api-v1-comprender.js`, `api-v1-componer.js` (routes `/api/v1/*`) — thin shells over `_shared/apiV1.js` → `runPhase1`/`runPhase2`; revocable service credentials (`_shared/serviceCredentials.js`, CLI `scripts/service-credentials.mjs`), idempotency, contracts in `schemas/pictos-api/`. Producir/Estructurar are draft contracts only. Reference: docs/API_V1.md
 - **State**: Zustand for SVG editor, localStorage for metadata, IndexedDB for binary (SVGs)
 - **Main orchestrator**: `App.tsx` — processCascade, processStep, row management
 

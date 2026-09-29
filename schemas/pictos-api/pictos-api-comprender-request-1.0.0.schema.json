@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pictos.net/schemas/pictos-api/pictos-api-comprender-request-1.0.0.schema.json",
+  "title": "PICTOS API v1 comprender request 1.0.0",
+  "description": "POST /api/v1/comprender. One utterance in, one NLU generation artifact out.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "utterance"
+  ],
+  "properties": {
+    "utterance": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500,
+      "pattern": "\\S",
+      "description": "Preserved exactly; the returned NLU must carry the identical string."
+    },
+    "config": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Subset of PICTOS GlobalConfig that affects COMPRENDER. Names match the native GlobalConfig.",
+      "properties": {
+        "lang": {
+          "type": "string",
+          "pattern": "^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$",
+          "default": "es-419",
+          "description": "BCP 47 tag for the NLU vocabulary and NSM primes."
+        },
+        "geoContext": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "region": {
+              "type": "string",
+              "maxLength": 120
+            }
+          }
+        },
+        "domainContext": {
+          "type": "string",
+          "maxLength": 300,
+          "description": "Semantic domain used to resolve ambiguity (for example hospital)."
+        },
+        "visualStylePrompt": {
+          "type": "string",
+          "maxLength": 1000
+        }
+      }
+    },
+    "model": {
+      "type": "string",
+      "enum": [
+        "claude-haiku-4-5-20251001",
+        "claude-sonnet-4-6",
+        "gemini-2.5-flash",
+        "gemini-2.5-pro",
+        "gpt-5.6-luna",
+        "gpt-5.6-terra",
+        "gpt-5.6-sol"
+      ],
+      "default": "claude-haiku-4-5-20251001",
+      "description": "Text model for this phase. Omit to use the pictos.net default."
+    }
+  }
+}

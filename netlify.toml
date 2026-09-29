@@ -28,6 +28,20 @@
   # Full-pipeline batch gate: writes grant blob + awaits 202 from background worker
   timeout = 26
 
+# Machine API v1 (service credentials, no CORS). One synchronous function per
+# phase; contracts in schemas/pictos-api, published under /schemas/pictos-api/.
+[[redirects]]
+  from = "/api/v1/comprender"
+  to = "/.netlify/functions/api-v1-comprender"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/v1/componer"
+  to = "/.netlify/functions/api-v1-componer"
+  status = 200
+  force = true
+
 [[redirects]]
   from = "/*"
   to = "/index.html"

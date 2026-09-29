@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pictos.net/schemas/pictos-api/pictos-api-common-1.0.0.schema.json",
+  "title": "PICTOS machine API v1 common envelope 1.0.0",
+  "description": "Shared definitions for every /api/v1 process endpoint. Each endpoint performs exactly one pipeline phase and returns either a success envelope with a validated artifact or an error envelope. Nothing here is a credential.",
+  "$defs": {
+    "RequestId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Identifier assigned by pictos.net to this HTTP request. Also returned in the X-Request-Id header."
+    },
+    "IdempotencyKey": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._:-]{8,128}$",
+      "description": "Client-chosen key sent in the Idempotency-Key header. Scoped per service principal and process; retained 24 hours."
+    },
+    "ProcessName": {
+      "type": "string",
+      "enum": ["comprender", "componer", "producir", "estructurar"]
+    },
+    "Process": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version"],
+      "properties": {
+        "name": { "$ref": "#/$defs/ProcessName" },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Version of the prompt and acceptance logic that produced the artifact (for example nlu-1.1.0)."
+        }
+      }
+    },
+    "ArtifactSchema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version"],
+      "properties": {
+        "id": { "type": "string", "format": "uri", "description": "$id of the JSON Schema the returned artifact was validated against." },
+        "version": { "type": "string", "minLength": 1 }
+      }
+    },
+    "Model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["requested", "actual", "provider"],
+      "properties": {
+        "requested": { "type": "string", "minLength": 1 },
+        "actual": { "type": ["string", "null"], "description": "Model identifier reported by the provider, when it reports one." },
+        "provider": { "type": "string", "enum": ["anthropic", "google", "openai", "recraft"] }
+      }
+    },
+    "Evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract_hash", "prompt_hash", "input_hash", "output_hash", "usage", "duration_ms", "provider_request_id"],
+      "description": "Hashes of canonical JSON (sorted keys). They let a caller prove which contract, prompt and input produced the artifact without pictos.net returning the prompt itself.",
+      "properties": {
+        "contract_hash": { "$ref": "#/$defs/Sha256" },
+        "prompt_hash": { "$ref": "#/$defs/Sha256" },
+        "input_hash": { "$ref": "#/$defs/Sha256" },
+        "output_hash": { "$ref": "#/$defs/Sha256" },
+        "usage": { "type": ["object", "null"], "description": "Provider token usage as reported, or null." },
+        "duration_ms": { "type": "integer", "minimum": 0 },
+        "provider_request_id": { "type": ["string", "null"] }
+      }
+    },
+    "Sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "Quota": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["used", "limit"],
+      "description": "Daily call quota of the service principal, UTC day.",
+      "properties": {
+        "used": { "type": "integer", "minimum": 0 },
+        "limit": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "SuccessMeta": {
+      "type": "object",
+      "required": ["api_version", "executor", "request_id", "idempotency_key", "replayed", "process", "schema", "model", "evidence"],
+      "properties": {
+        "api_version": { "const": "v1" },
+        "executor": { "const": "pictos.net" },
+        "request_id": { "$ref": "#/$defs/RequestId" },
+        "idempotency_key": { "anyOf": [{ "$ref": "#/$defs/IdempotencyKey" }, { "type": "null" }] },
+        "replayed": { "type": "boolean", "description": "True when this body is the stored result of an earlier request with the same Idempotency-Key. request_id then belongs to the original execution." },
+        "process": { "$ref": "#/$defs/Process" },
+        "schema": { "$ref": "#/$defs/ArtifactSchema" },
+        "model": { "$ref": "#/$defs/Model" },
+        "evidence": { "$ref": "#/$defs/Evidence" },
+        "quota": { "$ref": "#/$defs/Quota" }
+      }
+    },
+    "ErrorCode": {
+      "type": "string",
+      "enum": [
+        "invalid_request",
+        "unauthorized",
+        "forbidden",
+        "quota_exceeded",
+        "input_contract_invalid",
+        "output_contract_invalid",
+        "provider_unavailable",
+        "provider_error",
+        "idempotency_key_reused",
+        "idempotency_in_progress",
+        "method_not_allowed",
+        "internal_error"
+      ],
+      "description": "invalid_request: the request envelope does not match the endpoint schema. input_contract_invalid: a domain artifact supplied as input (for example the NLU given to componer) does not validate. output_contract_invalid: the model answered but its artifact was rejected; nothing is repaired silently. provider_unavailable is retryable, provider_error is not."
+    },
+    "Issue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "message"],
+      "properties": {
+        "path": { "type": "string", "description": "JSON Pointer into the offending document." },
+        "message": { "type": "string" }
+      }
+    },
+    "Error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message", "retryable"],
+      "properties": {
+        "code": { "$ref": "#/$defs/ErrorCode" },
+        "message": { "type": "string", "minLength": 1 },
+        "retryable": { "type": "boolean" },
+        "issues": { "type": "array", "items": { "$ref": "#/$defs/Issue" } },
+        "retry_after_ms": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "ErrorResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["api_version", "executor", "request_id", "process", "error"],
+      "properties": {
+        "api_version": { "const": "v1" },
+        "executor": { "const": "pictos.net" },
+        "request_id": { "$ref": "#/$defs/RequestId" },
+        "process": { "$ref": "#/$defs/Process" },
+        "error": { "$ref": "#/$defs/Error" }
+      }
+    }
+  }
+}
