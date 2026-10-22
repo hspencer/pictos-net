@@ -55,6 +55,12 @@ F0 va primero porque la migración del corpus (F5) toca datos que hoy no tienen 
 
 **Cierre.** La exportación desde la portada y desde la librería abierta producen el mismo inventario de medios. Ningún paso posterior se ejecuta sobre una librería sin una exportación verificada.
 
+**Estado: cumplido el 22-10-2026 (`2e9eb99`).**
+
+- Exportar, respaldar en ZIP, importar y duplicar desde la portada transportan los binarios (`getLibraryRowsWithMedia`, `mergeLibraryMedia`). El respaldo ZIP (`backupAllLibraries`) tenía el mismo defecto y no figuraba en el diagnóstico.
+- Causa de fondo: el almacén de SVG usaba como clave solo el ID de fila. Dos librerías con los mismos IDs (una plantilla cargada dos veces, un duplicado o un respaldo restaurado) se sobrescribían los SVG, y borrar uno en una de ellas lo borraba en la otra. IndexedDB v7 crea `svgs_by_library` con clave `['libraryId', 'id']`, copia las entradas con un cursor dentro del upgrade y deja intacto el almacén anterior como respaldo. Así se conservan los IDs de fila y las referencias de secuencias y tableros.
+- Verificado en Chrome en un origen aislado: una base v6 construida a mano migra en 4 ms con todas sus entradas, y `scripts/check-library-media.browser.js` pasa sus seis comprobaciones (hashes idénticos tras importar y duplicar, original intacto, borrado aislado, ZIP con todas las copias).
+
 ## F1. Catálogo único con ciclo de vida
 
 **Problema.** Siete listas de admisión independientes y un catálogo sin estado.
@@ -86,6 +92,14 @@ F0 va primero porque la migración del corpus (F5) toca datos que hoy no tienen 
 
 **Cierre.** Una prueba recorre cada endpoint y confirma que acepta exactamente los modelos que el catálogo admite para su fase. Retirar un modelo pasa a ser un cambio de una línea.
 
+**Estado: cumplido el 22-10-2026 (`51e581c`).**
+
+- `status` en cada entrada del catálogo; `modelIdsForPhase` y `modelSupportsPhase` excluyen los retirados, y los endpoints admiten con `modelAllowed`. El lote usa `batchModelIds()`, que exige la capacidad `vertexBatch` y estado `workshop` o `active`. `modelAdmission.test.mjs` recorre los endpoints síncronos con todos los modelos y falla si un endpoint vuelve a declarar su propia lista.
+- `processCascade` llamaba a los servicios sin pasar por `processStep`, así que un control solo en `processStep` no bastaba. Ahora la guarda `assertModelAvailable` está en los servicios de cada fase (`callNluModel`, `generateImage`, `structureSVG`), y la cascada comprueba las fases 1 a 3 antes de gastar la primera. Verificado en Chrome: con COMPRENDER en Gemini 2.5 Pro no sale ninguna llamada y se muestra el mensaje traducido.
+- El chequeo de conexión de Gemini para modelos de imagen hacía un ping de texto a `gemini-2.5-flash`; ahora usa `countTokens` sobre el modelo elegido.
+- `INOPERATIVE_GENERATION_MODELS` se eliminó: lo reemplaza el estado del catálogo.
+- El schema publicado `pictos-api-comprender-request-1.0.0` conserva en su enum los modelos retirados. Un contrato publicado no cambia; la admisión en tiempo de ejecución es más estrecha. La próxima versión de la API debería retirarlos del enum.
+
 ## F2. Diagnóstico de intentos y unidades coherentes
 
 **Tareas.**
@@ -96,6 +110,10 @@ F0 va primero porque la migración del corpus (F5) toca datos que hoy no tienen 
 4. Unificar la numeración de ESTRUCTURAR: la interfaz dice fase 4 y los registros usan fase 5.
 
 **Cierre.** Ante cada fallo de la ventana del diagnóstico, el registro permite distinguir bloqueo de seguridad, finalización distinta de `STOP`, contrato inválido, indisponibilidad del modelo y error local. Ningún intento sin entrega queda con una unidad cobrada.
+
+**Estado de la tarea 1: cumplida el 22-10-2026 (`ea4f6f5`).** La respuesta de Gemini sin imagen reembolsa de forma idempotente, registra el uso real cuando el proveedor lo informa y conserva `finishReason`, `finishMessage` truncado, `blockReason` y los tipos de partes, sin guardar texto ni imagen. OpenAI ya reembolsaba este caso; ahora además registra su fuente y su uso.
+
+**Decisión pendiente para el cierre de F2.** El worker de Gemini sigue cobrando cualquier otro fallo del proveedor que no sea 429 (por ejemplo un 400 o un 500), mientras que Recraft y OpenAI reembolsan todo fallo posterior al cobro. Igualarlos cumple el criterio de que ningún intento sin entrega cobre, pero un fallo reiterado deja de consumir cupo y el costo de esas llamadas lo asume la cuenta del proyecto.
 
 ## F3. Mensajes por causa y recuperación por fase
 
