@@ -2,6 +2,8 @@
 
 **Alcance confirmado por el usuario:** documentar hallazgos y un plan de acción propuesto en este mismo archivo. No modificar código ni bibliotecas. **Decisión de producto: retirar Recraft**; su reparación como proveedor deja de ser una tarea propuesta. Las imágenes existentes, su autoría y su procedencia deben conservarse.
 
+**Actualización del 22-10-2026:** se revocó la decisión de retirar Recraft; se mantiene en PRODUCIR. Las secciones que proponen su retiro quedan como registro. El trabajo vigente está en [PLAN_GENERACION_2026-10.md](PLAN_GENERACION_2026-10.md), frente F4.
+
 Fecha: 22 de octubre de 2026, hora de Chile. Producción observada: **2.6.3**. Código local: `4c9a49fd12727c979bf8e4fb21a10de696c7c1e5`, rama `dev`.
 
 ## Dictamen

@@ -22,7 +22,7 @@ Criterio de cierre global, tomado del diagnóstico: al menos 95 % de recorridos 
 | Los endpoints de texto registran éxito antes de la validación del contrato | `api-claude.js:170`, `api-gemini-nlu.js:134`, `api-openai-text.js:28`, `api-openai-text-background.js:40` | El informe administrativo cuenta como `ok` respuestas que el navegador rechaza después. |
 | COMPONER valida el NLU antes de llamar al proveedor | `_shared/pipelineContracts.js:204-205`, `:248` | Con 826 de 829 filas históricas incompatibles, ningún cambio de modelo desbloquea COMPONER. |
 | Exportar y duplicar desde la portada omiten los binarios | `services/libraryService.ts:138` (`duplicateLibrary`), `:229` (`exportLibraryJson`), ambos sobre `getLibraryRows` | Leen solo los metadatos de localStorage; bitmaps y SVG viven en IndexedDB. |
-| Recraft se extiende por 35 archivos | Catálogo, servicios, funciones, tipos, locales y pruebas | El retiro decidido requiere un recorrido completo, no un cambio de selector. |
+| El SVG de Recraft se rechaza antes de ESTRUCTURAR sin decir por qué | `inspectPassiveSVG` en `schemas/pictos-svg-schema/index.js:86`, llamado desde `services/svgCanonical.ts:37` | El inspector lanza un motivo de categoría (por ejemplo `Unsupported or active SVG element`) sin nombrar el elemento o atributo, y la interfaz lo reduce a un mensaje genérico. |
 | Los `$id` de tres familias de schemas no resuelven | `https://pictos.net/schemas/pictonet-nlu-1.1.0.schema.json` devuelve el `index.html` de la SPA | `copy-submodule-data.sh` publica en `/schemas/<producto>/`, pero los `$id` apuntan a `/schemas/`. Solo `pictos-api` resuelve. |
 
 ## Secuencia
@@ -32,7 +32,7 @@ flowchart LR
   F0[F0 Respaldo íntegro] --> F1[F1 Catálogo único]
   F1 --> F2[F2 Diagnóstico y unidades]
   F2 --> F3[F3 Mensajes por causa]
-  F1 --> F4[F4 Retiro de Recraft]
+  F1 --> F4[F4 Recraft hacia ESTRUCTURAR]
   F0 --> F5[F5 Rescate del corpus]
   F2 --> F6[F6 Modelos nuevos]
   F3 --> F7[F7 Ensayo de taller]
@@ -41,7 +41,7 @@ flowchart LR
   S[S Schemas de referencia] -.-> F5
 ```
 
-F0 va primero porque la migración del corpus (F5) y el retiro de Recraft (F4) tocan datos que hoy no tienen una copia de seguridad fiable. F1 es la base de F2, F4 y F6: sin un catálogo único, cada cambio de modelo vuelve a abrir siete listas. El frente S es independiente y puede avanzar en paralelo.
+F0 va primero porque la migración del corpus (F5) toca datos que hoy no tienen una copia de seguridad fiable. F1 es la base de F2, F4 y F6: sin un catálogo único, cada cambio de modelo vuelve a abrir siete listas. El frente S es independiente y puede avanzar en paralelo.
 
 ## F0. Respaldo íntegro de librerías
 
@@ -78,7 +78,8 @@ F0 va primero porque la migración del corpus (F5) y el retiro de Recraft (F4) t
 | `gpt-image-2` | `active` | Recorrido completo en 32 s, calidad baja. |
 | `gemini-3-pro-image` | `active` | Recorrido completo en 57,3 s; cuota diaria baja. |
 | `gemini-3.1-flash-image` | `experimental` | 9 de 38 sin imagen; sale del lote. |
-| `recraftv4_1*` (ocho variantes) | `retired` | Decisión de producto; ver F4. |
+| `recraftv4_1_vector` | `active` | PRODUCIR verificado en producción: SVG de unos 32 KB en 16,7 s. Su paso a ESTRUCTURAR es F4. |
+| Otras siete variantes `recraftv4_1*` | `experimental` | Sin prueba en el diagnóstico. Pasan a `active` con una muestra satisfactoria de cada una. |
 
 4. Configuraciones guardadas: si `GlobalConfig` referencia un modelo `retired`, el selector lo muestra como retirado y pide un reemplazo antes de la próxima generación. No se sustituye en silencio ni se reescribe la procedencia de filas ya generadas.
 5. El selector de fase 3 del lote deja de ofrecer `gemini-3.1-flash-image` por defecto.
@@ -106,19 +107,21 @@ F0 va primero porque la migración del corpus (F5) y el retiro de Recraft (F4) t
 
 **Cierre.** Ningún mensaje de error de generación queda sin causa ni sin acción. Ninguna fase ya resuelta se repite por un fallo posterior.
 
-## F4. Retiro de Recraft
+## F4. Recraft hacia ESTRUCTURAR
 
-Sigue el alcance del diagnóstico. Con F1 resuelto, el catálogo deja de admitir las ocho variantes y el resto es eliminación de código.
+Recraft se mantiene en PRODUCIR (decisión del 22-10-2026, que revoca el retiro propuesto en el diagnóstico). Es la única ruta que entrega SVG nativo, sin pasar por VTracer, así que su valor depende de que ese SVG pueda estructurarse.
+
+**Problema.** Recraft V4.1 Vector completó PRODUCIR, pero ESTRUCTURAR rechazó el SVG en el preprocesamiento local, antes de llamar al modelo de visión. Está confirmado el lugar (`canStructureSVG` en `services/svgCanonical.ts:13`, que llama a `inspectPassiveSVG`), no la construcción concreta. Por otra parte, el ensamblado entiende paths y advierte que otras primitivas pueden quedar fuera.
 
 **Tareas.**
 
-1. Resolver o expirar los trabajos Recraft en curso antes de retirar `api-recraft-poll`.
-2. Eliminar `api-recraft-worker-background`, `api-recraft-poll`, `_shared/recraftImage.js`, `services/recraftService.ts`, el despacho en `imageGenerationService.ts` y `aiClient.ts`, los ajustes de `style_id` y las claves i18n que queden sin uso (`validate-i18n` lo detecta).
-3. Actualizar `schemas/pictos-api-schema/pictos-api-common-1.0.0.schema.json`, que enumera Recraft. Es un contrato publicado: el cambio exige versión nueva (1.1.0) o una nota de compatibilidad, no editar 1.0.0 en su lugar.
-4. Conservar la lectura y exportación de los SVG ya generados, sus IDs y su procedencia. No borrar almacenes históricos ni registros de uso.
-5. Retirar `RECRAFT_API_KEY` del entorno de Netlify después del despliegue, no antes.
+1. **Rechazo diagnosticable.** `inspectPassiveSVG` incluye en el error el nombre del elemento o atributo y su posición en el árbol, sin copiar contenido del SVG. La interfaz muestra esa causa, traducida, en lugar del mensaje genérico (se conecta con F3).
+2. **Muestra por variante.** Generar un SVG con cada variante vectorial ofrecida en el selector y registrar qué control rechaza cada uno. Conservar los SVG de la muestra en `research/`, fuera de Git.
+3. **Normalización previa, solo de lo que es seguro.** Según las causas encontradas, transformar antes de la inspección las construcciones inocuas que Recraft emite: IDs, estilos en línea pasados a clases según el modelo de dos niveles, y primitivas (`rect`, `circle`, `ellipse`, `polygon`, `line`) convertidas a path para que el ensamblado no las pierda. Los controles de seguridad no se relajan: scripts, manejadores de eventos, recursos externos y DTD siguen rechazados.
+4. **Versión del producto.** Cambiar `index.js` de `pictos-svg-schema` cambia su comportamiento, aunque no sus contratos; publicar ese cambio como `2.0.0-draft.2` y no como sincronización sin etiqueta.
+5. **Coherencia de unidades.** El worker de Recraft ya reembolsa cualquier fallo (`api-recraft-worker-background.js:46`), a diferencia del de Gemini; usarlo como referencia en F2.
 
-**Cierre.** No se puede iniciar ningún trabajo nuevo con Recraft por ninguna ruta (selector, lote, API v1). Los SVG existentes siguen abriéndose en el editor.
+**Cierre.** Un SVG de cada variante vectorial ofrecida llega a ESTRUCTURAR o se rechaza con una causa concreta y traducida. Ningún control de seguridad se debilita.
 
 ## F5. Rescate del corpus histórico
 
