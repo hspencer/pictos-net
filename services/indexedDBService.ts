@@ -1,10 +1,11 @@
 /**
  * IndexedDB Service — primary persistence layer for pictos-net
  *
- * v6 schema:
- *   rows    — RowData metadata WITHOUT binary fields (bitmap, rawSvg, structuredSvg)
- *   bitmaps — { libraryId, id, bitmap: base64 data URL } — keyPath: ['libraryId', 'id']
- *   svgs    — { id, rawSvg?, structuredSvg?, libraryId }
+ * v7 schema:
+ *   rows             — RowData metadata WITHOUT binary fields (bitmap, rawSvg, structuredSvg)
+ *   bitmaps          — { libraryId, id, bitmap: base64 data URL } — keyPath: ['libraryId', 'id']
+ *   svgs_by_library  — { libraryId, id, rawSvg?, structuredSvg? } — keyPath: ['libraryId', 'id']
+ *   svgs             — legacy v1–v6 SVG store keyed by row id; read only by the v7 copy
  *
  * v4 → v5: bitmaps keyPath changed from 'id' to ['libraryId', 'id'] (async migration —
  *   was buggy; the async getAll() inside onupgradeneeded could hang the upgrade
@@ -12,15 +13,20 @@
  * v5 → v6: synchronous recreation of bitmaps store to fix any corrupt/missing
  *   state left by the broken v5 migration. Existing bitmap entries are dropped
  *   (they are re-fetched from template JSON via the sourceTemplate recovery path).
+ * v6 → v7: SVGs move to a store keyed by ['libraryId', 'id']. Keyed by row id alone,
+ *   libraries sharing row ids (a template loaded twice, a duplicate, a restored
+ *   backup) overwrote and deleted each other's SVGs. Entries are copied; the
+ *   legacy store is kept untouched as a rollback source.
  *
  * localStorage is used only for config (pictonet_v19_config).
  */
 
 const DB_NAME = 'pictonet_storage';
-const DB_VERSION = 6;
+const DB_VERSION = 7;
 const STORE_ROWS = 'rows';
 const STORE_BITMAPS = 'bitmaps';
-const STORE_SVGS = 'svgs';
+const STORE_SVGS = 'svgs_by_library';
+const LEGACY_STORE_SVGS = 'svgs';
 
 interface BitmapEntry {
   id: string;
@@ -34,7 +40,7 @@ interface SvgEntry {
   rawSvg?: string;
   structuredSvg?: string;
   timestamp: number;
-  libraryId?: string;
+  libraryId: string;
 }
 
 let dbInstance: IDBDatabase | null = null;
@@ -83,8 +89,8 @@ export const initDB = (): Promise<IDBDatabase> => {
       const oldVersion = event.oldVersion;
 
       // ── v3 → v4: add libraryId index to svgs store ──────────────────────────
-      if (oldVersion >= 1 && oldVersion < 4 && db.objectStoreNames.contains(STORE_SVGS)) {
-        const svgStore = transaction.objectStore(STORE_SVGS);
+      if (oldVersion >= 1 && oldVersion < 4 && db.objectStoreNames.contains(LEGACY_STORE_SVGS)) {
+        const svgStore = transaction.objectStore(LEGACY_STORE_SVGS);
         if (!svgStore.indexNames.contains('libraryId')) {
           svgStore.createIndex('libraryId', 'libraryId', { unique: false });
         }
@@ -114,12 +120,26 @@ export const initDB = (): Promise<IDBDatabase> => {
         bitmapStore.createIndex('libraryId', 'libraryId', { unique: false });
       }
 
-      // ── Fresh stores (new database or missing stores) ─────────────────────
+      // ── v6 → v7 and fresh databases: SVGs keyed by ['libraryId', 'id'] ──────
+      // Copied with a cursor and request callbacks inside this upgrade
+      // transaction (the v4 pattern; no promises, which is what hung v5).
+      // Entries without a library keep the v4 placeholder 'migrated'.
       if (!db.objectStoreNames.contains(STORE_SVGS)) {
-        const store = db.createObjectStore(STORE_SVGS, { keyPath: 'id' });
+        const store = db.createObjectStore(STORE_SVGS, { keyPath: ['libraryId', 'id'] });
         store.createIndex('timestamp', 'timestamp', { unique: false });
         store.createIndex('libraryId', 'libraryId', { unique: false });
+        if (db.objectStoreNames.contains(LEGACY_STORE_SVGS)) {
+          const legacyCursor = transaction.objectStore(LEGACY_STORE_SVGS).openCursor();
+          legacyCursor.onsuccess = (e) => {
+            const cursor = (e.target as IDBRequest<IDBCursorWithValue>).result;
+            if (!cursor) return;
+            store.put({ ...cursor.value, libraryId: cursor.value.libraryId || 'migrated' });
+            cursor.continue();
+          };
+        }
       }
+
+      // ── Fresh stores (new database or missing stores) ─────────────────────
 
       if (!db.objectStoreNames.contains(STORE_ROWS)) {
         const store = db.createObjectStore(STORE_ROWS, { keyPath: 'id' });
@@ -353,7 +373,7 @@ export const deleteBitmapsForLibrary = async (libraryId: string): Promise<void> 
  * the old value. The only caller in the codebase passes both fields, so
  * removing the merge is safe.)
  */
-export const saveSvgs = async (id: string, svgs: { rawSvg?: string; structuredSvg?: string }, libraryId?: string): Promise<void> => {
+export const saveSvgs = async (id: string, svgs: { rawSvg?: string; structuredSvg?: string }, libraryId: string): Promise<void> => {
   const db = await initDB();
   return new Promise((resolve, reject) => {
     const transaction = db.transaction([STORE_SVGS], 'readwrite');
@@ -368,37 +388,6 @@ export const saveSvgs = async (id: string, svgs: { rawSvg?: string; structuredSv
     const putReq = store.put(entry);
     putReq.onsuccess = () => resolve();
     putReq.onerror = () => reject(putReq.error);
-  });
-};
-
-export const getSvgs = async (id: string): Promise<{ rawSvg?: string; structuredSvg?: string } | null> => {
-  const db = await initDB();
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction([STORE_SVGS], 'readonly');
-    const store = transaction.objectStore(STORE_SVGS);
-    const request = store.get(id);
-    request.onsuccess = () => {
-      const result = request.result as SvgEntry | undefined;
-      if (!result) { resolve(null); return; }
-      resolve({ rawSvg: result.rawSvg, structuredSvg: result.structuredSvg });
-    };
-    request.onerror = () => reject(request.error);
-  });
-};
-
-export const getAllSvgs = async (): Promise<Map<string, { rawSvg?: string; structuredSvg?: string }>> => {
-  const db = await initDB();
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction([STORE_SVGS], 'readonly');
-    const store = transaction.objectStore(STORE_SVGS);
-    const request = store.getAll();
-    request.onsuccess = () => {
-      const entries = request.result as SvgEntry[];
-      const map = new Map<string, { rawSvg?: string; structuredSvg?: string }>();
-      entries.forEach(e => map.set(e.id, { rawSvg: e.rawSvg, structuredSvg: e.structuredSvg }));
-      resolve(map);
-    };
-    request.onerror = () => reject(request.error);
   });
 };
 
@@ -419,12 +408,12 @@ export const getAllSvgsForLibrary = async (libraryId: string): Promise<Map<strin
   });
 };
 
-export const deleteSvgs = async (id: string): Promise<void> => {
+export const deleteSvgs = async (id: string, libraryId: string): Promise<void> => {
   const db = await initDB();
   return new Promise((resolve, reject) => {
     const transaction = db.transaction([STORE_SVGS], 'readwrite');
     const store = transaction.objectStore(STORE_SVGS);
-    const request = store.delete(id);
+    const request = store.delete([libraryId, id]);
     request.onsuccess = () => resolve();
     request.onerror = () => reject(request.error);
   });
@@ -457,10 +446,10 @@ export const deleteSvgsForLibrary = async (libraryId: string): Promise<void> => 
 export const clearAllData = async (): Promise<void> => {
   const db = await initDB();
   return new Promise((resolve, reject) => {
-    const transaction = db.transaction([STORE_ROWS, STORE_BITMAPS, STORE_SVGS], 'readwrite');
-    transaction.objectStore(STORE_ROWS).clear();
-    transaction.objectStore(STORE_BITMAPS).clear();
-    transaction.objectStore(STORE_SVGS).clear();
+    const stores = [STORE_ROWS, STORE_BITMAPS, STORE_SVGS];
+    if (db.objectStoreNames.contains(LEGACY_STORE_SVGS)) stores.push(LEGACY_STORE_SVGS);
+    const transaction = db.transaction(stores, 'readwrite');
+    stores.forEach(name => transaction.objectStore(name).clear());
     transaction.oncomplete = () => resolve();
     transaction.onerror = () => reject(transaction.error);
   });

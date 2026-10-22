@@ -408,6 +408,7 @@
     "loadingLibrary": "Cargando {name}...",
     "templateImagesRecovered": "Se recuperaron {count} imágenes de la plantilla «{name}».",
     "libraryImportFailed": "Error al importar la biblioteca: {error}",
+    "libraryCopyFailed": "No se pudo copiar la librería con sus imágenes: {error}",
     "invalidFormat": "formato inválido",
     "unknownError": "Error desconocido",
     "libraryLoaded": "Biblioteca cargada: {count} pictogramas.",

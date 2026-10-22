@@ -496,12 +496,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
           ]);
           const hasBinaryData = bitmapsMap.size > 0 || svgsMap.size > 0;
           if (hasBinaryData) {
-            setRows((prev: RowData[]) => prev.map((row: RowData) => ({
-              ...row,
-              bitmap: bitmapsMap.get(row.id) || row.bitmap,
-              rawSvg: svgsMap.get(row.id)?.rawSvg || row.rawSvg,
-              structuredSvg: svgsMap.get(row.id)?.structuredSvg || row.structuredSvg,
-            })));
+            setRows((prev: RowData[]) => libraryService.mergeLibraryMedia(prev, bitmapsMap, svgsMap));
           }
           const seeded = new Set<string>();
           svgsMap.forEach((value, id) => {
@@ -620,7 +615,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
       });
       svgRowIdsRef.current.forEach(id => {
         if (!currentSvgIds.has(id)) {
-          IndexedDBService.deleteSvgs(id).catch(err => console.error('[save] SVG delete failed:', err));
+          IndexedDBService.deleteSvgs(id, activeLibraryId).catch(err => console.error('[save] SVG delete failed:', err));
         }
       });
       svgRowIdsRef.current = currentSvgIds;
@@ -734,12 +729,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
         IndexedDBService.getAllSvgsForLibrary(id),
       ]).then(([bitmapsMap, svgsMap]) => {
         if (bitmapsMap.size > 0 || svgsMap.size > 0) {
-          setRows(prev => prev.map((row: RowData) => ({
-            ...row,
-            bitmap: bitmapsMap.get(row.id) ?? row.bitmap,
-            rawSvg: svgsMap.get(row.id)?.rawSvg ?? row.rawSvg,
-            structuredSvg: svgsMap.get(row.id)?.structuredSvg ?? row.structuredSvg,
-          })));
+          setRows(prev => libraryService.mergeLibraryMedia(prev, bitmapsMap, svgsMap));
         }
         const seeded = new Set<string>();
         svgsMap.forEach((_v, rowId) => { seeded.add(rowId); });
@@ -886,29 +876,40 @@ const App: React.FC<AppProps> = ({ authUser }) => {
     openLibrary(lib.id);
   }, [openLibrary, t]);
 
-  const handleImportLibrary = useCallback((file: File) => {
-    file.text().then(text => {
-      try {
-        const lib = libraryService.importLibraryJson(text);
-        setLibraryIndex(libraryService.getLibraryIndex());
-        openLibrary(lib.id);
-      } catch (err) {
-        addLog('error', t('messages.libraryImportFailed', {
-          error: err instanceof Error ? err.message : t('messages.invalidFormat'),
-        }));
-      }
-    });
+  const handleImportLibrary = useCallback(async (file: File) => {
+    try {
+      const lib = await libraryService.importLibraryJson(await file.text());
+      setLibraryIndex(libraryService.getLibraryIndex());
+      openLibrary(lib.id);
+    } catch (err) {
+      addLog('error', t('messages.libraryImportFailed', {
+        error: err instanceof Error ? err.message : t('messages.invalidFormat'),
+      }));
+    }
   }, [openLibrary, t]);
 
+  // Library copies read media from IndexedDB, so they wait for any bitmap
+  // write still in flight from the last save of the library just closed.
+  const reportCopyFailure = useCallback((err: unknown) => {
+    addLog('error', t('messages.libraryCopyFailed', {
+      error: err instanceof Error ? err.message : String(err),
+    }));
+  }, [t]);
+
   const handleBackupLibraries = useCallback(async () => {
-    const blob = await libraryService.backupAllLibraries();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = libraryService.backupFilename();
-    a.click();
-    URL.revokeObjectURL(url);
-  }, []);
+    try {
+      await pendingBitmapWriteRef.current;
+      const blob = await libraryService.backupAllLibraries();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = libraryService.backupFilename();
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      reportCopyFailure(err);
+    }
+  }, [reportCopyFailure]);
 
   const handleRenameLibrary = useCallback((id: string, newName: string) => {
     libraryService.updateLibraryMeta(id, { name: newName, modifiedAt: new Date().toISOString() });
@@ -920,23 +921,33 @@ const App: React.FC<AppProps> = ({ authUser }) => {
     setLibraryIndex(libraryService.getLibraryIndex());
   }, [activeLibraryId]);
 
-  const handleDuplicateLibrary = useCallback((id: string) => {
-    libraryService.duplicateLibrary(id);
+  const handleDuplicateLibrary = useCallback(async (id: string) => {
+    try {
+      await pendingBitmapWriteRef.current;
+      await libraryService.duplicateLibrary(id);
+    } catch (err) {
+      reportCopyFailure(err);
+    }
     setLibraryIndex(libraryService.getLibraryIndex());
-  }, []);
+  }, [reportCopyFailure]);
 
-  const handleDownloadLibrary = useCallback((id: string) => {
-    const json = libraryService.exportLibraryJson(id);
-    const meta = libraryService.getLibraryIndex().find(l => l.id === id);
-    const safeName = (meta?.name ?? 'libreria').replace(/[^a-z0-9_\-]/gi, '_').toLowerCase();
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${safeName}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }, []);
+  const handleDownloadLibrary = useCallback(async (id: string) => {
+    try {
+      await pendingBitmapWriteRef.current;
+      const json = await libraryService.exportLibraryJson(id);
+      const meta = libraryService.getLibraryIndex().find(l => l.id === id);
+      const safeName = (meta?.name ?? 'libreria').replace(/[^a-z0-9_\-]/gi, '_').toLowerCase();
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${safeName}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      reportCopyFailure(err);
+    }
+  }, [reportCopyFailure]);
 
   const handleDeleteLibrary = useCallback(async (id: string) => {
     const meta = libraryService.getLibraryIndex().find(l => l.id === id);
@@ -3542,7 +3553,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
                     if (activeLibraryId) IndexedDBService.deleteBitmap(row.id, activeLibraryId).catch(err => {
                       console.error('Failed to delete bitmap from IndexedDB:', err);
                     });
-                    IndexedDBService.deleteSvgs(row.id).catch(err => {
+                    if (activeLibraryId) IndexedDBService.deleteSvgs(row.id, activeLibraryId).catch(err => {
                       console.error('Failed to delete SVG from IndexedDB:', err);
                     });
                     // Remove row from state

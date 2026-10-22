@@ -1,8 +1,12 @@
 /**
  * libraryService.ts
  *
- * Pure localStorage CRUD for the multi-library system.
- * No React hooks — safe to call from anywhere.
+ * localStorage CRUD for the multi-library system, plus the media helpers that
+ * pair it with IndexedDB. No React hooks — safe to call from anywhere.
+ *
+ * Row metadata lives in localStorage; bitmap, rawSvg and structuredSvg live in
+ * IndexedDB keyed by (libraryId, rowId). Every operation that copies a library
+ * out of or into storage (export, backup, import, duplicate) carries both.
  *
  * Storage key layout:
  *   pictonet_libraries          — LibraryMeta[]  (index)
@@ -20,6 +24,7 @@
 import JSZip from 'jszip';
 import type { RowData, GlobalConfig, LibraryMeta, Sequence, Board } from '../types';
 import { rekeyBoardsForLibrary } from './libraryTransferService';
+import * as IndexedDBService from './indexedDBService';
 
 // ── Storage keys ────────────────────────────────────────────────────────────
 
@@ -135,12 +140,12 @@ export function deleteLibrary(id: string): void {
   }
 }
 
-export function duplicateLibrary(sourceId: string): LibraryMeta {
+export async function duplicateLibrary(sourceId: string): Promise<LibraryMeta> {
   const index = getLibraryIndex();
   const source = index.find(l => l.id === sourceId);
   const sourceName = source?.name ?? 'Librería';
 
-  const rows = getLibraryRows(sourceId);
+  const rows = await getLibraryRowsWithMedia(sourceId);
   const config = getLibraryConfig(sourceId);
   const seqs = getLibrarySequences(sourceId);
   const boards = getLibraryBoards(sourceId);
@@ -149,6 +154,7 @@ export function duplicateLibrary(sourceId: string): LibraryMeta {
 
   // Overwrite with proper data (createLibrary already wrote empty rows/seqs/boards)
   saveLibraryRows(newMeta.id, rows);
+  await saveLibraryMedia(newMeta.id, rows);
   saveLibrarySequences(newMeta.id, seqs);
   saveLibraryBoards(newMeta.id, boards.map(b => ({ ...b, libraryId: newMeta.id })));
   updateLibraryMeta(newMeta.id, {
@@ -174,6 +180,37 @@ export function getLibraryRows(id: string): RowData[] {
 
 export function saveLibraryRows(id: string, rows: RowData[]): void {
   localStorage.setItem(libMetaKey(id), JSON.stringify(stripBinaryFields(rows)));
+}
+
+// ── Media (IndexedDB) ────────────────────────────────────────────────────────
+
+type SvgMap = Map<string, { rawSvg?: string; structuredSvg?: string }>;
+
+/** Attach IndexedDB media to row metadata; a field missing or empty in IDB keeps the row's value. */
+export function mergeLibraryMedia(rows: RowData[], bitmaps: Map<string, string>, svgs: SvgMap): RowData[] {
+  return rows.map(row => ({
+    ...row,
+    bitmap: bitmaps.get(row.id) || row.bitmap,
+    rawSvg: svgs.get(row.id)?.rawSvg || row.rawSvg,
+    structuredSvg: svgs.get(row.id)?.structuredSvg || row.structuredSvg,
+  }));
+}
+
+export async function getLibraryRowsWithMedia(id: string): Promise<RowData[]> {
+  const [bitmaps, svgs] = await Promise.all([
+    IndexedDBService.getAllBitmapsForLibrary(id),
+    IndexedDBService.getAllSvgsForLibrary(id),
+  ]);
+  return mergeLibraryMedia(getLibraryRows(id), bitmaps, svgs);
+}
+
+async function saveLibraryMedia(libraryId: string, rows: RowData[]): Promise<void> {
+  await IndexedDBService.saveBitmapsBatch(
+    rows.filter(r => r.bitmap).map(r => ({ id: r.id, bitmap: r.bitmap!, libraryId })),
+  );
+  await Promise.all(rows
+    .filter(r => r.rawSvg || r.structuredSvg)
+    .map(r => IndexedDBService.saveSvgs(r.id, { rawSvg: r.rawSvg, structuredSvg: r.structuredSvg }, libraryId)));
 }
 
 // ── Config ───────────────────────────────────────────────────────────────────
@@ -226,10 +263,10 @@ export function saveLibraryBoards(id: string, boards: Board[]): void {
 
 // ── Export / Import ──────────────────────────────────────────────────────────
 
-export function exportLibraryJson(id: string): string {
+export async function exportLibraryJson(id: string): Promise<string> {
   const index = getLibraryIndex();
   const meta = index.find(l => l.id === id);
-  const rows = getLibraryRows(id);
+  const rows = await getLibraryRowsWithMedia(id);
   const config = getLibraryConfig(id);
   const sequences = getLibrarySequences(id);
   const boards = getLibraryBoards(id);
@@ -246,7 +283,7 @@ export function exportLibraryJson(id: string): string {
   }, null, 2);
 }
 
-export function importLibraryJson(json: string): LibraryMeta {
+export async function importLibraryJson(json: string): Promise<LibraryMeta> {
   const data = JSON.parse(json) as {
     name?: string;
     config?: Partial<GlobalConfig>;
@@ -265,6 +302,7 @@ export function importLibraryJson(json: string): LibraryMeta {
 
   if (Array.isArray(data.rows)) {
     saveLibraryRows(meta.id, data.rows);
+    await saveLibraryMedia(meta.id, data.rows);
     updateLibraryMeta(meta.id, { pictogramCount: data.rows.length });
   }
 
@@ -288,7 +326,7 @@ export async function backupAllLibraries(): Promise<Blob> {
   const zip = new JSZip();
 
   for (const lib of index) {
-    const json = exportLibraryJson(lib.id);
+    const json = await exportLibraryJson(lib.id);
     const filename = `${sanitizeFilename(lib.name) || lib.id}.json`;
     zip.file(filename, json);
   }

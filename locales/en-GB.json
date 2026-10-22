@@ -407,6 +407,7 @@
     "allCleared": "All nodes and logs have been cleared.",
     "loadingLibrary": "Loading {name}...",
     "templateImagesRecovered": "Recovered {count} images from the “{name}” template.",
+    "libraryCopyFailed": "Could not copy the library with its images: {error}",
     "libraryImportFailed": "Library import failed: {error}",
     "invalidFormat": "invalid format",
     "unknownError": "Unknown error",
