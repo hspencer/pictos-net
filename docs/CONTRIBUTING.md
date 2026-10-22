@@ -11,10 +11,11 @@ git clone https://github.com/hspencer/pictos-net.git
 cd pictos-net
 ```
 
-Los tres productos canónicos se editan dentro de `schemas/nlu-schema`,
-`schemas/pictogram-composition-schema` y `schemas/mf-svg-schema`, como directorios
+Los cuatro productos canónicos se editan dentro de `schemas/pictos-nlu-schema`,
+`schemas/pictos-composition-schema`, `schemas/pictos-svg-schema` y
+`schemas/pictos-api-schema`, como directorios
 normales con el mismo flujo de exportación trazable. No se inicializan submódulos ni se importa la copia hermana
-`../nlu-schema`.
+`../pictos-nlu-schema`.
 
 ### 2. Instalación de Dependencias
 
@@ -114,7 +115,7 @@ Si encuentras errores de API:
 4. Prepara una preview local o una exportación desde un commit concreto siguiendo
    [SCHEMA_PUBLICATION.md](SCHEMA_PUBLICATION.md).
 
-Los cambios externos se revisan e incorporan primero a PictoNet. Nunca ejecutar
+Los cambios externos se revisan e incorporan primero a PICTOS. Nunca ejecutar
 `git submodule update --remote` para actualizar estos productos.
 
 `npm run copy-schemas` copia los contratos JSON públicos y prepara recursos locales;

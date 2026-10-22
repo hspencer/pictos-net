@@ -1,7 +1,7 @@
 import type { RowData, SvgEditorSource, SvgStructureDiagnostic } from '../types';
-import { assertSemanticInputs, assertValidSVG, createSvgReference, reviseSVG, inspectPassiveSVG } from '../schemas/mf-svg-schema/index.js';
-import { validateGeneration } from '../schemas/nlu-schema/index.js';
-import { validateDocument as validateComposition } from '../schemas/pictogram-composition-schema/index.js';
+import { assertSemanticInputs, assertValidSVG, createSvgReference, reviseSVG, inspectPassiveSVG } from '../schemas/pictos-svg-schema/index.js';
+import { validateGeneration } from '../schemas/pictos-nlu-schema/index.js';
+import { validateDocument as validateComposition } from '../schemas/pictos-composition-schema/index.js';
 
 export interface SvgStructureEligibility {
   eligible: boolean;

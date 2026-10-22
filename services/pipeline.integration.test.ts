@@ -85,7 +85,7 @@ function buildNluSystem(lang: string): string {
         ? 'Genera frame_label como traducción al español del frame_name.'
         : 'Generate frame_label as the English label for the frame_name.';
 
-    return `Operas como el nodo "NLU Schema Engine" en la arquitectura PictoNet.
+    return `Operas como el nodo "NLU Schema Engine" en la arquitectura PICTOS.
 Tu tarea es analizar la intención comunicativa y devolver el resultado JSON vía la herramienta disponible.
 
 Contexto de uso:
@@ -108,7 +108,7 @@ Reglas:
 
 function buildVisualSystem(lang: string): string {
     const availableClasses = '.main, .secondary, .tertiary, .accent, .red, .green, .dashed, .glow, .anim-blink, .anim-beat, .anim-swing';
-    return `You are the "Visual Topology Node" in the PictoNet graph.
+    return `You are the "Visual Topology Node" in the PICTOS graph.
 Translate the semantic NLU graph into a list of visual child elements and a spatial prompt.
 
 Language context: **${lang}**

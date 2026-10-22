@@ -6,8 +6,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
-import { validateDocument as validateNlu, validateGeneration, VERSION as NLU_VERSION } from '../schemas/nlu-schema/index.js';
-import { validateDocument as validateComposition, VERSION as COMPOSITION_VERSION } from '../schemas/pictogram-composition-schema/index.js';
+import { validateDocument as validateNlu, validateGeneration, VERSION as NLU_VERSION } from '../schemas/pictos-nlu-schema/index.js';
+import { validateDocument as validateComposition, VERSION as COMPOSITION_VERSION } from '../schemas/pictos-composition-schema/index.js';
 import { canonicalJson } from '../netlify/functions/_shared/pipelineContracts.js';
 
 const hash = value => createHash('sha256').update(value).digest('hex');

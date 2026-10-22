@@ -10,7 +10,7 @@
 
 ## 1. Overview
 
-This document describes how the MediaFranca SVG Schema integrates with the Natural Language Understanding (NLU) pipeline, particularly the `mediafranca/nlu-schema`. The integration ensures that the linguistic analysis performed during utterance decomposition is faithfully represented in the SVG's DOM structure and metadata.
+This document describes how the MediaFranca SVG Schema integrates with the Natural Language Understanding (NLU) pipeline, particularly the `mediafranca/pictos-nlu-schema`. The integration ensures that the linguistic analysis performed during utterance decomposition is faithfully represented in the SVG's DOM structure and metadata.
 
 ---
 
@@ -21,13 +21,13 @@ This document describes how the MediaFranca SVG Schema integrates with the Natur
 ```
 User Utterance
     ↓
-[1] NLU Analysis (mediafranca/nlu-schema)
+[1] NLU Analysis (mediafranca/pictos-nlu-schema)
     ↓
 [2] NSM Decomposition (Semantic Primes)
     ↓
 [3] Concept-Role Mapping
     ↓
-[4] PictoNet Generation (Visual Synthesis)
+[4] PICTOS Generation (Visual Synthesis)
     ↓
 [5] SVG Structuring (mediafranca/svg-schema)
     ↓
@@ -320,11 +320,11 @@ Use an explicit Action (with its own `<g id="g-action">`) when:
 
 ---
 
-## 6. Integration with `mediafranca/nlu-schema`
+## 6. Integration with `mediafranca/pictos-nlu-schema`
 
 ### 6.1 Schema Alignment
 
-The `metadata.concepts` array is designed to accept output directly from the `mediafranca/nlu-schema` pipeline, with minimal transformation.
+The `metadata.concepts` array is designed to accept output directly from the `mediafranca/pictos-nlu-schema` pipeline, with minimal transformation.
 
 **Expected NLU output format:**
 ```json
@@ -394,7 +394,7 @@ The `metadata.provenance.sourceDataset` field should reference the NLU model ver
 ```json
 {
   "provenance": {
-    "generator": "PictoNet v2.1",
+    "generator": "PICTOS v2.1",
     "generatedAt": "2026-01-27T14:00:00Z",
     "sourceDataset": "mediafranca-nlu-v1.2"
   }
@@ -411,7 +411,7 @@ The `metadata.provenance.sourceDataset` field should reference the NLU model ver
 
 ### 7.2 NLU Analysis
 
-**Output from `mediafranca/nlu-schema`:**
+**Output from `mediafranca/pictos-nlu-schema`:**
 ```json
 {
   "utterance": "I want water",
@@ -429,7 +429,7 @@ The `metadata.provenance.sourceDataset` field should reference the NLU model ver
 }
 ```
 
-### 7.3 PictoNet Visual Synthesis
+### 7.3 PICTOS Visual Synthesis
 
 **Visual concepts generated:**
 - A person (Experiencer)
@@ -471,7 +471,7 @@ The `metadata.provenance.sourceDataset` field should reference the NLU model ver
     "visualDescription": "A person with a thought bubble showing a glass of water"
   },
   "provenance": {
-    "generator": "PictoNet v2.1",
+    "generator": "PICTOS v2.1",
     "generatedAt": "2026-01-27T15:00:00Z",
     "sourceDataset": "mediafranca-nlu-v1.2"
   },
@@ -521,7 +521,7 @@ The `metadata.provenance.sourceDataset` field should reference the NLU model ver
 3. **Document role assignment logic** for edge cases
 4. **Version your NLU models** and record in `provenance.sourceDataset`
 
-### 8.2 For PictoNet Developers
+### 8.2 For PICTOS Developers
 
 1. **Consume NLU output directly** with minimal transformation
 2. **Generate unique, descriptive IDs** for SVG groups (e.g., `person-agent`, `water-theme`)
@@ -540,7 +540,7 @@ The `metadata.provenance.sourceDataset` field should reference the NLU model ver
 
 - **NSM Database**: [Natural Semantic Metalanguage Homepage](https://nsm-approach.net/)
 - **Dependency Parsing**: Universal Dependencies (UD) framework
-- **MediaFranca NLU Schema**: `mediafranca/nlu-schema` repository
+- **MediaFranca NLU Schema**: `mediafranca/pictos-nlu-schema` repository
 
 ---
 

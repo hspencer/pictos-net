@@ -29,7 +29,7 @@
   timeout = 26
 
 # Machine API v1 (service credentials, no CORS). One synchronous function per
-# phase; contracts in schemas/pictos-api, published under /schemas/pictos-api/.
+# phase; contracts in schemas/pictos-api-schema, published under /schemas/pictos-api/.
 [[redirects]]
   from = "/api/v1/comprender"
   to = "/.netlify/functions/api-v1-comprender"
@@ -41,6 +41,24 @@
   to = "/.netlify/functions/api-v1-componer"
   status = 200
   force = true
+
+# Schema products were renamed to pictos-* on 2026-10-22. Old product paths
+# move permanently; not forced, so the frozen SVG 1.0 file that still lives at
+# /schemas/mf-svg-schema/schemas/metadata.schema.json keeps being served as is.
+[[redirects]]
+  from = "/schemas/nlu-schema/*"
+  to = "/schemas/pictos-nlu-schema/:splat"
+  status = 301
+
+[[redirects]]
+  from = "/schemas/pictogram-composition-schema/*"
+  to = "/schemas/pictos-composition-schema/:splat"
+  status = 301
+
+[[redirects]]
+  from = "/schemas/mf-svg-schema/*"
+  to = "/schemas/pictos-svg-schema/:splat"
+  status = 301
 
 [[redirects]]
   from = "/*"

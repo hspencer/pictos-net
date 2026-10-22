@@ -1,12 +1,12 @@
 {
-  "name": "@mediafranca/mf-svg-schema",
+  "name": "@mediafranca/pictos-svg-schema",
   "version": "2.0.0-draft.1",
   "private": true,
   "type": "module",
   "license": "CC-BY-4.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/mediafranca/mf-svg-schema.git"
+    "url": "https://github.com/mediafranca/pictos-svg-schema.git"
   },
   "main": "./index.js",
   "exports": {

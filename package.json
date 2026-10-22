@@ -1,5 +1,5 @@
 {
-  "name": "pictos.net",
+  "name": "pictos",
   "private": true,
   "version": "2.6.3",
   "type": "module",
@@ -14,7 +14,7 @@
     "copy-schemas": "sh scripts/copy-submodule-data.sh",
     "optimize-thumbs": "node scripts/optimize-thumbs.mjs",
     "postinstall": "npm run copy-schemas",
-    "test:schemas": "npm test --prefix schemas/nlu-schema && npm test --prefix schemas/pictogram-composition-schema && npm test --prefix schemas/mf-svg-schema && npm run check:sync --prefix schemas/mf-svg-schema"
+    "test:schemas": "npm test --prefix schemas/pictos-nlu-schema && npm test --prefix schemas/pictos-composition-schema && npm test --prefix schemas/pictos-svg-schema && npm run check:sync --prefix schemas/pictos-svg-schema"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.100.1",

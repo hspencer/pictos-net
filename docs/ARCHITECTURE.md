@@ -1,4 +1,4 @@
-# PICTOS.NET — Documentación de Arquitectura
+# PICTOS — Documentación de Arquitectura
 
 **Pictogramas generativos para la Comunicación Aumentativa y Alternativa (CAA)**
 
@@ -19,7 +19,7 @@ Actualizado: 2026-07-23
 
 ## 1. Visión general
 
-PICTOS.NET transforma intenciones comunicativas en lenguaje natural en pictogramas SVG semánticos mediante un pipeline de razonamiento en 4 fases. Es una herramienta de investigación doctoral orientada a profesionales de la CAA (fonoaudiólogos, educadores especiales, psicólogos) que trabajan con personas con diversidad funcional comunicativa.
+PICTOS transforma intenciones comunicativas en lenguaje natural en pictogramas SVG semánticos mediante un pipeline de razonamiento en 4 fases. Es una herramienta de investigación doctoral orientada a profesionales de la CAA (fonoaudiólogos, educadores especiales, psicólogos) que trabajan con personas con diversidad funcional comunicativa.
 
 ### Principios de diseño
 
@@ -98,9 +98,9 @@ pictos-net/
 │   └── edge-functions/            # (reservado)
 │
 ├── schemas/                       # Fuentes canónicas, directorios normales
-│   ├── nlu-schema/                # Contratos NLU versionados + validadores + tests
-│   ├── pictogram-composition-schema/ # Contrato de composición + tests
-│   ├── mf-svg-schema/             # Esquema para pictogramas SVG estructurados
+│   ├── pictos-nlu-schema/                # Contratos NLU versionados + validadores + tests
+│   ├── pictos-composition-schema/ # Contrato de composición + tests
+│   ├── pictos-svg-schema/             # Esquema para pictogramas SVG estructurados
 │   └── ICAP/                      # Recurso histórico opcional (puede no existir)
 │
 ├── public/
@@ -151,7 +151,7 @@ flowchart TD
 
     RAW -->|usuario inicia| F4["(4) ESTRUCTURAR — Claude Sonnet Vision<br><i>medición local + set-of-marks + ensamblaje local<br>+ pulido determinístico — ver docs/ESTRUCTURAR.md</i>"]
     ELEM -.->|"DOM objetivo + concept"| F4
-    F4 --> STRUCT["structuredSvg<br><i>mf-svg-schema · grupos semánticos<br>data-concept congruente con NLU</i>"]
+    F4 --> STRUCT["structuredSvg<br><i>pictos-svg-schema · grupos semánticos<br>data-concept congruente con NLU</i>"]
 ```
 
 ### Acumulación en RowData
@@ -187,7 +187,7 @@ interface RowData {
   prompt?: string;
   bitmap?: string;               // base64 (solo modelos Gemini imagen)
   rawSvg?: string;               // output fase 3, sin semántica
-  structuredSvg?: string;        // output mf-svg-schema, autocontenido
+  structuredSvg?: string;        // output pictos-svg-schema, autocontenido
   shared?: boolean;
 
   nluStatus: StepStatus;
@@ -202,7 +202,7 @@ interface RowData {
 type StepStatus = 'idle' | 'processing' | 'completed' | 'error' | 'outdated';
 ```
 
-### NLUData (nlu-schema v1.0)
+### NLUData (pictos-nlu-schema v1.0)
 
 ```typescript
 interface NLUData {
@@ -381,7 +381,7 @@ Necesarias en `.env` para desarrollo local. En producción se inyectan en Netlif
   uiLang: 'es-419',
   generationModel: 'gemini-2.5-flash-image',
   phase5Model: 'claude-sonnet-4-6',
-  author: 'PICTOS.NET',
+  author: 'PICTOS',
   license: 'CC BY 4.0',
   visualStylePrompt: 'Siluetas sobre fondo blanco plano...',
   geoContext: { lat: '-33.4489', lng: '-70.6693', region: 'Santiago, CL' }
@@ -410,7 +410,7 @@ Flujo: `dev` → `main` (fast-forward).
 
 ### Productos de esquemas
 
-PictoNet es la fuente canónica de NLU, composición y SVG semántico. Los tres se desarrollan y
+PICTOS es la fuente canónica de NLU, composición y SVG semántico. Los tres se desarrollan y
 comitean en `schemas/` como parte del repositorio. La exportación independiente
 conserva sus archivos, pruebas y versiones, y registra el commit fuente y hashes.
 No se usan gitlinks ni actualizaciones automáticas desde repositorios externos.

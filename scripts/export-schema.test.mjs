@@ -7,7 +7,7 @@ import { execFileSync } from 'node:child_process';
 import { exportSchema } from './export-schema.mjs';
 import { fileURLToPath } from 'node:url';
 
-function fixture(t, product = 'nlu-schema') {
+function fixture(t, product = 'pictos-nlu-schema') {
   const base = fs.mkdtempSync(path.join(os.tmpdir(), 'schema-export-test-'));
   t.after(() => fs.rmSync(base, { recursive: true, force: true }));
   const repoRoot = path.join(base, 'repo');
@@ -45,7 +45,7 @@ test('preview is deterministic, visibly dirty and excludes secrets, corpus, depe
   assert.deepEqual(one.manifest.files.map(file => file.path), ['README.md', 'example.schema.json', 'package.json', 'tests/valid.json']);
   assert.equal(fs.existsSync(path.join(f.repoRoot, 'PWNED')), false);
   assert.throws(() => exportSchema({ ...f, ref: undefined, output: one.directory }), /EEXIST/);
-  assert.throws(() => exportSchema({ ...f, product: '../nlu-schema' }), /Unknown/);
+  assert.throws(() => exportSchema({ ...f, product: '../pictos-nlu-schema' }), /Unknown/);
   assert.throws(() => exportSchema({ ...f, ref: undefined, output: path.join(f.repoRoot, 'export') }), /outside/);
 });
 
@@ -88,7 +88,7 @@ test('credential markers in allowed files reject export before output creation',
 });
 
 test('SVG product exports only reviewed legacy resources in both preview and committed modes', t => {
-  const f = fixture(t, 'mf-svg-schema');
+  const f = fixture(t, 'pictos-svg-schema');
   const reviewed = ['requirements.txt', 'schemas/metadata.schema.json', 'schemas/styles.css', 'tools/validator.py', 'examples/canonical.svg', 'examples/v2example.svg'];
   const unreviewed = ['schemas/private.schema.json', 'tools/private.py', 'examples/private.svg', 'examples/corpus.svg'];
   for (const name of [...reviewed, ...unreviewed]) {
@@ -103,7 +103,7 @@ test('SVG product exports only reviewed legacy resources in both preview and com
     const files = result.manifest.files.map(file => file.path);
     for (const name of reviewed) assert.ok(files.includes(name), `${mode}: ${name}`);
     for (const name of unreviewed) assert.ok(!files.includes(name), `${mode}: ${name}`);
-    assert.equal(result.manifest.product, '@mediafranca/mf-svg-schema');
+    assert.equal(result.manifest.product, '@mediafranca/pictos-svg-schema');
   }
   fs.symlinkSync('/etc/passwd', path.join(f.source, 'tools', 'symlink.py'));
   assert.throws(() => exportSchema({ ...f, ref: undefined }), /Symlink/);
@@ -111,13 +111,13 @@ test('SVG product exports only reviewed legacy resources in both preview and com
 
 test('public schema copy includes all three contracts, preserves unrelated files and rejects SVG symlinks', t => {
   const f = fixture(t);
-  for (const product of ['pictogram-composition-schema', 'mf-svg-schema']) {
+  for (const product of ['pictos-composition-schema', 'pictos-svg-schema']) {
     const directory = path.join(f.repoRoot, 'schemas', product);
     fs.mkdirSync(directory, { recursive: true });
     fs.writeFileSync(path.join(directory, 'current.schema.json'), '{"type":"object"}');
     fs.writeFileSync(path.join(directory, 'README.md'), 'not a public contract');
   }
-  const legacy = path.join(f.repoRoot, 'schemas', 'mf-svg-schema', 'schemas');
+  const legacy = path.join(f.repoRoot, 'schemas', 'pictos-svg-schema', 'schemas');
   fs.mkdirSync(legacy);
   fs.writeFileSync(path.join(legacy, 'metadata.schema.json'), '{"title":"frozen"}');
   fs.mkdirSync(path.join(f.repoRoot, 'scripts'));
@@ -129,9 +129,10 @@ test('public schema copy includes all three contracts, preserves unrelated files
   const copy = () => execFileSync('sh', [script], { cwd: f.repoRoot, stdio: ['ignore', 'pipe', 'pipe'] });
   copy();
   assert.equal(fs.readFileSync(path.join(f.repoRoot, 'public', 'keep.txt'), 'utf8'), 'unrelated content');
+  // The frozen SVG 1.0 contract keeps the URL it had before the pictos-* rename.
   assert.equal(fs.readFileSync(path.join(f.repoRoot, 'public', 'schemas', 'mf-svg-schema', 'schemas', 'metadata.schema.json'), 'utf8'), '{"title":"frozen"}');
-  for (const product of ['nlu-schema', 'pictogram-composition-schema', 'mf-svg-schema']) {
-    const contract = product === 'nlu-schema' ? 'example.schema.json' : 'current.schema.json';
+  for (const product of ['pictos-nlu-schema', 'pictos-composition-schema', 'pictos-svg-schema']) {
+    const contract = product === 'pictos-nlu-schema' ? 'example.schema.json' : 'current.schema.json';
     assert.ok(fs.existsSync(path.join(f.repoRoot, 'public', 'schemas', product, contract)));
     assert.equal(fs.existsSync(path.join(f.repoRoot, 'public', 'schemas', product, 'README.md')), false);
   }

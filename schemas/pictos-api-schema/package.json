@@ -1,11 +1,11 @@
 {
-  "name": "@mediafranca/pictos-api",
+  "name": "@mediafranca/pictos-api-schema",
   "version": "1.0.0",
   "description": "JSON Schemas for the PICTOS machine API v1 (comprender, componer) and draft boundaries for producir and estructurar",
   "license": "CC-BY-4.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/mediafranca/pictos-api.git"
+    "url": "https://github.com/mediafranca/pictos-api-schema.git"
   },
   "homepage": "https://pictos.net/schemas/pictos-api/",
   "private": true

@@ -1,4 +1,4 @@
-# CLAUDE.md — PICTOS.NET v2.0
+# CLAUDE.md — PICTOS v2.0
 
 ## Quick Reference
 
@@ -35,7 +35,7 @@ Gemini image models deliver native SVG output so VTracer is no longer needed.
 - **Services**: `services/claudeService.ts` (phases 1-2), `services/geminiService.ts` (phase 3, default), `services/recraftService.ts` (phase 3, Recraft fallback), `services/svgStructureService.ts` (phase 4)
 - **API**: `services/aiClient.ts` — always-proxy client. All calls go through Netlify Functions (`callClaude`, `callRecraft`). No API key ever reaches the browser.
 - **Functions**: `netlify/functions/api-claude.js` (phases 1,2,4), `netlify/functions/api-gemini-worker-background.js` + `api-gemini-poll.js` (phase 3, default), `netlify/functions/api-recraft.js` (phase 3, Recraft fallback)
-- **Machine API v1**: `netlify/functions/api-v1-comprender.js`, `api-v1-componer.js` (routes `/api/v1/*`) — thin shells over `_shared/apiV1.js` → `runPhase1`/`runPhase2`; revocable service credentials (`_shared/serviceCredentials.js`, CLI `scripts/service-credentials.mjs`), idempotency, contracts in `schemas/pictos-api/`. Producir/Estructurar are draft contracts only. Reference: docs/API_V1.md
+- **Machine API v1**: `netlify/functions/api-v1-comprender.js`, `api-v1-componer.js` (routes `/api/v1/*`) — thin shells over `_shared/apiV1.js` → `runPhase1`/`runPhase2`; revocable service credentials (`_shared/serviceCredentials.js`, CLI `scripts/service-credentials.mjs`), idempotency, contracts in `schemas/pictos-api-schema/`. Producir/Estructurar are draft contracts only. Reference: docs/API_V1.md
 - **State**: Zustand for SVG editor, localStorage for metadata, IndexedDB for binary (SVGs)
 - **Main orchestrator**: `App.tsx` — processCascade, processStep, row management
 
@@ -62,7 +62,7 @@ Gemini image models deliver native SVG output so VTracer is no longer needed.
 - Input: rawSvg + elements + NLU + GlobalConfig
 - Method: local measurement (real anchors via getBBox+CTM, merge candidates via bbox IoU) → set-of-marks rasterization (anti-collision + leader lines) → vision call → local path assembly (safety nets) → deterministic polish (selective curve refit + coordinate rounding)
 - Geometry never leaves the browser and is never model-authored
-- Output: mf-svg-schema compliant SVG with semantic groups, `data-concept` congruent with NLU, and accessibility metadata
+- Output: pictos-svg-schema compliant SVG with semantic groups, `data-concept` congruent with NLU, and accessibility metadata
 - Full reference: docs/ESTRUCTURAR.md
 - Model selectable via `GlobalConfig.phase5Model`: `claude-sonnet-4-6` (default since 2026-07-18 — finest visual judgment in the pipeline, low volume), `claude-opus-4-6`, `gemini-2.5-pro`, `gemini-2.5-flash`. `gemini-2.0-flash` removed 2026-06-13 (404 in `pictos-vertex`, all regions). Claude models route to `api-claude`, `gemini-*` to `api-gemini-structure`.
 

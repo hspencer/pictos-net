@@ -1,5 +1,5 @@
 -- allium: 3
--- Schema products evolve from empirical work inside PictoNet. This describes
+-- Schema products evolve from empirical work inside PICTOS. This describes
 -- the release contract, not a claim that remote publication has happened.
 
 ------------------------------------------------------------
@@ -32,8 +32,9 @@ contract CanonicalSchemaProducts {
     preview: (revision: SchemaRevision) -> String
 
     @invariant LocalAuthority
-        -- schemas/nlu-schema, schemas/pictogram-composition-schema and
-        -- schemas/mf-svg-schema within PictoNet are canonical product sources.
+        -- schemas/pictos-nlu-schema, schemas/pictos-composition-schema,
+        -- schemas/pictos-svg-schema and schemas/pictos-api-schema within PICTOS
+        -- are canonical product sources.
         -- They are authored and committed here, not tracked as submodules.
         -- Standalone repositories
         -- under mediafranca are independently consumable projections. An
@@ -54,7 +55,7 @@ contract CanonicalSchemaProducts {
 
     @invariant PortableSvgContractsStaySynchronized
         -- The mf-svg product bundles the exact versioned NLU and composition
-        -- definitions needed to validate embedded payloads without PictoNet or
+        -- definitions needed to validate embedded payloads without PICTOS or
         -- network access. Tests compare these bundled definitions with their
         -- canonical local products; copying them does not create another
         -- independently editable authority. Schema resolution never falls back
@@ -70,7 +71,7 @@ contract CanonicalSchemaProducts {
         -- Export contains only the product's reviewed allowlist. Symlinks,
         -- traversal paths, secrets and files outside the canonical product
         -- boundary fail closed. An exported product validates independently
-        -- of PictoNet's application checkout; an application-only passing test
+        -- of PICTOS's application checkout; an application-only passing test
         -- does not establish independent product validity.
 }
 
@@ -141,20 +142,20 @@ entity PublicationReceipt {
 
 default SchemaProduct nlu = {
     name: nlu_schema,
-    canonical_path: "schemas/nlu-schema",
-    target_repository: "mediafranca/nlu-schema"
+    canonical_path: "schemas/pictos-nlu-schema",
+    target_repository: "mediafranca/pictos-nlu-schema"
 }
 
 default SchemaProduct composition = {
     name: pictogram_composition_schema,
-    canonical_path: "schemas/pictogram-composition-schema",
-    target_repository: "mediafranca/pictogram-composition-schema"
+    canonical_path: "schemas/pictos-composition-schema",
+    target_repository: "mediafranca/pictos-composition-schema"
 }
 
 default SchemaProduct structured_svg = {
     name: mf_svg_schema,
-    canonical_path: "schemas/mf-svg-schema",
-    target_repository: "mediafranca/mf-svg-schema"
+    canonical_path: "schemas/pictos-svg-schema",
+    target_repository: "mediafranca/pictos-svg-schema"
 }
 
 ------------------------------------------------------------

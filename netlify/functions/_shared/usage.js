@@ -1,6 +1,6 @@
 import { MODEL_CATALOG as PROVIDER_MODELS } from './modelCatalog.js';
 /**
- * Usage tracking and quota enforcement for PictoNet Netlify Functions.
+ * Usage tracking and quota enforcement for PICTOS Netlify Functions.
  *
  * Uses Netlify Blobs (no external service required).
  *
@@ -32,7 +32,7 @@ export const MODEL_CATALOG = Object.fromEntries(Object.entries(PROVIDER_MODELS).
   label: model.label,
   phaseLabel: model.phases.map(phase => ({ 1: 'Comprender', 2: 'Componer', 3: 'Producir', 5: 'Estructurar' })[phase]).join(' + '),
   description: model.pricing.kind === 'tokens'
-    ? 'API de texto/visión; coste según tokens reales, sin unidades internas de PictoNet'
+    ? 'API de texto/visión; coste según tokens reales, sin unidades internas de PICTOS'
     : model.output === 'vector' ? 'Generación de SVG nativo (fase 3)' : 'Generación de imagen bitmap (fase 3)',
 }]));
 

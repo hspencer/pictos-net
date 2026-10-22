@@ -185,7 +185,7 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ t, lang, onClose, onS
 /* ── Step 1: Bienvenida ── */
 const Step1: React.FC<{ t: TFunc }> = ({ t }) => (
   <div className="flex flex-col items-center text-center py-4">
-    <img src="/pictos-iso.svg" alt="PICTOS.net" className="w-24 h-24 mb-6" />
+    <img src="/pictos-iso.svg" alt="PICTOS" className="w-24 h-24 mb-6" />
     <h1 className="text-3xl font-semibold text-slate-900 mb-2 leading-tight">
       {t('onboarding.step1.title')}
     </h1>

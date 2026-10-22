@@ -1,7 +1,7 @@
 # MediaFranca semantic SVG schema — 2.0.0-draft.1
 
 This product defines a portable, self-contained SVG revision for AAC pictograms.
-Its canonical development source is `schemas/mf-svg-schema` inside PictoNet
+Its canonical development source is `schemas/pictos-svg-schema` inside PICTOS
 (`hspencer/pictos-net`).
 The independent repository is an export of that source, not an upstream copy
 that overwrites empirical work in the platform. Publication remains approval gated.
@@ -16,7 +16,7 @@ known provenance. Unknown origin, model, licence or human review is not invented
 
 `metadata-2.0.0-draft.1.schema.json` contains both canonical contracts in `$defs`.
 `scripts/sync-contracts.js --check` compares those definitions with the canonical
-sibling products during PictoNet development. Standalone validation never fetches
+sibling products during PICTOS development. Standalone validation never fetches
 those definitions from another checkout or the network.
 
 Every composition element except the synthetic Root must have either a real
@@ -49,7 +49,7 @@ required in the browser, and the platform's Content Security Policy is unchanged
 Tests check that generated validators still correspond to the packaged contracts.
 
 ```js
-import { validateSVG, createSvgReference, verifySvgReference } from '@mediafranca/mf-svg-schema';
+import { validateSVG, createSvgReference, verifySvgReference } from '@mediafranca/pictos-svg-schema';
 const result = validateSVG(svg);
 const reference = await createSvgReference(svg); // validates first
 const matches = await verifySvgReference(svg, reference);
@@ -94,7 +94,7 @@ SVG. To change canonical styling, save and validate a new revision.
 
 The original `schemas/metadata.schema.json`, `examples/canonical.svg` and LICENSE
 are byte-frozen in `FROZEN_RELEASES.json`. Their historical content is not relabelled
-as v2. The duplicate `lib/mf-schema` directory in PictoNet is a legacy snapshot;
+as v2. The duplicate `lib/mf-schema` directory in PICTOS is a legacy snapshot;
 new development and schema aliases point here.
 
 The Python CLI remains available for the historical profile:

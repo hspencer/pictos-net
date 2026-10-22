@@ -23,15 +23,15 @@ import { verifyServiceCredential, chargeServiceCall } from './serviceCredentials
 import {
   IDEMPOTENCY_KEY_PATTERN, requestFingerprint, beginIdempotent, completeIdempotent, abandonIdempotent,
 } from './idempotency.js';
-import { generationSchema, documentSchema as nluDocumentSchema } from '../../../schemas/nlu-schema/index.js';
-import { documentSchema as compositionDocumentSchema, providerSchema as compositionProviderSchema } from '../../../schemas/pictogram-composition-schema/index.js';
-import commonSchema from '../../../schemas/pictos-api/pictos-api-common-1.0.0.schema.json' with { type: 'json' };
-import comprenderRequestSchema from '../../../schemas/pictos-api/pictos-api-comprender-request-1.0.0.schema.json' with { type: 'json' };
-import comprenderResponseSchema from '../../../schemas/pictos-api/pictos-api-comprender-response-1.0.0.schema.json' with { type: 'json' };
-import componerRequestSchema from '../../../schemas/pictos-api/pictos-api-componer-request-1.0.0.schema.json' with { type: 'json' };
-import componerResponseSchema from '../../../schemas/pictos-api/pictos-api-componer-response-1.0.0.schema.json' with { type: 'json' };
-import producirDraftSchema from '../../../schemas/pictos-api/pictos-api-producir-0.1.0-draft.schema.json' with { type: 'json' };
-import estructurarDraftSchema from '../../../schemas/pictos-api/pictos-api-estructurar-0.1.0-draft.schema.json' with { type: 'json' };
+import { generationSchema, documentSchema as nluDocumentSchema } from '../../../schemas/pictos-nlu-schema/index.js';
+import { documentSchema as compositionDocumentSchema, providerSchema as compositionProviderSchema } from '../../../schemas/pictos-composition-schema/index.js';
+import commonSchema from '../../../schemas/pictos-api-schema/pictos-api-common-1.0.0.schema.json' with { type: 'json' };
+import comprenderRequestSchema from '../../../schemas/pictos-api-schema/pictos-api-comprender-request-1.0.0.schema.json' with { type: 'json' };
+import comprenderResponseSchema from '../../../schemas/pictos-api-schema/pictos-api-comprender-response-1.0.0.schema.json' with { type: 'json' };
+import componerRequestSchema from '../../../schemas/pictos-api-schema/pictos-api-componer-request-1.0.0.schema.json' with { type: 'json' };
+import componerResponseSchema from '../../../schemas/pictos-api-schema/pictos-api-componer-response-1.0.0.schema.json' with { type: 'json' };
+import producirDraftSchema from '../../../schemas/pictos-api-schema/pictos-api-producir-0.1.0-draft.schema.json' with { type: 'json' };
+import estructurarDraftSchema from '../../../schemas/pictos-api-schema/pictos-api-estructurar-0.1.0-draft.schema.json' with { type: 'json' };
 
 export const API_VERSION = 'v1';
 export const EXECUTOR = 'pictos.net';

@@ -15,7 +15,7 @@
 --   - The polygon/Bezier clipping algorithm (library-provided black box)
 --   - Undo/redo machinery (inherited from the editor's history)
 --   - Vectorization itself (Phase 4, separate spec)
--- Dependencies: SVG editor selection model, mf-svg-schema semantic tree,
+-- Dependencies: SVG editor selection model, pictos-svg-schema semantic tree,
 --   two-level CSS model (see docs/CSS_STYLING_ARCHITECTURE.md).
 
 ------------------------------------------------------------

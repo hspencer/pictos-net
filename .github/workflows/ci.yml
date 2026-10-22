@@ -32,9 +32,12 @@ jobs:
         shell: bash
         run: |
           source_commit=$(git rev-parse HEAD)
-          for product in nlu-schema pictogram-composition-schema mf-svg-schema; do
+          for product in pictos-nlu-schema pictos-composition-schema pictos-svg-schema; do
             target="$RUNNER_TEMP/$product"
             node scripts/export-schema.mjs committed "$product" --ref "$source_commit" --output "$target"
             npm ci --prefix "$target" --ignore-scripts
             npm test --prefix "$target"
           done
+          # The API contracts are tested by the root suite (apiV1.test.mjs); here
+          # only the export itself is checked (allowlist and credential scan).
+          node scripts/export-schema.mjs committed pictos-api-schema --ref "$source_commit" --output "$RUNNER_TEMP/pictos-api-schema"

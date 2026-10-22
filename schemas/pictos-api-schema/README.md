@@ -8,7 +8,7 @@ who produced it.
 ## Canonical source
 
 Canonical development lives inside `hspencer/pictos-net`, at
-`schemas/pictos-api`, next to the endpoints that implement these contracts. This
+`schemas/pictos-api-schema`, next to the endpoints that implement these contracts. This
 repository is a one-way export of that directory; changes are proposed there.
 The endpoint reference is `docs/API_V1.md` in that repository.
 
@@ -23,8 +23,8 @@ The endpoint reference is `docs/API_V1.md` in that repository.
 | `pictos-api-estructurar-0.1.0-draft` | draft, no endpoint | Future `estructurar` boundary |
 
 The phase artifacts are the PICTOS native contracts, published separately:
-`pictonet-nlu-generation-1.1.0` (`mediafranca/nlu-schema`) and
-`pictogram-composition-0.1.0` (`mediafranca/pictogram-composition-schema`).
+`pictonet-nlu-generation-1.1.0` (`mediafranca/pictos-nlu-schema`) and
+`pictogram-composition-0.1.0` (`mediafranca/pictos-composition-schema`).
 
 Every schema is served at the URL of its `$id`, under
 `https://pictos.net/schemas/pictos-api/`. The `examples/` directory holds request

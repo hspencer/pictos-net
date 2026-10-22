@@ -1,4 +1,4 @@
-# [PICTOS.NET](https://pictos.net)
+# [PICTOS](https://pictos.net)
 
 **Generative Pictograms for Augmentative and Alternative Communication (AAC)**
 
@@ -6,11 +6,11 @@
 * ![version](https://img.shields.io/badge/version-2.6.0-violet)
 * ![opensource](https://img.shields.io/badge/opensource--always-available-blue)
 
-PICTOS.NET transforms communicative intentions expressed in natural language into pictograms using a semantic reasoning pipeline. It is part of the doctoral research of [Herbert Spencer](https://herbertspencer.net/cc) in design for Augmentative and Alternative Communication.
+PICTOS transforms communicative intentions expressed in natural language into pictograms using a semantic reasoning pipeline. It is part of the doctoral research of [Herbert Spencer](https://herbertspencer.net/cc) in design for Augmentative and Alternative Communication.
 
 The `dev` development branch contains the next version:
 
-* view: [next.PICTOS.net](https://next.pictos.net)
+* view: [next.PICTOS](https://next.pictos.net)
 * [![Netlify Status](https://api.netlify.com/api/v1/badges/c3a0cb25-110a-49a6-9d9b-05ccf7a72347/deploy-status)](https://app.netlify.com/projects/pictos-next/deploys)
 
 ## How it works
@@ -23,7 +23,7 @@ The system implements a pipeline of three automatic phases plus an optional post
 
 **(3) Produce** (Recraft V4.1 Vector) — Generates the pictogram as a native SVG from the semantic context, elements, spatial prompt, and configured visual style. There is no intermediate bitmap: the result is a directly editable vector SVG.
 
-**(4) Structure** (Claude Sonnet, optional) — Reorganizes the raw SVG paths into semantic groups consistent with the hierarchy of phase 2, embedding accessibility metadata according to [mf-svg-schema](https://github.com/mediafranca/mf-svg-schema). It combines local geometric measurement (real anchors via `getBBox` + CTM, pre-calculated merge candidates), a single vision call (set-of-marks with anti-collision and guide lines), local assembly with safety nets, and deterministic geometric polishing: geometric operations are computed locally; visual references and an SVG excerpt are sent to the model to propose the structure. Detailed documentation in [docs/ESTRUCTURAR.md](docs/ESTRUCTURAR.md).
+**(4) Structure** (Claude Sonnet, optional) — Reorganizes the raw SVG paths into semantic groups consistent with the hierarchy of phase 2, embedding accessibility metadata according to [pictos-svg-schema](https://github.com/mediafranca/pictos-svg-schema). It combines local geometric measurement (real anchors via `getBBox` + CTM, pre-calculated merge candidates), a single vision call (set-of-marks with anti-collision and guide lines), local assembly with safety nets, and deterministic geometric polishing: geometric operations are computed locally; visual references and an SVG excerpt are sent to the model to propose the structure. Detailed documentation in [docs/ESTRUCTURAR.md](docs/ESTRUCTURAR.md).
 
 The automatic cascade (1 → 2 → 3) runs when creating a new sentence or pressing Play. Phase 4 is optional and initiated manually by the user. Pictograms can be evaluated using the [ICAP](https://github.com/mediafranca/ICAP) framework.
 
@@ -59,7 +59,7 @@ flowchart TD
 
     subgraph F1["<b>(1) UNDERSTAND</b> — Claude Haiku"]
         direction TB
-        f1_proc["NSM Schema Engine<br>65 universal primes<br>nlu-schema v1.0<br>forced tool use"]
+        f1_proc["NSM Schema Engine<br>65 universal primes<br>pictos-nlu-schema v1.1<br>forced tool use"]
         f1_out["<b>NLUData</b><br>domain · frames · frame_label<br>nsm_explications<br>visual_guidelines · pragmatics"]
     end
 
@@ -87,7 +87,7 @@ flowchart TD
             f4_vision["Claude vision<br><i>assigns paths to elements<br>confirms merges · forced tool use</i>"]
             f4_assemble["Local Assembly<br><i>boolean unions + safety nets<br>geometry never leaves browser</i>"]
             f4_polish["Deterministic Polishing<br><i>selective refit to curves<br>coordinate rounding</i>"]
-            f4_out["<b>structuredSvg</b><br>mf-svg-schema · semantic groups<br>data-concept consistent with NLU<br>accessibility metadata"]
+            f4_out["<b>structuredSvg</b><br>pictos-svg-schema · semantic groups<br>data-concept consistent with NLU<br>accessibility metadata"]
         end
     end
 
@@ -247,19 +247,52 @@ The generated pictograms aim to reduce cognitive barriers, facilitate the expres
 
 ---
 
-## Related Projects
+## Schemas: where they are developed and how they are published
 
-PICTOS.NET builds on the following open-source schemas and platforms for AAC:
+The contracts between phases are four independent products. **They are developed here**, in `schemas/`, next to the code that uses them. Each one also has a reference repository under `mediafranca`, which is a read-only projection of this source: it receives every version but is never edited directly.
+
+| Product | Contract | Current version | Reference repository | Licence |
+|---|---|---|---|---|
+| `pictos-nlu-schema` | COMPRENDER: NLU analysis based on NSM and FrameNet | 1.1.0 | [mediafranca/pictos-nlu-schema](https://github.com/mediafranca/pictos-nlu-schema) | CC BY-SA 4.0 |
+| `pictos-composition-schema` | COMPONER: visual composition independent of the image provider | 0.1.0 | [mediafranca/pictos-composition-schema](https://github.com/mediafranca/pictos-composition-schema) | CC BY 4.0 |
+| `pictos-svg-schema` | ESTRUCTURAR: semantic, self-contained SVG with accessibility metadata | 2.0.0-draft.1 | [mediafranca/pictos-svg-schema](https://github.com/mediafranca/pictos-svg-schema) | CC BY 4.0 |
+| `pictos-api-schema` | Machine API v1: `comprender` and `componer` | 1.0.0 | [mediafranca/pictos-api-schema](https://github.com/mediafranca/pictos-api-schema) | CC BY 4.0 |
+
+```mermaid
+flowchart LR
+  E["schemas/&lt;product&gt;<br>edit and test"] --> C["commit in pictos-net"]
+  C --> B["Netlify build"]
+  B --> W["pictos.net/schemas/<br>each schema at the URL of its $id"]
+  C --> S["scripts/sync-schema-mirror.sh"]
+  S --> M["mediafranca/pictos-*<br>commit and tag v&lt;version&gt;"]
+```
+
+**Rules.**
+
+- A published version never changes. A contract change creates a new version. Files listed in `FROZEN_RELEASES.json` are pinned byte for byte.
+- Each schema's `$id` is its permanent identifier and is served at that exact URL.
+- Changes proposed from outside are reviewed and incorporated here before publication; mirrors are never synchronised in the other direction.
+- No submodules. With them every change takes two commits and a pointer bump, and a change committed inside a submodule but never pushed is what left two different NLU 1.0.1 documents under one `$id`.
+
+**Names.** Products are called `pictos-<product>-schema` since 22 October 2026. Files of versions already published keep their name and `$id` (`pictonet-nlu-1.1.0`, `pictogram-composition-0.1.0`, `metadata-2.0.0-draft.1`); from the next version of each product they will be named `pictos-<product>-<version>.schema.json`. Former paths under `pictos.net/schemas/` redirect to the new ones.
+
+**Synchronising a reference repository.**
+
+```sh
+npm run test:schemas                                     # product tests
+scripts/sync-schema-mirror.sh pictos-nlu-schema          # dry run: shows the change
+scripts/sync-schema-mirror.sh pictos-nlu-schema --push   # commit, tag and push
+```
+
+The mirror receives the snapshot of the current commit produced by `scripts/export-schema.mjs` (file allowlist, credential scan and manifest with hashes), never the unfiltered directory. Synchronisation stops if it would replace a frozen release, delete files that exist only in the mirror, or reuse a version for different contracts. Details in [docs/SCHEMA_PUBLICATION.md](docs/SCHEMA_PUBLICATION.md).
+
+## Related Projects
 
 | Repository | Description |
 |---|---|
-| [nlu-schema](https://github.com/mediafranca/nlu-schema) | Deep linguistic analysis schema based on NSM |
-| [pictogram-composition-schema](schemas/pictogram-composition-schema) | Visual composition contract; local product not yet published |
-| [mf-svg-schema](https://github.com/mediafranca/mf-svg-schema) | Standard for semantic and self-contained SVG pictograms |
+| [PictoNet](https://github.com/mediafranca/PictoNet) | Language model for writing vector pictograms (SVG). On hold while examples are gathered: PICTOS libraries are intended as its training input, subject to the rights and consents of each library |
 | [ICAP](https://github.com/mediafranca/ICAP) | Pictogram evaluation framework (6 cognitive dimensions) |
 | [pictos.cl](https://pictos.cl) | Visual support platform for public services (PUCV Accessibility Nucleus) |
-
-`schemas/nlu-schema`, `schemas/pictogram-composition-schema`, and `schemas/mf-svg-schema` are canonical products developed inside PictoNet. Independent exports are prepared for `mediafranca`; these directories are not submodules and are not overwritten from another repository. See [schema publication](docs/SCHEMA_PUBLICATION.md).
 
 ---
 
@@ -338,7 +371,7 @@ Contributions are welcome. Report bugs, propose features, or open a Pull Request
 ## Citation
 
 ```
-Spencer, H. (2026). PICTOS.NET: Generative pictograms for cognitive accessibility.
+Spencer, H. (2026). PICTOS: Generative pictograms for cognitive accessibility.
 https://pictos.net
 ```
 

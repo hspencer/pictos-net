@@ -18,7 +18,7 @@ grep -n 'id="' App.tsx components/**/*.tsx styles/globals.css
 
 CONTEXTO DE LA SESIÓN:
 
-Soy el diseñador de PICTOS.NET. Trabajamos en el branch `dev`.
+Soy el diseñador de PICTOS. Trabajamos en el branch `dev`.
 El sistema de diseño está definido en:
 - styles/variables.css (tokens de color, espaciado, sombras)
 - tailwind.config.js (extensiones de Tailwind)

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * PictoNet NLU Schema · Test Runner
+ * PICTOS NLU Schema · Test Runner
  * ---------------------------------
  * Validates example JSON files against `pictonet-nlu-1.0.schema.json`.
  *

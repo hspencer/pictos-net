@@ -143,7 +143,7 @@ contract UnderstandingBoundary {
     @invariant ForcedStructuredOutput
         -- Provider tool forcing constrains delivery, not acceptance. Every new
         -- Phase 1 result undergoes runtime validation against the generation
-        -- profile of the canonical schemas/nlu-schema product. Invalid fields,
+        -- profile of the canonical schemas/pictos-nlu-schema product. Invalid fields,
         -- unresolved local frame references, or malformed NSM data fail the
         -- phase; normalization cannot silently discard semantic content.
         -- Optional domain remains optional. Historical NSM_explications is
@@ -191,7 +191,7 @@ contract CompositionBoundary {
         -- placeholder is introduced. All referenced element ids must exist.
 
     @invariant SharedCompositionContract
-        -- Individual and batch paths consume schemas/pictogram-composition-schema
+        -- Individual and batch paths consume schemas/pictos-composition-schema
         -- as the sole contract source. Recursive children are validated at
         -- every depth; a forced compose_pictogram call is not that validation.
         -- Phase 2 output is a composition artifact, never a Phase 5 mapping.

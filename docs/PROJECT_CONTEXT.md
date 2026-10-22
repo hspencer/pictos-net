@@ -1,10 +1,10 @@
-# PICTOS.NET — Contexto operativo del proyecto
+# PICTOS — Contexto operativo del proyecto
 
 Actualizado: 2026-08-13. Este documento resume el estado observado del repositorio y sirve como punto de entrada para futuras sesiones de trabajo. La implementación vigente y las especificaciones Allium prevalecen cuando la documentación histórica discrepa.
 
 ## Propósito
 
-PICTOS.NET es un prototipo de investigación para Comunicación Aumentativa y Alternativa (CAA). Convierte una intención comunicativa en un pictograma explicable, editable y portable. La tesis de diseño es que la representación visual debe partir de una comprensión lingüística y contextual explícita, no solo de un prompt de imagen.
+PICTOS es un prototipo de investigación para Comunicación Aumentativa y Alternativa (CAA). Convierte una intención comunicativa en un pictograma explicable, editable y portable. La tesis de diseño es que la representación visual debe partir de una comprensión lingüística y contextual explícita, no solo de un prompt de imagen.
 
 La aplicación es local-first: librerías, pictogramas y estado de trabajo viven en el navegador. Los servicios remotos intervienen al generar o estructurar artefactos, pero no existe una base de datos central con el contenido privado del usuario.
 
@@ -34,7 +34,7 @@ El flujo automático tiene tres fases y una cuarta fase opcional iniciada por el
 1. **COMPRENDER**: `claudeService.generateNLU()` analiza el enunciado y produce `NLUData`. El modelo es configurable por fase; Claude usa tool use forzado y Gemini se enruta por su función específica.
 2. **COMPONER**: `claudeService.generateVisualBlueprint()` convierte el análisis en un árbol de `VisualElement` y un prompt espacial. Cada elemento conserva un `concept` semántico (`Root`, `Agent`, `Action`, `Object`, `Context`, `Element`).
 3. **PRODUCIR**: `App.processStep()` y `App.processCascade()` despachan según `generationModel`. Los modelos Recraft pasan por `recraftService`; los demás modelos de imagen vigentes pasan por `geminiService`. El resultado puede ser `rawSvg` vectorial o `bitmap` raster.
-4. **ESTRUCTURAR**: `svgStructureService.structureSVG()` transforma un `rawSvg` en un SVG semántico compatible con mf-svg-schema. El modelo de visión asigna paths a grupos; la geometría, fusiones, rescates y pulido se calculan localmente.
+4. **ESTRUCTURAR**: `svgStructureService.structureSVG()` transforma un `rawSvg` en un SVG semántico compatible con pictos-svg-schema. El modelo de visión asigna paths a grupos; la geometría, fusiones, rescates y pulido se calculan localmente.
 
 La edición invalida artefactos posteriores: enunciado → NLU → elementos/prompt → imagen/SVG → SVG estructurado. La cascada automática no incluye ESTRUCTURAR.
 

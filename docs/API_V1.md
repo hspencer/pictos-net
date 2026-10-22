@@ -24,7 +24,7 @@ Ambos son síncronos y responden dentro del límite de 60 s de Netlify. El presu
 
 ## Contratos publicados
 
-Fuente en `schemas/pictos-api/`. Se publican en `https://<sitio>/schemas/pictos-api/` mediante `scripts/copy-submodule-data.sh`.
+Fuente en `schemas/pictos-api-schema/`. Se publican en `https://<sitio>/schemas/pictos-api/` mediante `scripts/copy-submodule-data.sh`.
 
 | Schema | Rol |
 |---|---|
@@ -34,7 +34,7 @@ Fuente en `schemas/pictos-api/`. Se publican en `https://<sitio>/schemas/pictos-
 | `pictos-api-producir-0.1.0-draft` | frontera futura de `producir` (borrador) |
 | `pictos-api-estructurar-0.1.0-draft` | frontera futura de `estructurar` (borrador) |
 
-Hay ejemplos en `schemas/pictos-api/examples/`, generados ejecutando los handlers reales y validados por los tests.
+Hay ejemplos en `schemas/pictos-api-schema/examples/`, generados ejecutando los handlers reales y validados por los tests.
 
 ## Respuesta exitosa
 
@@ -118,7 +118,7 @@ La cabecera opcional `Idempotency-Key` debe cumplir `^[A-Za-z0-9._:-]{8,128}$`. 
 
 El camino habitual y de mejor calidad es `bitmap`. Recraft puede entregar `svg` directo, pero obedece mal el prompt y no resuelve la coherencia semántica. Un `svg` de Producir no es un SVG estructurado.
 
-**Estructurar** será un cuarto endpoint separado y opcional. Recibe el artefacto producido, la NLU y la composición aceptada. Devuelve un SVG conforme a `mf-svg-schema` (`metadata-2.0.0-draft.1`) junto con `losses`, `orphan_marks`, `ambiguous_assignments` y `provenance`. Cuando la fuente es un bitmap, `provenance.reconstruction` vale `vectorized_from_bitmap`: la agrupación semántica es una propuesta, no un hecho recuperado. Reconstruir estructura desde un bitmap sigue siendo un problema abierto.
+**Estructurar** será un cuarto endpoint separado y opcional. Recibe el artefacto producido, la NLU y la composición aceptada. Devuelve un SVG conforme a `pictos-svg-schema` (`metadata-2.0.0-draft.1`) junto con `losses`, `orphan_marks`, `ambiguous_assignments` y `provenance`. Cuando la fuente es un bitmap, `provenance.reconstruction` vale `vectorized_from_bitmap`: la agrupación semántica es una propuesta, no un hecho recuperado. Reconstruir estructura desde un bitmap sigue siendo un problema abierto.
 
 `PROCESSES` en `_shared/apiV1.js` ya registra ambos procesos como no implementados. `createV1Handler` se niega a servirlos.
 

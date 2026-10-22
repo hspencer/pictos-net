@@ -8,7 +8,7 @@
  */
 
 /**
- * A structured SVG pictogram following mf-svg-schema
+ * A structured SVG pictogram following pictos-svg-schema
  * This is a self-contained artifact with all semantic and accessibility data embedded
  */
 export interface SVGPictogram {
@@ -18,7 +18,7 @@ export interface SVGPictogram {
     /** Original communicative intent */
     utterance: string;
 
-    /** Complete SVG string (mf-svg-schema compliant) */
+    /** Complete SVG string (pictos-svg-schema compliant) */
     svg: string;
 
     /** ISO timestamp when the SVG was created */

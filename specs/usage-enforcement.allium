@@ -65,7 +65,7 @@ contract ProviderRetryBoundary {
     @invariant BillingAndAccessAreNotTransient
         -- Exhausted credits, organization/project spend or usage limits and
         -- insufficient_quota are external-provider billing, not transient rate
-        -- limits or PictoNet quota. Do not retry them. Suspended consumers,
+        -- limits or PICTOS quota. Do not retry them. Suspended consumers,
         -- authentication and permission failures likewise require intervention.
         -- Transient rate/capacity failures retain distinct diagnostics.
 
@@ -83,19 +83,19 @@ contract QuotaEnforcementBoundary {
     classify_quota_failure: (response: QuotaResponse) -> QuotaFailureSource
 
     @invariant CheckBeforeProviderCall
-        -- PictoNet user quota is checked and charged before any billable
+        -- PICTOS user quota is checked and charged before any billable
         -- provider call. A blocked request never reaches the provider.
 
     @invariant FlatGenerationUnit
-        -- Every Phase 3 image generation attempt costs one PictoNet unit,
+        -- Every Phase 3 image generation attempt costs one PICTOS unit,
         -- independent of Gemini, OpenAI, or Recraft model or image quality.
         -- Text-only phases cost zero.
 
     @invariant DistinctQuotaSources
-        -- PictoNet user quota is an admission failure. External provider quota
+        -- PICTOS user quota is an admission failure. External provider quota
         -- is a terminal provider 429 after applicable bounded retries in any
         -- phase. Billing exhaustion is external_provider_billing and is not
-        -- automatically retryable. Neither source is PictoNet user quota.
+        -- automatically retryable. Neither source is PICTOS user quota.
 
     @invariant MonotonicityWithEnumeratedRefunds
         -- A daily quota total never decreases except for a batch that never
@@ -122,7 +122,7 @@ contract AuditBoundary {
         -- the already determined provider response.
 
     @invariant BlockedAdmissionsAreNotCalls
-        -- A PictoNet-quota-blocked request creates no provider-call audit record.
+        -- A PICTOS-quota-blocked request creates no provider-call audit record.
 
     @invariant StableBlobKeys
         -- Daily counters use quota/email/date keys. Call audits use unique
@@ -150,7 +150,7 @@ contract OpenAIAuthenticationBoundary {
 
     @invariant ValidateBeforeCharge
         -- Unsupported OpenAI model, quality, or missing credentials is rejected
-        -- before charging a PictoNet unit or making a provider call.
+        -- before charging a PICTOS unit or making a provider call.
 }
 
 contract VertexAuthenticationBoundary {
@@ -380,7 +380,7 @@ rule AdmitChargedRequest {
     ensures: request.status = admitted
 }
 
-rule BlockPictoNetQuotaRequest {
+rule BlockPictosQuotaRequest {
     when: QuotaAdmissionRequested(request, quota)
     requires: request.status = pending
     requires: request.unit_cost > 0
@@ -684,7 +684,7 @@ invariant RefundKeysAreUnique {
             a != b implies a.idempotency_key != b.idempotency_key
 }
 
-invariant PictoNetQuotaNeverCallsProvider {
+invariant PictosQuotaNeverCallsProvider {
     for request in GenerationRequests:
         request.failure_source = pictonet_user_quota implies not request.upstream_called
 }
@@ -724,5 +724,5 @@ surface UsageEnforcement {
 
 open question "Should audit records have an explicit retention period?"
 open question "Should concurrent quota admissions use strict serialization rather than best-effort counters?"
-open question "Should PictoNet quota responses include Retry-After for the next UTC reset?"
-open question "Should production and preview share one user's PictoNet quota?"
+open question "Should PICTOS quota responses include Retry-After for the next UTC reset?"
+open question "Should production and preview share one user's PICTOS quota?"

@@ -114,7 +114,7 @@ Sigue el alcance del diagnóstico. Con F1 resuelto, el catálogo deja de admitir
 
 1. Resolver o expirar los trabajos Recraft en curso antes de retirar `api-recraft-poll`.
 2. Eliminar `api-recraft-worker-background`, `api-recraft-poll`, `_shared/recraftImage.js`, `services/recraftService.ts`, el despacho en `imageGenerationService.ts` y `aiClient.ts`, los ajustes de `style_id` y las claves i18n que queden sin uso (`validate-i18n` lo detecta).
-3. Actualizar `schemas/pictos-api/pictos-api-common-1.0.0.schema.json`, que enumera Recraft. Es un contrato publicado: el cambio exige versión nueva (1.1.0) o una nota de compatibilidad, no editar 1.0.0 en su lugar.
+3. Actualizar `schemas/pictos-api-schema/pictos-api-common-1.0.0.schema.json`, que enumera Recraft. Es un contrato publicado: el cambio exige versión nueva (1.1.0) o una nota de compatibilidad, no editar 1.0.0 en su lugar.
 4. Conservar la lectura y exportación de los SVG ya generados, sus IDs y su procedencia. No borrar almacenes históricos ni registros de uso.
 5. Retirar `RECRAFT_API_KEY` del entorno de Netlify después del despliegue, no antes.
 
@@ -163,9 +163,9 @@ Desde `eb3849a` (marzo de 2026), `pictos-net/schemas/` es la fuente canónica: l
 
 | Producto | Local | Repositorio de referencia | Estado |
 |---|---|---|---|
-| `nlu-schema` | 1.1.0, con perfil de generación | 1.0.0, último cambio 13-12-2025 | Obsoleto. Conflicto en 1.0.1 (ver abajo). |
-| `mf-svg-schema` | 2.0.0-draft.1 | Sin `package.json`, último cambio 27-01-2026 | Obsoleto. Release congelado `schemas/metadata.schema.json` idéntico en ambos. |
-| `pictogram-composition-schema` | 0.1.0 | No existe, aunque su `package.json` lo declara | Falta crear. |
+| `pictos-nlu-schema` | 1.1.0, con perfil de generación | 1.0.0, último cambio 13-12-2025 | Obsoleto. Conflicto en 1.0.1 (ver abajo). |
+| `pictos-svg-schema` | 2.0.0-draft.1 | Sin `package.json`, último cambio 27-01-2026 | Obsoleto. Release congelado `schemas/metadata.schema.json` idéntico en ambos. |
+| `pictos-composition-schema` | 0.1.0 | No existe, aunque su `package.json` lo declara | Falta crear. |
 | `pictos-api` | 1.0.0 y dos borradores 0.1.0 | No existe; no tiene `package.json` | Falta decidir si tendrá repositorio propio. |
 
 **Conflicto en NLU 1.0.1.** Hay dos documentos distintos con el mismo `$id` `https://pictos.net/schemas/pictonet-nlu-1.0.1.schema.json`. El del repositorio de referencia es del 29-10-2025; el local, registrado en `FROZEN_RELEASES.json` con hash `e5747f45`, agrega `domain`, `frame_label` y otros campos. Proviene de cambios hechos en el submódulo que no se publicaron antes de absorberlo. Lo que sirve pictos.net es la versión local. Sincronizar el espejo sobrescribe un release publicado; el historial de Git conserva el anterior, pero quien lo haya descargado tiene otro contrato bajo el mismo identificador.
@@ -174,7 +174,7 @@ Desde `eb3849a` (marzo de 2026), `pictos-net/schemas/` es la fuente canónica: l
 
 **Procedimiento de sincronización propuesto.**
 
-1. `scripts/publish-schemas.sh`: copia unidireccional de cada `schemas/<producto>` a su espejo, con las mismas exclusiones de seguridad que `copy-submodule-data.sh`. Corre las pruebas del producto antes de publicar y rechaza la publicación si cambió el hash de un release congelado respecto del espejo, salvo autorización explícita.
+1. `scripts/sync-schema-mirror.sh`: copia unidireccional de cada `schemas/<producto>` a su espejo, con las mismas exclusiones de seguridad que `copy-submodule-data.sh`. Corre las pruebas del producto antes de publicar y rechaza la publicación si cambió el hash de un release congelado respecto del espejo, salvo autorización explícita.
 2. Un commit por versión y una etiqueta `v<versión>` en el espejo. Las versiones intermedias no se reconstruyen: el commit del espejo dice desde qué commit de pictos-net se publicó.
 3. El README de cada espejo declara que la fuente canónica es pictos-net y que los cambios se proponen allí.
 4. Se ejecuta en cada release que toque `schemas/`; se agrega a la lista de verificación de release.
@@ -184,20 +184,20 @@ Desde `eb3849a` (marzo de 2026), `pictos-net/schemas/` es la fuente canónica: l
 **Estado: cumplido el 22-10-2026.**
 
 - `$id` dereferenciables: `copy-submodule-data.sh` publica cada schema también en la ruta de su `$id` (`362f052`). Verificado en next.pictos.net: los siete `$id` de pictos.net devuelven `200 application/json`. El release congelado de MF-SVG declara un `$id` en `mediafranca.org`, fuera de este sitio, y queda sin resolver.
-- Publicador: `scripts/publish-schemas.sh` (`8f4fe29`). Se comprobó que rechaza reemplazar NLU 1.0.1 sin autorización explícita.
+- Publicador: `scripts/sync-schema-mirror.sh` (`8f4fe29`). Se comprobó que rechaza reemplazar NLU 1.0.1 sin autorización explícita.
 - Espejos publicados desde `63b2c85`, con diferencia cero respecto de la fuente canónica:
 
 | Espejo | Etiqueta | Licencia |
 |---|---|---|
-| `mediafranca/nlu-schema` | `v1.1.0` | CC BY-SA 4.0 |
-| `mediafranca/mf-svg-schema` | `v2.0.0-draft.1` | CC BY 4.0 |
-| `mediafranca/pictogram-composition-schema` | `v0.1.0`, repositorio nuevo | CC BY 4.0, antes `UNLICENSED` |
-| `mediafranca/pictos-api` | `v1.0.0`, repositorio nuevo | CC BY 4.0, antes sin licencia |
+| `mediafranca/pictos-nlu-schema` | `v1.1.0` | CC BY-SA 4.0 |
+| `mediafranca/pictos-svg-schema` | `v2.0.0-draft.1` | CC BY 4.0 |
+| `mediafranca/pictos-composition-schema` | `v0.1.0`, repositorio nuevo | CC BY 4.0, antes `UNLICENSED` |
+| `mediafranca/pictos-api-schema` | `v1.0.0`, repositorio nuevo | CC BY 4.0, antes sin licencia |
 
 - NLU 1.0.1 se sobrescribió en el espejo con la versión local congelada (`e5747f45`), por decisión explícita. La versión anterior queda en el historial de Git del espejo.
 - Los README de NLU y composición señalaban `mediafranca/pictos-net` como fuente canónica. Es un fork desactualizado; ahora señalan `hspencer/pictos-net`.
 
-Pendiente: agregar `scripts/publish-schemas.sh <producto> --push` a la lista de verificación de cada release que toque `schemas/`.
+Pendiente: agregar `scripts/sync-schema-mirror.sh <producto> --push` a la lista de verificación de cada release que toque `schemas/`.
 
 ## Decisiones pendientes
 

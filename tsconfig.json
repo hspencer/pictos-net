@@ -28,7 +28,7 @@
         "./lib/style-editor/*"
       ],
       "@schema/*": [
-        "./schemas/mf-svg-schema/*"
+        "./schemas/pictos-svg-schema/*"
       ]
     },
     "allowImportingTsExtensions": true,

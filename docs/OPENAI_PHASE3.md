@@ -61,10 +61,10 @@ elemento, acción y relaciones, ausencia de texto accidental, legibilidad a tama
 de tablero y facilidad de vectorización. La equivalencia semántica requiere revisión
 humana; una respuesta HTTP correcta no la demuestra.
 
-El lote completo de PictoNet usa llamadas normales, sin descuento OpenAI Batch.
+El lote completo de PICTOS usa llamadas normales, sin descuento OpenAI Batch.
 El lote diferido de Vertex sigue limitado a Gemini y no sustituye silenciosamente
 OpenAI por Gemini. Un error de cuota externa detiene las filas siguientes y conserva
-los pasos 1 y 2; las unidades PictoNet sin imagen se devuelven una sola vez.
+los pasos 1 y 2; las unidades PICTOS sin imagen se devuelven una sola vez.
 Esa devolución no implica un reembolso de la factura de OpenAI.
 
 ## Verificación realizada

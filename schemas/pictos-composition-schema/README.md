@@ -1,7 +1,7 @@
 # Pictogram Composition Schema · 0.1.0
 
 Canonical development lives inside `hspencer/pictos-net`, at
-`schemas/pictogram-composition-schema`. This product describes the transition from
+`schemas/pictos-composition-schema`. This product describes the transition from
 communicative semantic analysis to a visual composition independently of the
 image provider. It does not describe SVG restructuring (Phase 5).
 
@@ -23,7 +23,7 @@ nodes, invents `unknown`, guesses concepts, trims away evidence or replays a pai
 call. Schema checks and these relational checks both need to pass.
 
 The canonical tree is recursive. Provider tool schemas are a projection generated
-by PictoNet, currently bounded to six semantic levels; the last level cannot have
+by PICTOS, currently bounded to six semantic levels; the last level cannot have
 children. This provider constraint is not the full schema or a claim of geometric
 accuracy. Provider-specific prompt rendering happens later in Phase 3.
 
@@ -35,7 +35,7 @@ npm test
 ```
 
 ```js
-import { validateProvider, validateDocument } from '@mediafranca/pictogram-composition-schema';
+import { validateProvider, validateDocument } from '@mediafranca/pictos-composition-schema';
 const candidate = {
   elements: [{ id: 'persona', concept: 'Agent' }, { id: 'vaso', concept: 'Object' }],
   prompt: "'persona' sostiene 'vaso'."
@@ -45,7 +45,7 @@ const valid = validateProvider(candidate);
 
 `validateElementTree(elements)` validates the existing rooted tree when only its
 spatial prompt is being replaced; it neither requires nor fabricates a temporary
-prompt. PictoNet sends the complete NLU and that unchanged tree through a forced
+prompt. PICTOS sends the complete NLU and that unchanged tree through a forced
 `regenerate_spatial_prompt` tool. It accepts the replacement only if the complete
 composition remains valid. Empty prompts, missing or invented references and
 malformed trees fail explicitly, without automatic paid retries. Accepted

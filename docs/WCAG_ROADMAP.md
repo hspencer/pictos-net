@@ -1,6 +1,6 @@
 # Conformidad WCAG 2.1 AA
 
-PICTOS.NET es una herramienta para profesionales de accesibilidad cognitiva que crean pictogramas para jovenes autistas. Es contradictorio que la propia herramienta no cumpla con estandares de accesibilidad web. Este documento registra el estado de conformidad WCAG 2.1 nivel AA.
+PICTOS es una herramienta para profesionales de accesibilidad cognitiva que crean pictogramas para jovenes autistas. Es contradictorio que la propia herramienta no cumpla con estandares de accesibilidad web. Este documento registra el estado de conformidad WCAG 2.1 nivel AA.
 
 ## Estado general
 

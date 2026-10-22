@@ -5,7 +5,7 @@
 | Campo | Valor |
 |---|---|
 | Nombre | Trámites Escolares Chile — Taller Mineduc |
-| Autor | Herbert Spencer González, e[ad] PUCV (investigación doctoral Pictos.net) |
+| Autor | Herbert Spencer González, e[ad] PUCV (investigación doctoral PICTOS) |
 | Corpus original | Ana María Torres, Coordinación Institucional Ley Autismo y Sordera, Seremi de Educación Región de Valparaíso, Mineduc[^1] |
 | Licencia | CC BY-SA 4.0 |
 | Idioma | es-419 |

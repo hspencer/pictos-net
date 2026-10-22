@@ -1,6 +1,6 @@
 {
   "project": {
-    "name": "PICTOS.net",
+    "name": "PICTOS",
     "description": "A modern React project with TypeScript, Tailwind CSS, and Vite for generating semantic pictograms based on NSM and ICAP evaluation",
     "version": "1.0",
     "language": "TypeScript",

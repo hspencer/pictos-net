@@ -2,11 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { applySvgSafeUpdate, captureSvgSource, prepareSvgPromotion, observedSvgProvenance, canStructureSVG, canCertifySVG, prepareSvgDraft, svgForEditing, prepareSvgEditorUpdate } from './svgCanonical.ts';
-import { assertValidSVG, verifySvgReference } from '../schemas/mf-svg-schema/index.js';
+import { assertValidSVG, verifySvgReference } from '../schemas/pictos-svg-schema/index.js';
 import type { RowData } from '../types';
 import { svgStructureDiagnostic, formatSvgStructureError } from './svgStructureDiagnostics.ts';
 import { VOCAB } from '../types.ts';
-const svg = fs.readFileSync(new URL('../schemas/mf-svg-schema/examples/v2example.svg', import.meta.url), 'utf8');
+const svg = fs.readFileSync(new URL('../schemas/pictos-svg-schema/examples/v2example.svg', import.meta.url), 'utf8');
 const metadata = assertValidSVG(svg);
 const row = (): RowData => ({ id: 'r', UTTERANCE: metadata.nlu.utterance, NLU: structuredClone(metadata.nlu), ...structuredClone(metadata.composition), rawSvg: '<svg/>', status: 'idle', nluStatus: 'completed', visualStatus: 'completed', bitmapStatus: 'completed' });
 

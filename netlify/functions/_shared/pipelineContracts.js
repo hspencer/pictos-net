@@ -1,7 +1,7 @@
 import { getModelProvider } from './modelCatalog.js';
 /** Canonical Phase 1/2 boundaries shared by browser and full pipeline batch. */
-import { documentSchema as nluDocumentSchema, generationSchema, validateDocument as validateNluDocument, validateGeneration, VERSION as NLU_VERSION } from '../../../schemas/nlu-schema/index.js';
-import { providerSchema as compositionSchema, documentSchema as compositionDocumentSchema, validateProvider, validateDocument as validateComposition, validateElementTree, VERSION as COMPOSITION_VERSION } from '../../../schemas/pictogram-composition-schema/index.js';
+import { documentSchema as nluDocumentSchema, generationSchema, validateDocument as validateNluDocument, validateGeneration, VERSION as NLU_VERSION } from '../../../schemas/pictos-nlu-schema/index.js';
+import { providerSchema as compositionSchema, documentSchema as compositionDocumentSchema, validateProvider, validateDocument as validateComposition, validateElementTree, VERSION as COMPOSITION_VERSION } from '../../../schemas/pictos-composition-schema/index.js';
 export { NLU_VERSION, COMPOSITION_VERSION };
 
 export class PipelineContractError extends Error {

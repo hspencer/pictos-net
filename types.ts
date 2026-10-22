@@ -1,5 +1,5 @@
 import { MODEL_CATALOG, modelIdsForPhase } from './netlify/functions/_shared/modelCatalog.js';
-import { generationSchema as NLU_GENERATION_SCHEMA } from './schemas/nlu-schema/index.js';
+import { generationSchema as NLU_GENERATION_SCHEMA } from './schemas/pictos-nlu-schema/index.js';
 
 
 export interface NLUMetadata {

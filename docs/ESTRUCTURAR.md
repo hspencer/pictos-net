@@ -52,7 +52,7 @@ flowchart TD
         post["Post-proceso<br><i>CSS filtrado a clases usadas<br>metadata mf-svg (con visualDom)<br>deriveChildIds · polishGeometry</i>"]
     end
 
-    OUT["<b>structuredSvg</b><br>mf-svg-schema · grupos semánticos<br>congruentes con el árbol compuesto"]
+    OUT["<b>structuredSvg</b><br>pictos-svg-schema · grupos semánticos<br>congruentes con el árbol compuesto"]
 
     IN --> LOCAL1
     ids --> inv --> anchors --> cand --> marks

@@ -114,8 +114,8 @@ const hardcodedMessages = [];
 // Proper names, technical identifiers and native language names do not need
 // translation. Everything else visible in JSX or accessibility attributes does.
 const UI_LITERAL_ALLOWLIST = new Set([
-  'PICTOS.net',
-  'PICTOS.net v',
+  'PICTOS',
+  'PICTOS v',
   'PICTOS v',
   'hspencer@ead.cl',
   'Español',

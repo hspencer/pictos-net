@@ -1,6 +1,6 @@
 {
   "header": {
-    "title": "PICTOS.NET",
+    "title": "PICTOS",
     "subtitle": "Generative Pictograms for Cognitive Accessibility",
     "betterOnLargeScreens": "better on large screens",
     "library": "Library",
@@ -239,7 +239,7 @@
     "recordingEnabled": "Recording enabled",
     "recordingDisabled": "Recording paused",
     "tutorial": "Tutorial",
-    "tutorialTooltip": "View the PICTOS.net introductory tutorial",
+    "tutorialTooltip": "View the PICTOS introductory tutorial",
     "pipelineModels": "AI models per phase",
     "comprenderModel": "Phase 1: UNDERSTAND",
     "comprenderModelTooltip": "Model for semantic analysis of the utterance. Compare fidelity, corrections and cost before choosing a preferred model.",
@@ -274,7 +274,7 @@
     "priceSource": "Official pricing",
     "priceChecked": "Checked {date}",
     "tokenCostNote": "Standard API rates in USD, not a price per pictogram. Actual tokens (including reasoning), cache, discounts and applicable taxes affect the bill.",
-    "imageCostNote": "Reference USD generation price; internal PictoNet units are separate.",
+    "imageCostNote": "Reference USD generation price; internal PICTOS units are separate.",
     "longContextPrice": "Above {threshold} input tokens: {input} input / {output} output per 1M tokens.",
     "imagePriceSize": "Reference output: {size}.",
     "imagePromptExtra": "Input and any text output are billed separately.",
@@ -475,7 +475,7 @@
     "generating": "Processing...",
     "download": "Download SVG",
     "library": "SVG Library",
-    "compliant": "mf-svg-schema compliant",
+    "compliant": "pictos-svg-schema compliant",
     "unavailable": "Unavailable",
     "traceSvg": "Trace",
     "traceLabel": "Traced",
@@ -485,7 +485,7 @@
     "traceDone": "Raw tracing complete. Click Structure to apply semantic grouping.",
     "traceConverts": "Converts bitmap to SVG (trace) then applies semantic structure with Gemini",
     "structureFromBitmap": "Redraws a clean pictogram directly from the image, no tracing.",
-    "structureTooltip": "Group paths into semantic layers using Gemini + mf-svg-schema",
+    "structureTooltip": "Group paths into semantic layers using Gemini + pictos-svg-schema",
     "structuring": "Structuring…",
     "structureDone": "Semantic structure applied.",
     "structureLabel": "Structured",
@@ -612,7 +612,7 @@
     "next": "Next",
     "finish": "Start",
     "step1": {
-      "title": "PICTOS.net",
+      "title": "PICTOS",
       "subtitle": "converts a written phrase into a pictogram for communication",
       "privacy": "Data lives in your browser.",
       "privacyDesc": "Everything you type is saved on your own device.",
@@ -669,7 +669,7 @@
   },
   "footer": {
     "research": "Research",
-    "researchDesc": "PICTOS.net is a design research project on generative pictograms for augmentative and alternative communication (AAC). Developed as part of doctoral research on cognitive accessibility.",
+    "researchDesc": "PICTOS is a design research project on generative pictograms for augmentative and alternative communication (AAC). Developed as part of doctoral research on cognitive accessibility.",
     "openSource": "Open source",
     "collaborate": "Contact",
     "collaborateDesc": "Questions, feedback or ideas about the tool are welcome.",
@@ -679,11 +679,11 @@
   },
   "participate": {
     "title": "Contact",
-    "intro": "Thank you very much for your interest in PICTOS.net! This is a research project focused on improving cognitive accessibility and exploring new ways to create generative tools for AAC.",
+    "intro": "Thank you very much for your interest in PICTOS! This is a research project focused on improving cognitive accessibility and exploring new ways to create generative tools for AAC.",
     "shareLibrary": "Share your library",
     "shareInstructions": "If you have created a pictogram library and want to share it as an example of how the tool can be used, export the .json file and send it by email.",
     "research": "You can write to me with feedback or ideas. No study is recruiting through this site.",
-    "contactSubject": "PICTOS.net - web contact"
+    "contactSubject": "PICTOS - web contact"
   },
   "modelChangeWarning": {
     "title": "Change generation model?",
@@ -785,7 +785,7 @@
   },
   "auth": {
     "important": "Important",
-    "privacyNotice": "PICTOS.net has no user accounts. Sign-in only verifies you are a real person; it is not enrolment in any study. AI services are funded by the researcher.",
+    "privacyNotice": "PICTOS has no user accounts. Sign-in only verifies you are a real person; it is not enrolment in any study. AI services are funded by the researcher.",
     "spamNotice": {
       "line1": "If you create an account with email, you will receive an email from",
       "line2": "to confirm.",

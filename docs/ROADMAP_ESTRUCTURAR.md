@@ -532,4 +532,4 @@ Semana 4 — Integración y documentación
 - `utils/styleUtils.ts` — `getSvgStyleText`, `parseOverrideRules`, `serializeOverrideRules`
 - `docs/CSS_STYLING_ARCHITECTURE.md` — modelo de dos niveles, pipeline cleanup
 - `docs/WCAG_ROADMAP.md` — estado de conformidad WCAG 2.1 AA
-- [mf-svg-schema](https://github.com/mediafranca/mf-svg-schema) — especificación del SVG semántico
+- [pictos-svg-schema](https://github.com/mediafranca/pictos-svg-schema) — especificación del SVG semántico

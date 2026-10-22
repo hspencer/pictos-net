@@ -61,7 +61,7 @@ contract ModelCatalogBoundary {
         -- date and applicable context/quality conditions with catalog prices.
         -- OpenAI standard text rates here apply only within the documented
         -- short-context tier; longer requests cannot use that price silently.
-        -- PictoNet quota units are not dollars: zero internal text units does
+        -- PICTOS quota units are not dollars: zero internal text units does
         -- not mean free provider usage. Price and capability are not benchmark
         -- evidence of semantic quality, availability or account authorization.
 
@@ -131,8 +131,8 @@ contract BulkRegenerationBoundary {
         -- Each affected row snapshots its current utterance, NLU, elements, and
         -- prompt atomically when the Phase 3 retry begins.
 
-    @invariant PictoNetQuotaSkipsAreExplicit
-        -- If PictoNet user quota cannot admit every affected row, admitted rows
+    @invariant PictosQuotaSkipsAreExplicit
+        -- If PICTOS user quota cannot admit every affected row, admitted rows
         -- run and skipped rows retain their prior artifact and provenance.
 }
 
@@ -365,7 +365,7 @@ rule ImageProviderQuotaIsRecoverable {
 
     @guidance
         -- Report this as the selected external provider's quota, distinct from the
-        -- user's PictoNet daily quota. Keep the selected model unchanged and
+        -- user's PICTOS daily quota. Keep the selected model unchanged and
         -- expose an explicit Phase 3 retry or user-selected model change.
 }
 
@@ -409,4 +409,4 @@ surface GenerationConfiguration {
 ------------------------------------------------------------
 
 open question "When bulk regeneration is interrupted by reload, should unfinished admitted rows resume automatically?"
-open question "Should PictoNet-quota-skipped bulk rows retain a persistent indicator until manually regenerated?"
+open question "Should PICTOS-quota-skipped bulk rows retain a persistent indicator until manually regenerated?"

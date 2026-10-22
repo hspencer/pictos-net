@@ -2,7 +2,7 @@ import { test, afterEach, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import fixture from '../../../schemas/nlu-schema/tests/generation/valid.json' with { type: 'json' };
+import fixture from '../../../schemas/pictos-nlu-schema/tests/generation/valid.json' with { type: 'json' };
 import { createV1Handler, createApiAjv, PROCESSES, PROCESS_RUNNERS, API_SCHEMAS } from './apiV1.js';
 import { buildNluRequest, buildCompositionRequest } from './pipelineContracts.js';
 import { mintServiceToken, credentialRecord, verifyServiceCredential, parseServiceToken } from './serviceCredentials.js';
@@ -70,7 +70,7 @@ afterEach(() => {
 // ── Published contracts ───────────────────────────────────────────────────────
 
 test('every published API schema compiles strictly and declares a versioned pictos.net $id', () => {
-  const dir = fileURLToPath(new URL('../../../schemas/pictos-api/', import.meta.url));
+  const dir = fileURLToPath(new URL('../../../schemas/pictos-api-schema/', import.meta.url));
   const files = fs.readdirSync(dir).filter(name => name.endsWith('.schema.json')).sort();
   assert.deepEqual(files, API_SCHEMAS.map(schema => schema.$id.split('/').pop()).sort(), 'apiV1 must load every published file');
   for (const schema of API_SCHEMAS) {
@@ -91,7 +91,7 @@ test('request schemas offer exactly the catalog text models for their phase', ()
 });
 
 test('published examples validate against their schemas', () => {
-  const dir = fileURLToPath(new URL('../../../schemas/pictos-api/examples/', import.meta.url));
+  const dir = fileURLToPath(new URL('../../../schemas/pictos-api-schema/examples/', import.meta.url));
   const expectations = {
     'comprender.request.json': PROCESSES.comprender.requestSchema,
     'comprender.response.json': PROCESSES.comprender.responseSchema,

@@ -1,6 +1,6 @@
 {
   "header": {
-    "title": "PICTOS.NET",
+    "title": "PICTOS",
     "subtitle": "Pictogramas Generativos para la Accesibilidad Cognitiva",
     "betterOnLargeScreens": "mejor en pantallas grandes",
     "library": "Librería",
@@ -239,7 +239,7 @@
     "recordingEnabled": "Registro activado",
     "recordingDisabled": "Registro pausado",
     "tutorial": "Tutorial",
-    "tutorialTooltip": "Ver el tutorial de introducción a PICTOS.net",
+    "tutorialTooltip": "Ver el tutorial de introducción a PICTOS",
     "pipelineModels": "Modelos de IA por fase",
     "comprenderModel": "Fase 1: COMPRENDER",
     "comprenderModelTooltip": "Modelo para el análisis semántico de la utterance. Compara fidelidad, correcciones y coste antes de elegir un modelo preferido.",
@@ -274,7 +274,7 @@
     "priceSource": "Tarifa oficial",
     "priceChecked": "Consultada {date}",
     "tokenCostNote": "Tarifas API estándar en USD, no un precio por pictograma. Los tokens reales (incluido razonamiento), caché, descuentos e impuestos aplicables afectan el cobro.",
-    "imageCostNote": "Precio de referencia de generación en USD; las unidades internas de PictoNet son distintas.",
+    "imageCostNote": "Precio de referencia de generación en USD; las unidades internas de PICTOS son distintas.",
     "longContextPrice": "Sobre {threshold} tokens de entrada: {input} entrada / {output} salida por 1M tokens.",
     "imagePriceSize": "Salida de referencia: {size}.",
     "imagePromptExtra": "La entrada y eventual salida de texto se cobran aparte.",
@@ -475,7 +475,7 @@
     "generating": "Procesando...",
     "download": "Descargar SVG",
     "library": "Librería SVG",
-    "compliant": "Compatible con mf-svg-schema",
+    "compliant": "Compatible con pictos-svg-schema",
     "unavailable": "No disponible",
     "traceSvg": "Trazar",
     "traceLabel": "Trazado",
@@ -485,7 +485,7 @@
     "traceDone": "Trazado listo. Haz clic en Estructurar para aplicar agrupación semántica.",
     "traceConverts": "Convierte el bitmap a SVG (trazar) y luego aplica estructura semántica con Gemini",
     "structureFromBitmap": "Redibuja un pictograma limpio directamente desde la imagen, sin trazar.",
-    "structureTooltip": "Agrupa los trazos en capas semánticas usando Gemini + mf-svg-schema",
+    "structureTooltip": "Agrupa los trazos en capas semánticas usando Gemini + pictos-svg-schema",
     "structuring": "Estructurando…",
     "structureDone": "Estructura semántica aplicada.",
     "structureLabel": "Estructurado",
@@ -612,7 +612,7 @@
     "next": "Siguiente",
     "finish": "Empezar",
     "step1": {
-      "title": "PICTOS.net",
+      "title": "PICTOS",
       "subtitle": "convierte una frase escrita en un pictograma para la comunicación",
       "privacy": "Los datos viven en tu navegador.",
       "privacyDesc": "Todo lo que escribes se guarda en tu propio dispositivo.",
@@ -669,7 +669,7 @@
   },
   "footer": {
     "research": "Investigación",
-    "researchDesc": "PICTOS.net es un proyecto de investigación en diseño generativo para la comunicación aumentativa y alternativa (CAA). Desarrollado como parte de una investigación doctoral en accesibilidad cognitiva.",
+    "researchDesc": "PICTOS es un proyecto de investigación en diseño generativo para la comunicación aumentativa y alternativa (CAA). Desarrollado como parte de una investigación doctoral en accesibilidad cognitiva.",
     "openSource": "Código abierto",
     "collaborate": "Contacto",
     "collaborateDesc": "Las preguntas, comentarios o ideas sobre la herramienta son bienvenidas.",
@@ -679,11 +679,11 @@
   },
   "participate": {
     "title": "Contacto",
-    "intro": "¡Muchas gracias por tu interés en PICTOS.net! Este es un proyecto de investigación enfocado en mejorar la accesibilidad cognitiva y explorar nuevas formas de crear herramientas generativas para la CAA.",
+    "intro": "¡Muchas gracias por tu interés en PICTOS! Este es un proyecto de investigación enfocado en mejorar la accesibilidad cognitiva y explorar nuevas formas de crear herramientas generativas para la CAA.",
     "shareLibrary": "Comparte tu librería",
     "shareInstructions": "Si has creado una librería de pictogramas y quieres compartirla como ejemplo de uso de la herramienta, exporta el archivo .json y envíalo por correo electrónico.",
     "research": "Puedes escribirme con comentarios o ideas. Ningún estudio está reclutando a través de este sitio.",
-    "contactSubject": "PICTOS.net - contacto web"
+    "contactSubject": "PICTOS - contacto web"
   },
   "modelChangeWarning": {
     "title": "¿Cambiar modelo de generación?",
@@ -785,7 +785,7 @@
   },
   "auth": {
     "important": "Importante",
-    "privacyNotice": "PICTOS.net no tiene cuentas de usuario. El inicio de sesión solo verifica que eres una persona real; no es inscripción en ningún estudio. Los servicios de IA son financiados por el investigador.",
+    "privacyNotice": "PICTOS no tiene cuentas de usuario. El inicio de sesión solo verifica que eres una persona real; no es inscripción en ningún estudio. Los servicios de IA son financiados por el investigador.",
     "spamNotice": {
       "line1": "Si creas una cuenta con correo, recibirás un email de",
       "line2": "para confirmar.",

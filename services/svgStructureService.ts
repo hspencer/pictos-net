@@ -2,7 +2,7 @@
  * SVG Structure Service v4 — Single-Call Vision + Local Assembly
  *
  * Phase 5 (ESTRUCTURAR): Takes a raw SVG from Recraft and restructures it
- * into a clean, semantically grouped, CSS-styled SVG conforming to mf-svg-schema.
+ * into a clean, semantically grouped, CSS-styled SVG conforming to pictos-svg-schema.
  *
  * Pipeline:
  *   rawSvg → ensurePathIds (local)
@@ -37,7 +37,7 @@ import { shouldSimplify, roundPathD } from './svgPathPolish';
 import { canStructureSVG } from './svgCanonical';
 import { svgStructureDiagnostic } from './svgStructureDiagnostics';
 
-import { assertSemanticInputs, assertValidSVG, createMetadata, parseSVG, inspectPassiveSVG } from '../schemas/mf-svg-schema/index.js';
+import { assertSemanticInputs, assertValidSVG, createMetadata, parseSVG, inspectPassiveSVG } from '../schemas/pictos-svg-schema/index.js';
 
 const MARK_RENDER_SIZE = 800;
 
@@ -1673,7 +1673,7 @@ function renderRedrawGroup(
 /**
  * ESTRUCTURAR via redraw: the vision model authors a clean SVG from the
  * reference image (single strokes, no noise), which we assemble locally into
- * mf-svg-schema. Unlike assembleFromMapping, geometry here is model-authored.
+ * pictos-svg-schema. Unlike assembleFromMapping, geometry here is model-authored.
  *
  * RETIRED as default — high variance: fine on trivial shapes, but it destroyed
  * clean multi-element pictograms (authoring geometry blind). The active path is

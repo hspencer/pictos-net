@@ -1,4 +1,4 @@
-# Pictos.net — License
+# PICTOS — License
 
 This repository contains two distinct types of work governed by separate license terms.
 
@@ -38,7 +38,7 @@ Available options at the time of generation include:
 - **CC0 1.0** — Public Domain Dedication
 
 The license selected by the user is embedded in the pictogram metadata and governs
-its downstream use. Pictos.net makes no claim of copyright over pictograms generated
+its downstream use. PICTOS makes no claim of copyright over pictograms generated
 by its users.
 
 ---
@@ -65,7 +65,7 @@ Notable dependencies:
 - Zustand — MIT
 - vtracer (WASM) — MIT
 - Google Gemini API — Subject to Google AI Terms of Service
-- MediaFranca submodules (nlu-schema, mf-svg-schema) — See individual repositories
+- MediaFranca submodules (pictos-nlu-schema, pictos-svg-schema) — See individual repositories
 
 ---
 

@@ -47,7 +47,7 @@ export async function searchCities(query: string): Promise<GeoResult[]> {
 
     const response = await fetch(url.toString(), {
       headers: {
-        'User-Agent': 'PictoNet/1.0 (Accessibility Tool)', // Required by Nominatim
+        'User-Agent': 'PICTOS/1.0 (Accessibility Tool)', // Required by Nominatim
       },
     });
 
@@ -105,7 +105,7 @@ export async function reverseGeocode(lat: string, lng: string): Promise<GeoResul
 
     const response = await fetch(url.toString(), {
       headers: {
-        'User-Agent': 'PictoNet/1.0 (Accessibility Tool)',
+        'User-Agent': 'PICTOS/1.0 (Accessibility Tool)',
       },
     });
 

@@ -25,7 +25,7 @@ import { ExternalProviderQuotaError, ProviderRequestError, QuotaExceededError, c
 import { GenerationModel, OpenAIImageQuality, DEFAULT_GENERATION_MODEL, migrateImageModel, migrateGenerationModel, GENERATION_MODEL_LABELS, INOPERATIVE_GENERATION_MODELS, Phase3Result, getModelFamily } from './types';
 import { structureSVG } from './services/svgStructureService';
 import { applySvgSafeUpdate, captureSvgSource, prepareSvgPromotion, prepareSvgDraft, observedSvgProvenance, svgForEditing, prepareSvgEditorUpdate } from './services/svgCanonical';
-import { verifySvgReference } from './schemas/mf-svg-schema/index.js';
+import { verifySvgReference } from './schemas/pictos-svg-schema/index.js';
 import * as Recording from './services/interventionRecording';
 import { validBitmap, validRawSvg, validStructuredSvg, validDownstreamSvg, hasValidBitmap, hasAnyValidArtifact, hasAnyValidSvg } from './utils/rowArtifacts';
 import { useTranslation } from './hooks/useTranslation';
@@ -269,7 +269,7 @@ function getDefaultStylePrompt(lang: string): string {
 const DEFAULT_APP_CONFIG: GlobalConfig = {
   lang: 'es-419',
   generationModel: DEFAULT_GENERATION_MODEL,
-  name: 'PICTOS.NET',
+  name: 'PICTOS',
   credits: '',
   license: 'CC BY 4.0',
   visualStylePrompt: getDefaultStylePrompt('es-419'),
@@ -2540,9 +2540,9 @@ const App: React.FC<AppProps> = ({ authUser }) => {
           <div className="p-1.5"><LogoIcon size={44} /></div>
           <div>
             <h1 className="font-bold uppercase tracking-tight text-xl text-slate-900 leading-none">
-              {activeLibraryId ? (libraryIndex.find(l => l.id === activeLibraryId)?.name ?? 'PICTOS.NET') : 'PICTOS.NET'}
+              {activeLibraryId ? (libraryIndex.find(l => l.id === activeLibraryId)?.name ?? 'PICTOS') : 'PICTOS'}
             </h1>
-            <span id="tagline" className="text-xs text-slate-500 font-mono tracking-widest uppercase">PICTOS.net v{APP_VERSION}</span>
+            <span id="tagline" className="text-xs text-slate-500 font-mono tracking-widest uppercase">PICTOS v{APP_VERSION}</span>
           </div>
         </div>
 

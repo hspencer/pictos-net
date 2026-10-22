@@ -87,7 +87,7 @@ async function generateIndex() {
           language: data.config?.lang || 'es',
           items: data.rows?.length || 0,
           credits: data.config?.credits || undefined,
-          description: data.type || 'PictoNet library',
+          description: data.type || 'PICTOS library',
           filesize: fs.statSync(filepath).size
         };
 

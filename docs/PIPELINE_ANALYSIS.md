@@ -50,7 +50,7 @@ Utterance
 ┌─────────────┐
 │ ESTRUCTURAR │  Phase 4 — Semantic restructuring (Claude Sonnet 4.6, optional)
 └─────────────┘
-    │ mf-svg-schema SVG
+    │ pictos-svg-schema SVG
     ▼
   SVG Editor / Export
 ```

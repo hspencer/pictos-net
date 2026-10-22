@@ -66,7 +66,7 @@ export const handler = async (event, context) => {
         'Accept': 'application/vnd.github.v3+json',
         'Authorization': `Bearer ${githubToken}`,
         'Content-Type': 'application/json',
-        'User-Agent': 'PictoNet-Netlify-Function',
+        'User-Agent': 'PICTOS-Netlify-Function',
       },
       body: JSON.stringify({
         event_type: 'append-row',

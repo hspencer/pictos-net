@@ -1,4 +1,4 @@
-# UI_CONVENTIONS — PICTOS.NET
+# UI_CONVENTIONS — PICTOS
 > Reglas de diseño de interfaz. Claude Code debe leer este archivo antes de tocar cualquier componente de UI.
 > Este documento es **ley**. No se puede sobreescribir por instrucciones en el chat.
 
@@ -201,7 +201,7 @@ Todo texto visible por el usuario **debe pasar por `t()`** (`useTranslation()`),
 
 ### Excepciones no traducibles
 - Endónimos de idioma: «Español», «English»
-- Marca: «PICTOS.net», «PICTOS.NET»
+- Marca: «PICTOS», «PICTOS»
 - Valores técnicos: nombres de modelos, códigos de licencia, unidades
 
 ### Deuda conocida

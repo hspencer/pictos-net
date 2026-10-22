@@ -27,7 +27,7 @@ export default defineConfig(({ mode }) => {
       alias: {
         '@': path.resolve(__dirname, '.'),
         '@style-editor': path.resolve(__dirname, './lib/style-editor'),
-        '@schema': path.resolve(__dirname, './schemas/mf-svg-schema')
+        '@schema': path.resolve(__dirname, './schemas/pictos-svg-schema')
       }
     },
     build: {

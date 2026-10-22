@@ -1,4 +1,4 @@
-# UI_MAP — PICTOS.NET
+# UI_MAP — PICTOS
 > Mapa estructural de la interfaz. Fuente de verdad para todos los IDs semánticos.
 > Actualizar este archivo siempre que se cree, renombre o elimine una región de la UI.
 

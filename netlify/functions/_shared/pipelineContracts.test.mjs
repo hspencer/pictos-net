@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import fixture from '../../../schemas/nlu-schema/tests/generation/valid.json' with { type: 'json' };
+import fixture from '../../../schemas/pictos-nlu-schema/tests/generation/valid.json' with { type: 'json' };
 import {
   acceptNlu, acceptComposition, decodeNluMaps, buildNluRequest,
   buildCompositionRequest, projectProviderSchema, createPhaseExecution, canonicalJson,
@@ -20,8 +20,8 @@ test('all three runtime products work without string code generation required by
   const root = fileURLToPath(new URL('../../../', import.meta.url));
   const script = `
     import { acceptNlu, acceptComposition, buildSpatialPromptRequest } from './netlify/functions/_shared/pipelineContracts.js';
-    import fixture from './schemas/nlu-schema/tests/generation/valid.json' with { type: 'json' };
-    import { parseSVG } from './schemas/mf-svg-schema/index.js';
+    import fixture from './schemas/pictos-nlu-schema/tests/generation/valid.json' with { type: 'json' };
+    import { parseSVG } from './schemas/pictos-svg-schema/index.js';
     const nlu = acceptNlu(fixture, fixture.utterance);
     const composition = acceptComposition({ elements: [{ id: 'persona', concept: 'Agent' }], prompt: "'persona' bebe." }, 'es-419');
     buildSpatialPromptRequest(nlu, composition.elements);
@@ -33,7 +33,7 @@ test('all three runtime products work without string code generation required by
 });
 
 test('independent packages ship one identical portable validator generator engine', () => {
-  const engines = ['nlu-schema', 'pictogram-composition-schema', 'mf-svg-schema'].map(product =>
+  const engines = ['pictos-nlu-schema', 'pictos-composition-schema', 'pictos-svg-schema'].map(product =>
     fs.readFileSync(new URL(`../../../schemas/${product}/scripts/standalone-code.js`, import.meta.url), 'utf8'));
   assert.equal(engines[0], engines[1]);
   assert.equal(engines[0], engines[2]);

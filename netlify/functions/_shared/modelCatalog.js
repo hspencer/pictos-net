@@ -1,6 +1,6 @@
 /** Public provider capabilities and reference prices; never contains credentials.
  * USD standard API rates checked 2026-08-27, not a promise of account access,
- * semantic quality, quota, or final billed cost. Internal PictoNet units differ.
+ * semantic quality, quota, or final billed cost. Internal PICTOS units differ.
  */
 export const PRICING_CHECKED_AT = '2026-08-27';
 const anthropicSource = 'https://platform.claude.com/docs/en/about-claude/pricing';

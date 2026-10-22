@@ -7,14 +7,14 @@ echo "Copying schema data to public directory..."
 
 # Create directories
 mkdir -p public/schemas/ICAP/data
-mkdir -p public/schemas/nlu-schema
-mkdir -p public/schemas/mf-svg-schema
-mkdir -p public/schemas/pictogram-composition-schema
-mkdir -p public/schemas/pictos-api
+mkdir -p public/schemas/pictos-nlu-schema
+mkdir -p public/schemas/pictos-svg-schema
+mkdir -p public/schemas/pictos-composition-schema
+mkdir -p public/schemas/pictos-api-schema
 mkdir -p public/libraries
 
 # Never copy product tests, corpus, package files or local credentials.
-for product in nlu-schema pictogram-composition-schema mf-svg-schema pictos-api; do
+for product in pictos-nlu-schema pictos-composition-schema pictos-svg-schema pictos-api-schema; do
     source="schemas/$product"
     if [ -L "$source" ]; then
         echo "Refusing symlink schema product: $source" >&2
@@ -30,11 +30,13 @@ for product in nlu-schema pictogram-composition-schema mf-svg-schema pictos-api;
     done
 done
 
-# The frozen SVG 1.0 contract keeps its historical nested URL. Its examples,
-# Python validator, styles and other product files are not public contract copies.
-legacy_svg_schema="schemas/mf-svg-schema/schemas/metadata.schema.json"
+# The frozen SVG 1.0 contract keeps its historical nested URL,
+# /schemas/mf-svg-schema/schemas/metadata.schema.json, which predates the
+# product rename and must not move. Its examples, Python validator, styles and
+# other product files are not public contract copies.
+legacy_svg_schema="schemas/pictos-svg-schema/schemas/metadata.schema.json"
 if [ -e "$legacy_svg_schema" ]; then
-    if [ -L "schemas/mf-svg-schema/schemas" ] || [ -L "$legacy_svg_schema" ] || [ ! -f "$legacy_svg_schema" ]; then
+    if [ -L "schemas/pictos-svg-schema/schemas" ] || [ -L "$legacy_svg_schema" ] || [ ! -f "$legacy_svg_schema" ]; then
         echo "Refusing non-regular legacy SVG schema: $legacy_svg_schema" >&2
         exit 1
     fi
@@ -48,7 +50,7 @@ fi
 node -e '
 const fs = require("fs"), path = require("path");
 const root = path.resolve("public");
-for (const product of ["nlu-schema", "pictogram-composition-schema", "mf-svg-schema", "pictos-api"]) {
+for (const product of ["pictos-nlu-schema", "pictos-composition-schema", "pictos-svg-schema", "pictos-api-schema"]) {
   const dir = path.join("public/schemas", product);
   if (!fs.existsSync(dir)) continue;
   for (const name of fs.readdirSync(dir).filter(n => n.endsWith(".schema.json"))) {
