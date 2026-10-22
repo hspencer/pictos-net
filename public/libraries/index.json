@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-04T21:45:36.740Z",
+  "generated": "2026-10-22T15:07:59.628Z",
   "count": 21,
   "libraries": [
     {
@@ -13,14 +13,14 @@
       "filesize": 2131888
     },
     {
-      "filename": "concreta.json",
+      "filename": "concreta_graph_2026-10-22.json",
       "name": "Concreta",
       "location": "Viña del Mar, CL",
       "language": "es-419",
-      "items": 2,
+      "items": 3,
       "credits": "Herbert",
       "description": "pictonet_graph_dump",
-      "filesize": 337483
+      "filesize": 473442
     },
     {
       "filename": "escena_descriptiva_graph_2026-08-26.json",
