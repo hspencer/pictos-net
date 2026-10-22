@@ -6,7 +6,7 @@ It encodes communicative intent, semantic roles, logical form, and visual ground
 
 ## Canonical source and release boundaries
 
-Development happens in `schemas/nlu-schema` inside `mediafranca/pictos-net`, based
+Development happens in `schemas/nlu-schema` inside `hspencer/pictos-net`, based
 on empirical platform use. This directory is exported as an independent product;
 external copies do not override the in-platform contract.
 

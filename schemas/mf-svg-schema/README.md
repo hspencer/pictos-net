@@ -1,7 +1,8 @@
 # MediaFranca semantic SVG schema — 2.0.0-draft.1
 
 This product defines a portable, self-contained SVG revision for AAC pictograms.
-Its canonical development source is `schemas/mf-svg-schema` inside PictoNet.
+Its canonical development source is `schemas/mf-svg-schema` inside PictoNet
+(`hspencer/pictos-net`).
 The independent repository is an export of that source, not an upstream copy
 that overwrites empirical work in the platform. Publication remains approval gated.
 

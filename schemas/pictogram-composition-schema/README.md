@@ -1,6 +1,6 @@
 # Pictogram Composition Schema · 0.1.0
 
-Canonical development lives inside `mediafranca/pictos-net`, at
+Canonical development lives inside `hspencer/pictos-net`, at
 `schemas/pictogram-composition-schema`. This product describes the transition from
 communicative semantic analysis to a visual composition independently of the
 image provider. It does not describe SVG restructuring (Phase 5).
