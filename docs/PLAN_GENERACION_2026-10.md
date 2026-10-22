@@ -181,10 +181,28 @@ Desde `eb3849a` (marzo de 2026), `pictos-net/schemas/` es la fuente canónica: l
 
 **Cierre.** Cada `$id` publicado devuelve su schema con `application/json`, y cada espejo coincide byte a byte con `schemas/<producto>` en la versión etiquetada.
 
+**Estado: cumplido el 22-10-2026.**
+
+- `$id` dereferenciables: `copy-submodule-data.sh` publica cada schema también en la ruta de su `$id` (`362f052`). Verificado en next.pictos.net: los siete `$id` de pictos.net devuelven `200 application/json`. El release congelado de MF-SVG declara un `$id` en `mediafranca.org`, fuera de este sitio, y queda sin resolver.
+- Publicador: `scripts/publish-schemas.sh` (`8f4fe29`). Se comprobó que rechaza reemplazar NLU 1.0.1 sin autorización explícita.
+- Espejos publicados desde `63b2c85`, con diferencia cero respecto de la fuente canónica:
+
+| Espejo | Etiqueta | Licencia |
+|---|---|---|
+| `mediafranca/nlu-schema` | `v1.1.0` | CC BY-SA 4.0 |
+| `mediafranca/mf-svg-schema` | `v2.0.0-draft.1` | CC BY 4.0 |
+| `mediafranca/pictogram-composition-schema` | `v0.1.0`, repositorio nuevo | CC BY 4.0, antes `UNLICENSED` |
+| `mediafranca/pictos-api` | `v1.0.0`, repositorio nuevo | CC BY 4.0, antes sin licencia |
+
+- NLU 1.0.1 se sobrescribió en el espejo con la versión local congelada (`e5747f45`), por decisión explícita. La versión anterior queda en el historial de Git del espejo.
+- Los README de NLU y composición señalaban `mediafranca/pictos-net` como fuente canónica. Es un fork desactualizado; ahora señalan `hspencer/pictos-net`.
+
+Pendiente: agregar `scripts/publish-schemas.sh <producto> --push` a la lista de verificación de cada release que toque `schemas/`.
+
 ## Decisiones pendientes
 
-1. **NLU 1.0.1:** sobrescribir el espejo con la versión local, con nota en el changelog, o conservar la versión publicada como `1.0.1` y renombrar la local. Lo primero es coherente con lo que ya sirve pictos.net; lo segundo protege a quien haya usado el espejo.
-2. **Repositorios nuevos:** crear `mediafranca/pictogram-composition-schema` (su `package.json` ya lo declara) y decidir si `pictos-api` tiene repositorio propio o se publica solo desde pictos.net.
+1. **NLU 1.0.1:** resuelta. Se sobrescribió el espejo con la versión local.
+2. **Repositorios nuevos:** resuelta. Se crearon ambos, con licencia CC BY 4.0.
 3. **Validación de contratos en el servidor** (F2, tarea 2): recomendada sobre el informe desde el navegador.
 4. **Perfil de taller definitivo:** se fija después de F7, no antes.
 
