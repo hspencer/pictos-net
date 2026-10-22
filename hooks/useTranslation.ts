@@ -4,7 +4,8 @@ import { translations, type Locale } from '../locales';
 const STORAGE_KEY = 'pictonet_v19_uiLang';
 
 const LOCALE_EVENT = 'pictonet-ui-language';
-const getLocale = (): Locale => {
+/** Current UI locale, also readable outside React (e.g. the Identity widget). */
+export const getLocale = (): Locale => {
   const saved = typeof localStorage === 'undefined' ? null : localStorage.getItem(STORAGE_KEY);
   if (saved === 'en-GB' || saved === 'es-419') return saved;
   return typeof navigator !== 'undefined' && navigator.language?.startsWith('en') ? 'en-GB' : 'es-419';

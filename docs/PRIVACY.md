@@ -4,7 +4,7 @@ PICTOS.net es un prototipo de investigación desarrollado como parte de una inve
 
 ## Estado de prototipo de investigación
 
-PICTOS.net es un prototipo de investigación público. Actualmente no hay ningún estudio de investigación reclutando participantes a través de este sitio, y no se están recopilando datos de investigación de sus visitantes o usuarios. Si en el futuro la plataforma se utiliza dentro de un estudio formal, la participación estará regida por un protocolo de ética aprobado y un consentimiento informado explícito, y ese estado se anunciará aquí.
+PICTOS.net es un prototipo de investigación público. Actualmente no hay ningún estudio de investigación reclutando participantes a través de este sitio, y no se están recopilando datos de investigación de sus visitantes o usuarios. Si en el futuro la plataforma se utiliza dentro de un estudio formal, la participación estará regida por un protocolo de ética aprobado y un consentimiento informado explícito. Ese estado se indicará aquí, pero el sitio no se usará para reclutar participantes.
 
 ## Local por diseño
 
@@ -14,7 +14,13 @@ La consecuencia práctica: tu trabajo te pertenece, vive contigo, y desaparece c
 
 ## Autenticación e identidad
 
-PICTOS.net no crea cuentas de usuario. El inicio de sesión existe exclusivamente como mecanismo de verificación humana para evitar la extracción automatizada de los servicios de IA, no para identificar ni perfilar personas. El registro de acceso, que consiste en tu correo electrónico y una contraseña cifrada, es la única información sobre ti que se guarda en el servidor; no está vinculado a ningún contenido, no registra uso y no se utiliza para investigación ni para contactarte. El sistema no almacena perfiles, no rastrea sesiones entre visitas, y no construye un historial de uso asociado a una identidad. Los costos de los servicios de inteligencia artificial son financiados por la cuenta personal del investigador principal; el usuario no paga ni contrae obligación alguna al utilizar la herramienta.
+PICTOS.net no tiene una base de datos de usuarios propia. El inicio de sesión existe exclusivamente como mecanismo de verificación humana para evitar la extracción automatizada de los servicios de IA, no para identificar ni perfilar personas, e iniciar sesión no constituye la incorporación a ningún estudio.
+
+La autenticación la realiza Netlify Identity (GoTrue), el servicio de autenticación del proveedor de alojamiento. Puedes iniciar sesión con una cuenta de Google o con un correo electrónico y una contraseña. Al iniciar sesión con Google, el sitio recibe únicamente tu correo electrónico, tu nombre y la URL de tu foto de perfil, tal como los entrega Google; el proyecto no obtiene acceso a tu cuenta de Google ni solicita nada más de ella. Al iniciar sesión con correo, se crea un registro que consiste en tu correo electrónico y una contraseña cifrada. Ese registro de acceso es la única información de identidad que se guarda en un servidor.
+
+Para aplicar el límite diario de generación y acotar el costo de los servicios de IA, el servidor mantiene además un contador técnico de llamadas de generación por correo electrónico, junto con la marca de tiempo, la fase del proceso y el modelo utilizado. Ese registro operacional existe para prevención de abuso y control de costos; no contiene enunciados, ni pictogramas, ni contenido de ningún tipo, no se analiza como dato de investigación y no se usa para contactarte.
+
+El sistema no almacena perfiles, no rastrea sesiones entre visitas, y no construye un historial de comportamiento. Los costos de los servicios de inteligencia artificial son financiados por la cuenta personal del investigador principal; el usuario no paga ni contrae obligación alguna al utilizar la herramienta.
 
 ## Qué sale de tu dispositivo
 

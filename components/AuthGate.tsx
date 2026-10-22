@@ -1,8 +1,12 @@
 import React, { useEffect, useState } from 'react';
 
-import { translations, type Locale } from '../locales';
+import { translations } from '../locales';
+import { getLocale } from '../hooks/useTranslation';
 
 const isDev = (import.meta as any).env?.DEV;
+
+/** Map the app UI locale onto the locale codes bundled with the Identity widget. */
+const widgetLocale = (): string => (getLocale() === 'en-GB' ? 'en' : 'es');
 
 interface IdentityUser {
     email: string;
@@ -49,6 +53,7 @@ interface IdentityWidget {
     currentUser: () => IdentityUser | null;
     logout: () => void;
     on: (event: string, callback: (user?: IdentityUser) => void) => void;
+    setLocale: (locale: string) => void;
 }
 
 let _widget: IdentityWidget | null = null;
@@ -61,7 +66,7 @@ export async function ensureWidget(): Promise<IdentityWidget> {
     _initPromise = (async () => {
         const mod = await import('netlify-identity-widget');
         _widget = mod.default as unknown as IdentityWidget;
-        _widget.init();
+        _widget.init({ locale: widgetLocale() });
         return _widget;
     })();
     return _initPromise;
@@ -103,7 +108,7 @@ function _notifyLogin(user: IdentityUser) {
  * The widget renders inside an iframe we can't modify, so we overlay our own notice.
  */
 function showSpamNotice() {
-    const lang = (localStorage.getItem('pictonet_v19_uiLang') as Locale | null) || 'es-419';
+    const lang = getLocale();
     const t = (key: string) => {
         const keys = key.split('.');
         let value: any = translations[lang];
@@ -174,6 +179,7 @@ export function requestLogin(): Promise<IdentityUser> {
             reject(new Error('Login cancelled'));
         };
 
+        widget.setLocale(widgetLocale());
         widget.on('login', onLoginHandler);
         widget.on('close', onCloseHandler);
         showSpamNotice();

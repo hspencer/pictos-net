@@ -235,7 +235,7 @@
     "highContrastEnabled": "Alto contraste activado",
     "highContrastDisabled": "Alto contraste desactivado",
     "recordingModifications": "Registrar modificaciones",
-    "recordingModificationsTooltip": "Esta opción permite registrar la auditoría del pictograma, en el caso que se ajuste y modifique.",
+    "recordingModificationsTooltip": "Esta opción permite registrar el registro de ediciones del pictograma, en el caso que se ajuste y modifique.",
     "recordingEnabled": "Registro activado",
     "recordingDisabled": "Registro pausado",
     "tutorial": "Tutorial",
@@ -293,11 +293,11 @@
     "flush": "Limpiar"
   },
   "audit": {
-    "title": "Auditoría del pictograma",
-    "openTooltip": "Ver y editar el registro de modificaciones de este pictograma",
-    "openLabel": "Auditoría",
+    "title": "Registro de ediciones",
+    "openTooltip": "Ver y editar el registro de ediciones de este pictograma",
+    "openLabel": "Registro de ediciones",
     "summary": "{{sessions}} sesión(es) · {{events}} evento(s)",
-    "emptyDescription": "No hay intervenciones registradas en este pictograma.",
+    "emptyDescription": "No hay ediciones registradas en este pictograma.",
     "jsonLabel": "Registro (JSON)",
     "editingHint": "Puedes editar libremente el JSON. Guardar reemplaza el registro completo.",
     "copy": "Copiar",
@@ -662,7 +662,7 @@
   },
   "quota": {
     "title": "Límite diario alcanzado",
-    "message": "Has generado {count} pictogramas hoy, el máximo permitido para participantes del proyecto. El límite se restablece a medianoche (UTC).",
+    "message": "Has generado {count} pictogramas hoy, el máximo permitido por día. El límite se restablece a medianoche (UTC).",
     "contact": "Si necesitas más acceso, escríbele al investigador:",
     "contactLink": "herbert.spencer@gmail.com",
     "close": "Entendido"
@@ -671,18 +671,18 @@
     "research": "Investigación",
     "researchDesc": "PICTOS.net es un proyecto de investigación en diseño generativo para la comunicación aumentativa y alternativa (CAA). Desarrollado como parte de una investigación doctoral en accesibilidad cognitiva.",
     "openSource": "Código abierto",
-    "collaborate": "Colaborar",
-    "collaborateDesc": "Participa en la investigación evaluando pictogramas generados por el sistema.",
+    "collaborate": "Contacto",
+    "collaborateDesc": "Las preguntas, comentarios o ideas sobre la herramienta son bienvenidas.",
     "author": "Herbert Spencer González",
     "affiliation2": "e[ad] Escuela de Arquitectura y Diseño, PUCV",
-    "license": "MIT License"
+    "license": "Apache 2.0"
   },
   "participate": {
-    "title": "Participar en la Investigación",
+    "title": "Contacto",
     "intro": "¡Muchas gracias por tu interés en PICTOS.net! Este es un proyecto de investigación enfocado en mejorar la accesibilidad cognitiva y explorar nuevas formas de crear herramientas generativas para la CAA.",
     "shareLibrary": "Comparte tu librería",
     "shareInstructions": "Si has creado una librería de pictogramas y quieres compartirla como ejemplo de uso de la herramienta, exporta el archivo .json y envíalo por correo electrónico.",
-    "research": "También puedes escribirme si te interesa participar en el estudio, dar feedback, o tienes ideas sobre cómo mejorar estas tecnologías.",
+    "research": "Puedes escribirme con comentarios o ideas. Ningún estudio está reclutando a través de este sitio.",
     "contactSubject": "PICTOS.net - contacto web"
   },
   "modelChangeWarning": {
@@ -785,13 +785,13 @@
   },
   "auth": {
     "important": "Importante",
-    "privacyNotice": "PICTOS.net no crea cuentas de usuario. El inicio de sesion solo verifica que eres una persona real. Los servicios de IA son financiados por el investigador.",
+    "privacyNotice": "PICTOS.net no tiene cuentas de usuario. El inicio de sesión solo verifica que eres una persona real; no es inscripción en ningún estudio. Los servicios de IA son financiados por el investigador.",
     "spamNotice": {
-      "line1": "Si creas una cuenta con correo, recibiras un email de",
+      "line1": "Si creas una cuenta con correo, recibirás un email de",
       "line2": "para confirmar.",
       "line3": "Revisa tu carpeta de SPAM.",
       "line4": "Recomendamos usar",
-      "line5": "Iniciar sesion con Google"
+      "line5": "Continúa con Google"
     }
   },
   "vectorizer": {

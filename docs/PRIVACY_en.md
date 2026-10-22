@@ -4,7 +4,7 @@ PICTOS.net is a research prototype developed as part of doctoral research in des
 
 ## Research prototype status
 
-PICTOS.net is a public research prototype. No research study is currently recruiting participants through this site, and no research data is being collected from its visitors or users. Should the platform be used within a formal study in the future, participation will be governed by an approved ethics protocol and explicit informed consent, and that status will be announced here.
+PICTOS.net is a public research prototype. No research study is currently recruiting participants through this site, and no research data is being collected from its visitors or users. Should the platform be used within a formal study in the future, participation will be governed by an approved ethics protocol and explicit informed consent. That status will be stated here, but the site itself will not be used to recruit participants.
 
 ## Local-first by design
 
@@ -14,7 +14,13 @@ The practical consequence: your work belongs to you, lives with you, and disappe
 
 ## Authentication and identity
 
-PICTOS.net does not create user accounts. Sign-in exists solely as a human verification mechanism to prevent automated extraction of the AI services, not to identify or profile individuals. The sign-in record, consisting of your email address and an encrypted password, is the only information about you held on the server; it is linked to no content, records no usage, and is not used for research or to contact you. The system does not store profiles, does not track sessions across visits, and does not build a usage history tied to any identity. The costs of the artificial intelligence services are funded by the lead researcher's personal account; users incur no charges and no obligations by using the tool.
+PICTOS.net has no user database of its own. Sign-in exists solely as a human verification mechanism to prevent automated extraction of the AI services, not to identify or profile individuals, and signing in is not enrolment in any study.
+
+Authentication is handled by Netlify Identity (GoTrue), the authentication service of the hosting provider. You may sign in with a Google account or with an email address and a password. Signing in with Google gives the site only your email address, your name and your profile photo URL as supplied by Google; the project receives no access to your Google account and requests nothing else from it. Signing in with email creates a record consisting of your email address and an encrypted password. This sign-in record is the only identity information held on a server.
+
+To enforce the daily generation limit and keep the cost of the AI services bounded, the server also keeps a technical counter of generation calls per email address, together with the timestamp, the pipeline phase and the model used. This operational log exists for abuse prevention and cost control; it contains no utterances, no pictograms and no content of any kind, it is not analysed as research data, and it is not used to contact you.
+
+The system does not store profiles, does not track sessions across visits, and does not build a behavioural history. The costs of the artificial intelligence services are funded by the lead researcher's personal account; users incur no charges and no obligations by using the tool.
 
 ## What leaves your device
 
