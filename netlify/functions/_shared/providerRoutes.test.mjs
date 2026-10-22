@@ -10,6 +10,13 @@ import { handler as image } from '../api-gemini-worker-background.js';
 import { handler as recraft } from '../api-recraft-worker-background.js';
 import { handler as pipeline } from '../api-pipeline-batch-background.js';
 import { getBlobStore } from './blobs.js';
+import { MODEL_CATALOG } from './modelCatalog.js';
+
+// The Gemini text route is dormant since Google retired Gemini 2.5 text
+// (2026-10-20), but its ownership, limit and retry guarantees must still hold
+// for the next Gemini text model, so these tests admit 2.5 Flash locally.
+before(() => { MODEL_CATALOG['gemini-2.5-flash'].status = 'active'; });
+after(() => { MODEL_CATALOG['gemini-2.5-flash'].status = 'retired'; });
 const previousCwd = process.cwd();
 const keys = ['NETLIFY_DEV', 'NETLIFY_BLOBS_CONTEXT', 'GOOGLE_SERVICE_ACCOUNT_JSON', 'PICTOS_ANTHROPIC_KEY', 'RECRAFT_API_KEY'];
 const previous = Object.fromEntries(keys.map(k => [k, process.env[k]]));

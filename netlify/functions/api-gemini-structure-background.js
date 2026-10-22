@@ -17,8 +17,10 @@ import { getVertexAccessToken, vertexModelUrl } from './_shared/vertex.js';
 import { fetchWithRetry } from './_shared/httpRetry.js';
 import { providerHttpError, providerFailure } from './_shared/providerError.js';
 import { buildGeminiRequest, geminiResponseToClaude } from './_shared/geminiTranslate.js';
+import { modelAllowed } from './_shared/modelCatalog.js';
 
-const ALLOWED_MODELS = ['gemini-2.5-pro', 'gemini-2.5-flash'];
+// Admission comes from the model catalog (lifecycle status per phase).
+const isAllowedModel = model => modelAllowed(model, 'gemini', [5]);
 const STORE = 'gemini-structure-jobs';
 
 export const handler = async (event, context) => {
@@ -55,7 +57,7 @@ export const handler = async (event, context) => {
   try {
     await inputs.delete(jobId);
     if (!(staged.expiresAt > Date.now())) throw Object.assign(new Error('Staged structuring request expired'), { status: 400 });
-    if (!ALLOWED_MODELS.includes(model)) throw Object.assign(new Error('Unsupported structuring model'), { status: 400 });
+    if (!isAllowedModel(model)) throw Object.assign(new Error('Unsupported structuring model'), { status: 400 });
     await put({ pending: true });
     const accessToken = await getVertexAccessToken();
     const url = vertexModelUrl(model);

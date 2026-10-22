@@ -259,7 +259,8 @@
       "recraftv4_1": "Recraft (raster)",
       "recraftv4_1_vector": "Recraft (vectorial)",
       "default": "predeterminado",
-      "unavailable": "no disponible"
+      "unavailable": "no disponible",
+      "experimental": "experimental, sin verificar en PICTOS"
     },
     "phase5Model": "Fase 4: ESTRUCTURAR",
     "phase5ModelTooltip": "Modelo de visión para asignar grupos semánticos al SVG (estructuración opcional). Se persiste por librería.",
@@ -409,6 +410,7 @@
     "templateImagesRecovered": "Se recuperaron {count} imágenes de la plantilla «{name}».",
     "libraryImportFailed": "Error al importar la biblioteca: {error}",
     "libraryCopyFailed": "No se pudo copiar la librería con sus imágenes: {error}",
+    "modelNotAvailable": "{model} ya no está disponible. Elige otro modelo en Ajustes antes de generar.",
     "invalidFormat": "formato inválido",
     "unknownError": "Error desconocido",
     "libraryLoaded": "Biblioteca cargada: {count} pictogramas.",
@@ -863,6 +865,7 @@
   "svgGenerator": {
     "structuringPending": "Certificación semántica pendiente",
     "traceRequired": "Para ESTRUCTURAR se necesita un trazado. Puedes crearlo desde el bitmap con TRAZAR.",
+    "modelUnavailable": "El modelo de ESTRUCTURAR ya no está disponible. Elige otro en Ajustes.",
     "nluNeedsReview": "Puedes ESTRUCTURAR un borrador. Para certificarlo como MF-SVG canónico, revisa los datos de COMPRENDER: no cumplen el esquema actual.",
     "compositionNeedsReview": "Puedes ESTRUCTURAR un borrador. Para certificarlo, revisa los elementos y las referencias del prompt de COMPONER.",
     "semanticInputsMismatch": "Puedes ESTRUCTURAR un borrador. Para certificarlo, la frase, el NLU y la composición deben corresponder entre sí.",

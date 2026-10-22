@@ -22,8 +22,10 @@ import {
   buildBatchJsonl, uploadToGcs, createBatchPredictionJob, batchBucket,
   isActiveBatchState,
 } from './_shared/vertexBatch.js';
+import { batchModelIds } from './_shared/modelCatalog.js';
 
-const ALLOWED_MODELS = ['gemini-2.5-flash-image', 'gemini-3.1-flash-image'];
+// Vertex batch prediction: capable models in the workshop or active profile (model catalog).
+const isAllowedModel = model => batchModelIds().includes(model);
 const MAX_ROWS = 200;
 
 const ALLOWED_ORIGINS = [
@@ -73,7 +75,7 @@ export const handler = async (event, context) => {
   if (!libraryId || !model || !Array.isArray(rows)) {
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'Missing libraryId, model or rows' }) };
   }
-  if (!ALLOWED_MODELS.includes(model)) {
+  if (!isAllowedModel(model)) {
     return { statusCode: 400, headers, body: JSON.stringify({ error: `Model not allowed for batch: ${model}` }) };
   }
   if (rows.length < 1 || rows.length > MAX_ROWS) {

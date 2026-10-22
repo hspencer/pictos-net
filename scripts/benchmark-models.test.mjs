@@ -12,7 +12,7 @@ afterEach(() => mock.restoreAll());
 
 test('planning is deterministic, uses frozen canonical inputs and never contacts providers', () => {
   const network = mock.method(globalThis, 'fetch', () => { throw new Error('Planning must not use the network'); });
-  const plan = prepareBenchmark({ ...options, phase: 2, models: ['gpt-5.6-luna', 'gemini-2.5-flash', 'claude-haiku-4-5-20251001'] });
+  const plan = prepareBenchmark({ ...options, phase: 2, models: ['gpt-5.6-luna', 'claude-sonnet-4-6', 'claude-haiku-4-5-20251001'] });
   assert.equal(plan.plannedCalls, 3);
   assert.equal(new Set(plan.attempts.map(a => a.promptHash)).size, 1);
   assert.ok(plan.attempts.every(a => a.request.messages[0].content.includes('Ingestion')));
@@ -21,6 +21,7 @@ test('planning is deterministic, uses frozen canonical inputs and never contacts
   assert.throws(() => prepareBenchmark({ ...options, cases: { ...cases, synthetic: false } }), /synthetic/);
   assert.throws(() => prepareBenchmark({ ...options, phase: 3 }), /phase/);
   assert.throws(() => prepareBenchmark({ ...options, models: ['gpt-image-2'] }), /supported/);
+  assert.throws(() => prepareBenchmark({ ...options, models: ['gemini-2.5-pro'] }), /supported/); // retired
 });
 
 test('execution needs authorization, immutable plan, both budget and call cap', async () => {

@@ -78,8 +78,8 @@ export type NluModel =
   | 'gpt-5.6-terra'
   | 'gpt-5.6-sol';
 
-export const NLU_MODELS: { id: NluModel; label: string }[] = modelIdsForPhase(1)
-  .map(id => ({ id: id as NluModel, label: MODEL_CATALOG[id].label }));
+export const NLU_MODELS: { id: NluModel; label: string; status: string }[] = modelIdsForPhase(1)
+  .map(id => ({ id: id as NluModel, label: MODEL_CATALOG[id].label, status: MODEL_CATALOG[id].status }));
 
 export const DEFAULT_NLU_MODEL: NluModel = 'claude-haiku-4-5-20251001';
 
@@ -96,8 +96,8 @@ export type Phase5StructuringModel =
 // Nota: gemini-2.0-flash se retiro del selector el 2026-06-13: el proyecto
 // pictos-vertex devuelve 404 NOT_FOUND para ese modelo en global y us-central1.
 
-export const PHASE5_MODELS: { id: Phase5StructuringModel; label: string }[] = modelIdsForPhase(5)
-  .map(id => ({ id: id as Phase5StructuringModel, label: MODEL_CATALOG[id].label }));
+export const PHASE5_MODELS: { id: Phase5StructuringModel; label: string; status: string }[] = modelIdsForPhase(5)
+  .map(id => ({ id: id as Phase5StructuringModel, label: MODEL_CATALOG[id].label, status: MODEL_CATALOG[id].status }));
 
 // Structuring is the finest visual-judgment task in the pipeline and runs
 // manually at low volume — default to the most capable model, not the fastest.
@@ -362,32 +362,19 @@ export function getModelFamily(model: GenerationModel): ModelFamily {
 
 export const DEFAULT_GENERATION_MODEL: GenerationModel = 'gemini-2.5-flash-image';
 
+/** Model configured for a phase, with the same fallbacks the settings selectors show. */
+export function configuredModel(config: GlobalConfig, phase: 1 | 2 | 3 | 5): string {
+  if (phase === 1) return config.comprenderModel ?? config.nluModel ?? DEFAULT_NLU_MODEL;
+  if (phase === 2) return config.componerModel ?? config.nluModel ?? DEFAULT_NLU_MODEL;
+  if (phase === 3) return config.generationModel ?? DEFAULT_GENERATION_MODEL;
+  return config.phase5Model ?? DEFAULT_PHASE5_MODEL;
+}
+
 /** Human-readable labels for GenerationModel values (used by GenerationModelSelector). */
 export const GENERATION_MODEL_LABELS = Object.fromEntries(
   modelIdsForPhase(3).map(id => [id, MODEL_CATALOG[id].label]),
 ) as Record<GenerationModel, string>;
 
-/**
- * Generation models that are configured but NOT operational right now, mapped
- * to the reason. Consumed by the GenerationModelSelector in App.tsx to disable
- * these options. Vaciar este objeto cuando la cuota/modelo vuelvan a estar
- * disponibles.
- *
- * Re-verificado 2026-06-13 (en vivo) contra Vertex project `pictos-vertex`,
- * location `global`: los tres modelos de la familia Gemini devuelven imagen
- * (image/png) — gemini-2.5-flash-image, gemini-3.1-flash-image y
- * gemini-3-pro-image. Por eso el mapa queda vacio. Nota operativa: la cuota de
- * gemini-3-pro-image es baja y puede devolver 429 RESOURCE_EXHAUSTED de forma
- * intermitente; el cliente debe degradar con un mensaje claro en ese caso.
- */
-export const INOPERATIVE_GENERATION_MODELS: Partial<Record<GenerationModel, string>> = {
-  // Re-verificado 2026-07-12 (en vivo): gemini-3-pro-image responde 200 y
-  // genera imagen. Su cuota diaria en el proyecto Google es baja y puede
-  // agotarse de forma intermitente, pero eso ahora se maneja en runtime (el
-  // worker devuelve un mensaje claro en el 429) en lugar de deshabilitar el
-  // modelo permanentemente aquí. Reservar este mapa para modelos realmente
-  // rotos (404, retirados).
-};
 
 /** Migrates a legacy imageModel string to the canonical GenerationModel value. */
 export function migrateImageModel(imageModel: string | undefined): GenerationModel {

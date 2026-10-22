@@ -82,11 +82,17 @@ test('every published API schema compiles strictly and declares a versioned pict
   }
 });
 
+// A published request schema is frozen: its enum lists every text model the
+// phase offered at 1.0.0, retired ones included. Runtime admission is narrower
+// (modelSupportsPhase), so a retired model passes the schema but is refused.
 test('request schemas offer exactly the catalog text models for their phase', () => {
   for (const [name, phase] of [['comprender', 1], ['componer', 2]]) {
     const schema = API_SCHEMAS.find(s => s.$id === PROCESSES[name].requestSchema);
-    const catalog = modelIdsForPhase(phase).filter(id => MODEL_CATALOG[id].output === 'text');
+    const catalog = Object.keys(MODEL_CATALOG)
+      .filter(id => MODEL_CATALOG[id].phases.includes(phase) && MODEL_CATALOG[id].output === 'text');
     assert.deepEqual([...schema.properties.model.enum].sort(), catalog.sort());
+    assert.ok(modelIdsForPhase(phase).every(id => schema.properties.model.enum.includes(id)));
+    assert.ok(!modelIdsForPhase(phase).includes('gemini-2.5-pro'));
   }
 });
 

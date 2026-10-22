@@ -48,18 +48,17 @@ async function checkClaude(model) {
   return Date.now() - t0;
 }
 
-async function checkGemini(model) {
-  // A text ping verifies this text model only; it does not prove image capacity.
+async function checkGemini(model, method) {
   const t0 = Date.now();
   const token = await getVertexAccessToken();
-  const url = vertexModelUrl(model);
+  const url = vertexModelUrl(model).replace(/:generateContent$/, `:${method}`);
+  const contents = [{ role: 'user', parts: [{ text: 'ping' }] }];
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ role: 'user', parts: [{ text: 'ping' }] }],
-      generationConfig: { maxOutputTokens: 1 },
-    }),
+    body: JSON.stringify(method === 'countTokens'
+      ? { contents }
+      : { contents, generationConfig: { maxOutputTokens: 1 } }),
     signal: AbortSignal.timeout(10000),
   });
   if (!res.ok) {
@@ -121,7 +120,7 @@ async function handleRequest(event, context) {
 
   try {
     const selectedModel = model ?? (service === 'openai' ? OPENAI_IMAGE_MODEL
-      : service === 'gemini' ? 'gemini-2.5-flash' : service === 'recraft' ? 'recraftv4_1_vector' : undefined);
+      : service === 'gemini' ? 'gemini-2.5-flash-image' : service === 'recraft' ? 'recraftv4_1_vector' : undefined);
     if (!selectedModel || !Object.hasOwn(MODEL_CATALOG, selectedModel) || getModelProvider(selectedModel) !== service) {
       return { statusCode: 400, headers, body: JSON.stringify({ error: 'Unsupported provider/model selection' }) };
     }
@@ -130,10 +129,12 @@ async function handleRequest(event, context) {
       latency = await checkClaude(selectedModel);
       checkScope = 'minimal_text_response';
     } else if (service === 'gemini') {
-      // Image models cannot answer the text ping. State its actual scope explicitly.
-      checkedModel = MODEL_CATALOG[selectedModel].output === 'text' ? selectedModel : 'gemini-2.5-flash';
-      latency = await checkGemini(checkedModel);
-      checkScope = checkedModel === selectedModel ? 'minimal_text_response' : 'credentials_via_text_model';
+      // Image models cannot answer a text ping. countTokens on the selected model
+      // checks credentials and model access without generating; it does not prove
+      // image capacity. (A text-model proxy broke when Gemini 2.5 text retired.)
+      const isText = MODEL_CATALOG[selectedModel].output === 'text';
+      latency = await checkGemini(selectedModel, isText ? 'generateContent' : 'countTokens');
+      checkScope = isText ? 'minimal_text_response' : 'model_count_tokens';
     } else if (service === 'recraft') {
       ({ latency, credits } = await checkRecraft());
       checkScope = 'credentials_and_credit_balance';

@@ -98,7 +98,7 @@ Implementation surface (v1): `services/localGenerationService.ts` (probe,
 generate, workflow templating — mirrors `geminiService.generateImage`
 signature so `App.tsx` dispatch stays a one-line addition);
 `GenerationModel` gains `local-comfyui` with family `local`;
-`INOPERATIVE_GENERATION_MODELS` gating reused for the not-available state;
+the model catalog `status` (see `modelCatalog.js`) gates the not-available state;
 settings panel gains the endpoint field + probe button; CSP change in
 `netlify.toml`. No Netlify function, no quota call, no audit record.
 

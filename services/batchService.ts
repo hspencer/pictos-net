@@ -16,6 +16,7 @@ import {
     callPipelineBatchCreate, callPipelineBatchPoll, callPipelineRowResult,
     type PipelineBatchJob, type PipelineRowResult,
 } from './aiClient';
+import { batchModelIds } from '../netlify/functions/_shared/modelCatalog.js';
 
 /** Defensive elements accessor (same contract as App.tsx's local helper). */
 function elementsOf(row: RowData): VisualElement[] {
@@ -25,7 +26,8 @@ function elementsOf(row: RowData): VisualElement[] {
 export type { BatchJobView };
 
 /** Vertex batch supports Gemini image models only (Recraft has no Vertex batch API). */
-export const BATCH_MODELS = ['gemini-2.5-flash-image', 'gemini-3.1-flash-image'];
+/** Derived from the model catalog: batch-capable models in the workshop or active profile. */
+export const BATCH_MODELS = batchModelIds();
 
 /** Pipeline batch works with any provider config. Max 25 rows (15-min budget). */
 export const PIPELINE_BATCH_MAX_ROWS = 25;

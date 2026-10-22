@@ -35,6 +35,7 @@ import { isMicroBlob } from './svgGeometryUtils';
 import { detectMergeCandidates } from './svgMergeCandidates';
 import { shouldSimplify, roundPathD } from './svgPathPolish';
 import { canStructureSVG } from './svgCanonical';
+import { assertModelAvailable } from '../netlify/functions/_shared/modelCatalog.js';
 import { svgStructureDiagnostic } from './svgStructureDiagnostics';
 
 import { assertSemanticInputs, assertValidSVG, createMetadata, parseSVG, inspectPassiveSVG } from '../schemas/pictos-svg-schema/index.js';
@@ -1685,6 +1686,7 @@ export async function redrawSVG(input: SVGStructureInput): Promise<SVGStructureR
     try {
         assertSemanticInputs(input.nlu, { elements: input.elements, prompt: input.prompt }, input.utterance);
         const model = input.phase5Model ?? 'claude-sonnet-4-6';
+        assertModelAvailable(model, [5]);
 
         // Reference image: prefer the source bitmap (cleaner intent) over a
         // raster of the noisy trace.
@@ -1836,6 +1838,7 @@ export async function structureSVG(input: SVGStructureInput): Promise<SVGStructu
         // discard genuine noise, guided by the bitmap. Redraw-from-scratch is
         // retired as default — it destroyed clean pictograms (see redrawSVG).
         const model = input.phase5Model ?? 'claude-sonnet-4-6';
+        assertModelAvailable(model, [5]);
 
         input.onProgress?.('[ESTRUCTURAR] Pre-procesando SVG local…');
         const admission = canStructureSVG({ rawSvg: input.rawSvg, elements: input.elements });

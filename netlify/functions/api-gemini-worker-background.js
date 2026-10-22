@@ -12,12 +12,10 @@ import { consumeAuthGrant } from './_shared/identity.js';
 import { getVertexAccessToken, vertexModelUrl } from './_shared/vertex.js';
 import { fetchWithRetry } from './_shared/httpRetry.js';
 import { providerHttpError, providerFailure } from './_shared/providerError.js';
+import { modelAllowed } from './_shared/modelCatalog.js';
 
-const ALLOWED_MODELS = [
-  'gemini-2.5-flash-image',
-  'gemini-3.1-flash-image',
-  'gemini-3-pro-image',
-];
+// Admission comes from the model catalog (lifecycle status per phase).
+const isAllowedModel = model => modelAllowed(model, 'gemini', [3]);
 
 export const handler = async (event, context) => {
   connectBlobs(event);
@@ -36,7 +34,7 @@ export const handler = async (event, context) => {
     return;
   }
 
-  if (!ALLOWED_MODELS.includes(model)) {
+  if (!isAllowedModel(model)) {
     console.error(`[api-gemini-worker] Disallowed model: ${model}`);
     return;
   }

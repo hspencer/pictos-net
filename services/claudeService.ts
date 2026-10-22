@@ -1,4 +1,4 @@
-import { getModelProvider } from '../netlify/functions/_shared/modelCatalog.js';
+import { getModelProvider, assertModelAvailable } from '../netlify/functions/_shared/modelCatalog.js';
 /**
  * Claude Service — Phases 1 (COMPRENDER), 2 (COMPONER), and spatial prompt regen.
  *
@@ -14,6 +14,7 @@ type ExecutionCallback = (execution: PhaseExecution) => void;
 
 /** Route a Claude-format params object to the correct NLU endpoint. */
 function callNluModel(model: string, params: ClaudeParams) {
+    assertModelAvailable(model, [1, 2]);
     const provider = getModelProvider(model);
     if (provider === 'openai') return callOpenAIText(params);
     if (provider === 'gemini') return callGeminiNlu(params);

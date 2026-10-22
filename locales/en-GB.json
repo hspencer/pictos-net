@@ -259,7 +259,8 @@
       "recraftv4_1": "Recraft (raster)",
       "recraftv4_1_vector": "Recraft (vector)",
       "default": "default",
-      "unavailable": "unavailable"
+      "unavailable": "unavailable",
+      "experimental": "experimental, not yet verified in PICTOS"
     },
     "phase5Model": "Phase 4: STRUCTURE",
     "phase5ModelTooltip": "Vision model to assign semantic groups to the SVG (optional structuring step). Persisted per library.",
@@ -408,6 +409,7 @@
     "loadingLibrary": "Loading {name}...",
     "templateImagesRecovered": "Recovered {count} images from the “{name}” template.",
     "libraryCopyFailed": "Could not copy the library with its images: {error}",
+    "modelNotAvailable": "{model} is no longer available. Choose another model in Settings before generating.",
     "libraryImportFailed": "Library import failed: {error}",
     "invalidFormat": "invalid format",
     "unknownError": "Unknown error",
@@ -863,6 +865,7 @@
   "svgGenerator": {
     "structuringPending": "Semantic certification pending",
     "traceRequired": "STRUCTURE requires a trace. You can create one from the bitmap using TRACE.",
+    "modelUnavailable": "The ESTRUCTURAR model is no longer available. Choose another in Settings.",
     "nluNeedsReview": "You can STRUCTURE a draft. To certify it as canonical MF-SVG, review the UNDERSTAND data: it does not meet the current schema.",
     "compositionNeedsReview": "You can STRUCTURE a draft. To certify it, review the elements and prompt references from COMPOSE.",
     "semanticInputsMismatch": "You can STRUCTURE a draft. To certify it, the utterance, NLU and composition must agree.",

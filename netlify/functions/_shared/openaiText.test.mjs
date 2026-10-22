@@ -15,6 +15,13 @@ import { GoogleAuth } from 'google-auth-library';
 import { handler as poll } from '../api-openai-text-poll.js';
 import { handler as check } from '../api-check.js';
 import { getBlobStore } from './blobs.js';
+import { MODEL_CATALOG } from './modelCatalog.js';
+
+// The Gemini text route is dormant since Google retired Gemini 2.5 text
+// (2026-10-20), but its ownership, limit and retry guarantees must still hold
+// for the next Gemini text model, so these tests admit 2.5 Flash locally.
+before(() => { MODEL_CATALOG['gemini-2.5-flash'].status = 'active'; });
+after(() => { MODEL_CATALOG['gemini-2.5-flash'].status = 'retired'; });
 
 const nlu = { utterance: 'Beber agua', lang: 'es-419', metadata: { speech_act: 'directive', intent: 'request' }, frames: [{ id: 'f1', frame_name: 'Ingestion', lexical_unit: 'beber', roles: { Agent: { type: 'Agent', surface: 'persona' } } }], nsm_explications: { beber: 'ALGUIEN QUIERE HACER ALGO' }, logical_form: { event: 'beber(persona, agua)', modality: 'want' }, pragmatics: { politeness: 'neutral', formality: 'neutral', expected_response: 'compliance' }, visual_guidelines: { focus_actor: 'persona', action_core: 'beber', object_core: 'agua', context: '', temporal: 'immediate' } };
 const composition = { elements: [{ id: 'persona', concept: 'Agent' }], prompt: "'persona' bebe agua" };
@@ -237,6 +244,22 @@ test('OpenAI checks selected metadata and Recraft only exposes numeric credits, 
   assert.equal(recraft.credits, 1234);
   assert.equal(recraft.checkScope, 'credentials_and_credit_balance');
   assert.doesNotMatch(JSON.stringify(recraft), /private/);
+});
+
+test('Gemini image checks count tokens on the selected model, never a retired text proxy', async () => {
+  mock.method(GoogleAuth.prototype, 'getClient', async () => ({ getAccessToken: async () => ({ token: 'fake-token' }) }));
+  const calls = [];
+  mock.method(globalThis, 'fetch', async (url, options) => {
+    calls.push({ url: String(url), body: JSON.parse(options.body) });
+    return Response.json({ totalTokens: 1 });
+  });
+  const result = JSON.parse((await check(event({ service: 'gemini', model: 'gemini-3-pro-image' }), {})).body);
+  assert.equal(result.ok, true);
+  assert.equal(result.checkedModel, 'gemini-3-pro-image');
+  assert.equal(result.checkScope, 'model_count_tokens');
+  assert.equal(calls.length, 1);
+  assert.match(calls[0].url, /\/models\/gemini-3-pro-image:countTokens$/);
+  assert.equal(calls[0].body.generationConfig, undefined);
 });
 
 test('failed connection checks never forward provider profile/credential echoes', async () => {

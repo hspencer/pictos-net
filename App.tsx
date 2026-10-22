@@ -1,7 +1,7 @@
 import { formatSvgStructureError, svgStructureDiagnostic } from './services/svgStructureDiagnostics';
 import { ModelPricing } from './components/ModelPricing';
 import { formatModelPrice } from './services/modelPricing';
-import { MODEL_CATALOG, getModelProvider } from './netlify/functions/_shared/modelCatalog.js';
+import { MODEL_CATALOG, getModelProvider, modelSupportsPhase, modelStatus, ModelUnavailableError } from './netlify/functions/_shared/modelCatalog.js';
 
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import ReactDOM from 'react-dom';
@@ -22,7 +22,7 @@ import * as Claude from './services/claudeService';
 import { generateImage } from './services/imageGenerationService';
 import * as Batch from './services/batchService';
 import { ExternalProviderQuotaError, ProviderRequestError, QuotaExceededError, callCheck } from './services/aiClient';
-import { GenerationModel, OpenAIImageQuality, DEFAULT_GENERATION_MODEL, migrateImageModel, migrateGenerationModel, GENERATION_MODEL_LABELS, INOPERATIVE_GENERATION_MODELS, Phase3Result, getModelFamily } from './types';
+import { GenerationModel, OpenAIImageQuality, DEFAULT_GENERATION_MODEL, migrateImageModel, migrateGenerationModel, GENERATION_MODEL_LABELS, Phase3Result, getModelFamily, configuredModel } from './types';
 import { structureSVG } from './services/svgStructureService';
 import { applySvgSafeUpdate, captureSvgSource, prepareSvgPromotion, prepareSvgDraft, observedSvgProvenance, svgForEditing, prepareSvgEditorUpdate } from './services/svgCanonical';
 import { verifySvgReference } from './schemas/pictos-svg-schema/index.js';
@@ -1637,7 +1637,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
       addLog('success', t('messages.promptRegenerated', { duration: duration.toFixed(1), preview: newPrompt.substring(0, 50) }));
       return true;
     } catch (error) {
-      const msg = error instanceof Error ? error.message : t('messages.unknownError');
+      const msg = error instanceof Error ? formatProviderError(error) : t('messages.unknownError');
       addLog('error', t('messages.promptRegenerationFailed', { error: msg }));
       updateRowById(rowId, { visualStatus: 'error' });
       return false;
@@ -1958,10 +1958,25 @@ const App: React.FC<AppProps> = ({ authUser }) => {
             updateRowById(row.id, { bitmapStatus: 'idle' });
           } else {
             updateRowById(row.id, { bitmapStatus: 'error' });
-            addLog('error', t('messages.regenerationFailed', { utterance: row.UTTERANCE, error: err.message }));
+            addLog('error', t('messages.regenerationFailed', { utterance: row.UTTERANCE, error: formatProviderError(err) }));
           }
         }
     }
+  };
+
+  /**
+   * A retired or unknown model is never sent to a provider. Checked before a
+   * run starts, so the rows keep their state and the facilitator is asked to
+   * choose a replacement in settings. Services check again (assertModelAvailable).
+   */
+  const refuseUnavailableModels = (phases: (1 | 2 | 3 | 5)[]): boolean => {
+    for (const phase of phases) {
+      const model = configuredModel(config, phase);
+      if (modelSupportsPhase(model, phase)) continue;
+      addLog('error', formatProviderError(new ModelUnavailableError(model)));
+      return true;
+    }
+    return false;
   };
 
   const processStep = async (rowId: string, step: 'nlu' | 'visual' | 'produce' | 'structure'): Promise<boolean> => {
@@ -1974,6 +1989,8 @@ const App: React.FC<AppProps> = ({ authUser }) => {
 
     const row = rows.find(r => r.id === rowId);
     if (!row) return false;
+
+    if (refuseUnavailableModels([({ nlu: 1, visual: 2, produce: 3, structure: 5 } as const)[step]])) return false;
 
     stopFlags.current[rowId] = false;
     const statusKey = (step === 'structure' ? 'structuredSvgStatus' : step === 'produce' ? 'bitmapStatus' : `${step}Status`) as keyof RowData;
@@ -2101,6 +2118,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
 
   /** Enrich provider/network errors with actionable details for the pipeline log. */
   const formatProviderError = (err: any): string => {
+    if (err instanceof ModelUnavailableError) return t('messages.modelNotAvailable', { model: err.label });
     if (err instanceof ExternalProviderQuotaError) {
       const model = err.model ?? config.generationModel ?? DEFAULT_GENERATION_MODEL;
       return `Cuota del proveedor agotada — provider=${err.provider}, model=${model}${err.requestId ? `, ref=${err.requestId}` : ''}${err.retryAfterMs ? `, retry-after=${Math.round(err.retryAfterMs / 1000)}s` : ''}`;
@@ -2117,6 +2135,8 @@ const App: React.FC<AppProps> = ({ authUser }) => {
   const processCascade = async (rowId: string) => {
     const row = rows.find(r => r.id === rowId);
     if (!row || !row.UTTERANCE.trim()) return;
+    // Check every phase the cascade will reach before spending the first one.
+    if (refuseUnavailableModels([1, 2, 3])) return;
 
     // Pre-flight: garantizar sesión sólo cuando hay algo que generar.
     // Si el usuario cancela el login, salir silenciosamente.
@@ -3007,7 +3027,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
                             {!NLU_MODELS.some(m => m.id === currentModel) && <option value={currentModel}>{currentModel} — {t('config.generationModels.unavailable')}</option>}
                             {NLU_MODELS.map(m => (
                               <option key={m.id} value={m.id}>
-                                {m.label} · {formatModelPrice(m.id, t)}{m.id === DEFAULT_NLU_MODEL ? ` (${t('config.generationModels.default')})` : ''}
+                                {m.label} · {formatModelPrice(m.id, t)}{m.id === DEFAULT_NLU_MODEL ? ` (${t('config.generationModels.default')})` : ''}{m.status === 'experimental' ? ` — ${t('config.generationModels.experimental')}` : ''}
                               </option>
                             ))}
                           </select>
@@ -3050,7 +3070,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
                             {!NLU_MODELS.some(m => m.id === currentModel) && <option value={currentModel}>{currentModel} — {t('config.generationModels.unavailable')}</option>}
                             {NLU_MODELS.map(m => (
                               <option key={m.id} value={m.id}>
-                                {m.label} · {formatModelPrice(m.id, t)}{m.id === DEFAULT_NLU_MODEL ? ` (${t('config.generationModels.default')})` : ''}
+                                {m.label} · {formatModelPrice(m.id, t)}{m.id === DEFAULT_NLU_MODEL ? ` (${t('config.generationModels.default')})` : ''}{m.status === 'experimental' ? ` — ${t('config.generationModels.experimental')}` : ''}
                               </option>
                             ))}
                           </select>
@@ -3080,7 +3100,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
                       const phaseCheck = connectionChecks['generation'];
                       const currentGenModel = config.generationModel ?? DEFAULT_GENERATION_MODEL;
                       const chk = phaseCheck?.model === currentGenModel ? phaseCheck : undefined;
-                      const genService = getModelProvider(currentGenModel);
+                      const genService = Object.hasOwn(MODEL_CATALOG, currentGenModel) ? getModelProvider(currentGenModel) : undefined;
                       return (
                         <div className="border border-slate-200 rounded p-3 flex flex-col gap-2">
                           <FieldLabel label={t('config.generationModel')} tooltip={t('config.generationModelTooltip')} />
@@ -3090,14 +3110,14 @@ const App: React.FC<AppProps> = ({ authUser }) => {
                             onChange={e => handleGenerationModelChange(e.target.value as GenerationModel)}
                             className="w-full text-xs border p-2 bg-slate-50 focus:bg-white transition-colors"
                           >
+                            {!Object.hasOwn(GENERATION_MODEL_LABELS, currentGenModel) && <option value={currentGenModel}>{currentGenModel} — {t('config.generationModels.unavailable')}</option>}
                             {(Object.keys(GENERATION_MODEL_LABELS) as GenerationModel[]).map(m => {
-                              const inoperativeReason = INOPERATIVE_GENERATION_MODELS[m];
                               const needsStyle = MODEL_CATALOG[m].requiresStyle && !config.recraftStyleId?.trim();
                               return (
-                                <option key={m} value={m} disabled={!!inoperativeReason || needsStyle}>
+                                <option key={m} value={m} disabled={needsStyle}>
                                   {GENERATION_MODEL_LABELS[m]} · {formatModelPrice(m, t, config.openaiImageQuality ?? 'low')}
                                   {m === DEFAULT_GENERATION_MODEL ? ` (${t('config.generationModels.default')})` : ''}
-                                  {inoperativeReason ? ` — ${t('config.generationModels.unavailable')} (${inoperativeReason})` : ''}
+                                  {modelStatus(m) === 'experimental' ? ` — ${t('config.generationModels.experimental')}` : ''}
                                   {needsStyle ? ` — ${t('config.recraftStyleMissing')}` : ''}
                                 </option>
                               );
@@ -3173,7 +3193,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
                             {!PHASE5_MODELS.some(m => m.id === currentP5Model) && <option value={currentP5Model}>{currentP5Model} — {t('config.generationModels.unavailable')}</option>}
                             {PHASE5_MODELS.map(m => (
                               <option key={m.id} value={m.id}>
-                                {m.label} · {formatModelPrice(m.id, t)}{m.id === DEFAULT_PHASE5_MODEL ? ` (${t('config.generationModels.default')})` : ''}
+                                {m.label} · {formatModelPrice(m.id, t)}{m.id === DEFAULT_PHASE5_MODEL ? ` (${t('config.generationModels.default')})` : ''}{m.status === 'experimental' ? ` — ${t('config.generationModels.experimental')}` : ''}
                               </option>
                             ))}
                           </select>

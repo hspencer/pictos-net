@@ -15,6 +15,7 @@ import { checkAndCharge, logCall } from './_shared/usage.js';
 import { connectBlobs } from './_shared/blobs.js';
 import { fetchWithRetry } from './_shared/httpRetry.js';
 import { providerFailure } from './_shared/providerError.js';
+import { modelAllowed } from './_shared/modelCatalog.js';
 
 const ALLOWED_ORIGINS = [
   'https://pictos.net',
@@ -22,11 +23,8 @@ const ALLOWED_ORIGINS = [
   'https://pictos-next.netlify.app',
 ];
 
-const ALLOWED_MODELS = [
-  'claude-haiku-4-5-20251001',
-  'claude-sonnet-4-6',
-  'claude-opus-4-6',
-];
+// Admission comes from the model catalog (lifecycle status per phase).
+const isAllowedModel = model => modelAllowed(model, 'claude', [1, 2, 5]);
 
 // All Claude calls are free-tier in the quota — only Recraft (phase 3) counts.
 const UNITS_BY_MODEL = {
@@ -89,7 +87,7 @@ async function handleRequest(event, context) {
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'Missing required fields: model, messages' }) };
   }
 
-  if (!ALLOWED_MODELS.includes(model)) {
+  if (!isAllowedModel(model)) {
     return { statusCode: 400, headers, body: JSON.stringify({ error: `Model not allowed: ${model}` }) };
   }
 

@@ -17,11 +17,10 @@ import { providerHttpError, providerFailure } from './_shared/providerError.js';
 import { connectBlobs } from './_shared/blobs.js';
 import { getVertexAccessToken, vertexModelUrl } from './_shared/vertex.js';
 import { buildGeminiRequest, geminiResponseToClaude } from './_shared/geminiTranslate.js';
+import { modelAllowed } from './_shared/modelCatalog.js';
 
-const ALLOWED_MODELS = [
-  'gemini-2.5-flash',
-  'gemini-2.5-pro',
-];
+// Admission comes from the model catalog (lifecycle status per phase).
+const isAllowedModel = model => modelAllowed(model, 'gemini', [1, 2]);
 
 const ALLOWED_ORIGINS = [
   'https://pictos.net',
@@ -66,7 +65,7 @@ async function handleRequest(event, context) {
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'Missing required fields: model, messages' }) };
   }
 
-  if (!ALLOWED_MODELS.includes(model)) {
+  if (!isAllowedModel(model)) {
     return { statusCode: 400, headers, body: JSON.stringify({ error: `Model not allowed: ${model}` }) };
   }
 

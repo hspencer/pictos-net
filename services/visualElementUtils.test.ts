@@ -227,10 +227,10 @@ test('NLU_MODELS includes both Claude models', () => {
     assert.ok(ids.includes('claude-sonnet-4-6'));
 });
 
-test('NLU_MODELS includes both Gemini models', () => {
+test('NLU_MODELS no longer offers the retired Gemini 2.5 text models', () => {
     const ids = NLU_MODELS.map(m => m.id);
-    assert.ok(ids.includes('gemini-2.5-flash'));
-    assert.ok(ids.includes('gemini-2.5-pro'));
+    assert.ok(!ids.includes('gemini-2.5-flash'));
+    assert.ok(!ids.includes('gemini-2.5-pro'));
 });
 
 test('DEFAULT_NLU_MODEL is claude-haiku-4-5', () => {
