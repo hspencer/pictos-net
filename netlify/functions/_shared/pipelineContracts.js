@@ -281,6 +281,31 @@ export async function requestSpatialPrompt(nlu, elements, config, callModel, onE
   return artifact.prompt;
 }
 
+/**
+ * Audit fields for a text-provider success: the provider answered (provider_ok)
+ * and whether that answer meets the canonical contract (contract_ok), judged
+ * with the same acceptance functions the caller uses. Recorded server-side so
+ * the usage report stops counting rejected outputs as successes. Issues keep
+ * only path and rule, never values, which may carry communicative content.
+ * contract_ok is null when the tool has no contract checkable here: the
+ * spatial prompt needs the element tree, and vision output is assembled later.
+ */
+export function contractAudit(response) {
+  const tool = response?.content?.find(block => block?.type === 'tool_use');
+  const accept = { analyze_utterance: raw => acceptNlu(raw), compose_pictogram: raw => acceptComposition(raw, 'es') }[tool?.name];
+  let contract_ok = null, contract_issues;
+  if (!tool) contract_ok = false, contract_issues = ['/ tool_use missing'];
+  else if (accept) {
+    try { accept(tool.input); contract_ok = true; }
+    catch (err) {
+      contract_ok = false;
+      contract_issues = (err.issues ?? [{ instancePath: '/', keyword: err.code ?? 'error' }])
+        .slice(0, 10).map(issue => `${issue.instancePath || '/'} ${issue.keyword ?? 'invalid'}`);
+    }
+  }
+  return { ok: contract_ok !== false, provider_ok: true, contract_ok, ...(contract_issues ? { contract_issues } : {}) };
+}
+
 export function canonicalJson(value) {
   if (Array.isArray(value)) return '[' + value.map(canonicalJson).join(',') + ']';
   if (value && typeof value === 'object') return '{' + Object.keys(value).sort().filter(key => value[key] !== undefined).map(key => JSON.stringify(key) + ':' + canonicalJson(value[key])).join(',') + '}';

@@ -283,12 +283,14 @@ export async function getRangeSummary({ from, to, email = null }) {
       if (ts < u.first_call) u.first_call = ts;
       if (ts > u.last_call) u.last_call = ts;
 
-      if (!byModel[model]) byModel[model] = { calls: 0, units: 0, errors: 0, totalMs: 0 };
+      if (!byModel[model]) byModel[model] = { calls: 0, units: 0, errors: 0, contract_errors: 0, totalMs: 0 };
       const m = byModel[model];
       m.calls++;
       m.units += units_charged;
       m.totalMs += ms;
       if (!ok) m.errors++;
+      // Subset of errors: the provider answered but the output broke the contract.
+      if (record.contract_ok === false) m.contract_errors++;
 
       const when = new Date(ts);
       const hour = when.getUTCHours();

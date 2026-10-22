@@ -3,6 +3,7 @@ import { consumeAuthGrant } from './_shared/identity.js';
 import { logCall } from './_shared/usage.js';
 import { generateOpenAIText, openAITextPhase, buildOpenAITextRequest } from './_shared/openaiText.js';
 import { providerFailure } from './_shared/providerError.js';
+import { contractAudit } from './_shared/pipelineContracts.js';
 
 /** Phase 5 can author geometry for longer than a synchronous function budget. */
 export const handler = async event => {
@@ -37,7 +38,7 @@ export const handler = async event => {
       provider: 'openai', units_charged: 0, ms: Date.now() - started,
       tokens_in: response.usage?.input_tokens ?? null, tokens_out: response.usage?.output_tokens ?? null,
       usage: response.usage, reasoning_effort: response.meta.reasoningEffort, request_id: response.meta.requestId,
-      attempts: response.meta.attempts, ok: true });
+      attempts: response.meta.attempts, ...contractAudit(response) });
     await put({ response });
   } catch (error) {
     const failure = providerFailure(error, { provider: 'openai', requestId: jobId });

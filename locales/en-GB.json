@@ -291,7 +291,9 @@
   },
   "console": {
     "title": "PICTOS Console",
-    "flush": "Flush"
+    "flush": "Flush",
+    "exportDiagnostics": "Export diagnostics",
+    "exportDiagnosticsTooltip": "Download this browser's generation attempt log (phase, model, outcome, duration and references), without utterances, NLU, prompts or images."
   },
   "audit": {
     "title": "Edit log",

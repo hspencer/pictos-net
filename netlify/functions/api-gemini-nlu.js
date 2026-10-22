@@ -18,6 +18,7 @@ import { connectBlobs } from './_shared/blobs.js';
 import { getVertexAccessToken, vertexModelUrl } from './_shared/vertex.js';
 import { buildGeminiRequest, geminiResponseToClaude } from './_shared/geminiTranslate.js';
 import { modelAllowed } from './_shared/modelCatalog.js';
+import { contractAudit } from './_shared/pipelineContracts.js';
 
 // Admission comes from the model catalog (lifecycle status per phase).
 const isAllowedModel = model => modelAllowed(model, 'gemini', [1, 2]);
@@ -129,8 +130,8 @@ async function handleRequest(event, context) {
 
   await logCall({
     email, phase: 'gemini-nlu', model, units_charged: 0,
-    ms, tokens_in: usage.promptTokenCount ?? 0, tokens_out: usage.candidatesTokenCount ?? 0,
-    ok: true,
+    ms, tokens_in: usage.promptTokenCount ?? null, tokens_out: usage.candidatesTokenCount ?? null,
+    ...contractAudit(responseBody),
   });
 
   console.log(`[api-gemini-nlu] user=${email} model=${model} ms=${ms} in=${usage.promptTokenCount ?? '?'} out=${usage.candidatesTokenCount ?? '?'}`);

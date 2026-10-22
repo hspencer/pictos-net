@@ -2,6 +2,7 @@ import { formatSvgStructureError, svgStructureDiagnostic } from './services/svgS
 import { ModelPricing } from './components/ModelPricing';
 import { formatModelPrice } from './services/modelPricing';
 import { MODEL_CATALOG, getModelProvider, modelSupportsPhase, modelStatus, ModelUnavailableError } from './netlify/functions/_shared/modelCatalog.js';
+import { recordAttempt, classifyAttempt, exportAttempts } from './services/attemptLog';
 
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import ReactDOM from 'react-dom';
@@ -1969,11 +1970,12 @@ const App: React.FC<AppProps> = ({ authUser }) => {
    * run starts, so the rows keep their state and the facilitator is asked to
    * choose a replacement in settings. Services check again (assertModelAvailable).
    */
-  const refuseUnavailableModels = (phases: (1 | 2 | 3 | 5)[]): boolean => {
+  const refuseUnavailableModels = (rowId: string, phases: (1 | 2 | 3 | 5)[]): boolean => {
     for (const phase of phases) {
       const model = configuredModel(config, phase);
       if (modelSupportsPhase(model, phase)) continue;
       addLog('error', formatProviderError(new ModelUnavailableError(model)));
+      recordAttempt({ rowId, phase, model, outcome: 'model_unavailable', durationMs: null });
       return true;
     }
     return false;
@@ -1990,7 +1992,10 @@ const App: React.FC<AppProps> = ({ authUser }) => {
     const row = rows.find(r => r.id === rowId);
     if (!row) return false;
 
-    if (refuseUnavailableModels([({ nlu: 1, visual: 2, produce: 3, structure: 5 } as const)[step]])) return false;
+    const phase = ({ nlu: 1, visual: 2, produce: 3, structure: 5 } as const)[step];
+    if (refuseUnavailableModels(rowId, [phase])) return false;
+    const attempt = (fields: Pick<Parameters<typeof recordAttempt>[0], 'outcome'> & Partial<Parameters<typeof recordAttempt>[0]>) =>
+      recordAttempt({ rowId, phase, model: configuredModel(config, phase), durationMs: Date.now() - startTime, ...fields });
 
     stopFlags.current[rowId] = false;
     const statusKey = (step === 'structure' ? 'structuredSvgStatus' : step === 'produce' ? 'bitmapStatus' : `${step}Status`) as keyof RowData;
@@ -2046,6 +2051,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
           if (captureSvgSource(rowsForSvgRef.current.find(r => r.id === rowId) ?? {}) !== update.svgSourceSnapshot) throw new Error('SVG inputs changed during generation');
           updateRowById(rowId, { ...update, structuredSvgStatus: row.structuredSvgStatus === 'completed' ? 'completed' : 'outdated' });
           addLog('info', t('svgGenerator.draftReady'));
+          attempt({ outcome: 'draft', diagnostic: result.diagnostic?.key });
           return true;
         }
         if (!result.success) throw Object.assign(new Error(result.error || 'Structuring failed'), { diagnostic: result.diagnostic });
@@ -2102,9 +2108,11 @@ const App: React.FC<AppProps> = ({ authUser }) => {
           if (bitmapEl) bitmapEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
         });
       }
+      attempt({ outcome: 'ok' });
       return true;
     } catch (err: any) {
       if (stopFlags.current[rowId]) return false;
+      attempt(classifyAttempt(err));
       if (err instanceof QuotaExceededError) {
         setQuotaModal({ units_used: err.units_used, limit: err.limit });
         updateRowById(rowId, { [statusKey]: 'idle', [startedAtKey]: undefined });
@@ -2136,7 +2144,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
     const row = rows.find(r => r.id === rowId);
     if (!row || !row.UTTERANCE.trim()) return;
     // Check every phase the cascade will reach before spending the first one.
-    if (refuseUnavailableModels([1, 2, 3])) return;
+    if (refuseUnavailableModels(rowId, [1, 2, 3])) return;
 
     // Pre-flight: garantizar sesión sólo cuando hay algo que generar.
     // Si el usuario cancela el login, salir silenciosamente.
@@ -2176,6 +2184,10 @@ const App: React.FC<AppProps> = ({ authUser }) => {
           visualDuration: row.visualDuration,
         }
       : { status: 'processing' };
+    // Start of the phase in flight, so a failure records how long it ran.
+    let phaseStartedAt = Date.now();
+    const attempt = (phase: 1 | 2 | 3, fields: Pick<Parameters<typeof recordAttempt>[0], 'outcome'> & Partial<Parameters<typeof recordAttempt>[0]>) =>
+      recordAttempt({ runId, rowId, phase, model: configuredModel(config, phase), durationMs: Date.now() - phaseStartedAt, ...fields });
 
     try {
       if (retryPhase3Only) {
@@ -2186,7 +2198,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
       } else {
         // --- NLU Step (Phase 1: COMPRENDER — Claude Haiku) ---
         runLog('info', t('messages.cascadeStep', { current: 1, total: 3, step: stepNames.nlu }));
-        const nluStartTime = Date.now();
+        const nluStartTime = phaseStartedAt = Date.now();
         updateRowById(rowId, { nluStatus: 'processing', nluStartedAt: nluStartTime, visualStatus: 'idle', bitmapStatus: 'idle', structuredSvgStatus: 'idle' });
         const nluExecutions: PhaseExecution[] = [];
         nluResult = await Claude.generateNLU(row.UTTERANCE, runLog, config, execution => { nluExecutions.push(execution); });
@@ -2199,10 +2211,11 @@ const App: React.FC<AppProps> = ({ authUser }) => {
         finalUpdates.nluStatus = 'completed';
         finalUpdates.nluDuration = (Date.now() - nluStartTime) / 1000;
         runLog('success', t('messages.cascadeStepComplete', { current: 1, total: 3, duration: finalUpdates.nluDuration.toFixed(1) }));
+        attempt(1, { outcome: 'ok' });
 
         // --- Visual Step (Phase 2: COMPONER — Claude Haiku) ---
         runLog('info', t('messages.cascadeStep', { current: 2, total: 3, step: stepNames.visual }));
-        const visualStartTime = Date.now();
+        const visualStartTime = phaseStartedAt = Date.now();
         updateRowById(rowId, { nluStatus: 'completed', nluDuration: finalUpdates.nluDuration, nluStartedAt: undefined, NLU: nluResult, visualStatus: 'processing', visualStartedAt: visualStartTime, phaseExecutions: nluExecutions });
         const compositionExecutions: PhaseExecution[] = [];
         visualResult = await Claude.generateVisualBlueprint(nluResult, config, runLog, execution => { compositionExecutions.push(execution); });
@@ -2217,13 +2230,14 @@ const App: React.FC<AppProps> = ({ authUser }) => {
         finalUpdates.visualStatus = 'completed';
         finalUpdates.visualDuration = (Date.now() - visualStartTime) / 1000;
         runLog('success', t('messages.cascadeStepComplete', { current: 2, total: 3, duration: finalUpdates.visualDuration.toFixed(1) }));
+        attempt(2, { outcome: 'ok' });
       }
 
       if (!nluResult || !visualResult) throw new Error('Incomplete Phase 3 snapshot');
 
       // --- Produce Step (Phase 3: PRODUCIR — dispatch by generationModel) ---
       runLog('info', t('messages.cascadeStep', { current: 3, total: 3, step: stepNames.produce }));
-      const bitmapStartTime = Date.now();
+      const bitmapStartTime = phaseStartedAt = Date.now();
       updateRowById(rowId, { visualStatus: 'completed', visualDuration: finalUpdates.visualDuration, visualStartedAt: undefined, elements: visualResult.elements, prompt: visualResult.prompt, bitmapStatus: 'processing', bitmapStartedAt: bitmapStartTime });
       const phase3Snapshot: RowData = {
         ...row,
@@ -2251,6 +2265,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
       finalUpdates.bitmapDuration = (Date.now() - bitmapStartTime) / 1000;
       finalUpdates.bitmapStartedAt = undefined;
       runLog('success', t('messages.cascadeStepComplete', { current: 3, total: 3, duration: finalUpdates.bitmapDuration.toFixed(1) }));
+      attempt(3, { outcome: 'ok' });
 
       finalUpdates.status = 'completed';
       updateRowById(rowId, finalUpdates);
@@ -2274,6 +2289,8 @@ const App: React.FC<AppProps> = ({ authUser }) => {
 
     } catch (err: any) {
       if (stopFlags.current[rowId]) return;
+      const failedPhase = finalUpdates.visualStatus === 'completed' ? 3 : finalUpdates.nluStatus === 'completed' ? 2 : 1;
+      attempt(failedPhase, classifyAttempt(err));
       if (err instanceof QuotaExceededError) {
         setQuotaModal({ units_used: err.units_used, limit: err.limit });
         const phase3Ready = finalUpdates.nluStatus === 'completed' && finalUpdates.visualStatus === 'completed';
@@ -3673,6 +3690,19 @@ const App: React.FC<AppProps> = ({ authUser }) => {
           <div className="flex justify-between items-center mb-4 pb-2 border-b border-slate-900 font-medium tracking-widest uppercase">
             <span className="flex items-center gap-3"><Terminal size={14} /> {t('console.title')}</span>
             <div className="flex items-center gap-4">
+              <button
+                onClick={() => {
+                  const blob = new Blob([exportAttempts(APP_VERSION)], { type: 'application/json' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `pictos-diagnostico-${new Date().toISOString().slice(0, 10)}.json`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
+                className="hover:text-white transition-colors"
+                title={t('console.exportDiagnosticsTooltip')}
+              >{t('console.exportDiagnostics')}</button>
               <button
                 onClick={() => setLogs([])}
                 className="hover:text-white transition-colors"

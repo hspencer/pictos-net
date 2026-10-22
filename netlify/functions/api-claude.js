@@ -16,6 +16,7 @@ import { connectBlobs } from './_shared/blobs.js';
 import { fetchWithRetry } from './_shared/httpRetry.js';
 import { providerFailure } from './_shared/providerError.js';
 import { modelAllowed } from './_shared/modelCatalog.js';
+import { contractAudit } from './_shared/pipelineContracts.js';
 
 const ALLOWED_ORIGINS = [
   'https://pictos.net',
@@ -165,7 +166,7 @@ async function handleRequest(event, context) {
     ms,
     tokens_in: response.usage?.input_tokens ?? null,
     tokens_out: response.usage?.output_tokens ?? null,
-    ok: true,
+    ...contractAudit(response),
     provider: 'anthropic', request_id: clientRequestId, attempts: providerAttempts,
   });
 

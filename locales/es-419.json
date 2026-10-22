@@ -291,7 +291,9 @@
   },
   "console": {
     "title": "Consola PICTOS",
-    "flush": "Limpiar"
+    "flush": "Limpiar",
+    "exportDiagnostics": "Exportar diagnóstico",
+    "exportDiagnosticsTooltip": "Descarga el registro de intentos de generación de este navegador (fase, modelo, resultado, duración y referencias), sin frases, NLU, prompts ni imágenes."
   },
   "audit": {
     "title": "Registro de ediciones",

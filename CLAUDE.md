@@ -59,6 +59,7 @@ Gemini image models deliver native SVG output so VTracer is no longer needed.
 - Output: raw SVG string (`rawSvg`) for vector models; bitmap PNG (`bitmap`) for raster models
 
 ### Phase 4: ESTRUCTURAR (Claude Sonnet, optional, user-initiated)
+- Numbering: shown as phase 4 in the UI, but its internal identifier is 5 everywhere it is persisted or logged (`phase5Model`, catalog `phases: [5]`, phase executions, attempt log). 4 was the retired VTracer step. Do not renumber: `phase5Model` lives in saved configurations. The attempt log carries `phaseName` to remove the ambiguity.
 - Input: rawSvg + elements + NLU + GlobalConfig
 - Method: local measurement (real anchors via getBBox+CTM, merge candidates via bbox IoU) → set-of-marks rasterization (anti-collision + leader lines) → vision call → local path assembly (safety nets) → deterministic polish (selective curve refit + coordinate rounding)
 - Geometry never leaves the browser and is never model-authored

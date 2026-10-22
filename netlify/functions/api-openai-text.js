@@ -2,6 +2,7 @@ import { connectBlobs } from './_shared/blobs.js';
 import { logCall } from './_shared/usage.js';
 import { generateOpenAIText, buildOpenAITextRequest, openAITextPhase } from './_shared/openaiText.js';
 import { providerFailure } from './_shared/providerError.js';
+import { contractAudit } from './_shared/pipelineContracts.js';
 
 /** Same authenticated proxy boundary as other text providers. Zero internal units is not free API usage. */
 export const handler = async (event, context) => {
@@ -25,7 +26,7 @@ export const handler = async (event, context) => {
       ms: Date.now() - started, tokens_in: response.usage?.input_tokens ?? null,
       tokens_out: response.usage?.output_tokens ?? null, usage: response.usage,
       reasoning_effort: response.meta.reasoningEffort, request_id: response.meta.requestId,
-      attempts: response.meta.attempts, ok: true });
+      attempts: response.meta.attempts, ...contractAudit(response) });
     return reply(200, response);
   } catch (error) {
     const failure = providerFailure(error, { provider: 'openai', requestId: params._requestId });
