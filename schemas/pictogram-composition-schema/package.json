@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "type": "module",
   "private": true,
-  "license": "UNLICENSED",
+  "license": "CC-BY-4.0",
   "main": "./index.js",
   "exports": {
     ".": "./index.js",
