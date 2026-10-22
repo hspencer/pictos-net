@@ -90,6 +90,15 @@ test('missing image and ambiguous transport failure do not become successes or a
   assert.equal(fetchMock.mock.callCount(), 1);
 });
 
+test('a response without image is refunded and records its source and real usage', async () => {
+  mock.method(globalThis, 'fetch', async () => Response.json({ data: [{}], usage: { input_tokens: 60, output_tokens: 0 } }));
+  await worker(event({ ...params, jobId: 'openai-no-image' }));
+  const result = await readResult('openai-no-image');
+  assert.equal(result.failureSource, 'no_image');
+  assert.equal(result.refundedUnits, 1);
+  assert.match(result.error, /no image data/);
+});
+
 test('worker and poll preserve bitmap and quality, and consume the finished result', async () => {
   mock.method(globalThis, 'fetch', async () => Response.json({ data: [{ b64_json: png }], usage: { input_tokens: 20, output_tokens: 196 } }));
   await worker(event({ ...params, quality: 'high', jobId: 'openai-success' }));

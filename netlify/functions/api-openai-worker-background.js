@@ -40,8 +40,8 @@ export const handler = async (event) => {
     await save({ bitmap, generationQuality });
   } catch (error) {
     const details = providerFailure(error, { provider: 'openai', requestId: jobId });
-    const refunded = charged && await refundUnitsOnce(email, 1, `openai:${jobId}`, 'provider_error');
     const failureSource = details.failureSource;
+    const refunded = charged && await refundUnitsOnce(email, 1, `openai:${jobId}`, failureSource);
     await logCall({
       email, phase: 'openai', model: body.model, quality: body.quality ?? 'low',
       units_charged: charged && !refunded ? 1 : 0, ms: Date.now() - startMs, ok: false,

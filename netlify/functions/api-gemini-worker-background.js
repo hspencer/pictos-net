@@ -17,6 +17,24 @@ import { modelAllowed } from './_shared/modelCatalog.js';
 // Admission comes from the model catalog (lifecycle status per phase).
 const isAllowedModel = model => modelAllowed(model, 'gemini', [3]);
 
+/**
+ * Why a Gemini response carried no image, without keeping any of its content:
+ * finish and block reasons, and the kinds of parts received (e.g. ["text"]).
+ * The provider's finishMessage is an explanation, not user content; it is
+ * truncated anyway.
+ */
+export function geminiNoImageDiagnosis(data) {
+  const candidate = data?.candidates?.[0];
+  const parts = candidate?.content?.parts ?? [];
+  return {
+    finish_reason: candidate?.finishReason ?? null,
+    finish_message: typeof candidate?.finishMessage === 'string' ? candidate.finishMessage.slice(0, 200) : null,
+    block_reason: data?.promptFeedback?.blockReason ?? null,
+    candidate_count: data?.candidates?.length ?? 0,
+    part_kinds: parts.map(part => Object.keys(part).filter(k => k !== 'thought' && k !== 'thoughtSignature').join('+') || 'empty'),
+  };
+}
+
 export const handler = async (event, context) => {
   connectBlobs(event);
 
@@ -111,14 +129,26 @@ export const handler = async (event, context) => {
     const imagePart = parts.find(p => p.inlineData?.mimeType?.startsWith('image/'));
 
     if (!imagePart?.inlineData?.data) {
-      console.error('[api-gemini-worker] No image data in Gemini response');
+      // Transport succeeded but nothing usable came back. Nothing was delivered,
+      // so the unit is returned (idempotent per job).
+      const diagnosis = geminiNoImageDiagnosis(data);
+      const refunded = await refundUnitsOnce(email, 1, `gemini:${jobId}`, 'no_image');
+      console.error(`[api-gemini-worker] No image: ${JSON.stringify(diagnosis)}`);
       await logCall({
-        email, phase: 'gemini', model, units_charged: 1,
+        email, phase: 'gemini', model, units_charged: refunded ? 0 : 1,
         ms: Date.now() - startMs,
-        tokens_in: 0, tokens_out: 0, ok: false,
-        error_msg: 'No image data in Gemini response',
+        tokens_in: data?.usageMetadata?.promptTokenCount ?? null,
+        tokens_out: data?.usageMetadata?.candidatesTokenCount ?? null, ok: false,
+        error_msg: 'No image data in Gemini response', provider: 'gemini', request_id: jobId,
+        failure_source: 'no_image', ...diagnosis, refunded_units: refunded ? 1 : 0,
       });
-      await store.setJSON(jobId, { error: 'Gemini returned no image data' });
+      await store.setJSON(jobId, {
+        error: `Gemini returned no image (finishReason=${diagnosis.finish_reason ?? 'none'}`
+          + `${diagnosis.block_reason ? `, blockReason=${diagnosis.block_reason}` : ''})`,
+        provider: 'gemini', failureSource: 'no_image', retryable: true, recoverable: true,
+        finishReason: diagnosis.finish_reason, blockReason: diagnosis.block_reason,
+        refundedUnits: refunded ? 1 : 0,
+      });
       return;
     }
 

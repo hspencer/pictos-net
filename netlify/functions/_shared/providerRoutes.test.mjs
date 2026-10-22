@@ -6,7 +6,7 @@ import path from 'node:path';
 import { GoogleAuth } from 'google-auth-library';
 import { handler as nlu } from '../api-gemini-nlu.js';
 import { handler as structure } from '../api-gemini-structure.js';
-import { handler as image } from '../api-gemini-worker-background.js';
+import { handler as image, geminiNoImageDiagnosis } from '../api-gemini-worker-background.js';
 import { handler as recraft } from '../api-recraft-worker-background.js';
 import { handler as pipeline } from '../api-pipeline-batch-background.js';
 import { getBlobStore } from './blobs.js';
@@ -46,6 +46,27 @@ test('Gemini sync phases retain terminal status, retry metadata, and no daily-qu
     assert.doesNotMatch(body.error, /diaria|daily/i);
   }
   assert.equal(upstream.mock.callCount(), 2);
+});
+
+test('Gemini 200 without image is refunded and keeps why, never the returned text', async () => {
+  mockVertex();
+  mock.method(globalThis, 'fetch', async () => Response.json({
+    candidates: [{ finishReason: 'IMAGE_SAFETY', finishMessage: 'Unable to show the generated image.',
+      content: { parts: [{ text: 'PRIVATE-MODEL-TEXT' }, { thought: true, text: 'PRIVATE-THOUGHT' }] } }],
+    usageMetadata: { promptTokenCount: 12, candidatesTokenCount: 3 },
+  }));
+  await image(event({ jobId: 'gemini-no-image', model: 'gemini-2.5-flash-image', prompt: 'synthetic' }), {});
+  const result = await getBlobStore('gemini-jobs').get('gemini-no-image', { type: 'json' });
+  assert.equal(result.failureSource, 'no_image');
+  assert.equal(result.finishReason, 'IMAGE_SAFETY');
+  assert.equal(result.refundedUnits, 1);
+  assert.equal(result.retryable, true);
+  assert.match(result.error, /finishReason=IMAGE_SAFETY/);
+  assert.doesNotMatch(JSON.stringify(result), /PRIVATE/);
+  assert.deepEqual(geminiNoImageDiagnosis({
+    candidates: [{ finishReason: 'STOP', content: { parts: [{ text: 'x' }, { thought: true, text: 'y' }, {}] } }],
+    promptFeedback: { blockReason: 'PROHIBITED_CONTENT' },
+  }), { finish_reason: 'STOP', finish_message: null, block_reason: 'PROHIBITED_CONTENT', candidate_count: 1, part_kinds: ['text', 'text', 'empty'] });
 });
 
 test('image terminal 429 and Recraft failed generation refund internal reservation', async () => {

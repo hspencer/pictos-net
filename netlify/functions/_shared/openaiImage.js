@@ -39,7 +39,10 @@ export async function generateOpenAIImage(params) {
     });
   }
   const base64 = data.data?.[0]?.b64_json;
-  if (typeof base64 !== 'string' || !base64) throw new Error('OpenAI returned no image data');
+  if (typeof base64 !== 'string' || !base64) {
+    throw Object.assign(new Error('OpenAI returned no image data'),
+      { failureSource: 'no_image', usage: data.usage ?? null, requestId });
+  }
   return {
     bitmap: `data:image/png;base64,${base64}`,
     generationQuality: body.quality,

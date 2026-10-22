@@ -58,8 +58,8 @@ export async function providerHttpError(response, provider, requestId) {
 export function providerFailure(error, context = {}) {
   const details = providerErrorDetails(error, context);
   const { message, ...metadata } = details;
-  const failureSource = isHardBillingError(error) ? 'external_provider_billing'
-    : details.providerStatus === 429 ? 'external_provider_quota' : 'provider_error';
+  const failureSource = error?.failureSource ?? (isHardBillingError(error) ? 'external_provider_billing'
+    : details.providerStatus === 429 ? 'external_provider_quota' : 'provider_error');
   return {
     error: message, ...metadata,
     attempts: error?.attempts ?? 1, retryManaged: true, failureSource,
