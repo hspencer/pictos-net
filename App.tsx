@@ -3,6 +3,7 @@ import { ModelPricing } from './components/ModelPricing';
 import { formatModelPrice } from './services/modelPricing';
 import { MODEL_CATALOG, getModelProvider, modelSupportsPhase, modelStatus, ModelUnavailableError } from './netlify/functions/_shared/modelCatalog.js';
 import { recordAttempt, classifyAttempt, exportAttempts } from './services/attemptLog';
+import { describeError } from './services/errorMessages';
 
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import ReactDOM from 'react-dom';
@@ -63,7 +64,7 @@ import { BoardList } from './components/BoardList';
 import { BoardEditor } from './components/BoardEditor';
 import { sanitizeRow, appendPhaseExecutions, migrateLibraryJson } from './services/rowSerialization';
 import type { PhaseExecution } from './types';
-import { canRetryPhase3Only } from './services/pipelineResume';
+import { canRetryPhase3Only, failureFor } from './services/pipelineResume';
 
 
 
@@ -2109,6 +2110,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
         });
       }
       attempt({ outcome: 'ok' });
+      if (row.lastFailure?.phase === phase) updateRowById(rowId, { lastFailure: undefined });
       return true;
     } catch (err: any) {
       if (stopFlags.current[rowId]) return false;
@@ -2118,27 +2120,15 @@ const App: React.FC<AppProps> = ({ authUser }) => {
         updateRowById(rowId, { [statusKey]: 'idle', [startedAtKey]: undefined });
         return false;
       }
-      updateRowById(rowId, { [statusKey]: 'error', [startedAtKey]: undefined });
-      addLog('error', t('messages.stepFailed', { step: step.toUpperCase(), utterance: row.UTTERANCE, error: step === 'structure' ? formatSvgStructureError(err, t) : formatProviderError(err) }));
+      const cause = step === 'structure' ? formatSvgStructureError(err, t) : formatProviderError(err);
+      updateRowById(rowId, { [statusKey]: 'error', [startedAtKey]: undefined, lastFailure: { phase, message: cause, at: new Date().toISOString() } });
+      addLog('error', t('messages.stepFailed', { step: step.toUpperCase(), utterance: row.UTTERANCE, error: cause }));
       return false;
     }
   };
 
   /** Enrich provider/network errors with actionable details for the pipeline log. */
-  const formatProviderError = (err: any): string => {
-    if (err instanceof ModelUnavailableError) return t('messages.modelNotAvailable', { model: err.label });
-    if (err instanceof ExternalProviderQuotaError) {
-      const model = err.model ?? config.generationModel ?? DEFAULT_GENERATION_MODEL;
-      return `Cuota del proveedor agotada — provider=${err.provider}, model=${model}${err.requestId ? `, ref=${err.requestId}` : ''}${err.retryAfterMs ? `, retry-after=${Math.round(err.retryAfterMs / 1000)}s` : ''}`;
-    }
-    if (err instanceof ProviderRequestError) {
-      const status = err.providerStatus ? ` HTTP ${err.providerStatus}` : '';
-      const retry = err.retryable ? ' [reintentable]' : err.retryable === false ? ' [no reintentable]' : '';
-      const source = err.failureSource ? `, fuente=${err.failureSource}` : '';
-      return `Error del proveedor${status}${retry} — ${err.message}; provider=${err.provider}${source}${err.requestId ? `; ref=${err.requestId}` : ''}`;
-    }
-    return err.message ?? String(err);
-  };
+  const formatProviderError = (err: any): string => describeError(err, t);
 
   const processCascade = async (rowId: string) => {
     const row = rows.find(r => r.id === rowId);
@@ -2266,6 +2256,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
       finalUpdates.bitmapStartedAt = undefined;
       runLog('success', t('messages.cascadeStepComplete', { current: 3, total: 3, duration: finalUpdates.bitmapDuration.toFixed(1) }));
       attempt(3, { outcome: 'ok' });
+      finalUpdates.lastFailure = undefined;
 
       finalUpdates.status = 'completed';
       updateRowById(rowId, finalUpdates);
@@ -2308,11 +2299,13 @@ const App: React.FC<AppProps> = ({ authUser }) => {
       else if (finalUpdates.visualStatus === 'completed') stepFailed = 'produce';
 
       const failedStatusKey = stepFailed === 'produce' ? 'bitmapStatus' : `${stepFailed}Status`;
+      const cause = formatProviderError(err);
       updateRowById(rowId, {
         [failedStatusKey]: 'error', status: 'error',
         nluStartedAt: undefined, visualStartedAt: undefined, bitmapStartedAt: undefined,
+        lastFailure: { phase: failedPhase, message: cause, at: new Date().toISOString() },
       });
-      runLog('error', t('messages.cascadeFailed', { step: stepNames[stepFailed], error: formatProviderError(err) }));
+      runLog('error', t('messages.cascadeFailed', { step: stepNames[stepFailed], error: cause }));
     }
   };
 
@@ -4188,9 +4181,9 @@ const RowComponent: React.FC<{
             )}
           </div>
           <div id={`pipeline-badges-${row.id}`} className="flex gap-1.5 cursor-pointer" aria-label={t('a11y.pipelineStatus')} onClick={() => setIsOpen(!isOpen)}>
-            <Badge step={1} label={t('pipeline.understand')} status={row.nluStatus} />
-            <Badge step={2} label={t('pipeline.compose')} status={row.visualStatus} />
-            <Badge step={3} label={t('pipeline.produce')} status={row.bitmapStatus} />
+            <Badge step={1} label={t('pipeline.understand')} status={row.nluStatus} detail={failureFor(row, 1)} />
+            <Badge step={2} label={t('pipeline.compose')} status={row.visualStatus} detail={failureFor(row, 2)} />
+            <Badge step={3} label={t('pipeline.produce')} status={row.bitmapStatus} detail={failureFor(row, 3)} />
           </div>
         </div>
         <div
@@ -5172,7 +5165,7 @@ const ElementsEditor: React.FC<{
   );
 };
 
-const Badge: React.FC<{ step: number; label: string; status: StepStatus }> = ({ step, label, status }) => {
+const Badge: React.FC<{ step: number; label: string; status: StepStatus; detail?: string }> = ({ step, label, status, detail }) => {
   const styles: Record<StepStatus, string> = {
     idle: 'bg-slate-100 text-slate-500 border-slate-200',
     processing: 'bg-orange-600 text-white animate-pulse border-orange-500',
@@ -5194,9 +5187,10 @@ const Badge: React.FC<{ step: number; label: string; status: StepStatus }> = ({ 
       <div
         id={tooltipId}
         role="tooltip"
-        className="invisible group-hover/badge:visible group-focus-within/badge:visible absolute left-1/2 -translate-x-1/2 bottom-full mb-2 whitespace-nowrap bg-slate-900 text-white text-xs font-medium px-2.5 py-1 rounded shadow-lg z-50 pointer-events-none"
+        className={`invisible group-hover/badge:visible group-focus-within/badge:visible absolute left-1/2 -translate-x-1/2 bottom-full mb-2 ${detail ? 'w-72 whitespace-normal' : 'whitespace-nowrap'} bg-slate-900 text-white text-xs font-medium px-2.5 py-1 rounded shadow-lg z-50 pointer-events-none`}
       >
         {label}
+        {detail && <span className="block mt-1 font-normal text-slate-200">{detail}</span>}
       </div>
     </div>
   );

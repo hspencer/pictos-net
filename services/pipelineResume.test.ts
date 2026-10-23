@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { canRetryPhase3Only } from './pipelineResume.ts';
+import { canRetryPhase3Only, failureFor } from './pipelineResume.ts';
 
 const coherent = {
   id: 'row-1',
@@ -26,4 +26,12 @@ test('requires all completed upstream artifacts', () => {
 
 test('a normal completed row still runs the full cascade', () => {
   assert.equal(canRetryPhase3Only({ ...coherent, bitmapStatus: 'completed' }), false);
+});
+
+test('a failure cause is shown only for its phase and only while that phase is in error', () => {
+  const failed = { ...coherent, lastFailure: { phase: 3, message: 'sin imagen', at: '2026-10-22T00:00:00Z' } };
+  assert.equal(failureFor(failed, 3), 'sin imagen');
+  assert.equal(failureFor(failed, 1), undefined);
+  assert.equal(failureFor({ ...failed, bitmapStatus: 'completed' }, 3), undefined);
+  assert.equal(failureFor(coherent, 3), undefined);
 });

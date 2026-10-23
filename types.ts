@@ -248,6 +248,12 @@ export interface RowData {
 
   /** New accepted semantic executions; absence on historical data stays unknown. */
   phaseExecutions?: PhaseExecution[];
+  /**
+   * Why the last failed phase failed, already translated, so the cause
+   * survives a reload. No communicative content; cleared when the phase
+   * next succeeds. Internal phase numbers (5 = ESTRUCTURAR).
+   */
+  lastFailure?: { phase: 1 | 2 | 3 | 5; message: string; at: string };
   /** Original values requiring safe UI defaults during import; never training approval. */
   importOriginalValues?: Record<string, unknown>;
 

@@ -23,6 +23,7 @@ import { useTranslation } from '../hooks/useTranslation';
 import { injectSvgA11y } from '../utils/svgAccessibility';
 import { validRawSvg, validStructuredSvg, validBitmap } from '../utils/rowArtifacts';
 import { sentenceCase } from '../utils/textFormat';
+import { failureFor } from '../services/pipelineResume';
 
 type FocusStep = 'nlu' | 'visual' | 'produce' | 'format';
 type DisplayStage = 'none' | 'bitmap' | 'trazado' | 'estructurado';
@@ -45,7 +46,7 @@ const stageOf = (row: RowData): DisplayStage => {
   return 'none';
 };
 
-const StatusBadge: React.FC<{ step: number; status: StepStatus; label: string; onClick: () => void; }> = ({ step, status, label, onClick }) => {
+const StatusBadge: React.FC<{ step: number; status: StepStatus; label: string; detail?: string; onClick: () => void; }> = ({ step, status, label, detail, onClick }) => {
   const styles: Record<StepStatus, string> = {
     idle:       'bg-slate-100 text-slate-500 border-slate-200',
     processing: 'bg-orange-600 text-white animate-pulse border-orange-500',
@@ -58,8 +59,8 @@ const StatusBadge: React.FC<{ step: number; status: StepStatus; label: string; o
     <button
       type="button"
       onClick={(e) => { e.stopPropagation(); onClick(); }}
-      title={label}
-      aria-label={label}
+      title={detail ? `${label}: ${detail}` : label}
+      aria-label={detail ? `${label}: ${detail}` : label}
       className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border transition-all hover:scale-110 ${styles[status]}`}
     >
       {step}
@@ -270,9 +271,9 @@ export const PictogramGridCell: React.FC<Props> = ({
 
           {/* Pipeline badges — each opens focus modal at its step */}
           <div className="flex gap-1.5">
-            <StatusBadge step={1} status={row.nluStatus}    label={t('pipeline.understand')} onClick={() => onFocus('nlu')} />
-            <StatusBadge step={2} status={row.visualStatus} label={t('pipeline.compose')}    onClick={() => onFocus('visual')} />
-            <StatusBadge step={3} status={row.bitmapStatus} label={t('pipeline.produce')}    onClick={() => onFocus('produce')} />
+            <StatusBadge step={1} status={row.nluStatus}    label={t('pipeline.understand')} detail={failureFor(row, 1)} onClick={() => onFocus('nlu')} />
+            <StatusBadge step={2} status={row.visualStatus} label={t('pipeline.compose')}    detail={failureFor(row, 2)} onClick={() => onFocus('visual')} />
+            <StatusBadge step={3} status={row.bitmapStatus} label={t('pipeline.produce')}    detail={failureFor(row, 3)} onClick={() => onFocus('produce')} />
           </div>
         </div>
       </div>

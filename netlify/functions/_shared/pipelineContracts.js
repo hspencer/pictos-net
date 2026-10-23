@@ -16,6 +16,11 @@ export class PipelineContractError extends Error {
   }
 }
 
+/** COMPONER input that is stored row data, not provider output, broke the contract. */
+function storedInputError(issues, input) {
+  return Object.assign(new PipelineContractError(2, structuredClone(issues), input), { stage: 'input' });
+}
+
 /** Resolve local schema references before provider adaptation. Recursive child
  * trees are projected to six levels, with children forbidden at the last level.
  * Canonical validation remains recursive and independent of this provider limit. */
@@ -202,7 +207,7 @@ Reglas:
 }
 
 export function buildCompositionRequest(nlu, config = {}) {
-    if (!validateNluDocument(nlu)) throw new PipelineContractError(2, structuredClone(validateNluDocument.errors), nlu);
+    if (!validateNluDocument(nlu)) throw storedInputError(validateNluDocument.errors, nlu);
     const targetLang = nlu.lang;
     const availableClasses = config.svgStyleDefs
         ? config.svgStyleDefs.flatMap(s => s.selectors).join(', ')
@@ -245,8 +250,8 @@ ${config.domainContext?.trim() ? `Domain context: "${config.domainContext.trim()
 }
 
 export function buildSpatialPromptRequest(nlu, elements, config = {}) {
-  if (!validateNluDocument(nlu)) throw new PipelineContractError(2, structuredClone(validateNluDocument.errors), nlu);
-  if (!validateElementTree(elements)) throw new PipelineContractError(2, structuredClone(validateElementTree.errors), elements);
+  if (!validateNluDocument(nlu)) throw storedInputError(validateNluDocument.errors, nlu);
+  if (!validateElementTree(elements)) throw storedInputError(validateElementTree.errors, elements);
   const model = config?.componerModel ?? config?.nluModel ?? 'claude-haiku-4-5-20251001';
   return {
     model, max_tokens: 1024,

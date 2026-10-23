@@ -37,7 +37,7 @@ export async function getAuthToken(): Promise<string> {
         // expired session, or a suspended Google OAuth project). Prompt re-login.
         user = await requestLogin();
         const token = await user.jwt();
-        if (!token || typeof token !== 'string') throw new Error('Sesión expirada — por favor inicia sesión de nuevo');
+        if (!token || typeof token !== 'string') throw Object.assign(new Error('Sesión expirada — por favor inicia sesión de nuevo'), { kind: 'session' });
         return token;
     }
 }
@@ -166,7 +166,7 @@ async function authorizeJob(jobId: string, reqHeaders: Record<string, string>): 
         body: JSON.stringify({ jobId }),
     });
     if (!res.ok) {
-        throw new Error('No autorizado — por favor inicia sesión de nuevo');
+        throw Object.assign(new Error('No autorizado — por favor inicia sesión de nuevo'), { kind: 'session' });
     }
 }
 
@@ -215,7 +215,7 @@ async function callStructuringBackground(params: ClaudeParams, provider: 'gemini
         if (data.pending) continue;
     }
 
-    throw new Error('Tiempo de espera agotado (6 min) estructurando el pictograma');
+    throw Object.assign(new Error('Tiempo de espera agotado (6 min) estructurando el pictograma'), { kind: 'timeout' });
 }
 
 /**
@@ -225,7 +225,7 @@ async function callStructuringBackground(params: ClaudeParams, provider: 'gemini
 export function extractToolUse(response: ClaudeResponse, toolName: string): any {
     const block = response.content?.find(b => b.type === 'tool_use' && b.name === toolName);
     if (!block) {
-        throw new Error(`Claude did not invoke tool '${toolName}' (stop_reason: ${response.stop_reason})`);
+        throw Object.assign(new Error(`Claude did not invoke tool '${toolName}' (stop_reason: ${response.stop_reason})`), { kind: 'no_tool' });
     }
     return block.input;
 }
@@ -327,7 +327,7 @@ export async function callRecraft(params: RecraftParams, onStatus?: (msg: string
         }
     }
 
-    throw new Error('Tiempo de espera agotado tras 120s generando el pictograma');
+    throw Object.assign(new Error('Tiempo de espera agotado tras 120s generando el pictograma'), { kind: 'timeout' });
 }
 
 export interface GeminiParams {
@@ -407,7 +407,7 @@ async function callImageBackground(
         }
     }
 
-    throw new Error(`Tiempo de espera agotado generando imagen con ${provider}`);
+    throw Object.assign(new Error(`Tiempo de espera agotado generando imagen con ${provider}`), { kind: 'timeout' });
 }
 
 // ── Batch generation (specs/batch-generation.allium) ───────────────────────
