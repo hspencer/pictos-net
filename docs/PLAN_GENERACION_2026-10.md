@@ -169,6 +169,8 @@ Depende de F0. Sigue la reparación por capas del diagnóstico; aquí se fija so
 
 **Decisiones del 22-10-2026.** Se aprobaron las 32 equivalencias sugeridas, versionadas en `scripts/data/nlu-approved-equivalences.json`, y por ahora el rescate es solo mecánico: no se clasifica texto libre. Aplicado a copias de las 21 librerías publicadas (en `research/f5/migrated/`, fuera de Git): 812 correcciones de mayúsculas y 581 equivalencias aprobadas. Las filas válidas siguen siendo 3 de 829. Las librerías publicadas no se modificaron. Para que COMPONER acepte el corpus histórico falta clasificar `intent`, `expected_response` y los tipos de rol.
 
+**Reparación automática (23-10-2026).** Las mismas dos capas seguras (mayúsculas y equivalencias aprobadas) se aplican ahora en silencio cada vez que se carga una fila, a través de `sanitizeRow`, que es el paso común de todas las rutas de carga: inicio, abrir, importar y plantillas. La lógica vive en `netlify/functions/_shared/nluMigration.js`, compartida con el script, y la tabla aprobada tiene ahí su única fuente. Solo cambia el NLU; cada cambio guarda su valor original en `nluMigration`, y una segunda carga no repite nada. El texto libre no se clasifica.
+
 ## F6. Modelos nuevos
 
 Ningún modelo entra al perfil de taller por esta vía sin pasar por F7.

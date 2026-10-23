@@ -1,4 +1,5 @@
 import type { PhaseExecution, RowData } from '../types';
+import { repairRowNlu } from '../netlify/functions/_shared/nluMigration.js';
 
 const stepStatuses = ['idle', 'processing', 'completed', 'error', 'outdated', 'review'];
 const isObject = (value: unknown): value is Record<string, any> => !!value && typeof value === 'object' && !Array.isArray(value);
@@ -64,7 +65,9 @@ export function sanitizeRow(input: unknown): RowData {
     }
   }
   if (Object.keys(original).length) row.importOriginalValues = original;
-  return row as RowData;
+  // Silent, meaning-preserving NLU repair on every load (case and approved
+  // equivalences only; originals kept in nluMigration). Media untouched.
+  return repairRowNlu(row) as RowData;
 }
 
 /** Poll retries may deliver an accepted execution again; append by its actual

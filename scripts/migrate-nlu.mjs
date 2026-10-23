@@ -17,14 +17,19 @@
  *     value. Row ids, utterances, media and everything else are untouched.
  *     Prints a report: rows valid before/after and what still fails, by path.
  *
- * Approved table: { "approved": [{ "path": "/visual_guidelines/temporal",
- *   "from": "ahora", "to": "immediate" }] }  (from matches ignoring case;
- *   path uses * for array indices, as the propose report prints it).
+ * The approved equivalences live in netlify/functions/_shared/nluMigration.js,
+ * the same module the app applies silently on load. An extra table file
+ * ({ "approved": [{ "path", "from", "to" }] }, from matching ignoring case,
+ * path with * for array indices) can be passed to try entries before adopting
+ * them there.
  * Node 18 compatible. Reads and writes local files only; no network.
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import { validateDocument, VERSION as NLU_VERSION } from '../schemas/pictos-nlu-schema/index.js';
+import { APPROVED_EQUIVALENCES, resolveValue, pathPattern as pattern, valueAt as getAt, repairRowNlu } from '../netlify/functions/_shared/nluMigration.js';
+
+export { resolveValue };
 
 /** Suggestions only: they are applied after a person approves them. */
 const SUGGESTIONS = {
@@ -36,14 +41,7 @@ const SUGGESTIONS = {
 };
 
 const isFreeText = value => typeof value !== 'string' || value.length > 32 || /\s\S+\s/.test(value);
-const pattern = instancePath => instancePath.replace(/\/\d+(?=\/|$)/g, '/*');
 const fold = value => String(value).trim().toLocaleLowerCase('es');
-const getAt = (doc, instancePath) => instancePath.split('/').slice(1).reduce((node, key) => node?.[key], doc);
-const setAt = (doc, instancePath, value) => {
-  const keys = instancePath.split('/').slice(1);
-  const parent = keys.slice(0, -1).reduce((node, key) => node[key], doc);
-  parent[keys.at(-1)] = value;
-};
 
 function rowsOf(library) {
   const rows = Array.isArray(library) ? library : library?.rows;
@@ -64,46 +62,27 @@ function enumErrors(nlu) {
   return validateDocument.errors.filter(e => e.keyword === 'enum');
 }
 
-/** Decide one enum failure: [target, rule] or null when a person must decide. */
-export function resolveValue(instancePath, value, allowed, approved = []) {
-  if (typeof value !== 'string') return null;
-  const exact = allowed.find(option => fold(option) === fold(value));
-  if (exact) return [exact, 'case'];
-  const where = pattern(instancePath);
-  const entry = approved.find(a => a.path === where && fold(a.from) === fold(value) && allowed.includes(a.to));
-  return entry ? [entry.to, 'approved'] : null;
-}
-
-export function migrateLibrary(library, approved = [], now = new Date().toISOString()) {
+export function migrateLibrary(library, approved = APPROVED_EQUIVALENCES, now = new Date().toISOString()) {
   const out = structuredClone(library);
+  const rows = rowsOf(out);
   const report = { contract: NLU_VERSION, rows: 0, withNlu: 0, validBefore: 0, validAfter: 0, changes: { case: 0, approved: 0 }, remaining: {} };
-  for (const row of rowsOf(out)) {
+  rows.forEach((row, index) => {
     report.rows++;
     const parsed = nluOf(row);
-    if (!parsed) continue;
+    if (!parsed) return;
     report.withNlu++;
-    const { nlu, encoded } = parsed;
-    if (validateDocument(nlu)) { report.validBefore++; report.validAfter++; continue; }
-    const changes = [];
-    for (const error of enumErrors(nlu)) {
-      const value = getAt(nlu, error.instancePath);
-      const resolved = resolveValue(error.instancePath, value, error.params.allowedValues, approved);
-      if (!resolved) continue;
-      setAt(nlu, error.instancePath, resolved[0]);
-      changes.push({ path: error.instancePath, from: value, to: resolved[0], rule: resolved[1] });
-      report.changes[resolved[1]]++;
-    }
-    if (changes.length) {
-      row.NLU = encoded ? JSON.stringify(nlu) : nlu;
-      const previous = Array.isArray(row.nluMigration?.changes) ? row.nluMigration.changes : [];
-      row.nluMigration = { tool: 'migrate-nlu', contract: NLU_VERSION, at: now, changes: [...previous, ...changes] };
-    }
-    if (validateDocument(nlu)) { report.validAfter++; continue; }
+    if (validateDocument(parsed.nlu)) { report.validBefore++; report.validAfter++; return; }
+    const repaired = repairRowNlu(row, approved, now);
+    rows[index] = repaired;
+    const added = repaired === row ? [] : repaired.nluMigration.changes.slice(row.nluMigration?.changes?.length ?? 0);
+    for (const change of added) report.changes[change.rule]++;
+    const nlu = nluOf(repaired).nlu;
+    if (validateDocument(nlu)) { report.validAfter++; return; }
     for (const error of validateDocument.errors) {
       const key = `${pattern(error.instancePath)} ${error.keyword}`;
       report.remaining[key] = (report.remaining[key] ?? 0) + 1;
     }
-  }
+  });
   report.remaining = Object.fromEntries(Object.entries(report.remaining).sort((a, b) => b[1] - a[1]));
   return { library: out, report };
 }
@@ -119,7 +98,7 @@ export function proposeTable(libraries) {
         const slot = byPath[where] ??= { allowed: error.params.allowedValues, freeText: 0, values: {} };
         const value = getAt(parsed.nlu, error.instancePath);
         if (isFreeText(value)) { slot.freeText++; continue; }
-        const resolved = resolveValue(error.instancePath, value, slot.allowed);
+        const resolved = resolveValue(error.instancePath, value, slot.allowed, []);
         const suggestion = SUGGESTIONS[where]?.[fold(value)];
         const item = slot.values[value] ??= {
           count: 0,
@@ -149,7 +128,7 @@ function main([mode, input, output, table]) {
   }
   if (mode === 'apply' && input && output) {
     if (path.resolve(input) === path.resolve(output)) throw new Error('Refusing to overwrite the input; write a copy');
-    const approved = table ? JSON.parse(fs.readFileSync(table, 'utf8')).approved ?? [] : [];
+    const approved = [...APPROVED_EQUIVALENCES, ...(table ? JSON.parse(fs.readFileSync(table, 'utf8')).approved ?? [] : [])];
     const { library, report } = migrateLibrary(JSON.parse(fs.readFileSync(input, 'utf8')), approved);
     fs.writeFileSync(output, JSON.stringify(library, null, 2) + '\n');
     process.stdout.write(JSON.stringify(report, null, 2) + '\n');

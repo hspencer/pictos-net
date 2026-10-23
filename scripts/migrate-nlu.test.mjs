@@ -12,7 +12,9 @@ const legacy = () => ({
 
 test('case differences resolve on their own; anything else needs an approved entry', () => {
   assert.deepEqual(resolveValue('/metadata/speech_act', 'Directive', ['directive', 'assertive']), ['directive', 'case']);
-  assert.equal(resolveValue('/visual_guidelines/temporal', 'AHORA', TEMPORAL), null);
+  assert.equal(resolveValue('/visual_guidelines/temporal', 'AHORA', TEMPORAL, []), null);
+  // The approved table (shared with the app) already covers it.
+  assert.deepEqual(resolveValue('/visual_guidelines/temporal', 'AHORA', TEMPORAL), ['immediate', 'approved']);
   const approved = [{ path: '/visual_guidelines/temporal', from: 'ahora', to: 'immediate' }];
   assert.deepEqual(resolveValue('/visual_guidelines/temporal', 'AHORA', TEMPORAL, approved), ['immediate', 'approved']);
   // An approved target outside the contract is ignored, never written.

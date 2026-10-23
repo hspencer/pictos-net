@@ -95,3 +95,24 @@ test('library migration retains malformed SVG evidence and does not rewrite futu
   assert.equal(migrateLibraryJson(future, 3), future);
   assert.equal(migrateLibraryJson(legacyArray, 3), legacyArray);
 });
+
+test('loading repairs NLU silently and safely: originals kept, media untouched, idempotent', async () => {
+  const { default: valid } = await import('../schemas/pictos-nlu-schema/tests/generation/valid.json', { with: { type: 'json' } });
+  const legacy = { ...structuredClone(valid), metadata: { ...valid.metadata, speech_act: 'Directive' }, visual_guidelines: { ...valid.visual_guidelines, temporal: 'AHORA' } };
+  const stored = { id: 'R1', UTTERANCE: 'Beber agua', NLU: legacy, bitmap: 'data:image/jpeg;base64,AAA', rawSvg: '<svg/>' };
+  const row = sanitizeRow(structuredClone(stored));
+  assert.equal(row.NLU.metadata.speech_act, 'directive');
+  assert.equal(row.NLU.visual_guidelines.temporal, 'immediate');
+  assert.deepEqual(row.nluMigration!.changes.map(c => [c.path, c.from, c.to, c.rule]), [
+    ['/metadata/speech_act', 'Directive', 'directive', 'case'],
+    ['/visual_guidelines/temporal', 'AHORA', 'immediate', 'approved'],
+  ]);
+  assert.equal(row.bitmap, stored.bitmap);
+  assert.equal(row.rawSvg, stored.rawSvg);
+  assert.equal(sanitizeRow(structuredClone(row)).nluMigration!.changes.length, 2);   // a second load adds nothing
+  const untouched = sanitizeRow({ id: 'R2', UTTERANCE: 'x', NLU: structuredClone(valid) });
+  assert.equal(untouched.nluMigration, undefined);
+  const encoded = sanitizeRow({ id: 'R3', UTTERANCE: 'x', NLU: JSON.stringify(legacy) });
+  assert.equal(typeof encoded.NLU, 'string');
+  assert.equal(JSON.parse(encoded.NLU as string).visual_guidelines.temporal, 'immediate');
+});

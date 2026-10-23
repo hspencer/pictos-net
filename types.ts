@@ -254,6 +254,12 @@ export interface RowData {
    * next succeeds. Internal phase numbers (5 = ESTRUCTURAR).
    */
   lastFailure?: { phase: 1 | 2 | 3 | 5; message: string; at: string };
+  /**
+   * Meaning-preserving NLU repairs applied silently on load (letter case and
+   * approved equivalences), each with its original value. See
+   * netlify/functions/_shared/nluMigration.js.
+   */
+  nluMigration?: { contract: string; at: string; changes: { path: string; from: unknown; to: string; rule: 'case' | 'approved' }[] };
   /** Original values requiring safe UI defaults during import; never training approval. */
   importOriginalValues?: Record<string, unknown>;
 
