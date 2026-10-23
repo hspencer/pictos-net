@@ -163,6 +163,8 @@ Depende de F0. Sigue la reparación por capas del diagnóstico; aquí se fija so
 
 **Estado.** Herramienta lista: `scripts/migrate-nlu.mjs` (`propose` y `apply`, siempre sobre una copia, con el valor original de cada cambio en `nluMigration`). Piloto sobre `expresiones-cotidianas.json` (200 filas): la capa mecánica corrige 186 campos y las 32 equivalencias sugeridas corregirían otros 157, pero ninguna fila queda válida, porque `metadata/intent` es texto libre en las 200, `expected_response` en 189 y los tipos de rol usan otro vocabulario. El rescate depende de clasificar ese texto. La librería del taller (`taller/tramites-escolares-chile.json`) no tiene NLU todavía: no necesita rescate, sino generación.
 
+**Decisiones del 22-10-2026.** Se aprobaron las 32 equivalencias sugeridas, versionadas en `scripts/data/nlu-approved-equivalences.json`, y por ahora el rescate es solo mecánico: no se clasifica texto libre. Aplicado a copias de las 21 librerías publicadas (en `research/f5/migrated/`, fuera de Git): 812 correcciones de mayúsculas y 581 equivalencias aprobadas. Las filas válidas siguen siendo 3 de 829. Las librerías publicadas no se modificaron. Para que COMPONER acepte el corpus histórico falta clasificar `intent`, `expected_response` y los tipos de rol.
+
 ## F6. Modelos nuevos
 
 Ningún modelo entra al perfil de taller por esta vía sin pasar por F7.
