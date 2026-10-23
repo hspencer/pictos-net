@@ -1,7 +1,7 @@
 -- allium: 3
 -- element-tree.allium
 
--- Scope: Hierarchical element tree editor for the "Componer" phase
+-- Scope: Hierarchical element tree editor for the COMPONER phase
 -- Includes: Tree structure, drag-and-drop reordering, visual connections, invalidation
 -- Excludes:
 --   - Prompt generation logic (handled by geminiService)
@@ -10,78 +10,58 @@
 -- Dependencies: VisualElement type from types.ts
 
 ------------------------------------------------------------
--- Value Types
-------------------------------------------------------------
-
-value DropZone {
-  before   -- insert as previous sibling of target
-  inside   -- insert as last child of target
-  after    -- insert as next sibling of target
-}
-
-value DragState {
-  draggedId: String
-  targetId: String?
-  zone: DropZone?
-}
-
-------------------------------------------------------------
--- Entities
-------------------------------------------------------------
-
-entity ElementTree {
-  root: Element
-  dragState: DragState?
-
-  states: idle, dragging
-}
-
-entity Element {
-  id: String
-  parent: Element?
-  children: [Element]
-
-  -- Root is always "pictograma" and cannot be moved or removed
-  @invariant "root identity"
-    -- The tree root always has id 'pictograma'
-}
-
-------------------------------------------------------------
 -- External Entities
 ------------------------------------------------------------
 
-external SpatialPrompt {
-  -- The spatial articulation prompt managed by the Componer phase
-  -- This spec only signals when it becomes outdated
-  status: idle | outdated
+-- The spatial articulation prompt managed by the COMPONER phase. This spec
+-- only signals when it becomes outdated.
+external entity SpatialPrompt {
+    status: idle | outdated
 }
 
 ------------------------------------------------------------
--- Invariants
+-- Enumerations
 ------------------------------------------------------------
 
-invariant SingleRoot {
-  ElementTree.root exists
-  ElementTree.root.id = "pictograma"
-  ElementTree.root.parent = none
+enum DropZone {
+    before      -- insert as previous sibling of target
+    | inside    -- insert as last child of target
+    | after     -- insert as next sibling of target
 }
 
-invariant NoCycles {
-  -- No element appears as its own ancestor
-  for element in ElementTree.all_elements:
-    element not in element.ancestors
+------------------------------------------------------------
+-- Entities and Variants
+------------------------------------------------------------
+
+entity ElementTree {
+    root: Element
+    prompt: SpatialPrompt
+    status: idle | dragging
+    dragged: Element?
+    target: Element?
+    zone: DropZone?
+
+    transitions status {
+        idle -> dragging
+        dragging -> idle
+    }
 }
 
-invariant MaxDepth {
-  -- Tree depth must not exceed 5 levels (root = level 1)
-  for element in ElementTree.all_elements:
-    element.depth <= 5
+entity Element {
+    id: String
+    tree: ElementTree
+    parent: Element?
+    children: Element with parent = this
+
+    is_root: parent = null
 }
 
-invariant UniqueIds {
-  -- All element ids within the tree are unique
-  for element in ElementTree.all_elements:
-    count(ElementTree.all_elements where id = element.id) = 1
+------------------------------------------------------------
+-- Config
+------------------------------------------------------------
+
+config {
+    max_depth: Integer = 5          -- root = level 1
 }
 
 ------------------------------------------------------------
@@ -91,113 +71,131 @@ invariant UniqueIds {
 -- === Drag initiation ===
 
 rule DragStart {
-  when: user grabs an Element that is not the root
-  requires:
-    element != ElementTree.root
-  ensures:
-    ElementTree.state = dragging
-    ElementTree.dragState.draggedId = element.id
-    -- Visual: dragged element and its subtree shown at reduced opacity
-    -- Visual: cursor changes to grabbing
+    when: ElementGrabbed(tree, element)
+    requires: tree.status = idle
+    requires: not element.is_root
+    ensures: tree.status = dragging
+    ensures: tree.dragged = element
+
+    @guidance
+        -- The dragged element and its subtree are shown at reduced opacity;
+        -- the cursor changes to grabbing.
 }
 
 -- === Drop zone detection ===
 
 rule DropZoneDetect {
-  when: user drags over a target Element during dragging state
-  requires:
-    ElementTree.state = dragging
-    target != dragged element
-    target is not a descendant of dragged element
-  ensures:
-    ElementTree.dragState.targetId = target.id
-    ElementTree.dragState.zone = detected zone based on cursor vertical position:
-      -- top third of target node -> before
-      -- middle third of target node -> inside
-      -- bottom third of target node -> after
-    -- Visual: indicator line above target (zone = before)
-    -- Visual: target node highlighted (zone = inside)
-    -- Visual: indicator line below target (zone = after)
+    when: ElementDraggedOver(tree, target, zone)
+    requires: tree.status = dragging
+    requires: target != tree.dragged
+    requires: not is_descendant(target, tree.dragged)
+    ensures: tree.target = target
+    ensures: tree.zone = zone
+
+    @guidance
+        -- The zone follows the cursor's vertical position over the target:
+        -- top third = before, middle third = inside, bottom third = after.
+        -- Indicators: a line above (before), a highlighted node (inside), a
+        -- line below (after).
 }
 
 -- === Drop execution ===
 
 rule DropReorder {
-  -- Reorder among siblings or move to new position
-  when: user releases during dragging state with valid drop zone
-  requires:
-    ElementTree.dragState.targetId exists
-    ElementTree.dragState.zone exists
-    target is not a descendant of dragged element
-    -- Depth check: resulting depth of dragged subtree must not exceed 5
-    target.depth + dragged.subtree_depth <= 5 when zone = inside
-  ensures:
-    -- Remove dragged element (with its subtree) from current position
-    -- Insert at new position based on zone:
-    if zone = before:
-      dragged becomes previous sibling of target
-    if zone = inside:
-      dragged becomes last child of target
-    if zone = after:
-      dragged becomes next sibling of target
-    -- Subtree of dragged element is preserved intact
-    ElementTree.state = idle
-    ElementTree.dragState = none
-    SpatialPrompt.status = outdated
+    when: ElementDropped(tree)
+    requires: tree.status = dragging
+    requires: tree.target != null
+    requires: tree.zone != null
+    requires: not is_descendant(tree.target, tree.dragged)
+    requires: tree.zone != inside
+        or depth(tree.target) + subtree_depth(tree.dragged) <= config.max_depth
+    ensures: move_subtree(tree.dragged, tree.target, tree.zone)
+    ensures: tree.status = idle
+    ensures: tree.dragged = null
+    ensures: tree.target = null
+    ensures: tree.zone = null
+    ensures: tree.prompt.status = outdated
+
+    @guidance
+        -- before: the dragged element becomes the previous sibling of the
+        -- target; inside: its last child; after: its next sibling. The
+        -- dragged element's subtree moves with it intact.
 }
 
 rule DropCancel {
-  when: user releases outside valid drop zone, or presses Escape
-  ensures:
-    ElementTree.state = idle
-    ElementTree.dragState = none
-    -- Element returns to original position, no changes
+    when: DragCancelled(tree)
+    requires: tree.status = dragging
+    ensures: tree.status = idle
+    ensures: tree.dragged = null
+    ensures: tree.target = null
+    ensures: tree.zone = null
+
+    @guidance
+        -- Releasing outside a valid zone or pressing Escape leaves the tree
+        -- unchanged.
 }
 
--- === Prevent invalid drops ===
-
-rule DropOnSelf {
-  when: user attempts to drop element on itself or its own descendant
-  ensures:
-    -- Drop is rejected, no change
-    -- Visual: no drop zone indicator shown
-}
-
-rule DropOnRoot {
-  when: user attempts to drop on the root element
-  ensures:
-    -- zone = before or after is rejected: nothing can precede or follow root
-    -- zone = inside is valid:
-    --   cursor in upper half of root -> dragged becomes first child
-    --   cursor in lower half of root -> dragged becomes last child
-}
-
--- === Tree mutations that invalidate prompt ===
+-- === Tree mutations that invalidate the prompt ===
 
 rule AddElement {
-  when: user adds a child element to any node
-  ensures:
-    new Element created as last child of target
-    SpatialPrompt.status = outdated
+    when: ElementAdded(tree, parent, id)
+    requires: depth(parent) < config.max_depth
+    requires: trim(id) != ""
+    requires: not tree_contains_id(tree, id)
+    ensures: Element.created(id: id, tree: tree, parent: parent)
+    ensures: tree.prompt.status = outdated
+
+    @guidance
+        -- The new element becomes the last child of its parent.
 }
 
 rule RemoveElement {
-  when: user removes an element that is not the root
-  requires:
-    element != ElementTree.root
-  ensures:
-    element and its subtree removed from tree
-    SpatialPrompt.status = outdated
+    when: ElementRemoved(tree, element)
+    requires: not element.is_root
+    ensures: not exists element
+    ensures: tree.prompt.status = outdated
+
+    @guidance
+        -- The element's subtree is removed with it.
 }
 
 rule RenameElement {
-  when: user edits an element id
-  requires:
-    new id is not empty after trimming
-    new id is unique within the tree
-  ensures:
-    element.id = new id
-    SpatialPrompt.status = outdated
+    when: ElementRenamed(tree, element, id)
+    requires: trim(id) != ""
+    requires: not tree_contains_id(tree, id)
+    ensures: element.id = id
+    ensures: tree.prompt.status = outdated
+}
+
+------------------------------------------------------------
+-- Invariants
+------------------------------------------------------------
+
+invariant SingleRoot {
+    for tree in ElementTrees:
+        tree.root.is_root
+        and tree.root.id in {"pictograma", "pictogram"}
+}
+
+invariant NoCycles {
+    for element in Elements:
+        not is_descendant(element, element)
+}
+
+invariant MaxDepth {
+    for element in Elements:
+        depth(element) <= config.max_depth
+}
+
+invariant UniqueIds {
+    for a in Elements:
+        for b in Elements:
+            a != b and a.tree = b.tree implies a.id != b.id
+}
+
+invariant RootIsNeverDragged {
+    for tree in ElementTrees:
+        tree.dragged != null implies not tree.dragged.is_root
 }
 
 ------------------------------------------------------------
@@ -205,51 +203,50 @@ rule RenameElement {
 ------------------------------------------------------------
 
 surface ElementTreeView {
-  -- The visual representation of the element tree
+    facing editor: ElementTree
 
-  @guidance "drawn connections"
-    -- Hierarchical connections between parent and children are rendered
-    -- as drawn lines (SVG or CSS-painted), not typographic characters.
-    -- Vertical line from parent down, horizontal line to each child.
-    -- Last child uses an L-shaped connector (no line extending below).
+    exposes:
+        editor.root
+        editor.status
+        editor.dragged
+        editor.target
+        editor.zone
+        editor.prompt.status
 
-  @guidance "drag affordance"
-    -- Each non-root element shows a drag handle on hover.
-    -- The drag handle appears to the left of the element pill.
-    -- Dragging the pill itself also initiates drag.
+    provides:
+        ElementGrabbed(editor, element)
+        ElementDraggedOver(editor, target, zone)
+        ElementDropped(editor)
+        DragCancelled(editor)
+        ElementAdded(editor, parent, id)
+        ElementRemoved(editor, element)
+        ElementRenamed(editor, element, id)
 
-  @guidance "drop zone indicators"
-    -- During drag, hovering over a valid target shows:
-    --   zone = before: horizontal line above the target node
-    --   zone = inside: target node background highlight
-    --   zone = after: horizontal line below the target node
-    -- Invalid targets (self, descendants) show no indicator.
+    @guarantee RootIsFixed
+        -- The root is the composition's deterministic root ('pictograma' for
+        -- Spanish, 'pictogram' otherwise). It cannot be moved, removed or
+        -- preceded or followed by a sibling. Dropping inside the root uses
+        -- the cursor: upper half makes the dragged element the first child,
+        -- lower half the last child.
 
-  @guidance "outdated prompt indication"
-    -- When SpatialPrompt.status = outdated, the spatial prompt
-    -- panel receives a pale yellow background (amber-50) to signal
-    -- that the prompt no longer reflects the current element tree.
+    @guarantee InvalidDropsChangeNothing
+        -- Dropping an element on itself or on one of its descendants is
+        -- rejected without any change and without a drop indicator.
 
-  @guidance "regenerate prompt button"
-    -- The "regenerate spatial prompt" button appears below the tree ONLY
-    --   after the user edits the element tree (add / remove / rename /
-    --   reorder). It is not shown on a pristine tree, and editing the
-    --   prompt text alone does not reveal it.
-    -- It stays visible until a regeneration completes, then hides again
-    --   (a fresh prompt now reflects the current tree).
-    -- The button is sized to its own content — NOT stretched to the full
-    --   panel width — and is aligned to the right edge of the panel.
-    -- Triggering it runs the regeneration described in
-    --   visual-reasoning.allium (Phase2_RegenerateSpatialPrompt).
-
-  @guidance "subtree drag"
-    -- When dragging a parent element, its children move with it visually.
-    -- The entire subtree appears at reduced opacity during drag.
-
-  exposes:
-    ElementTree.root with full subtree
-    ElementTree.dragState when dragging
-    SpatialPrompt.status
+    @guidance
+        -- Drawn connections: parent-child lines are drawn (SVG or CSS), not
+        -- typographic characters; a vertical line from the parent and a
+        -- horizontal line to each child, with an L-shaped connector on the
+        -- last child. Each non-root element shows a drag handle on hover, to
+        -- the left of its pill; dragging the pill also starts a drag. While
+        -- the prompt is outdated its panel has a pale yellow background
+        -- (amber-50). The "regenerate spatial prompt" button appears below
+        -- the tree only after the tree was edited (add, remove, rename,
+        -- reorder), never on a pristine tree or after editing the prompt
+        -- text alone, stays until a regeneration completes, is sized to its
+        -- content and aligned right, and runs the regeneration described in
+        -- visual-reasoning.allium. While dragging a parent, its subtree moves
+        -- with it at reduced opacity.
 }
 
 ------------------------------------------------------------
