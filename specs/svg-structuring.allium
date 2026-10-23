@@ -101,6 +101,20 @@ contract LocalGeometryAssembly {
         -- diagnostics. No inferred group, performer or semantic label repairs
         -- an invalid response into accepted meaning. Raw responses retained
         -- for diagnosis remain unvalidated and are not embedded as reasoning.
+
+    @invariant ProviderProvenanceStaysWithTheOriginal
+        -- Structuring inspects a copy of the raw SVG without the C2PA (Content
+        -- Credentials) manifest a provider embeds: only that exact manifest
+        -- element, the metadata block it leaves empty and its namespace
+        -- declaration are removed. Its signature covers the original bytes and
+        -- cannot travel into a structured derivative; the row keeps the
+        -- original raw SVG with that signed provenance. Every other construct
+        -- still goes through the unchanged passive inspection and fails closed.
+
+    @invariant RejectionsNameTheConstruct
+        -- A raw SVG rejected before structuring names the rejected construct
+        -- by element path and attribute, never by value, in the translated
+        -- diagnostic.
 }
 
 contract GeometricEditingBoundary {

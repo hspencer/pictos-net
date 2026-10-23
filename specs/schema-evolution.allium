@@ -88,6 +88,15 @@ contract IndependentPublication {
         -- checks the observed target parent and stops on divergence; no force
         -- push, history replacement or automatic merge bypass is permitted.
 
+    @invariant MirrorReceivesOnlyTheCommittedExport
+        -- A reference mirror receives the committed export of its product
+        -- (allowlist, credential scan, file manifest), never the raw
+        -- directory. Synchronisation stops without publishing when it would
+        -- replace a frozen release, delete a file that exists only in the
+        -- mirror, or reuse a tagged version for different contract bytes,
+        -- unless the maintainer names that exact file. A change that leaves
+        -- every contract identical is published without a new version tag.
+
     @invariant SchemaLicenceDoesNotGrantCorpusRights
         -- A product licence covers only material to which the publisher has
         -- the necessary rights. It does not license participant records,
@@ -98,7 +107,7 @@ contract IndependentPublication {
 -- Enumerations
 ------------------------------------------------------------
 
-enum ProductName { nlu_schema | pictogram_composition_schema | mf_svg_schema }
+enum ProductName { pictos_nlu_schema | pictos_composition_schema | pictos_svg_schema | pictos_api_schema }
 enum RevisionStatus { draft | validated | exportable }
 
 ------------------------------------------------------------
@@ -141,21 +150,27 @@ entity PublicationReceipt {
 ------------------------------------------------------------
 
 default SchemaProduct nlu = {
-    name: nlu_schema,
+    name: pictos_nlu_schema,
     canonical_path: "schemas/pictos-nlu-schema",
     target_repository: "mediafranca/pictos-nlu-schema"
 }
 
 default SchemaProduct composition = {
-    name: pictogram_composition_schema,
+    name: pictos_composition_schema,
     canonical_path: "schemas/pictos-composition-schema",
     target_repository: "mediafranca/pictos-composition-schema"
 }
 
 default SchemaProduct structured_svg = {
-    name: mf_svg_schema,
+    name: pictos_svg_schema,
     canonical_path: "schemas/pictos-svg-schema",
     target_repository: "mediafranca/pictos-svg-schema"
+}
+
+default SchemaProduct machine_api = {
+    name: pictos_api_schema,
+    canonical_path: "schemas/pictos-api-schema",
+    target_repository: "mediafranca/pictos-api-schema"
 }
 
 ------------------------------------------------------------

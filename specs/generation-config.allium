@@ -40,21 +40,45 @@ external entity Phase3Attempt {
 contract ModelCatalogBoundary {
     options: (phase: CatalogPhase) -> List<Any>
     validate_selection: (phase: CatalogPhase, model: String) -> Boolean
+    status: (model: String) -> String
 
     @invariant OneCapabilityCatalog
-        -- User options and server admission use the same model identifiers,
-        -- providers and phase capabilities. A text or vision model is not an
-        -- image-generation model merely because it accepts images. OpenAI
-        -- GPT-5.6 Luna, Terra and Sol are selectable for Phases 1, 2 and 5,
-        -- including the explicit Phase 5 redraw/vision route.
+        -- User options, client guards and server admission all derive from one
+        -- catalog: the same model identifiers, providers, phase capabilities
+        -- and lifecycle status. No endpoint or service keeps its own model
+        -- list. A text or vision model is not an image-generation model merely
+        -- because it accepts images. OpenAI GPT-5.6 Luna, Terra and Sol are
+        -- selectable for Phases 1, 2 and 5, including the explicit Phase 5
+        -- redraw/vision route; GPT-6 Luna and Gemini 3.8 Flash for Phases 1
+        -- and 2.
+
+    @invariant LifecycleStatusGovernsAvailability
+        -- Every catalog model has one status. workshop and active models are
+        -- offered and admitted; experimental models are offered with a visible
+        -- warning that they are not yet verified through PICTOS routes;
+        -- retired models are never offered and never admitted by any
+        -- endpoint, but stay in the catalog so saved configurations and
+        -- existing rows keep their label. Retiring or promoting a model is a
+        -- change of status only.
 
     @invariant SelectionIsProspectiveAndExplicit
         -- Preserve existing defaults and saved selections. Adding a candidate
         -- does not replace a user's model or regenerate existing artifacts.
+        -- A saved selection whose model is retired or unknown is shown as
+        -- unavailable and is never replaced silently.
         -- Validate model and phase before any provider call. Unsupported
-        -- combinations fail explicitly, without provider/model substitution.
+        -- combinations fail explicitly, without provider/model substitution:
+        -- a run whose configured model may not run its phase is refused before
+        -- the first provider call, with a translated message, and leaves the
+        -- rows' statuses unchanged. A cascade checks every phase it will reach
+        -- before spending the first.
         -- Every new OpenAI text call uses the configured explicit low reasoning
         -- effort; it does not inherit an undocumented provider default.
+
+    @invariant ReasoningConfigurationIsPerModel
+        -- Gemini reasoning is declared per model in the catalog, never derived
+        -- from a model name: Gemini 2.5 takes an integer thinking budget and
+        -- Gemini 3.x a thinking level.
 
     @invariant PricesAreDatedConditionalEstimates
         -- Display currency, token/image unit, input/output distinction, source
@@ -145,6 +169,8 @@ enum GenerationModel {
     `gemini-3.1-flash-image` |
     `gemini-3-pro-image` |
     `gpt-image-2` |
+    `gpt-image-2.5-flare` |
+    `gemini-nano-banana-2.1` |
     recraftv4_1 |
     recraftv4_1_vector |
     recraftv4_1_pro |
@@ -159,6 +185,8 @@ enum GenerationModel {
     recraftv4_styles_pro_vector
 }
 
+-- gemini-2.5-pro and gemini-2.5-flash are retired (2026-10-20); they remain
+-- here only because saved configurations may still name them.
 enum Phase5StructuringModel {
     `claude-sonnet-4-6` |
     `claude-opus-4-6` |
@@ -209,7 +237,7 @@ config {
     openai_standard_context_limit: Integer = 272000
     default_generation_model: GenerationModel = `gemini-2.5-flash-image`
     default_openai_image_quality: OpenAIImageQuality = low
-    default_phase5_model: Phase5StructuringModel = `gemini-2.5-flash`
+    default_phase5_model: Phase5StructuringModel = `claude-sonnet-4-6`
 }
 
 ------------------------------------------------------------

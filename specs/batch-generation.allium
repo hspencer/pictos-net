@@ -238,9 +238,12 @@ config {
     max_rows_per_pipeline_batch: Integer = 25
     pipeline_timeout: Duration = 15.minutes
     poll_interval: Duration = 60.seconds
+    -- Derived from the model catalog: models with Vertex batch capability
+    -- whose status is workshop or active. Gemini 3.1 Flash Image is
+    -- batch-capable but experimental (no image in 9 of 38 calls, 2026-10-20),
+    -- so it is not admitted until it is promoted.
     vertex_batch_models: Set<generation/GenerationModel> = {
-        `gemini-2.5-flash-image`,
-        `gemini-3.1-flash-image`
+        `gemini-2.5-flash-image`
     }
 }
 

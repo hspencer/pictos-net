@@ -70,6 +70,16 @@ contract PortableResearchRecord {
         -- deleted, or relabelled as current-schema output. Missing historical
         -- model, timestamp, schema, prompt and input data remain unknown.
 
+    @invariant MeaningPreservingRepairMayBeSilent
+        -- The one exception (decided 2026-10-23): on load, a stored NLU value
+        -- may be repaired without prompting when the repair preserves meaning,
+        -- that is, it only fixes letter case to match an allowed value or
+        -- applies an equivalence a person approved. Each repair keeps the
+        -- original value, path and rule in a migration record on the row; a
+        -- second load adds nothing; provenance hashes of earlier executions
+        -- are not rewritten; media are never read or written. Free text is
+        -- never classified or replaced silently.
+
     @invariant NewExecutionProvenanceIsActualEvidence
         -- Newly accepted NLU/composition records identify the actual schema
         -- id/version/hash, prompt revision, selected model, input/output hashes
@@ -81,8 +91,11 @@ contract PortableResearchRecord {
     @invariant AcceptedSidecarIsNotAttemptArchive
         -- The initial additive provenance sidecar accompanies accepted outputs.
         -- It does not claim to retain every failed call or superseded artifact.
-        -- Existing evidence is preserved; a future append-only attempt and
-        -- asset archive needs a separate migration and retention design.
+        -- A local attempt log now records every phase attempt (outcome,
+        -- duration, references) without communicative content, capped and
+        -- exported only on request; it is diagnostic, not an archive of
+        -- superseded artifacts. Existing evidence is preserved; an asset
+        -- archive still needs a separate migration and retention design.
 
     @invariant SvgReferencesAreClaimsUntilVerified
         -- Imported SVG references survive roundtrip as historical data, but

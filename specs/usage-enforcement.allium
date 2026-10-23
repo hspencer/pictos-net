@@ -31,6 +31,7 @@ value ModelUsageSummary {
     calls: Integer
     units: Integer
     errors: Integer
+    contract_errors: Integer
     total_milliseconds: Integer
     average_milliseconds: Integer
     label: String
@@ -99,9 +100,9 @@ contract QuotaEnforcementBoundary {
 
     @invariant MonotonicityWithEnumeratedRefunds
         -- A daily quota total never decreases except for a batch that never
-        -- started, an individual terminal Gemini provider 429, a failed OpenAI
-        -- or Recraft
-        -- image generation, the current and
+        -- started, a failed Gemini, OpenAI or Recraft image generation (any
+        -- provider failure, including a terminal 429 and a successful response
+        -- without an image), the current and
         -- deferred rows of a provider-quota pipeline circuit, or explicit
         -- administrator correction.
 
@@ -116,6 +117,20 @@ contract AuditBoundary {
     @invariant AuditAfterEveryProviderCall
         -- Every request reaching an upstream provider creates one audit record,
         -- whether the provider succeeds or fails.
+
+    @invariant OkMeansTheTaskSucceeded
+        -- A text-provider call records whether the provider answered
+        -- (provider_ok) and whether the answer meets the canonical contract
+        -- (contract_ok), judged with the same acceptance the client applies,
+        -- plus the offending paths and rules (never values). ok is true only
+        -- when the task succeeded, so the report never counts a rejected
+        -- output as a success. Outputs whose contract the server cannot judge
+        -- (spatial prompt, vision) leave contract_ok unknown.
+
+    @invariant ResponseWithoutImageIsAFailure
+        -- An image call that returns no image is audited as a failure with its
+        -- finish and block reasons and the provider's reported usage, never
+        -- with fabricated zero tokens.
 
     @invariant AuditNeverBlocksResponse
         -- Audit persistence failures are reported operationally but never alter
@@ -196,7 +211,8 @@ contract UsageReportingBoundary {
 
     @invariant CompleteReportShape
         -- A report exposes its inclusive date range, current daily limit, total
-        -- calls and units, per-user and per-model summaries, hourly and weekday
+        -- calls and units, per-user and per-model summaries (per model also the
+        -- errors that were contract failures), hourly and weekday
         -- distributions, a weekday-by-hour heatmap, and a daily series.
 
     @invariant ValidDateRange
@@ -212,7 +228,7 @@ enum QuotaFailureSource { pictonet_user_quota | external_provider_quota | extern
 enum Provider { anthropic | gemini | openai | recraft }
 enum GenerationPhase { phase1 | phase2 | phase3 | phase5 }
 enum GenerationRequestStatus { pending | admitted | blocked | completed | failed }
-enum RefundReason { failed_start | external_provider_quota | openai_generation_failed | recraft_generation_failed | administrator_correction }
+enum RefundReason { failed_start | external_provider_quota | gemini_generation_failed | openai_generation_failed | recraft_generation_failed | administrator_correction }
 enum QuotaDecision { allowed | denied }
 enum UsageReportStatus { pending | completed | rejected }
 enum UsageReportRejection { unauthenticated | forbidden | invalid_range }
@@ -279,6 +295,9 @@ entity AuditRecord {
     tokens_in: Integer?
     tokens_out: Integer?
     ok: Boolean
+    provider_ok: Boolean
+    contract_ok: Boolean?
+    contract_issues: List<String>?
     error_message: String?
     quota_failure_source: QuotaFailureSource?
 }
@@ -410,7 +429,7 @@ rule MarkProviderCallStarted {
 }
 
 rule CompleteProviderCall {
-    when: ProviderCallSucceeded(request, milliseconds, tokens_in, tokens_out)
+    when: ProviderCallSucceeded(request, milliseconds, tokens_in, tokens_out, contract_ok, contract_issues)
     requires: request.status = admitted
     requires: request.upstream_called
     ensures: request.status = completed
@@ -427,7 +446,10 @@ rule CompleteProviderCall {
         milliseconds: milliseconds,
         tokens_in: tokens_in,
         tokens_out: tokens_out,
-        ok: true,
+        ok: not (contract_ok = false),
+        provider_ok: true,
+        contract_ok: contract_ok,
+        contract_issues: contract_issues,
         error_message: null,
         quota_failure_source: null
     )
@@ -453,10 +475,15 @@ rule FailProviderCall {
         tokens_in: tokens_in,
         tokens_out: tokens_out,
         ok: false,
+        provider_ok: false,
+        contract_ok: null,
+        contract_issues: null,
         error_message: error_message,
         quota_failure_source: failure_source
     )
     ensures:
+        if request.provider = gemini and request.phase = phase3:
+            GeminiImageGenerationFailed(request)
         if request.provider = openai and request.phase = phase3:
             OpenAIImageGenerationFailed(request)
         if request.provider = recraft and request.phase = phase3:
@@ -499,6 +526,9 @@ rule TerminalImageProviderQuotaFailure {
         tokens_in: null,
         tokens_out: null,
         ok: false,
+        provider_ok: false,
+        contract_ok: null,
+        contract_issues: null,
         error_message: provider_quota_message(request.provider),
         quota_failure_source: external_provider_quota
     )
@@ -510,6 +540,24 @@ rule TerminalImageProviderQuotaFailure {
         limit: config.daily_limit,
         failure_source: external_provider_quota,
         recoverable: true
+    )
+}
+
+rule RefundFailedGeminiImage {
+    when: GeminiImageGenerationFailed(request)
+    requires: request.status = failed
+    requires: request.provider = gemini
+    requires: request.phase = phase3
+    requires: request.charged_units > 0
+    requires: not exists RefundRequest{generation_request: request}
+    ensures: RefundRequest.created(
+        idempotency_key: request.idempotency_key,
+        user: request.user,
+        units: request.charged_units,
+        reason: gemini_generation_failed,
+        applied: false,
+        generation_request: request,
+        batch_reservation: null
     )
 }
 

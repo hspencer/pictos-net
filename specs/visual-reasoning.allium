@@ -255,21 +255,23 @@ contract Phase3GenerationBoundary {
         -- square SVG. A vector response never embeds a raster image.
 
     @invariant OpenAIUsesTheCompleteTextPrompt
-        -- GPT Image 2 consumes the same textual prompt composition as Gemini:
+        -- OpenAI image models (GPT Image 2 and GPT Image 2.5 Flare) consume the
+        -- same textual prompt composition as Gemini:
         -- semantic snapshot, element identities, spatial instructions, visual
         -- style, palette, and communicative intention. No JSON schema, function
         -- call, or XML output is required from the image model. Image editing
         -- and reference-image input are outside this integration.
 
     @invariant OpenAIOutputAndQuality
-        -- GPT Image 2 returns one square PNG at the configured image size.
+        -- An OpenAI image model returns one square PNG at the configured image size.
         -- Quality is frozen at trigger time, defaults to low when absent, and
         -- is recorded with the model only after successful generation.
 
     @invariant AllPhase3EntryPointsShareRouting
         -- Individual generation, sequence-step generation, cascade, retry,
-        -- bulk regeneration, and full-pipeline batches route GPT Image 2 to
-        -- OpenAI while retaining the same complete semantic inputs.
+        -- bulk regeneration, and full-pipeline batches route every OpenAI image
+        -- model to OpenAI, by provider rather than by model id, while
+        -- retaining the same complete semantic inputs.
 
     @invariant BackgroundExecution
         -- Phase 3 runs as a background job. Elapsed time starts at the trigger,
@@ -280,9 +282,51 @@ contract Phase3GenerationBoundary {
         -- not discard their completed artifacts or statuses.
 
     @invariant NoSilentModelFallback
-        -- A terminal Gemini or OpenAI provider 429 after configured retries is recoverable,
+        -- A terminal provider 429 after configured retries is recoverable,
         -- remains attributed to the selected model, and never invokes another
         -- Gemini, OpenAI, or Recraft model automatically.
+
+    @invariant NoDeliveryNoCharge
+        -- An attempt that delivers no artifact never keeps the internal
+        -- generation unit, whatever the provider and the failure: provider
+        -- error, terminal quota, or a successful response without an image.
+
+    @invariant ResponseWithoutImageKeepsItsCause
+        -- When a provider answers without an image, the attempt keeps why
+        -- (finish and block reasons and the kinds of parts received), never
+        -- the prompt, returned text or image, and is marked recoverable.
+}
+
+contract FailureReportingBoundary {
+    describe: (failure: Any) -> String
+
+    @invariant OneMessagePerCause
+        -- Every failure is reported in the interface language with its cause
+        -- and the action to take: model unavailable, PICTOS daily quota,
+        -- timeout, expired session, lost connection, stored data that no
+        -- longer meets the contract (with the offending paths), provider
+        -- output that breaks the contract, provider quota, account billing,
+        -- an image blocked by the provider's safety filter, a response
+        -- without image, and a generic provider error with status and
+        -- retryability. Causes are classified by error type and tags, never
+        -- by message text, and provider text is never shown.
+
+    @invariant LastFailureSurvivesReload
+        -- A failed phase stores its translated cause, phase and time on the
+        -- row, without communicative content, and the phase indicator shows it
+        -- while that phase is in error, also after a reload. The next success
+        -- of that phase clears it.
+
+    @invariant UnavailableModelIsRefusedBeforeAnyCall
+        -- A run whose configured model may not run its phase is refused before
+        -- any provider call and leaves the row statuses unchanged; a cascade
+        -- checks every phase it will reach before starting.
+
+    @invariant AttemptsAreLoggedWithoutContent
+        -- Every phase attempt, success or failure, is recorded locally with
+        -- phase name, model, outcome, duration and provider references, and
+        -- never with utterance, NLU, prompt, image, SVG or provider message.
+        -- The log is capped and leaves the browser only by explicit export.
 }
 
 contract VectorizationBoundary {
@@ -368,13 +412,17 @@ enum NLUModel {
     `claude-sonnet-4-6` |
     `gemini-2.5-flash` |
     `gemini-2.5-pro` |
+    `gemini-3.8-flash` |
     `gpt-5.6-luna` |
     `gpt-5.6-terra` |
-    `gpt-5.6-sol`
+    `gpt-5.6-sol` |
+    `gpt-6-luna`
 }
+-- In NLUModel, gemini-2.5-flash and gemini-2.5-pro are retired (2026-10-20)
+-- and kept only because saved configurations may name them.
 enum VisualConcept { root | agent | action | object | context | element }
 enum Phase3AttemptStatus { processing | completed | error | cancelled }
-enum Phase3FailureKind { generation_error | external_provider_quota }
+enum Phase3FailureKind { generation_error | external_provider_quota | no_image }
 enum Phase3ArtifactKind { bitmap | vector }
 enum Phase5AttemptStatus { processing | review | completed | error }
 
@@ -629,20 +677,24 @@ rule FailPhase3 {
     ensures: attempt.reasoning.bitmap_status = error
     ensures: attempt.reasoning.nlu_status = completed
     ensures: attempt.reasoning.visual_status = completed
-    ensures:
-        if attempt.selected_model = `gpt-image-2`:
-            attempt.generation_unit_refunded = true
+    ensures: attempt.generation_unit_refunded = true
+}
+
+rule Phase3ReturnedNoImage {
+    when: Phase3ResponseWithoutImage(attempt)
+    requires: attempt.status = processing
+    ensures: attempt.status = error
+    ensures: attempt.failure_kind = no_image
+    ensures: attempt.recoverable = true
+    ensures: attempt.generation_unit_refunded = true
+    ensures: attempt.reasoning.bitmap_status = error
+    ensures: attempt.reasoning.nlu_status = completed
+    ensures: attempt.reasoning.visual_status = completed
 }
 
 rule TerminalImageProviderQuota {
     when: ImageProviderQuotaExhausted(attempt)
     requires: attempt.status = processing
-    requires: attempt.selected_model in {
-        `gemini-2.5-flash-image`,
-        `gemini-3.1-flash-image`,
-        `gemini-3-pro-image`,
-        `gpt-image-2`
-    }
     ensures: attempt.status = error
     ensures: attempt.failure_kind = external_provider_quota
     ensures: attempt.recoverable = true
@@ -781,6 +833,11 @@ invariant Phase3ErrorRetainsCompletedUpstream {
             and attempt.reasoning.nlu != null
             and attempt.reasoning.elements != null
             and attempt.reasoning.prompt != null
+}
+
+invariant FailedImageAttemptsAreRefunded {
+    for attempt in Phase3Attempts:
+        attempt.status = error implies attempt.generation_unit_refunded
 }
 
 invariant ProviderQuotaRefundsSelectedAttempt {
