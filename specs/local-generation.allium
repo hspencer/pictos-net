@@ -15,6 +15,10 @@
 -- Dependencies: GenerationModel families (generation-config.allium),
 --   row lifecycle (visual-reasoning.allium)
 
+given {
+  backend: LocalBackend
+}
+
 ------------------------------------------------------------
 -- External Entities
 ------------------------------------------------------------
@@ -33,6 +37,35 @@ external entity Row {
 }
 
 ------------------------------------------------------------
+-- Contracts
+------------------------------------------------------------
+
+contract LocalGenerationBoundary {
+  generate: (endpoint: String, prompt: String) -> String
+
+  @invariant ZeroQuotaForLocalGeneration
+    -- Local generation consumes the user's own compute: 0 units, no
+    -- checkAndCharge call, no server-side audit record. The quota system
+    -- (usage-enforcement.allium) only ever sees cloud calls.
+
+  @invariant PromptNeverLeavesTheDevice
+    -- For family "local", Phase 3 traffic goes browser → configured endpoint
+    -- only. No proxy, no telemetry. Note: Phases 1-2 remain cloud (Claude via
+    -- Netlify) — a library generated "locally" still used cloud NLU unless
+    -- those phases are also replaced (out of scope here).
+
+  @invariant EndpointIsDeviceScoped
+    -- LocalBackend persists outside GlobalConfig. Library export JSON never
+    -- contains an endpoint. Importing a library on a machine without a local
+    -- backend leaves rows generable by any cloud model instead.
+
+  @invariant ProvenanceFrozenLikeAnyOtherModel
+    -- Rows produced locally carry generationModel = local_model_id, so PDF
+    -- export, regeneration warnings and research telemetry distinguish local
+    -- output from cloud output.
+}
+
+------------------------------------------------------------
 -- Enumerations
 ------------------------------------------------------------
 
@@ -48,7 +81,7 @@ entity LocalBackend {
   -- person's endpoint onto another person's machine.
   endpoint: String?
   status: BackendStatus
-  engine_version: String?  when status = available
+  engine_version: String?   -- present while status = available
   last_probe_at: Timestamp?
 
   is_configured: endpoint != null
@@ -97,8 +130,8 @@ rule ProbeLocalBackend {
     -- Fired on app load (when an endpoint is configured), whenever the user
     -- edits the endpoint, and before enabling the local option in the model
     -- selector. The selector shows the local model greyed out with a probe
-    -- hint while status != available, mirroring how
-    -- INOPERATIVE_GENERATION_MODELS gates broken cloud options.
+    -- hint while status != available, as the model catalog's lifecycle
+    -- status gates cloud options (see generation-config.allium).
 }
 
 ------------------------------------------------------------
@@ -148,54 +181,14 @@ rule LocalGenerateWhileUnavailable {
 -- Invariants
 ------------------------------------------------------------
 
-@invariant "zero quota for local generation"
-  -- Local generation consumes the user's own compute: 0 units, no
-  -- checkAndCharge call, no server-side audit record. The quota system
-  -- (usage-enforcement.allium) only ever sees cloud calls.
-
-@invariant "prompt never leaves the device for local generation"
-  -- For family "local", Phase 3 traffic goes browser → configured endpoint
-  -- only. No proxy, no telemetry. Note: Phases 1-2 remain cloud (Claude via
-  -- Netlify) — a library generated "locally" still used cloud NLU unless
-  -- those phases are also replaced (out of scope here).
-
-@invariant "endpoint is device-scoped"
-  -- LocalBackend persists outside GlobalConfig. Library export JSON never
-  -- contains an endpoint. Importing a library on a machine without a local
-  -- backend leaves rows generable by any cloud model instead.
-
-@invariant "provenance frozen like any other model"
-  -- Rows produced locally carry generationModel = local_model_id, so PDF
-  -- export, regeneration warnings and research telemetry distinguish local
-  -- output from cloud output.
-
 ------------------------------------------------------------
 -- Open Questions
 ------------------------------------------------------------
 
-open question WorkflowTemplate {
-  -- ComfyUI needs a workflow graph naming a checkpoint and LoRA that exist
-  -- on the user's disk. Ship one canonical template with substitutable
-  -- model names (simple, opinionated), or let advanced users paste their
-  -- own workflow JSON (flexible, harder to support)?
-}
+open question "WorkflowTemplate: ComfyUI needs a workflow graph naming a checkpoint and LoRA that exist on the user's disk. Ship one canonical template with substitutable model names (simple, opinionated), or let advanced users paste their own workflow JSON (flexible, harder to support)?"
 
-open question LocalVectorize {
-  -- Local output is raster. VTracer (Phase 4, present in the codebase but
-  -- removed from the cascade) could vectorise it in-browser, yielding a
-  -- fully local vector pipeline. Reintroduce as an opt-in toggle for local
-  -- rows, or keep local output bitmap-only in v1?
-}
+open question "LocalVectorize: Local output is raster. VTracer (Phase 4, present in the codebase but removed from the cascade) could vectorise it in-browser, yielding a fully local vector pipeline. Reintroduce as an opt-in toggle for local rows, or keep local output bitmap-only in v1?"
 
-open question LocalRecording {
-  -- intervention-recording captures generation events for the doctoral
-  -- research. Local generations produce no server-side audit trail by
-  -- design. Should the client-side recording still capture them (locally,
-  -- exportable), and does the participant need to consent differently?
-}
+open question "LocalRecording: intervention-recording captures generation events for the doctoral research. Local generations produce no server-side audit trail by design. Should the client-side recording still capture them (locally, exportable), and does the participant need to consent differently?"
 
-open question PackagedModel {
-  -- Phase "local puro": model executed inside the app (WebGPU/ONNX in the
-  -- browser, or a packaged desktop app). Deferred until the UX and the
-  -- pictographic quality of the LoRA are validated against the local API.
-}
+open question "PackagedModel: Phase 'local puro': model executed inside the app (WebGPU/ONNX in the browser, or a packaged desktop app). Deferred until the UX and the pictographic quality of the LoRA are validated against the local API."
