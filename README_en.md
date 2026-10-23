@@ -253,9 +253,9 @@ The contracts between phases are four independent products. **They are developed
 
 | Product | Contract | Current version | Reference repository | Licence |
 |---|---|---|---|---|
-| `pictos-nlu-schema` | COMPRENDER: NLU analysis based on NSM and FrameNet | 1.1.0 | [mediafranca/pictos-nlu-schema](https://github.com/mediafranca/pictos-nlu-schema) | CC BY-SA 4.0 |
-| `pictos-composition-schema` | COMPONER: visual composition independent of the image provider | 0.1.0 | [mediafranca/pictos-composition-schema](https://github.com/mediafranca/pictos-composition-schema) | CC BY 4.0 |
-| `pictos-svg-schema` | ESTRUCTURAR: semantic, self-contained SVG with accessibility metadata | 2.0.0-draft.1 | [mediafranca/pictos-svg-schema](https://github.com/mediafranca/pictos-svg-schema) | CC BY 4.0 |
+| `pictos-nlu-schema` | UNDERSTAND: NLU analysis based on NSM and FrameNet | 1.1.0 | [mediafranca/pictos-nlu-schema](https://github.com/mediafranca/pictos-nlu-schema) | CC BY-SA 4.0 |
+| `pictos-composition-schema` | COMPOSE: visual composition independent of the image provider | 0.1.0 | [mediafranca/pictos-composition-schema](https://github.com/mediafranca/pictos-composition-schema) | CC BY 4.0 |
+| `pictos-svg-schema` | STRUCTURE: semantic, self-contained SVG with accessibility metadata | 2.0.0-draft.1 | [mediafranca/pictos-svg-schema](https://github.com/mediafranca/pictos-svg-schema) | CC BY 4.0 |
 | `pictos-api-schema` | Machine API v1: `comprender` and `componer` | 1.0.0 | [mediafranca/pictos-api-schema](https://github.com/mediafranca/pictos-api-schema) | CC BY 4.0 |
 
 ```mermaid
