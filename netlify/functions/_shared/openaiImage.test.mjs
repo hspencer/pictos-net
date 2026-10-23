@@ -51,6 +51,11 @@ test('sends the complete prompt unchanged, economical defaults and only Image AP
   assert.equal(openaiImageRequest({ ...params, prompt: 'x'.repeat(32000) }).prompt.length, 32000);
 });
 
+test('image models are admitted from the catalog, not from a fixed id', () => {
+  assert.equal(openaiImageRequest({ ...params, model: 'gpt-image-2.5-flare' }).model, 'gpt-image-2.5-flare');
+  assert.throws(() => openaiImageRequest({ ...params, model: 'gpt-6-luna' }), /Unsupported/);   // text model
+});
+
 test('returns a bitmap, chosen quality and real provider token usage', async () => {
   const usage = { input_tokens: 100, output_tokens: 196 };
   mock.method(globalThis, 'fetch', async (url, options) => {

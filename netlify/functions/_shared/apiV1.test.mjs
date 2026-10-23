@@ -90,8 +90,10 @@ test('request schemas offer exactly the catalog text models for their phase', ()
     const schema = API_SCHEMAS.find(s => s.$id === PROCESSES[name].requestSchema);
     const catalog = Object.keys(MODEL_CATALOG)
       .filter(id => MODEL_CATALOG[id].phases.includes(phase) && MODEL_CATALOG[id].output === 'text');
-    assert.deepEqual([...schema.properties.model.enum].sort(), catalog.sort());
-    assert.ok(modelIdsForPhase(phase).every(id => schema.properties.model.enum.includes(id)));
+    // Models added to the catalog after API v1 1.0.0 need a new API version.
+    const addedAfter100 = ['gemini-3.8-flash', 'gpt-6-luna'];
+    assert.deepEqual([...schema.properties.model.enum].sort(), catalog.filter(id => !addedAfter100.includes(id)).sort());
+    assert.ok(modelIdsForPhase(phase).every(id => schema.properties.model.enum.includes(id) || addedAfter100.includes(id)));
     assert.ok(!modelIdsForPhase(phase).includes('gemini-2.5-pro'));
   }
 });

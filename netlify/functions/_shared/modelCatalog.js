@@ -36,10 +36,10 @@ export const MODEL_CATALOG = {
   'claude-sonnet-4-6': text('Claude Sonnet 4.6', 'claude', [1, 2, 5], 3, 15, anthropicSource),
   'claude-opus-4-6': text('Claude Opus 4.6', 'claude', [5], 5, 25, anthropicSource),
   // Text Gemini 2.5 retired by Google on 2026-10-20; Pro already returns 404.
-  'gemini-2.5-flash': text('Gemini 2.5 Flash', 'gemini', [1, 2, 5], 0.30, 2.50, vertexSource, {}, 'retired'),
-  'gemini-2.5-pro': text('Gemini 2.5 Pro', 'gemini', [1, 2, 5], 1.25, 10, vertexSource, {
+  'gemini-2.5-flash': { ...text('Gemini 2.5 Flash', 'gemini', [1, 2, 5], 0.30, 2.50, vertexSource, {}, 'retired'), thinking: { budget: 0 } },
+  'gemini-2.5-pro': { ...text('Gemini 2.5 Pro', 'gemini', [1, 2, 5], 1.25, 10, vertexSource, {
     longContext: { aboveInputTokens: 200000, inputUsdPerMillion: 2.50, outputUsdPerMillion: 15 },
-  }, 'retired'),
+  }, 'retired'), thinking: { budget: 128 } },
   'gpt-5.6-luna': text('OpenAI GPT-5.6 Luna', 'openai', [1, 2, 5], 0.20, 1.20, openaiSource, {
     cachedInputUsdPerMillion: 0.02,
     longContext: { aboveInputTokens: 272000, inputUsdPerMillion: 0.40, outputUsdPerMillion: 1.80 },
@@ -52,6 +52,14 @@ export const MODEL_CATALOG = {
     cachedInputUsdPerMillion: 0.40,
     longContext: { aboveInputTokens: 272000, inputUsdPerMillion: 8, outputUsdPerMillion: 30 },
   }, 'experimental'),
+  // Added 2026-10-22 (plan F6) from the diagnosis' direct probes; experimental
+  // until they pass the phases they declare through Pictos' own routes.
+  'gemini-3.8-flash': { ...text('Gemini 3.8 Flash', 'gemini', [1, 2], 0.75, 3.75,
+    'https://cloud.google.com/gemini-enterprise-agent-platform/generative-ai/pricing',
+    { scheduledChange: { from: '2027-01-01', inputUsdPerMillion: 1.50, outputUsdPerMillion: 7.50 } }, 'experimental'),
+    thinking: { level: 'LOW' }, pricingCheckedAt: '2026-10-22' },
+  'gpt-6-luna': { ...text('OpenAI GPT-6 Luna', 'openai', [1, 2], 0.10, 0.50,
+    'https://developers.openai.com/api/docs/models/gpt-6-luna', {}, 'experimental'), pricingCheckedAt: '2026-10-22' },
   'gpt-image-2': image('OpenAI GPT Image 2', 'openai', 'bitmap', 0.006,
     'https://developers.openai.com/api/docs/models/gpt-image-2', {
       qualityUsd: { low: 0.006, medium: 0.053, high: 0.211 }, promptCostsExtra: true, size: '1024×1024',
@@ -63,6 +71,13 @@ export const MODEL_CATALOG = {
     { promptCostsExtra: true, size: '1K' }, 'experimental'), vertexBatch: true },
   'gemini-3-pro-image': image('Gemini 3 Pro Image', 'gemini', 'bitmap', 0.134, vertexSource,
     { promptCostsExtra: true, size: '1K/2K' }),
+  // Added 2026-10-22 (plan F6); experimental until verified through Pictos' routes.
+  'gpt-image-2.5-flare': { ...image('OpenAI GPT Image 2.5 Flare', 'openai', 'bitmap', 0.006,
+    'https://developers.openai.com/api/docs/models/gpt-image-2.5-flare',
+    { promptCostsExtra: true, size: '1024×1024' }, 'experimental'), pricingCheckedAt: '2026-10-22' },
+  'gemini-nano-banana-2.1': { ...image('Gemini Nano Banana 2.1', 'gemini', 'bitmap', 0.034,
+    'https://cloud.google.com/gemini-enterprise-agent-platform/generative-ai/pricing',
+    { promptCostsExtra: true, size: '1K' }, 'experimental'), pricingCheckedAt: '2026-10-22' },
   'recraftv4_1': image('Recraft V4.1 (raster)', 'recraft', 'bitmap', 0.035, recraftSource, { size: '1K' }, 'experimental'),
   // Vector variants verified 2026-10-22: 3 synthetic utterances each generate an SVG that ESTRUCTURAR admits once its C2PA manifest is set aside (svgForStructuring).
   'recraftv4_1_vector': image('Recraft V4.1 (vector)', 'recraft', 'vector', 0.08, recraftSource),
@@ -91,6 +106,16 @@ export function modelStatus(id) {
 export function batchModelIds() {
   return Object.keys(MODEL_CATALOG).filter(id => MODEL_CATALOG[id].vertexBatch
     && ['workshop', 'active'].includes(MODEL_CATALOG[id].status));
+}
+
+/**
+ * Gemini reasoning configuration, declared per model: Gemini 2.5 takes an
+ * integer budget, Gemini 3.x a level (MINIMAL is not accepted by 3.8).
+ */
+export function geminiThinkingConfig(id) {
+  const thinking = Object.hasOwn(MODEL_CATALOG, id) ? MODEL_CATALOG[id].thinking : undefined;
+  if (thinking?.level) return { thinkingLevel: thinking.level };
+  return { thinkingBudget: thinking?.budget ?? 0 };
 }
 
 export function getModelProvider(id) {

@@ -1,4 +1,5 @@
 import { projectProviderSchema } from './pipelineContracts.js';
+import { geminiThinkingConfig } from './modelCatalog.js';
 /**
  * Pure Claude→Gemini request translation for the structuring proxy.
  *
@@ -87,12 +88,13 @@ export function claudeToolToGeminiFunctionDeclaration(tool) {
 }
 
 /**
- * Gemini 2.5 "thinking" budget. Disabled (0) for flash to keep latency and the
- * output budget for the actual tool call — a slow redraw with thinking on
- * exceeds the function timeout. Pro cannot fully disable thinking (min 128).
+ * Gemini 2.5 "thinking" budget, kept for the 2.5 entries' history. Flash ran
+ * with 0 to keep latency and the output budget for the tool call; Pro cannot
+ * fully disable thinking (min 128). The request uses geminiThinkingConfig,
+ * which reads the per-model setting from the catalog.
  */
 export function thinkingBudgetFor(model) {
-  return String(model).includes('pro') ? 128 : 0;
+  return geminiThinkingConfig(model).thinkingBudget ?? null;
 }
 
 /**
@@ -122,7 +124,7 @@ export function buildGeminiRequest({ model, system, tools, tool_choice, messages
 
   body.generationConfig = {
     maxOutputTokens: Math.min(max_tokens || 8192, MAX_OUTPUT_TOKENS_CAP),
-    thinkingConfig: { thinkingBudget: thinkingBudgetFor(model) },
+    thinkingConfig: geminiThinkingConfig(model),
   };
 
   return body;

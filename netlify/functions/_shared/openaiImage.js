@@ -1,10 +1,13 @@
 /** Server-only OpenAI Images adapter, shared by individual and pipeline jobs. */
+import { modelAllowed } from './modelCatalog.js';
+
+/** Default for connection checks; admission comes from the model catalog. */
 export const OPENAI_IMAGE_MODEL = 'gpt-image-2';
 export const OPENAI_IMAGE_QUALITIES = ['low', 'medium', 'high'];
 export const OPENAI_IMAGE_TIMEOUT_MS = 180_000;
 
 export function openaiImageRequest({ model, prompt, quality = 'low' }) {
-  if (model !== OPENAI_IMAGE_MODEL) throw new Error('Unsupported OpenAI image model');
+  if (!modelAllowed(model, 'openai', [3])) throw new Error('Unsupported OpenAI image model');
   if (!OPENAI_IMAGE_QUALITIES.includes(quality)) throw new Error('Invalid OpenAI image quality');
   if (typeof prompt !== 'string' || !prompt.trim() || prompt.length > 32000) {
     throw new Error('OpenAI image prompt must contain 1–32000 characters');

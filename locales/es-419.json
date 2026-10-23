@@ -277,6 +277,7 @@
     "tokenCostNote": "Tarifas API estándar en USD, no un precio por pictograma. Los tokens reales (incluido razonamiento), caché, descuentos e impuestos aplicables afectan el cobro.",
     "imageCostNote": "Precio de referencia de generación en USD; las unidades internas de PICTOS son distintas.",
     "longContextPrice": "Sobre {threshold} tokens de entrada: {input} entrada / {output} salida por 1M tokens.",
+    "scheduledPrice": "Desde el {from}: {input} entrada / {output} salida por 1M tokens.",
     "imagePriceSize": "Salida de referencia: {size}.",
     "imagePromptExtra": "La entrada y eventual salida de texto se cobran aparte.",
     "openaiReasoningNote": "Esfuerzo de razonamiento OpenAI: bajo. La calidad debe compararse mediante un benchmark.",

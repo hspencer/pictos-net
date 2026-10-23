@@ -24,6 +24,10 @@ export function modelPriceNotes(id: string, t: Translate): string[] {
     threshold: p.longContext.aboveInputTokens,
     input: usd(p.longContext.inputUsdPerMillion), output: usd(p.longContext.outputUsdPerMillion),
   }));
+  if (p.scheduledChange) notes.push(t('config.scheduledPrice', {
+    from: p.scheduledChange.from,
+    input: usd(p.scheduledChange.inputUsdPerMillion), output: usd(p.scheduledChange.outputUsdPerMillion),
+  }));
   if (p.size) notes.push(t('config.imagePriceSize', { size: p.size }));
   if (p.promptCostsExtra) notes.push(t('config.imagePromptExtra'));
   if (model.provider === 'openai' && p.kind === 'tokens') notes.push(t('config.openaiReasoningNote'));

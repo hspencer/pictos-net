@@ -64,6 +64,11 @@ test('thinking is disabled on flash and kept minimal on pro', () => {
   assert.equal(flash.generationConfig.thinkingConfig.thinkingBudget, 0);
 });
 
+test('Gemini 3.x reasons by level, declared per model in the catalog, never by budget', () => {
+  const body = buildGeminiRequest({ model: 'gemini-3.8-flash', messages: [{ content: [] }] });
+  assert.deepEqual(body.generationConfig.thinkingConfig, { thinkingLevel: 'LOW' });
+});
+
 test('tool_choice forces the named function (ANY mode)', () => {
   const body = buildGeminiRequest({
     model: 'gemini-2.5-flash',

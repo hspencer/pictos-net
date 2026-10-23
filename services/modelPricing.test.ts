@@ -34,8 +34,10 @@ test('prices distinguish token rates from images and retain conditional bounds',
   assert.match(modelPriceNotes('gemini-2.5-pro', t).join(' '), /200000.*US\$2.50.*US\$15.00/);
   assert.match(modelPriceNotes('gpt-5.6-terra', t).join(' '), /272000.*US\$4.00.*US\$18.00/);
   assert.match(modelPriceNotes('recraftv4_styles', t).join(' '), /existing Recraft style ID/);
-  for (const value of Object.values(MODEL_CATALOG)) {
+  assert.match(modelPriceNotes('gemini-3.8-flash', t).join(' '), /From 2027-01-01: US\$1.50 input \/ US\$7.50 output/);
+  const addedInF6 = ['gemini-3.8-flash', 'gpt-6-luna', 'gpt-image-2.5-flare', 'gemini-nano-banana-2.1'];
+  for (const [id, value] of Object.entries(MODEL_CATALOG)) {
     assert.match(value.pricingSource, /^https:\/\//);
-    assert.equal(value.pricingCheckedAt, '2026-08-27');
+    assert.equal(value.pricingCheckedAt, addedInF6.includes(id) ? '2026-10-22' : '2026-08-27', id);
   }
 });

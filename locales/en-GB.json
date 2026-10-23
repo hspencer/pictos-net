@@ -277,6 +277,7 @@
     "tokenCostNote": "Standard API rates in USD, not a price per pictogram. Actual tokens (including reasoning), cache, discounts and applicable taxes affect the bill.",
     "imageCostNote": "Reference USD generation price; internal PICTOS units are separate.",
     "longContextPrice": "Above {threshold} input tokens: {input} input / {output} output per 1M tokens.",
+    "scheduledPrice": "From {from}: {input} input / {output} output per 1M tokens.",
     "imagePriceSize": "Reference output: {size}.",
     "imagePromptExtra": "Input and any text output are billed separately.",
     "openaiReasoningNote": "OpenAI reasoning effort: low. A benchmark is needed to compare quality.",

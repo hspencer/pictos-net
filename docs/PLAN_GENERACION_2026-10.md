@@ -184,6 +184,15 @@ Ningún modelo entra al perfil de taller por esta vía sin pasar por F7.
 
 **Cierre.** Cada modelo integrado pasa las fases que declara en las rutas reales de Pictos (individual, lote y API v1 cuando corresponda), no solo en sondas directas.
 
+**Estado: tareas 1 a 4 implementadas el 22-10-2026; cierre pendiente de verificación en vivo.**
+
+- El razonamiento de Gemini se declara por modelo en el catálogo (`thinking: { budget }` para 2.5, `{ level }` para 3.x) y `geminiThinkingConfig` lo traduce; ya no depende del nombre.
+- Entran como `experimental`: Gemini 3.8 Flash y GPT-6 Luna (fases 1 y 2) y GPT Image 2.5 Flare y Nano Banana 2.1 (fase 3), con tarifas verificadas el 22-10-2026. El cambio de precio de Gemini 3.8 desde el 01-01-2027 aparece en la ficha de precios.
+- El adaptador de imagen de OpenAI y el despacho de PRODUCIR comparaban con el id fijo `gpt-image-2`; ahora admiten desde el catálogo y despachan por proveedor.
+- La API v1 1.0.0 no ofrece los modelos nuevos de texto: su schema publicado no cambia, y ofrecerlos requiere una versión nueva de la API.
+- Haiku 5.5 y Sonnet 5.5 siguen fuera, y la actualización del SDK de Anthropic sigue pendiente como cambio separado.
+- Para pasar a `active`, cada modelo nuevo necesita una ejecución real por las rutas de Pictos.
+
 ## F7. Ensayo de taller
 
 Sigue los puntos 8 a 12 del diagnóstico: corpus sintético de 20 frases revisado con facilitadores, dos repeticiones por frase, comparación entre el perfil base (Haiku, Haiku, Gemini 2.5 Flash Image) y un candidato, y ensayo de concurrencia con el número real de equipos.
