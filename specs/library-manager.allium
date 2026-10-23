@@ -9,120 +9,131 @@
 --   - Storage usage indicator on the home screen
 --   - Bulk backup: ZIP of all library JSONs
 --   - Active library: which library is currently open in the editor
---   - Example libraries: promoted to fully mutable libraries (editable + deletable)
+--   - Community templates: loaded into fully mutable libraries
 -- Excludes:
 --   - Library contents (pictograms, sequences) — see visual-reasoning.allium,
 --     library-views.allium, sequences.allium
 --   - Sequence definition and export — see sequences.allium
 --   - Identity, quota, usage tracking — see usage-enforcement.allium
 -- Dependencies:
---   - GlobalConfig (gains activeLibraryId field)
+--   - GlobalConfig (gains the active library)
 --   - library-views.allium (defines the view opened when a library is active)
 --   - sequences.allium (Sequence is a sub-entity of Library)
-
-------------------------------------------------------------
--- Value Types
-------------------------------------------------------------
-
-value LibraryId {
-  -- Opaque unique identifier for a Library. Stable across renames and
-  -- all library operations. Used as the storage namespace key.
-  id: String
-}
-
-value LibrarySort {
-  recientes       -- modifiedAt descending (default)
-  alfabetico      -- name ascending, case-insensitive
-}
 
 ------------------------------------------------------------
 -- External Entities
 ------------------------------------------------------------
 
-external GlobalConfig {
-  -- Application-wide configuration. This spec adds one field; all others
-  -- (lang, uiLang, geoContext, visualStylePrompt, etc.) are unchanged.
-  activeLibraryId: LibraryId?
-  -- nil  → the home screen is shown; no library is open
-  -- set  → the Library view for that id is shown
+-- Application-wide configuration. This spec adds the active library; all
+-- other fields (lang, uiLang, geoContext, visualStylePrompt, ...) are
+-- unchanged. No active library means the home screen is shown.
+external entity GlobalConfig {
+    active_library: Library?
+}
+
+-- A JSON file previously exported by DownloadLibrary or BackupAllLibraries,
+-- or a community template served from /public/libraries/.
+external entity LibraryFile {
+    name: String
+    is_valid: Boolean
+    pictogram_count: Integer
+    sequence_count: Integer
+    board_count: Integer
+    media_count: Integer
+    language: String?
 }
 
 ------------------------------------------------------------
--- Entities
+-- Contracts
 ------------------------------------------------------------
 
+contract LibraryStorageBoundary {
+    copy: (library: Library) -> Library
+
+    @invariant LibrariesAreIsolated
+        -- Operations on one Library — including deletion — do not affect the
+        -- data of any other Library. Each Library owns its pictogram
+        -- metadata, media (bitmaps, raw and structured SVGs), sequences and
+        -- boards. Media are stored per library and row, so two libraries
+        -- that share row ids (a duplicate, a restored backup, a template
+        -- loaded twice) never overwrite or delete each other's media.
+
+    @invariant CopiesKeepTheirMedia
+        -- Duplicate, download, backup and import carry each pictogram's
+        -- media with its metadata. Generated images are not treated as
+        -- regenerable: regenerating costs provider calls and changes the
+        -- image. A copy never alters the library it was taken from.
+        -- (Changed 2026-10-22; copies used to omit media.)
+
+    @invariant CopiesWaitForPendingWrites
+        -- A copy reads media only after any media write still in flight from
+        -- the last save has finished, so it never captures a partial state.
+        -- A failed copy is reported; it is never silent.
+
+    @invariant TemplatesAreNeverMutated
+        -- Loading a community template creates a new Library from its JSON;
+        -- the template file itself is never changed.
+}
+
+------------------------------------------------------------
+-- Enumerations
+------------------------------------------------------------
+
+enum LibrarySort {
+    recientes       -- modified_at descending (default)
+    | alfabetico    -- name ascending, case-insensitive
+}
+
+------------------------------------------------------------
+-- Entities and Variants
+------------------------------------------------------------
+
+-- A named, self-contained collection of pictograms, sequences and boards.
+-- Libraries have no multi-state lifecycle: they exist or are deleted.
 entity Library {
-  -- A named, self-contained collection of pictograms, sequences, and boards.
-  -- Each Library is stored independently: its metadata, pictogram records,
-  -- sequence definitions, board definitions, and binary artifacts (bitmaps, SVGs)
-  -- do not share storage with any other Library.
-  id: LibraryId
-  name: String                 -- user-given; always non-empty
-  pictogramCount: Integer      -- count of rows; shown on the home screen card
-  sequenceCount: Integer       -- count of sequences
-  boardCount: Integer?         -- count of communication boards (absent = 0)
-  language: String?            -- lang code of the library config (e.g. "es-419");
-                               -- derived from GlobalConfig.lang at creation time
-  sourceTemplate: String?      -- filename of the public template this library was
-                               -- loaded from (e.g. "tablero_graph_2026-08-13.json");
-                               -- nil for user-created libraries
-  createdAt: Timestamp
-  modifiedAt: Timestamp        -- updated whenever pictograms, sequences, or boards change
-
-  states: exists
-  -- Libraries have no multi-state lifecycle; they either exist or are deleted.
+    name: String                    -- user-given; always non-empty
+    pictogram_count: Integer        -- shown on the home screen card
+    sequence_count: Integer
+    board_count: Integer
+    media_count: Integer            -- pictograms carrying a bitmap or SVG
+    language: String?               -- lang of the library config at creation
+    source_template: String?        -- template filename; absent if user-created
+    created_at: Timestamp
+    modified_at: Timestamp          -- updated when pictograms, sequences or boards change
 }
 
+-- The application home screen, shown while no library is active.
 entity LibraryHome {
-  -- The application home screen. Active when GlobalConfig.activeLibraryId = nil.
-  libraries: [Library]         -- all persisted Libraries, modifiedAt descending
-  sort: LibrarySort            -- active sort order for the listing
-  storageUsed: Bytes            -- storage currently consumed by all Libraries
-  storageEstimated: Bytes       -- origin storage budget estimated by the browser
+    sort: LibrarySort               -- persisted; survives a reload
+    storage_used: Integer           -- bytes consumed by all libraries
+    storage_estimated: Integer      -- origin storage budget estimated by the browser
 
-  states: idle
+    backup_enabled: Libraries.count > 0
+}
+
+-- A single-library JSON download.
+entity LibraryExport {
+    library: Library
+    filename: String
+    media_count: Integer
+    exported_at: Timestamp
+}
+
+-- A ZIP with one JSON per library, in the DownloadLibrary format.
+entity Backup {
+    filename: String
+    library_count: Integer
+    triggered_at: Timestamp
 }
 
 ------------------------------------------------------------
--- Invariants
+-- Config
 ------------------------------------------------------------
 
-invariant LibrariesAreIsolated {
-  -- Operations on one Library — including deletion — do not affect the
-  -- data of any other Library. Each Library owns its pictogram metadata,
-  -- binary artifacts, and sequences independently.
-}
-
-invariant HomeAndEditorAreExclusive {
-  -- The home screen and the Library editor cannot be shown simultaneously.
-  -- The user is either browsing the library list (activeLibraryId = nil)
-  -- or working inside a specific Library (activeLibraryId is set).
-  GlobalConfig.activeLibraryId = nil  <->  LibraryHome is displayed
-  GlobalConfig.activeLibraryId != nil <->  Library editor is displayed
-}
-
-invariant LibraryNameIsNonEmpty {
-  -- A Library must always carry a non-empty name. Create and rename flows
-  -- enforce this before persisting.
-  for lib in Library.all:
-    lib.name.length >= 1
-}
-
-invariant DuplicateOmitsBinaryArtifacts {
-  -- Duplicating a Library copies its pictogram metadata (utterances, NLU,
-  -- elements, prompts, generation history) and sequence definitions, but
-  -- does NOT copy binary artifacts (bitmaps, SVGs). The duplicate starts
-  -- with the same vocabulary but no generated images.
-  -- Rationale: binary artifacts are large and fully regeneratable from
-  -- the preserved metadata.
-}
-
-invariant BackupCapturesAllLibraries {
-  -- The backup ZIP reflects the complete set of Libraries at the instant
-  -- the backup is triggered. Libraries deleted before triggering are not
-  -- included.
-  for backup in Backup.triggered:
-    backup.libraries = Library.all at backup.triggeredAt
+config {
+    duplicate_suffix: String = " (copia)"
+    import_suffix: String = " (importada)"
+    backup_filename_prefix: String = "PICTOS-Libraries-"
 }
 
 ------------------------------------------------------------
@@ -131,209 +142,222 @@ invariant BackupCapturesAllLibraries {
 
 -- === Home screen ===
 
-rule ShowHomeScreen {
-  when: GlobalConfig.activeLibraryId = nil
-  ensures:
-    LibraryHome is displayed
-    LibraryHome.sort = recientes (default when not previously set)
-    LibraryHome.libraries = all Libraries ordered by LibraryHome.sort
-    the storage indicator reflects current LibraryHome.storageUsed
-      and LibraryHome.storageEstimated
-}
-
 rule SortLibraries {
-  when: user changes the sort control on the home screen
-  ensures:
-    LibraryHome.sort = selected sort value
-    LibraryHome.libraries is reordered accordingly
-    the chosen sort is persisted (survives page reload)
+    when: LibrarySortChanged(home, sort)
+    ensures: home.sort = sort
+
+    @guidance
+        -- Libraries are listed in the chosen order; the default is recientes.
 }
 
 -- === Opening and leaving a Library ===
 
 rule OpenLibrary {
-  when: user activates "Abrir" from the "..." menu of Library L,
-        or clicks the body of Library L's card
-  ensures:
-    GlobalConfig.activeLibraryId = L.id
-    the Library editor opens for L
-    LibraryHome is no longer displayed
+    when: OpenLibraryRequested(app, library)
+    ensures: app.active_library = library
+
+    @guidance
+        -- Triggered by "Abrir" in the card's "..." menu or by a click on the
+        -- card body. The Library editor replaces the home screen.
 }
 
 rule LeaveLibrary {
-  when: user navigates back from the Library editor to the home screen
-  ensures:
-    GlobalConfig.activeLibraryId = nil
-    LibraryHome is displayed with an up-to-date listing
+    when: LeaveLibraryRequested(app)
+    requires: app.active_library != null
+    ensures: app.active_library = null
+
+    @guidance
+        -- The home screen is shown again with an up-to-date listing.
 }
 
 -- === Creating a Library ===
 
 rule CreateLibrary {
-  when: user activates the "Crear nueva librería" block on the home screen
-  ensures:
-    the user is prompted for a name
-    if the user confirms a non-empty name:
-      a new Library is created with:
-        a fresh unique id
-        the given name
-        createdAt = modifiedAt = now
-        empty pictogram and sequence collections
-      GlobalConfig.activeLibraryId = new Library's id
-        (the new Library opens immediately without returning to the home screen)
-    if the user cancels:
-      no Library is created; home screen remains unchanged
+    when: CreateLibraryConfirmed(app, name)
+    requires: name != ""
+    ensures:
+        let library = Library.created(
+            name: name,
+            pictogram_count: 0,
+            sequence_count: 0,
+            board_count: 0,
+            media_count: 0,
+            language: null,
+            source_template: null,
+            created_at: now,
+            modified_at: now
+        )
+        app.active_library = library
+
+    @guidance
+        -- "Crear nueva librería" prompts for a name first; cancelling creates
+        -- nothing. The new Library opens immediately.
 }
 
 -- === Duplicating a Library ===
 
 rule DuplicateLibrary {
-  when: user activates "Duplicar" from the "..." menu of Library L
-  ensures:
-    a new Library is created with:
-      a fresh unique id
-      name = "{L.name} (copia)"
-      the same pictogram metadata as L (utterances, NLU, elements, prompts,
-        generation history, phase statuses)
-      the same sequence definitions as L
-      no binary artifacts (DuplicateOmitsBinaryArtifacts)
-      createdAt = modifiedAt = now
-    the duplicate appears in LibraryHome.libraries
-    Library L is unaffected
-    the home screen remains active (the duplicate is not auto-opened)
+    when: DuplicateLibraryRequested(source)
+    ensures: Library.created(
+        name: source.name + config.duplicate_suffix,
+        pictogram_count: source.pictogram_count,
+        sequence_count: source.sequence_count,
+        board_count: source.board_count,
+        media_count: source.media_count,
+        language: source.language,
+        source_template: source.source_template,
+        created_at: now,
+        modified_at: now
+    )
+
+    @guidance
+        -- The duplicate carries the same pictogram metadata (utterances, NLU,
+        -- elements, prompts, generation history, phase statuses), sequences,
+        -- boards and media (CopiesKeepTheirMedia). It appears on the home
+        -- screen and is not opened; the source is unaffected.
 }
 
 rule RenameLibrary {
-  when: user edits the name of Library L inline on its home screen card,
-        or activates a rename action from the Library's settings panel
-        while L is open
-  ensures:
-    if the user confirms a non-empty name:
-      Library L.name = the new name
-      Library L.modifiedAt = now
-    if the user cancels or submits an empty string:
-      Library L.name is unchanged
+    when: LibraryRenamed(library, name)
+    requires: name != ""
+    ensures: library.name = name
+    ensures: library.modified_at = now
+
+    @guidance
+        -- Two paths: inline edit on the home screen card, or the library
+        -- settings panel while the library is open. Cancelling or submitting
+        -- an empty name leaves the name unchanged.
 }
 
 -- === Downloading a Library ===
 
 rule DownloadLibrary {
-  when: user activates "Descargar" from the "..." menu of Library L
-  ensures:
-    a JSON file is downloaded containing:
-      Library metadata (id, name, createdAt, modifiedAt)
-      all pictogram records for L (utterances, NLU, elements, prompts,
-        generation history, sequence definitions)
-    filename: "{sanitize(L.name)}.json"
-    no binary artifacts (bitmaps, SVGs) are included in the download
+    when: DownloadLibraryRequested(library)
+    ensures: LibraryExport.created(
+        library: library,
+        filename: sanitize(library.name) + ".json",
+        media_count: library.media_count,
+        exported_at: now
+    )
+
+    @guidance
+        -- The JSON contains the library metadata, every pictogram record with
+        -- its media, sequences and boards (CopiesKeepTheirMedia).
 }
 
 -- === Deleting a Library ===
 
 rule DeleteLibrary {
-  when: user activates "Eliminar" from the "..." menu of Library L
-  requires:
-    user confirms via a destructive-action prompt
-  ensures:
-    Library L and all its data — pictogram metadata, binary artifacts,
-      and sequences — are permanently removed from storage
-    L no longer appears in LibraryHome.libraries
-    if GlobalConfig.activeLibraryId = L.id:
-      GlobalConfig.activeLibraryId = nil  (home screen is shown)
+    when: DeleteLibraryConfirmed(app, library)
+    let was_active = app.active_library = library
+    ensures: not exists library
+    ensures:
+        if was_active:
+            app.active_library = null
 
-  @guidance "confirmation copy"
-    -- The prompt must communicate permanence and that binary artifacts
-    -- (excluded from JSON downloads) are also lost. Suggested (es-419):
-    -- "¿Eliminar «{name}»? Se borrarán todos los pictogramas e imágenes
-    --  generadas. Esta acción no se puede deshacer."
-    -- The Delete item in the "..." menu should be visually distinct
-    -- (e.g. red label) to signal destructiveness before the prompt appears.
+    @guidance
+        -- Deletion removes the pictogram metadata, media, sequences and boards
+        -- for good, after a destructive-action confirmation. Suggested
+        -- prompt (es-419): "¿Eliminar «{name}»? Se borrarán todos los
+        -- pictogramas e imágenes generadas. Esta acción no se puede
+        -- deshacer." The Delete item in the "..." menu is visually distinct
+        -- (e.g. red label) before the prompt appears.
 }
 
--- === Backup ===
+-- === Backup and import ===
 
 rule BackupAllLibraries {
-  when: user activates "Respaldar librerías" on the home screen
-  requires: Library.all is non-empty
-  ensures:
-    a ZIP file is generated containing one JSON per Library, each in the
-      same format as the individual DownloadLibrary export
-    filename: "PICTOS-Libraries-{YYYY-MM-DD}.zip"
-    the download fires without a blocking progress modal
-      (only metadata is serialised; no rendering or rasterisation occurs)
-    no binary artifacts are included
+    when: BackupRequested(home)
+    requires: home.backup_enabled
+    ensures: Backup.created(
+        filename: config.backup_filename_prefix + date_stamp(now) + ".zip",
+        library_count: Libraries.count,
+        triggered_at: now
+    )
+
+    @guidance
+        -- One JSON per library in the DownloadLibrary format, media included.
+        -- The download fires without a blocking progress modal.
 }
 
 rule ImportLibrary {
-  when: user activates "Importar librería" on the home screen
-  ensures:
-    the user is prompted to select a JSON file previously exported via
-      DownloadLibrary or BackupAllLibraries
-    if the JSON is valid:
-      a new Library is created from the JSON with:
-        a fresh unique id (the original id in the JSON is not reused)
-        all pictogram metadata, sequence definitions, and communication boards from the JSON
-        no binary artifacts (DuplicateOmitsBinaryArtifacts applies)
-        createdAt = modifiedAt = now
-        name = name from the JSON, with "(importada)" appended if a
-          Library with that name already exists
-      the new Library appears in LibraryHome.libraries
-      the home screen remains active (the imported Library is not auto-opened)
-    if the JSON is invalid or cannot be parsed:
-      an error is shown inline; no Library is created
+    when: ImportLibraryRequested(app, file)
+    requires: file.is_valid
+    ensures:
+        let library = Library.created(
+            name: import_name(file.name, config.import_suffix),
+            pictogram_count: file.pictogram_count,
+            sequence_count: file.sequence_count,
+            board_count: file.board_count,
+            media_count: file.media_count,
+            language: file.language,
+            source_template: null,
+            created_at: now,
+            modified_at: now
+        )
+        app.active_library = library
 
-  @guidance "import placement"
-    -- "Importar librería" is an action on the home screen, not inside an
-    -- open Library. Suggested placement: near the "Respaldar librerías"
-    -- button or as a secondary action within the "Crear nueva librería"
-    -- block (e.g. "Crear nueva" primary, "Importar" secondary link).
-    -- Do NOT place it in the Library dropdown menu — import creates a new
-    -- Library; it does not modify the currently open one.
+    @guidance
+        -- The imported library gets a fresh id (the id in the JSON is not
+        -- reused) and carries the file's pictograms with their media,
+        -- sequences and boards. import_name appends the suffix when a library
+        -- with that name exists. The imported library opens immediately
+        -- (aligned with the implementation, 2026-10-23). "Importar librería"
+        -- is a home screen action, never inside an open library: import
+        -- creates a new library and never replaces an existing one.
 }
 
-rule BackupButtonDisabledWhenNoLibraries {
-  when: Library.all is empty
-  ensures:
-    the "Respaldar librerías" button is disabled
+rule RejectInvalidImport {
+    when: ImportLibraryRequested(app, file)
+    requires: not file.is_valid
+    ensures: ImportFailureShown(file: file)
+
+    @guidance
+        -- The error is shown inline; no library is created.
 }
 
--- === Storage indicator ===
+-- === Community templates ===
 
-rule StorageIndicatorDisplay {
-  when: LibraryHome is displayed
-  ensures:
-    the storage indicator shows storageUsed and storageEstimated in
-      human-readable units (MB or GB as appropriate)
-    the indicator updates after any library creation, duplication, or deletion
-    no hard limit is enforced on library creation based on storage usage;
-      the indicator is informational, giving users confidence that their
-      data is not at risk from routine use
+rule LoadCommunityTemplate {
+    when: TemplateLoadRequested(app, template)
+    ensures:
+        let library = Library.created(
+            name: template.name,
+            pictogram_count: template.pictogram_count,
+            sequence_count: template.sequence_count,
+            board_count: template.board_count,
+            media_count: template.media_count,
+            language: template.language,
+            source_template: template.name,
+            created_at: now,
+            modified_at: now
+        )
+        app.active_library = library
 
-  @guidance "copy"
-    -- Suggested label (es-419):
-    -- "Almacenamiento: X MB de Y MB usados"
-    -- If usage exceeds 80% of the estimate, a subtle warning colour
-    -- (amber) can draw attention without blocking action.
+    @guidance
+        -- Templates are JSON files in /public/libraries/, shown in a separate
+        -- "De la comunidad" section, not pre-created libraries. The loaded
+        -- library is fully mutable (TemplatesAreNeverMutated). Template cards
+        -- can be hidden individually and restored with "Restaurar plantillas".
+        -- First launch shows the home screen; no library opens by itself.
 }
 
--- === Example libraries ===
+------------------------------------------------------------
+-- Invariants
+------------------------------------------------------------
 
-rule CommunityTemplates {
-  -- Template libraries are NOT pre-created Libraries. They are JSON files
-  -- served from /public/libraries/ and shown in a separate "De la comunidad"
-  -- section on the home screen, distinct from the user's own Libraries.
+invariant LibraryNameIsNonEmpty {
+    for library in Libraries:
+        library.name != ""
+}
 
-  when: LibraryHome is displayed
-
-  ensures:
-    template cards appear in a "De la comunidad" section below user libraries
-    each template card shows: name, pictogram count, and a "Cargar" / "Abrir" action
-    loading a template creates a new Library from the JSON (sourceTemplate is set)
-      and navigates into it — the template JSON is never mutated
-    once loaded, the resulting Library is fully mutable with no restrictions
-    template cards can be individually hidden by the user (hidden count is tracked)
-    a "Restaurar plantillas" affordance re-shows all hidden template cards
-    on first launch the home screen is displayed (no library is auto-opened)
+invariant CountsAreNonNegative {
+    for library in Libraries:
+        library.pictogram_count >= 0
+        and library.sequence_count >= 0
+        and library.board_count >= 0
+        and library.media_count >= 0
+        and library.media_count <= library.pictogram_count
 }
 
 ------------------------------------------------------------
@@ -341,34 +365,44 @@ rule CommunityTemplates {
 ------------------------------------------------------------
 
 surface LibraryHomeScreen {
-  @guidance "layout"
-    -- Responsive card grid. Each card shows: library name, pictogram count,
-    -- last-modified date, and the "..." menu button. The "Crear nueva librería"
-    -- block is visually distinct (dashed border, "+" icon) and appears as the
-    -- last card in the grid (or first, as a design decision; this spec does
-    -- not mandate position). Below the grid: storage indicator then
-    -- "Respaldar librerías" button.
+    facing visitor: GlobalConfig
+    context home: LibraryHome
 
-  @guidance "card menu"
-    -- The "..." menu on each card lists: Abrir, Duplicar, Descargar, Eliminar.
-    -- Eliminar is visually distinguished (e.g. red text) to surface its
-    -- destructiveness before the confirmation prompt.
+    exposes:
+        home.sort
+        home.storage_used
+        home.storage_estimated
+        home.backup_enabled
+        for library in Libraries:
+            library.name
+            library.pictogram_count
+            library.modified_at
 
-  @guidance "storage indicator"
-    -- Compact, low-contrast: "Almacenamiento: X MB de Y MB usados".
-    -- Amber tint if usage > 80% of estimate. Not a progress bar.
+    provides:
+        LibrarySortChanged(home, sort)
+        OpenLibraryRequested(visitor, library)
+        CreateLibraryConfirmed(visitor, name)
+        DuplicateLibraryRequested(library)
+        DownloadLibraryRequested(library)
+        DeleteLibraryConfirmed(visitor, library)
+        BackupRequested(home) when home.backup_enabled
+        ImportLibraryRequested(visitor, file)
+        TemplateLoadRequested(visitor, template)
 
-  @guidance "empty state"
-    -- When Library.all is empty (all libraries deleted), show only the
-    -- "Crear nueva librería" block and a short invitation:
-    -- "Crea tu primera librería de pictogramas." (es-419)
+    @guarantee StorageIndicatorIsInformational
+        -- The indicator shows used and estimated storage in readable units
+        -- (MB or GB) and updates after any creation, duplication or deletion.
+        -- No hard limit blocks library creation.
 
-  exposes:
-    LibraryHome.libraries (read)
-    LibraryHome.storageUsed, LibraryHome.storageEstimated (read)
-    open, duplicate, download, delete actions per Library
-    create new Library
-    backup all Libraries
+    @guidance
+        -- Responsive card grid: name, pictogram count, last-modified date and
+        -- the "..." menu (Abrir, Duplicar, Descargar, Eliminar; Eliminar in
+        -- red). The "Crear nueva librería" block has a dashed border and a
+        -- "+" icon. Below the grid: storage indicator, then "Respaldar
+        -- librerías". Indicator copy (es-419): "Almacenamiento: X MB de Y MB
+        -- usados", amber above 80% of the estimate, not a progress bar. Empty
+        -- state: only the create block and "Crea tu primera librería de
+        -- pictogramas."
 }
 
 ------------------------------------------------------------
@@ -376,22 +410,14 @@ surface LibraryHomeScreen {
 ------------------------------------------------------------
 
 -- Resolved: example libraries are fully mutable (editable + deletable)
--- Resolved: duplicate copies metadata only, not binary artifacts
--- Resolved: download = single JSON (metadata + pictogram records, no binaries)
--- Resolved: backup = ZIP of all library JSONs (no binaries)
+-- Resolved 2026-10-22: duplicate, download, backup and import carry media
 -- Resolved: backup filename: PICTOS-Libraries-{YYYY-MM-DD}.zip
 -- Resolved: storage indicator is informational (no hard creation block)
--- Resolved: creating a new library prompts for name before persisting
+-- Resolved: creating a new library prompts for a name before persisting
 -- Resolved: duplicate name pattern: "{original} (copia)"
--- Resolved: rename via two paths — inline edit on the home screen card,
---   and from the Library settings panel while the Library is open
--- Resolved: sort control on home screen — LibrarySort { recientes | alfabetico },
---   default recientes, persisted
--- Resolved: import from JSON is a home-screen action (not inside a Library);
---   creates a new Library, never replaces an existing one
--- Resolved: first launch always shows the home screen (no library is auto-opened)
+-- Resolved: rename via the home screen card and the library settings panel
+-- Resolved: sort control LibrarySort { recientes | alfabetico }, default recientes, persisted
+-- Resolved: import is a home screen action that creates a new library and opens it
+-- Resolved: first launch always shows the home screen
 
--- Open: Library settings panel. The rename-from-settings path implies a
---   settings panel within the open Library editor (similar to GlobalConfig).
---   Its contents and placement were not specified in this session.
---   Define what fields it exposes (name, default config, etc.) separately.
+open question "Library settings panel: the rename-from-settings path implies a settings panel inside the open library editor; its fields and placement are not yet specified."
