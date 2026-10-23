@@ -14,7 +14,8 @@
 #   ALLOW_REMOTE_DELETE; remote history is kept and never force-pushed.
 # - If tag v<version> already exists, every *.schema.json must match it: a
 #   version is never reused for different contract bytes. Other files (README,
-#   package metadata) may change; that commit is not tagged.
+#   package metadata, validator code that does not change what passes) may
+#   change; that commit is not tagged.
 set -eu
 
 product="${1:-}"
@@ -95,7 +96,7 @@ if git diff --cached --quiet -- . ':!EXPORT_MANIFEST.json'; then
   exit 0
 fi
 git diff --cached --stat | tail -15
-$new_tag && echo "Will tag $tag" || echo "$tag exists with identical contracts; metadata-only commit, no new tag"
+$new_tag && echo "Will tag $tag" || echo "$tag exists with identical contracts; untagged commit, no new version"
 
 if [ "$mode" != "--push" ]; then
   echo "Dry run. Re-run with --push to publish."
@@ -112,8 +113,8 @@ Committed snapshot of schemas/$product; file hashes in EXPORT_MANIFEST.json."
 else
   git commit -q -m "chore: sync from hspencer/pictos-net@$short
 
-Contracts unchanged since $tag; metadata and documentation only.
-File hashes in EXPORT_MANIFEST.json."
+Contracts (*.schema.json) unchanged since $tag, so no new version.
+Changed files are listed in this commit; hashes in EXPORT_MANIFEST.json."
   git push -q origin HEAD
 fi
 echo "Published $repo ($tag)"
