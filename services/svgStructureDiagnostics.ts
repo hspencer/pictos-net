@@ -22,12 +22,19 @@ export function svgStructureDiagnostic(error: unknown): SvgStructureDiagnostic {
   if (/NLU|Utterance differs/.test(message)) return { key: 'nluNeedsReview' };
   if (/Composition|composition prompt|composition element id/.test(message)) return { key: 'compositionNeedsReview' };
   if (/inputs.*changed|datos.*cambiaron/i.test(message)) return { key: 'inputsChangedDuringGeneration' };
-  if (/XML|SVG root|SVG\/ARIA reference|DTD|entities|external|resource|unsafe|active SVG|Event handlers|CSS|Duplicate.*id/i.test(message)) return { key: 'invalidSvg' };
+  if (/XML|SVG root|SVG\/ARIA reference|DTD|entities|external|resource|unsafe|active SVG|Event handlers|CSS|Duplicate.*id/i.test(message)) {
+    const construct = (error as { construct?: string })?.construct;
+    return { key: 'invalidSvg', ...(construct ? { fields: [construct] } : {}) };
+  }
   if (/rawSvg|No se encontraron paths/.test(message)) return { key: 'traceRequired' };
   if (/mapping|assign|groups|tool.use|JSON|parse|respuesta|grupo|modelo no devolvió/i.test(message)) return { key: 'invalidMapping' };
   return { key: 'structureFailed' };
 }
 
-export function formatSvgStructureError(error: unknown, t: (key: string) => string): string {
-  return t(`svgGenerator.${svgStructureDiagnostic(error).key}`);
+export function formatSvgStructureError(error: unknown, t: (key: string, vars?: Record<string, any>) => string): string {
+  const diagnostic = svgStructureDiagnostic(error);
+  const text = t(`svgGenerator.${diagnostic.key}`);
+  if (!diagnostic.fields?.length) return text;
+  const detailKey = diagnostic.key === 'invalidSvg' ? 'svgGenerator.rejectedConstruct' : 'svgGenerator.fieldsToReview';
+  return `${text} ${t(detailKey, { fields: diagnostic.fields.join(', ') })}`;
 }

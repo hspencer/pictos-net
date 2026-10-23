@@ -908,6 +908,7 @@
     "downloadDraft": "Descargar borrador SVG",
     "bindingsNeedReview": "Quedan elementos o trazos sin correspondencia semántica. Se conservó el borrador sin inventar relaciones.",
     "invalidSvg": "El SVG está mal formado o contiene referencias o contenido no permitido. Se conserva el trazado anterior.",
+    "rejectedConstruct": "Construcción rechazada: {fields}.",
     "invalidMapping": "El modelo devolvió una asignación de trazos inválida o incompleta. Reintenta ESTRUCTURAR o cambia el modelo; se conserva el trazado.",
     "providerAuthorization": "El proveedor rechazó la autorización. Revisa la conexión y las credenciales del modelo seleccionado.",
     "providerQuota": "El proveedor o la cuenta no tiene cuota disponible. Espera antes de reintentar o selecciona otro modelo.",

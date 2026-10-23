@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { applySvgSafeUpdate, captureSvgSource, prepareSvgPromotion, observedSvgProvenance, canStructureSVG, canCertifySVG, prepareSvgDraft, svgForEditing, prepareSvgEditorUpdate } from './svgCanonical.ts';
-import { assertValidSVG, verifySvgReference } from '../schemas/pictos-svg-schema/index.js';
+import { assertValidSVG, verifySvgReference, inspectPassiveSVG } from '../schemas/pictos-svg-schema/index.js';
 import type { RowData } from '../types';
 import { svgStructureDiagnostic, formatSvgStructureError } from './svgStructureDiagnostics.ts';
 import { VOCAB } from '../types.ts';
@@ -160,4 +160,21 @@ test('known certification failures retain distinct localized diagnoses, includin
     const messages = JSON.parse(fs.readFileSync(new URL(`../locales/${locale}.json`, import.meta.url), 'utf8'));
     for (const [, key] of cases) assert.ok(messages.svgGenerator[key]);
   }
+});
+
+test('an SVG rejected before structuring shows the construct, translated, in both locales', () => {
+  const recraftLike = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><g><foreignObject/></g></svg>';
+  assert.throws(() => inspectPassiveSVG(recraftLike), error => {
+    const diagnostic = svgStructureDiagnostic(error);
+    assert.deepEqual(diagnostic, { key: 'invalidSvg', fields: ['svg>g>foreignObject'] });
+    for (const locale of ['es-419', 'en-GB']) {
+      const messages = JSON.parse(fs.readFileSync(new URL(`../locales/${locale}.json`, import.meta.url), 'utf8'));
+      const t = (key: string, vars: Record<string, string> = {}) =>
+        key.split('.').reduce((n: any, k) => n[k], messages).replace(/\{(\w+)\}/g, (_: string, k: string) => vars[k]);
+      const text = formatSvgStructureError(error, t);
+      assert.match(text, /svg>g>foreignObject/);
+      assert.doesNotMatch(text, /\{fields\}|undefined/);
+    }
+    return true;
+  });
 });

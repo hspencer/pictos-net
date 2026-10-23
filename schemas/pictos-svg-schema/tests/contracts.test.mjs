@@ -71,3 +71,23 @@ test('passive draft inspection does not certify meaning and retains every safety
     '<!DOCTYPE svg>' + draft,
   ]) assert.throws(() => inspectPassiveSVG(bad));
 });
+
+test('a rejection names the construct by element path and attribute, never its value', () => {
+  const svg = body => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10">${body}</svg>`;
+  const cases = [
+    [svg('<g><foreignObject/></g>'), 'svg>g>foreignObject'],
+    [svg('<rect onclick="SECRET()"/>'), 'svg>rect@onclick'],
+    [svg('<image/>'), 'svg>image'],
+    [svg('<use href="https://SECRET.example/x.svg"/>'), 'svg>use@href'],
+    [svg('<path style="fill:url(https://SECRET.example/p)"/>'), 'svg>path@style'],
+    [svg('<style>.a{fill:url(https://SECRET.example/p)}</style>'), 'svg>style'],
+    [svg('<g id="a"/><g id="a"/>'), 'svg>g@id'],
+  ];
+  for (const [bad, construct] of cases) {
+    assert.throws(() => inspectPassiveSVG(bad), err => {
+      assert.equal(err.construct, construct, bad);
+      assert.doesNotMatch(err.message, /SECRET/);
+      return true;
+    });
+  }
+});

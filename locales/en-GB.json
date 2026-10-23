@@ -908,6 +908,7 @@
     "downloadDraft": "Download SVG draft",
     "bindingsNeedReview": "Some elements or paths have no semantic correspondence. The draft was preserved without inventing relationships.",
     "invalidSvg": "The SVG is malformed or contains unsupported references or content. The previous trace is preserved.",
+    "rejectedConstruct": "Rejected construct: {fields}.",
     "invalidMapping": "The model returned an invalid or incomplete path assignment. Retry STRUCTURE or change the model; the trace is preserved.",
     "providerAuthorization": "The provider rejected authorization. Check the connection and credentials for the selected model.",
     "providerQuota": "The provider or account has no quota available. Wait before retrying or select another model.",

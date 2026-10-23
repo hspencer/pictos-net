@@ -83,6 +83,21 @@ export function createMetadata({ nlu, composition, bindings, provenance = {}, op
 }
 
 /** Safety is required for drafts too; semantic conformance is a separate gate. */
+/**
+ * Where a rejected construct sits: element path from the root plus the
+ * attribute, by name only. Never values, which may carry content.
+ */
+function constructOf(node, attr) {
+  const path = [];
+  for (let n = node; n && n.nodeType === 1; n = n.parentNode) path.unshift(n.localName);
+  return path.join('>') + (attr ? `@${attr}` : '');
+}
+
+function rejected(message, node, attr) {
+  const construct = constructOf(node, attr);
+  return Object.assign(new Error(`${message} (${construct})`), { construct });
+}
+
 export function inspectPassiveSVG(svg) {
   const document = parseSVG(svg);
   const root = document.documentElement;
@@ -90,24 +105,28 @@ export function inspectPassiveSVG(svg) {
   const ids = new Map();
   const references = [];
   for (const node of nodes) {
-    if (node.namespaceURI !== SVG_NS || !allowedElements.has(node.localName)) throw new Error('Unsupported or active SVG element');
+    if (node.namespaceURI !== SVG_NS || !allowedElements.has(node.localName)) throw rejected('Unsupported or active SVG element', node);
     const id = node.getAttribute('id');
     if (id) {
-      if (ids.has(id) || /[\s"'<>#]/.test(id)) throw new Error('Duplicate or unsafe SVG id');
+      if (ids.has(id) || /[\s"'<>#]/.test(id)) throw rejected('Duplicate or unsafe SVG id', node, 'id');
       ids.set(id, node);
     }
     for (const attr of Array.from(node.attributes)) {
-      if (/^on/i.test(attr.localName) || attr.localName === 'base') throw new Error('Event handlers and xml:base are forbidden');
+      if (/^on/i.test(attr.localName) || attr.localName === 'base') throw rejected('Event handlers and xml:base are forbidden', node, attr.localName);
       if (attr.localName === 'href') {
-        if (!attr.value.startsWith('#') || attr.value.length < 2) throw new Error('External SVG resource is forbidden');
+        if (!attr.value.startsWith('#') || attr.value.length < 2) throw rejected('External SVG resource is forbidden', node, attr.localName);
         references.push(attr.value.slice(1));
       }
       if (['aria-labelledby', 'aria-describedby'].includes(attr.localName)) references.push(...attr.value.trim().split(/\s+/));
-      if (/url\s*\(/i.test(attr.value) || /^(style|fill|stroke|filter|clip-path|mask|cursor|marker(?:-.*)?)$/.test(attr.localName)) checkCss(attr.value, references);
+      if (/url\s*\(/i.test(attr.value) || /^(style|fill|stroke|filter|clip-path|mask|cursor|marker(?:-.*)?)$/.test(attr.localName)) {
+        try { checkCss(attr.value, references); } catch (err) { throw rejected(err.message, node, attr.localName); }
+      }
     }
-    if (node.localName === 'style') checkCss(node.textContent, references);
+    if (node.localName === 'style') {
+      try { checkCss(node.textContent, references); } catch (err) { throw rejected(err.message, node); }
+    }
   }
-  for (const ref of references) if (!ids.has(ref)) throw new Error('Unresolved SVG/ARIA reference');
+  for (const ref of references) if (!ids.has(ref)) throw Object.assign(new Error('Unresolved SVG/ARIA reference'), { construct: 'reference' });
   return { document, root, nodes, ids };
 }
 
