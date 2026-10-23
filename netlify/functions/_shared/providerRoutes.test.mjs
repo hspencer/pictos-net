@@ -69,6 +69,15 @@ test('Gemini 200 without image is refunded and keeps why, never the returned tex
   }), { finish_reason: 'STOP', finish_message: null, block_reason: 'PROHIBITED_CONTENT', candidate_count: 1, part_kinds: ['text', 'text', 'empty'] });
 });
 
+test('a Gemini image provider error other than 429 is refunded too', async () => {
+  mockVertex();
+  mock.method(globalThis, 'fetch', async () => Response.json({ error: { code: 400, message: 'bad request' } }, { status: 400 }));
+  await image(event({ jobId: 'gemini-400', model: 'gemini-2.5-flash-image', prompt: 'synthetic' }), {});
+  const result = await getBlobStore('gemini-jobs').get('gemini-400', { type: 'json' });
+  assert.equal(result.providerStatus, 400);
+  assert.equal(result.refundedUnits, 1);
+});
+
 test('image terminal 429 and Recraft failed generation refund internal reservation', async () => {
   mockVertex();
   mock.method(globalThis, 'fetch', async () => quota());

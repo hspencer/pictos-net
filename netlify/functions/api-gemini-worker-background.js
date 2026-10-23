@@ -166,17 +166,17 @@ export const handler = async (event, context) => {
 
   } catch (error) {
     const failure = providerFailure(error, { provider: 'gemini', requestId: jobId });
-    // A terminal 429 may be rate/capacity or billing; never call it a daily limit.
+    // Nothing was delivered, so the unit is returned whatever the failure, as
+    // OpenAI and Recraft do (decision of 2026-10-22). A terminal 429 may be
+    // rate/capacity or billing; never call it a daily limit.
     const providerQuota = failure.providerStatus === 429;
-    const refunded = providerQuota
-      ? await refundUnitsOnce(email, 1, `gemini:${jobId}`, failure.failureSource)
-      : false;
+    const refunded = await refundUnitsOnce(email, 1, `gemini:${jobId}`, failure.failureSource);
     console.error(`[api-gemini-worker] Error: ${failure.error}`);
     await logCall({
-      email, phase: 'gemini', model, units_charged: providerQuota ? 0 : 1,
+      email, phase: 'gemini', model, units_charged: refunded ? 0 : 1,
       ms: Date.now() - startMs, tokens_in: null, tokens_out: null, ok: false,
       error_msg: failure.error, provider: 'gemini', provider_status: failure.providerStatus,
-      request_id: failure.requestId, attempts: failure.attempts,
+      request_id: failure.requestId, attempts: failure.attempts, failure_source: failure.failureSource,
       quota_failure_source: providerQuota ? failure.failureSource : null, refunded_units: refunded ? 1 : 0,
     });
     await store.setJSON(jobId, { ...failure, recoverable: failure.retryable, refundedUnits: refunded ? 1 : 0 });
