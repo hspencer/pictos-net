@@ -113,6 +113,8 @@ F0 va primero porque la migración del corpus (F5) toca datos que hoy no tienen 
 
 **Estado de la tarea 1: cumplida el 22-10-2026 (`ea4f6f5`).** La respuesta de Gemini sin imagen reembolsa de forma idempotente, registra el uso real cuando el proveedor lo informa y conserva `finishReason`, `finishMessage` truncado, `blockReason` y los tipos de partes, sin guardar texto ni imagen. OpenAI ya reembolsaba este caso; ahora además registra su fuente y su uso.
 
+**Tareas 2 a 4: cumplidas el 22-10-2026 (`10ce8b4`).** Los endpoints de texto registran `provider_ok`, `contract_ok` y las rutas incumplidas, y el informe cuenta `contract_errors` por modelo. `services/attemptLog.ts` guarda un intento por fase, con la duración de la fase que falla, sin contenido comunicativo, y se exporta desde la consola. ESTRUCTURAR sigue siendo la fase interna 5 porque `phase5Model` está en configuraciones guardadas; cada entrada lleva `phaseName`.
+
 **Decisión pendiente para el cierre de F2.** El worker de Gemini sigue cobrando cualquier otro fallo del proveedor que no sea 429 (por ejemplo un 400 o un 500), mientras que Recraft y OpenAI reembolsan todo fallo posterior al cobro. Igualarlos cumple el criterio de que ningún intento sin entrega cobre, pero un fallo reiterado deja de consumir cupo y el costo de esas llamadas lo asume la cuenta del proyecto.
 
 ## F3. Mensajes por causa y recuperación por fase
@@ -124,6 +126,8 @@ F0 va primero porque la migración del corpus (F5) toca datos que hoy no tienen 
 3. El estado de error persiste tras recargar. Ensayar cambio de librería, pérdida de conexión, sesión caducada y cierre de pestaña a mitad de una fase.
 
 **Cierre.** Ningún mensaje de error de generación queda sin causa ni sin acción. Ninguna fase ya resuelta se repite por un fallo posterior.
+
+**Estado: cumplido el 22-10-2026 (`42fe4af`).** `services/errorMessages.ts` da un mensaje traducido con acción por causa y reemplaza los textos fijos en español e inglés. La reanudación solo en PRODUCIR ya existía (`canRetryPhase3Only`). La causa queda en la fila (`lastFailure`) y se ve en los indicadores de fase tras recargar. Verificado en Chrome. Cambio de librería, pérdida de conexión y cierre de pestaña tienen mensaje propio o la guarda de estados huérfanos ya existente, pero no se ensayaron uno por uno en el navegador.
 
 ## F4. Recraft hacia ESTRUCTURAR
 
@@ -141,6 +145,8 @@ Recraft se mantiene en PRODUCIR (decisión del 22-10-2026, que revoca el retiro 
 
 **Cierre.** Un SVG de cada variante vectorial ofrecida llega a ESTRUCTURAR o se rechaza con una causa concreta y traducida. Ningún control de seguridad se debilita.
 
+**Estado.** Tarea 1 cumplida (`e591ed6`): cada rechazo nombra la construcción por ruta de elemento y atributo (por ejemplo `svg>g>foreignObject`), nunca por su valor, y se muestra traducida. Lo que pasa y lo que falla no cambió, así que el espejo se sincronizó sin versión nueva. La tarea 2 requiere generar con Recraft (costo real) y espera autorización; las tareas 3 y 4 dependen de sus resultados.
+
 ## F5. Rescate del corpus histórico
 
 Depende de F0. Sigue la reparación por capas del diagnóstico; aquí se fija solo la parte de ingeniería.
@@ -154,6 +160,8 @@ Depende de F0. Sigue la reparación por capas del diagnóstico; aquí se fija so
 5. Piloto de diez filas en una librería del taller antes de cualquier ampliación.
 
 **Cierre.** Las filas del piloto pasan COMPONER sin regenerar sus imágenes, con los mismos bytes de medios y los mismos IDs de fila.
+
+**Estado.** Herramienta lista: `scripts/migrate-nlu.mjs` (`propose` y `apply`, siempre sobre una copia, con el valor original de cada cambio en `nluMigration`). Piloto sobre `expresiones-cotidianas.json` (200 filas): la capa mecánica corrige 186 campos y las 32 equivalencias sugeridas corregirían otros 157, pero ninguna fila queda válida, porque `metadata/intent` es texto libre en las 200, `expected_response` en 189 y los tipos de rol usan otro vocabulario. El rescate depende de clasificar ese texto. La librería del taller (`taller/tramites-escolares-chile.json`) no tiene NLU todavía: no necesita rescate, sino generación.
 
 ## F6. Modelos nuevos
 
