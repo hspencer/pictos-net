@@ -8,7 +8,7 @@
     "imageModel": "flash",
     "name": "Kitchen",
     "license": "CC BY 4.0",
-    "visualStylePrompt": "Siluetas sobre un fondo blanco plano. Sin degradados, sin sombras, sin texturas y sin contornos. Geometría: usa trazos gruesos y consistentes y simplificación geométrica. Todas las extremidades y terminales deben tener puntas redondeadas y vértices suavizados. Composición: representación plana 2D centrada. Usa el espacio negativo (blanco) para definir la separación interna entre formas negras superpuestas (por ejemplo, el espacio entre una cabeza y un torso). Claridad: maximiza la legibilidad y el reconocimiento semántico a escalas pequeñas. Evita cualquier rasgo facial o detalles intrincados. Usa color solo en el elemento distintivo, si es necesario.",
+    "visualStylePrompt": "Silhouettes on a flat white background. No gradients, no shadows, no textures and no outlines. Geometry: use thick, consistent strokes and geometric simplification. All limbs and terminals must have rounded ends and softened vertices. Composition: centred, flat 2D representation. Use negative (white) space to define the internal separation between overlapping black shapes (for example, the gap between a head and a torso). Clarity: maximise legibility and semantic recognition at small sizes. Avoid any facial features or intricate details. Use colour only on the distinctive element, if needed.",
     "geoContext": {
       "lat": "-45.8740984",
       "lng": "170.5035755",

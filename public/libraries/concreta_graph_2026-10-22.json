@@ -9,7 +9,7 @@
     "name": "Concreta",
     "credits": "Herbert",
     "license": "cc-by",
-    "visualStylePrompt": "A high-resolution, ultra-realistic stock photograph for AAC visual communication, isolated on a seamless pure white background. The main subject is a short 8-year-old Chilean girl with warm brown skin tone and waist-length dark braided hair, wearing realistic everyday Chilean clothes. The scene depicts [DESCRIPCIÓN DE LA ACCIÓN U OBJETO]. Clear studio lighting, sharp focus, zero abstract symbols, no floating icons, completely literal and concrete. Any extra people are authentic, un-idealized everyday Chilean citizens. Minimalist setup, highly detailed, clean photo --ar 1:1",
+    "visualStylePrompt": "Fotografía de stock de alta resolución, ultrarrealista, para comunicación visual en CAA, aislada sobre un fondo blanco puro y continuo. El sujeto principal es una niña chilena de 8 años, de baja estatura, con tono de piel morena cálida y cabello oscuro trenzado hasta la cintura, vestida con ropa cotidiana chilena realista. La escena muestra [DESCRIPCIÓN DE LA ACCIÓN U OBJETO]. Iluminación de estudio clara, enfoque nítido, ningún símbolo abstracto, sin íconos flotantes, completamente literal y concreta. Cualquier otra persona en la escena es una persona chilena común, auténtica y no idealizada. Montaje minimalista, muy detallado, fotografía limpia --ar 1:1",
     "geoContext": {
       "lat": "-33.0245",
       "lng": "-71.5518",
