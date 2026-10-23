@@ -34,7 +34,7 @@ import { findUnreachableNodeIds } from './svgTreeUtils';
 import { isMicroBlob } from './svgGeometryUtils';
 import { detectMergeCandidates } from './svgMergeCandidates';
 import { shouldSimplify, roundPathD } from './svgPathPolish';
-import { canStructureSVG } from './svgCanonical';
+import { canStructureSVG, svgForStructuring } from './svgCanonical';
 import { assertModelAvailable } from '../netlify/functions/_shared/modelCatalog.js';
 import { svgStructureDiagnostic } from './svgStructureDiagnostics';
 
@@ -1682,6 +1682,8 @@ function renderRedrawGroup(
  * experimentation; runs via the background worker (no 90s timeout) when used.
  */
 export async function redrawSVG(input: SVGStructureInput): Promise<SVGStructureResult> {
+    // Structure a provenance-free copy; the row keeps the original rawSvg.
+    if (typeof input.rawSvg === 'string') input = { ...input, rawSvg: svgForStructuring(input.rawSvg) };
     let draftSvg: string | undefined;
     try {
         assertSemanticInputs(input.nlu, { elements: input.elements, prompt: input.prompt }, input.utterance);
@@ -1828,6 +1830,8 @@ function stripMerges(mapping: StructuringMapping): StructuringMapping {
 // ─── Main structuring function ────────────────────────────────────────────────
 
 export async function structureSVG(input: SVGStructureInput): Promise<SVGStructureResult> {
+    // Structure a provenance-free copy; the row keeps the original rawSvg.
+    if (typeof input.rawSvg === 'string') input = { ...input, rawSvg: svgForStructuring(input.rawSvg) };
     try {
         if (!input.rawSvg || typeof input.rawSvg !== 'string') {
             return { svg: '', success: false, diagnostic: { key: 'traceRequired' } };

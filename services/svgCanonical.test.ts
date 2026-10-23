@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { applySvgSafeUpdate, captureSvgSource, prepareSvgPromotion, observedSvgProvenance, canStructureSVG, canCertifySVG, prepareSvgDraft, svgForEditing, prepareSvgEditorUpdate } from './svgCanonical.ts';
+import { applySvgSafeUpdate, captureSvgSource, prepareSvgPromotion, observedSvgProvenance, canStructureSVG, canCertifySVG, prepareSvgDraft, svgForEditing, prepareSvgEditorUpdate, svgForStructuring } from './svgCanonical.ts';
 import { assertValidSVG, verifySvgReference, inspectPassiveSVG } from '../schemas/pictos-svg-schema/index.js';
 import type { RowData } from '../types';
 import { svgStructureDiagnostic, formatSvgStructureError } from './svgStructureDiagnostics.ts';
@@ -177,4 +177,20 @@ test('an SVG rejected before structuring shows the construct, translated, in bot
     }
     return true;
   });
+});
+
+test('a Recraft SVG reaches structuring without its C2PA manifest; anything else still fails closed', () => {
+  const recraft = '<svg version="1.1" xmlns="http://www.w3.org/2000/svg" style="display: block;" viewBox="0 0 2048 2048" xmlns:c2pa="http://c2pa.org/manifest">'
+    + '<metadata><c2pa:manifest>AAAzs2p1bWIAAAAeanVtZGMycGEAEQAQ\nAA==</c2pa:manifest></metadata>'
+    + '<path d="M0 0 L10 10 Z" fill="#000"/><path d="M5 5 L9 9 Z"/></svg>';
+  assert.throws(() => inspectPassiveSVG(recraft), (e: any) => e.construct === 'svg>metadata>manifest');
+  const copy = svgForStructuring(recraft);
+  assert.ok(inspectPassiveSVG(copy));
+  assert.doesNotMatch(copy, /c2pa|<metadata/);
+  assert.equal((copy.match(/<path /g) ?? []).length, 2);                 // geometry untouched
+  // Without a C2PA declaration nothing changes, and other foreign metadata is still rejected.
+  const plain = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><path d="M0 0Z"/></svg>';
+  assert.equal(svgForStructuring(plain), plain);
+  const foreign = recraft.replace('<c2pa:manifest>AAAzs2p1bWIAAAAeanVtZGMycGEAEQAQ\nAA==</c2pa:manifest>', '<c2pa:manifest><x:script xmlns:x="urn:x"/></c2pa:manifest>');
+  assert.throws(() => inspectPassiveSVG(svgForStructuring(foreign)));
 });

@@ -10,6 +10,24 @@ export interface SvgStructureEligibility {
 }
 
 /** Only operational requirements block visual structuring; certification is separate. */
+/**
+ * Copy of a generated SVG that ESTRUCTURAR may inspect. Recraft embeds a C2PA
+ * (Content Credentials) manifest in <metadata>; its signature covers the
+ * original bytes, so it cannot travel into a structured derivative, and the
+ * passive inspector rightly rejects the foreign element. Only that exact shape
+ * is removed: the c2pa:manifest element (opaque base64), a <metadata> left
+ * empty and the xmlns:c2pa declaration. Anything else is left for the
+ * inspector to judge, so unknown constructs still fail closed. The row keeps
+ * its original rawSvg, signed provenance included.
+ */
+export function svgForStructuring(svg: string): string {
+  if (!/xmlns:c2pa\s*=/.test(svg)) return svg;
+  return svg
+    .replace(/<c2pa:manifest\b[^>]*>[A-Za-z0-9+/=\s]*<\/c2pa:manifest>|<c2pa:manifest\b[^>]*\/>/g, '')
+    .replace(/<metadata\b[^>]*>\s*<\/metadata>/g, '')
+    .replace(/\s+xmlns:c2pa\s*=\s*("[^"]*"|'[^']*')/, '');
+}
+
 export function canStructureSVG(row: Partial<RowData>): SvgStructureEligibility {
   if (!row.rawSvg || row.rawSvgDiscarded) return { eligible: false, reasonKey: 'traceRequired' };
   if (!Array.isArray(row.elements) || !row.elements.length) return { eligible: false, reasonKey: 'elementsRequired' };

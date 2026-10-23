@@ -147,6 +147,10 @@ Recraft se mantiene en PRODUCIR (decisión del 22-10-2026, que revoca el retiro 
 
 **Estado.** Tarea 1 cumplida (`e591ed6`): cada rechazo nombra la construcción por ruta de elemento y atributo (por ejemplo `svg>g>foreignObject`), nunca por su valor, y se muestra traducida. Lo que pasa y lo que falla no cambió, así que el espejo se sincronizó sin versión nueva. La tarea 2 requiere generar con Recraft (costo real) y espera autorización; las tareas 3 y 4 dependen de sus resultados.
 
+**Estado: cumplido el 22-10-2026.** Muestra autorizada: 3 frases sintéticas con cada variante vectorial (V4.1 Vector, Utility Vector, Pro Vector y Utility Pro Vector), 12 llamadas a Recraft, con COMPRENDER y COMPONER reales en Haiku. Los 12 SVG se rechazaban por la misma causa: `svg>metadata>manifest`, un manifiesto C2PA (Content Credentials) que Recraft incrusta y que ocupa cerca del 70 % del archivo. Se decodificó: declara la imagen como generada por Recraft AI, con hashes y firma; no contiene la frase ni el prompt. Fuera de eso los SVG son solo `<path>`, así que la conversión de primitivas no hace falta.
+
+`svgForStructuring` quita solo ese manifiesto, el `<metadata>` que queda vacío y la declaración `xmlns:c2pa` de la copia que entra a ESTRUCTURAR; cualquier otra construcción sigue sometida al inspector, sin relajar ningún control. La firma C2PA cubre los bytes originales, de modo que no puede viajar a un derivado estructurado; el `rawSvg` de la fila conserva el original con su procedencia firmada. Con esa copia los 12 SVG pasan la admisión (verificado sin llamadas nuevas), y el SVG que se envía al estructurador pesa entre 1,8 y 5 veces menos. Las tres variantes vectoriales restantes pasan a `active`; las raster y V4 Styles siguen `experimental`. La tarea 4 no aplica: la normalización está en la aplicación, no en `pictos-svg-schema`. No se hizo una llamada de visión de punta a punta; queda para el ensayo de F7.
+
 ## F5. Rescate del corpus histórico
 
 Depende de F0. Sigue la reparación por capas del diagnóstico; aquí se fija solo la parte de ingeniería.
