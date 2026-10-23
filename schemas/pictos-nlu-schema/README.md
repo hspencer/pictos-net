@@ -1,6 +1,6 @@
 # PICTOS NLU Schema · 1.1.0
 
-**PICTOS NLU Schema** defines a structured contract between *Natural Language Understanding (COMPRENDER)* and *pictogram composition (COMPONER)* within the [PICTOS](https://pictos.net) ecosystem.
+**PICTOS NLU Schema** defines a structured contract between the UNDERSTAND phase (natural language understanding) and the COMPOSE phase (pictogram composition) within the [PICTOS](https://pictos.net) ecosystem.
 It encodes communicative intent, semantic roles, logical form, and visual grounding cues — allowing human utterances to be transformed into cognitively accessible pictograms.
 
 
@@ -71,7 +71,7 @@ Compatibility means every valid 1.0.1 document remains valid under 1.1.0; it doe
 not mean every historical output was a valid 1.0.1 document. Tests also compare
 all document constraints directly, not just a handful of examples.
 
-Historical data stays inspectable without fabricated versions. A new Phase 2
+Historical data stays inspectable without fabricated versions. A new COMPOSE
 call requires a conforming NLU document: invalid historical analysis must be
 explicitly corrected, migrated with evidence, or regenerated before composition.
 Failure must not erase the previously accepted historical artifact. No corpus is

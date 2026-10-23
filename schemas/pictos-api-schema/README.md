@@ -5,6 +5,13 @@ server-to-server callers such as Vera. Each endpoint performs a single
 transformation, validates its output against a versioned schema and declares
 who produced it.
 
+The PICTOS pipeline has four phases: UNDERSTAND (utterance to NLU), COMPOSE
+(NLU to visual composition), PRODUCE (composition to image) and the optional
+STRUCTURE (image to semantic SVG). Endpoint paths and schema file names keep the
+identifiers fixed when version 1.0.0 was published (`comprender`, `componer`,
+`producir`, `estructurar`); they are names, not translations, and do not change
+within a version.
+
 ## Canonical source
 
 Canonical development lives inside `hspencer/pictos-net`, at
@@ -17,10 +24,10 @@ The endpoint reference is `docs/API_V1.md` in that repository.
 | Schema | Status | Role |
 |---|---|---|
 | `pictos-api-common-1.0.0` | stable | Shared envelope: success metadata, evidence, quota, errors |
-| `pictos-api-comprender-request-1.0.0` / `-response-1.0.0` | stable | `POST /api/v1/comprender`: utterance to NLU |
-| `pictos-api-componer-request-1.0.0` / `-response-1.0.0` | stable | `POST /api/v1/componer`: NLU to accepted composition |
-| `pictos-api-producir-0.1.0-draft` | draft, no endpoint | Future `producir` boundary (bitmap or SVG) |
-| `pictos-api-estructurar-0.1.0-draft` | draft, no endpoint | Future `estructurar` boundary |
+| `pictos-api-comprender-request-1.0.0` / `-response-1.0.0` | stable | UNDERSTAND, served at `POST /api/v1/comprender`: utterance to NLU |
+| `pictos-api-componer-request-1.0.0` / `-response-1.0.0` | stable | COMPOSE, served at `POST /api/v1/componer`: NLU to accepted composition |
+| `pictos-api-producir-0.1.0-draft` | draft, no endpoint | Future PRODUCE boundary (bitmap or SVG) |
+| `pictos-api-estructurar-0.1.0-draft` | draft, no endpoint | Future STRUCTURE boundary |
 
 The phase artifacts are the PICTOS native contracts, published separately:
 `pictonet-nlu-generation-1.1.0` (`mediafranca/pictos-nlu-schema`) and

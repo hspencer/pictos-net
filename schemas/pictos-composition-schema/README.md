@@ -3,7 +3,7 @@
 Canonical development lives inside `hspencer/pictos-net`, at
 `schemas/pictos-composition-schema`. This product describes the transition from
 communicative semantic analysis to a visual composition independently of the
-image provider. It does not describe SVG restructuring (Phase 5).
+image provider. It does not describe SVG structuring (the STRUCTURE phase).
 
 ## Two contracts
 
@@ -25,7 +25,7 @@ call. Schema checks and these relational checks both need to pass.
 The canonical tree is recursive. Provider tool schemas are a projection generated
 by PICTOS, currently bounded to six semantic levels; the last level cannot have
 children. This provider constraint is not the full schema or a claim of geometric
-accuracy. Provider-specific prompt rendering happens later in Phase 3.
+accuracy. Provider-specific prompt rendering happens later, in the PRODUCE phase.
 
 ## Standalone use (Node 22+)
 
