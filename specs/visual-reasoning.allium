@@ -237,10 +237,17 @@ contract OpenAITextBoundary {
     @invariant StatelessAndBounded
         -- Requests use store:false, explicit low reasoning effort and a finite
         -- output-token bound, with no web tools or conversation persistence.
-        -- The bound includes reasoning tokens. No automatic semantic retry or
-        -- higher output limit is introduced after refusal or invalid output.
-        -- Provider data-retention controls remain separate; store:false alone
-        -- is not a claim of zero retention or sovereign local execution.
+        -- The bound includes reasoning tokens, and no higher output limit is
+        -- introduced after refusal or invalid output. Phase 1 and Phase 2 may
+        -- re-prompt the model a bounded number of times when canonical
+        -- validation fails, feeding back only the validator's complaints so the
+        -- model repairs the offending fields; these phases cost zero usage
+        -- units, so a contract repair spends latency, not quota, and the request
+        -- is rebuilt from the original so repair notes never accumulate.
+        -- Spatial-prompt regeneration and Phase 5 introduce no automatic
+        -- semantic retry after refusal or invalid output. Provider
+        -- data-retention controls remain separate; store:false alone is not a
+        -- claim of zero retention or sovereign local execution.
 }
 
 contract Phase3GenerationBoundary {

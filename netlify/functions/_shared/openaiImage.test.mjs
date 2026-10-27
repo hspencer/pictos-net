@@ -9,6 +9,7 @@ import { handler as poll } from '../api-openai-poll.js';
 import { handler as check } from '../api-check.js';
 import { handler as pipeline } from '../api-pipeline-batch-background.js';
 import { getBlobStore } from './blobs.js';
+import { MAX_CONTRACT_REPAIRS } from './pipelineContracts.js';
 
 const originalCwd = process.cwd();
 const envKeys = ['NETLIFY_DEV', 'NETLIFY_BLOBS_CONTEXT', 'OPENAI_API_KEY', 'PICTOS_OPENAI_KEY', 'PICTOS_ANTHROPIC_KEY'];
@@ -222,7 +223,9 @@ test('a composition contract failure retains accepted NLU provenance without inv
   assert.deepEqual(result.phaseExecutions.map(execution => execution.phase), [1]);
   assert.match(result.error, /Phase 2 contract validation failed/);
   assert.equal(result.elements, undefined);
-  assert.equal(calls, 2);
+  // Phase 1 accepts on its first call; Phase 2 stays malformed and is re-prompted
+  // up to the bounded repair limit (cascade path repairs), then fails.
+  assert.equal(calls, 2 + MAX_CONTRACT_REPAIRS);
 });
 
 test('poll rejects path traversal, anonymous access, and another owner without consuming the result', async () => {

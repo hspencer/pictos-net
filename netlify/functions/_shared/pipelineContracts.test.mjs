@@ -9,7 +9,7 @@ import {
   acceptNlu, acceptComposition, decodeNluMaps, buildNluRequest,
   buildCompositionRequest, projectProviderSchema, createPhaseExecution, canonicalJson,
   NLU_TOOL_SCHEMA, COMPOSE_TOOL_SCHEMA, PipelineContractError,
-  buildSpatialPromptRequest, requestSpatialPrompt,
+  buildSpatialPromptRequest, requestSpatialPrompt, MAX_CONTRACT_REPAIRS,
 } from './pipelineContracts.js';
 import { runPhase1, runPhase2 } from './pipelineRunner.js';
 import { buildGeminiRequest } from './geminiTranslate.js';
@@ -134,9 +134,41 @@ test('batch sends the shared request, validates results, and emits evidence only
     assert.deepEqual(sent[1], buildCompositionRequest(nlu, config));
     assert.equal(composition.elements[0].concept, 'Root');
     assert.equal(evidence.length, 2);
+    // Phase 1/2 are zero-unit, so persistent malformed output is re-prompted a
+    // bounded number of times (StatelessAndBounded) before the contract error
+    // surfaces; no evidence is emitted and the attempts stay bounded.
     await assert.rejects(runPhase1(fixture.utterance, config, e => evidence.push(e)), PipelineContractError);
     assert.equal(evidence.length, 2);
-    assert.equal(fetchMock.mock.callCount(), 3, 'malformed fresh output must not trigger a paid replay');
+    assert.equal(fetchMock.mock.callCount(), 3 + MAX_CONTRACT_REPAIRS,
+      'malformed output is re-prompted up to the bounded repair limit, then fails');
+  } finally {
+    if (oldKey === undefined) delete process.env.PICTOS_ANTHROPIC_KEY;
+    else process.env.PICTOS_ANTHROPIC_KEY = oldKey;
+  }
+});
+
+test('phase 1 repairs a malformed output by re-prompting with the validator complaints', async () => {
+  const oldKey = process.env.PICTOS_ANTHROPIC_KEY;
+  process.env.PICTOS_ANTHROPIC_KEY = 'synthetic-test-key';
+  // First a malformed output (empty frames), then the valid fixture.
+  const outputs = [{ ...fixture, frames: [] }, fixture];
+  const sent = [];
+  const fetchMock = mock.method(globalThis, 'fetch', async (_url, options) => {
+    const request = JSON.parse(options.body);
+    sent.push(request);
+    return Response.json({ content: [{ type: 'tool_use', name: request.tool_choice.name, input: outputs.shift() }] });
+  });
+  try {
+    const evidence = [];
+    const nlu = await runPhase1(fixture.utterance, { lang: 'es-419' }, e => evidence.push(e));
+    assert.equal(fetchMock.mock.callCount(), 2, 'one original call plus one repair');
+    assert.equal(nlu.utterance, fixture.utterance);
+    assert.equal(evidence.length, 1, 'evidence is emitted only for the accepted attempt');
+    // The repair turn re-asks the same forced tool and carries the complaints.
+    assert.equal(sent[1].tool_choice.name, 'analyze_utterance');
+    assert.match(sent[1].messages[0].content, /analyze_utterance/);
+    assert.ok(sent[1].messages[0].content.length > sent[0].messages[0].content.length,
+      'the repair request appends the validator feedback to the original turn');
   } finally {
     if (oldKey === undefined) delete process.env.PICTOS_ANTHROPIC_KEY;
     else process.env.PICTOS_ANTHROPIC_KEY = oldKey;

@@ -8,7 +8,7 @@ import { getModelProvider, assertModelAvailable } from '../netlify/functions/_sh
 
 import { NLUData, GlobalConfig, VisualElement, PhaseExecution } from "../types";
 import { callClaude, callGeminiNlu, callOpenAIText, extractToolUse, type ClaudeParams } from "./aiClient";
-import { buildNluRequest, buildCompositionRequest, acceptNlu, acceptComposition, createPhaseExecution, requestSpatialPrompt } from "../netlify/functions/_shared/pipelineContracts.js";
+import { buildNluRequest, buildCompositionRequest, acceptNlu, acceptComposition, createPhaseExecution, requestSpatialPrompt, runWithContractRepair } from "../netlify/functions/_shared/pipelineContracts.js";
 
 type ExecutionCallback = (execution: PhaseExecution) => void;
 
@@ -34,8 +34,13 @@ export const generateNLU = async (
 ): Promise<NLUData> => {
     const request = buildNluRequest(utterance, config);
     onLog?.('info', `[NLU] Enviando a ${request.model}…`);
-    const response = await callNluModel(request.model, request as ClaudeParams);
-    const result = acceptNlu(extractToolUse(response, 'analyze_utterance'), utterance) as NLUData;
+    const { result, response } = await runWithContractRepair({
+        request, toolName: 'analyze_utterance',
+        callModel: (model: string, req: unknown) => callNluModel(model, req as ClaudeParams),
+        extractTool: (res: any) => extractToolUse(res, 'analyze_utterance'),
+        accept: (input: unknown) => acceptNlu(input, utterance),
+        onRepair: (n: number) => onLog?.('info', `[NLU] Salida fuera de contrato; reintento de reparación ${n}…`),
+    });
     if (onExecution) onExecution(await createPhaseExecution(1, request, result, response) as PhaseExecution);
     onLog?.('success', `[NLU] Completado y validado. Intent: ${result.metadata?.intent || 'N/A'}`);
     return result;
@@ -50,8 +55,13 @@ export const generateVisualBlueprint = async (
 ): Promise<{ elements: VisualElement[]; prompt: string }> => {
     const request = buildCompositionRequest(nlu, config);
     onLog?.('info', `[VISUAL] Enviando NLU completo a ${request.model}…`);
-    const response = await callNluModel(request.model, request as ClaudeParams);
-    const result = acceptComposition(extractToolUse(response, 'compose_pictogram'), nlu.lang);
+    const { result, response } = await runWithContractRepair({
+        request, toolName: 'compose_pictogram',
+        callModel: (model: string, req: unknown) => callNluModel(model, req as ClaudeParams),
+        extractTool: (res: any) => extractToolUse(res, 'compose_pictogram'),
+        accept: (input: unknown) => acceptComposition(input, nlu.lang),
+        onRepair: (n: number) => onLog?.('info', `[VISUAL] Salida fuera de contrato; reintento de reparación ${n}…`),
+    });
     if (onExecution) onExecution(await createPhaseExecution(2, request, result, response) as PhaseExecution);
     onLog?.('success', `[VISUAL] Composición validada. Prompt: ${result.prompt.substring(0, 60)}…`);
     return result as { elements: VisualElement[]; prompt: string };

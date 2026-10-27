@@ -90,6 +90,47 @@ export function acceptComposition(raw, lang) {
   return data;
 }
 
+/** Max times a phase re-prompts the model with the validator's complaints before
+ * giving up. Phases 1/2 are 0-unit text calls, so repairs cost latency, not quota. */
+export const MAX_CONTRACT_REPAIRS = 2;
+
+/** A forced-tool output passed the provider's loose schema but failed canonical
+ * validation. Append the validator's complaints to the request so the model
+ * re-invokes the tool and fixes exactly those fields. Works across all three
+ * provider adapters because they all read messages[].content as plain text. */
+export function withContractRepairNote(request, toolName, issues) {
+  const lines = (issues ?? []).map(e => {
+    const path = e.instancePath || '/';
+    const allowed = e.params?.allowedValues ? ` — valores permitidos: ${e.params.allowedValues.join(', ')}` : '';
+    return `- ${path}: ${e.message}${allowed}`;
+  }).join('\n');
+  const note = `\n\nUna respuesta anterior invocó ${toolName} pero su salida NO cumplió el contrato. El validador reportó:\n${lines}\n\nVuelve a invocar ${toolName} corrigiendo ÚNICAMENTE esos campos y conservando lo demás. Respeta exactamente los valores permitidos.`;
+  const [first, ...rest] = request.messages;
+  const content = typeof first.content === 'string' ? first.content + note : first.content;
+  return { ...request, messages: [{ ...first, content }, ...rest] };
+}
+
+/** Run a forced-tool phase; on a canonical contract failure, feed the validator's
+ * errors back to the model and retry, bounded by MAX_CONTRACT_REPAIRS. The
+ * original request is rebuilt each attempt so repair notes never accumulate. Only
+ * PipelineContractError is repaired — transport and no-tool errors propagate at
+ * once. callModel(model, request) returns the provider response; extractTool and
+ * accept are the caller's own, so browser and server keep their extraction and
+ * error-augmentation. Returns { result, response } from the accepted attempt. */
+export async function runWithContractRepair({ request, toolName, callModel, extractTool, accept, onRepair, maxRepairs = MAX_CONTRACT_REPAIRS }) {
+  let current = request;
+  for (let attempt = 0; ; attempt++) {
+    const response = await callModel(current.model, current);
+    try {
+      return { result: accept(extractTool(response)), response };
+    } catch (error) {
+      if (error?.code !== 'pipeline_contract_invalid' || attempt >= maxRepairs) throw error;
+      onRepair?.(attempt + 1, error.issues ?? []);
+      current = withContractRepairNote(request, toolName, error.issues ?? []);
+    }
+  }
+}
+
 const VOCAB_DOMAIN = generationSchema.properties.domain.enum;
 
 const VOCAB_NSM = {

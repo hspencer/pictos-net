@@ -36,7 +36,9 @@ import estructurarDraftSchema from '../../../schemas/pictos-api-schema/pictos-ap
 export const API_VERSION = 'v1';
 export const EXECUTOR = 'pictos.net';
 // Netlify stops synchronous functions at 60 s; leave room for auth, blobs and logging.
-export const PROVIDER_BUDGET = { retries: 1, maxTotalMs: 45_000 };
+// repair:false keeps the public Machine API single-shot and deterministic: one
+// request is one model attempt, which its idempotency-replay semantics rely on.
+export const PROVIDER_BUDGET = { retries: 1, maxTotalMs: 45_000, repair: false };
 
 export const API_SCHEMAS = [
   commonSchema, comprenderRequestSchema, comprenderResponseSchema,

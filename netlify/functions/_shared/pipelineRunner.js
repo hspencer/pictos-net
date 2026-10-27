@@ -16,7 +16,7 @@ import { fetchWithRetry } from './httpRetry.js';
 import { providerHttpError } from './providerError.js';
 import { buildGeminiRequest, geminiResponseToClaude } from './geminiTranslate.js';
 import { getVertexAccessToken, vertexModelUrl } from './vertex.js';
-import { buildNluRequest, buildCompositionRequest, acceptNlu, acceptComposition, createPhaseExecution } from './pipelineContracts.js';
+import { buildNluRequest, buildCompositionRequest, acceptNlu, acceptComposition, createPhaseExecution, runWithContractRepair } from './pipelineContracts.js';
 
 function formatElements(els, depth = 0) {
   if (!Array.isArray(els)) return '';
@@ -91,11 +91,25 @@ export function callTextModel(params, options) {
   throw new Error('Unsupported semantic provider');
 }
 
-function acceptModelOutput(request, response, accept) {
-  try { return accept(); }
-  catch (error) {
-    throw Object.assign(error, { usage: response.usage ?? null, actualModel: response.model ?? null,
-      provider: getModelProvider(request.model), attempts: response.meta?.attempts ?? 1 });
+/** Run a forced-tool phase with the shared contract-repair loop, keeping this
+ * module's error augmentation (provider usage / actual model / attempts) on the
+ * surviving failure. lastResponse is the provider response of the final attempt.
+ * callOptions.repair === false disables the repair loop (single-shot), which the
+ * Machine API v1 uses to keep its deterministic, idempotent public contract. */
+async function runTextPhase(request, toolName, accept, callOptions) {
+  let lastResponse = null;
+  try {
+    const { result, response } = await runWithContractRepair({
+      request, toolName,
+      callModel: async (_model, req) => (lastResponse = await callTextModel(req, callOptions)),
+      extractTool: (res) => extractToolUse(res.content, toolName),
+      accept,
+      maxRepairs: callOptions?.repair === false ? 0 : undefined,
+    });
+    return { result, response };
+  } catch (error) {
+    throw Object.assign(error, { usage: lastResponse?.usage ?? null, actualModel: lastResponse?.model ?? null,
+      provider: getModelProvider(request.model), attempts: lastResponse?.meta?.attempts ?? 1 });
   }
 }
 
@@ -108,8 +122,8 @@ function acceptModelOutput(request, response, accept) {
 export async function runPhase1(utterance, config, onExecution, callOptions) {
   const request = buildNluRequest(utterance, config);
   if (!modelSupportsPhase(request.model, 1)) throw new Error(`Disallowed comprenderModel: ${request.model}`);
-  const response = await callTextModel(request, callOptions);
-  const result = acceptModelOutput(request, response, () => acceptNlu(extractToolUse(response.content, 'analyze_utterance'), utterance));
+  const { result, response } = await runTextPhase(request, 'analyze_utterance',
+    (input) => acceptNlu(input, utterance), callOptions);
   if (onExecution) onExecution(await createPhaseExecution(1, request, result, response));
   return result;
 }
@@ -119,8 +133,8 @@ export async function runPhase1(utterance, config, onExecution, callOptions) {
 export async function runPhase2(nluData, config, onExecution, callOptions) {
   const request = buildCompositionRequest(nluData, config);
   if (!modelSupportsPhase(request.model, 2)) throw new Error(`Disallowed componerModel: ${request.model}`);
-  const response = await callTextModel(request, callOptions);
-  const result = acceptModelOutput(request, response, () => acceptComposition(extractToolUse(response.content, 'compose_pictogram'), nluData.lang));
+  const { result, response } = await runTextPhase(request, 'compose_pictogram',
+    (input) => acceptComposition(input, nluData.lang), callOptions);
   if (onExecution) onExecution(await createPhaseExecution(2, request, result, response));
   return result;
 }
