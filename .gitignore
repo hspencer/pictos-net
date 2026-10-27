@@ -53,3 +53,9 @@ vertex-gmail/
 
 # Local research notes and protocols (not versioned)
 /research/
+
+# Tutorial source documents (kept on disk, not versioned; only the PDFs ship)
+public/tutorial/*.docx
+public/tutorial/~$*
+public/tutorial/img/
+public/tutorial/img-en/

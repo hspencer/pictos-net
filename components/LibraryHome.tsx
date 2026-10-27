@@ -352,7 +352,10 @@ function HomeActionsCard({
   onImportPhrases: () => void;
   onBackup: () => void;
 }) {
-  const { t } = useTranslation();
+  const { t, lang } = useTranslation();
+  const tutorialPdf = lang.startsWith('en')
+    ? '/tutorial/pictos-tutorial-2.0-en.pdf'
+    : '/tutorial/tutorial-pictos-2.0-es.pdf';
   const actions = [
     { icon: <FileText size={13} />, label: t('home.importPhrases'), onClick: onImportPhrases },
     { icon: <Upload size={13} />, label: t('home.importLibraryFile'), onClick: onImport },
@@ -375,7 +378,7 @@ function HomeActionsCard({
           </button>
         ))}
         <a
-          href="/tutorial.pdf"
+          href={tutorialPdf}
           target="_blank"
           rel="noopener"
           className="flex items-center gap-2 py-0.5 text-xs font-medium text-violet-200 hover:text-white transition-colors text-left"
