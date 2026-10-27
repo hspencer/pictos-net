@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-22T22:47:22.937Z",
+  "generated": "2026-10-27T20:32:56.058Z",
   "count": 21,
   "libraries": [
     {
@@ -20,7 +20,7 @@
       "items": 3,
       "credits": "Herbert",
       "description": "pictonet_graph_dump",
-      "filesize": 473442
+      "filesize": 473540
     },
     {
       "filename": "escena_descriptiva_graph_2026-08-26.json",
@@ -50,7 +50,7 @@
       "items": 50,
       "credits": "Pictos / MediaFranca",
       "description": "pictonet_graph_dump",
-      "filesize": 24317568
+      "filesize": 24318224
     },
     {
       "filename": "idiomatic.json",
@@ -60,7 +60,7 @@
       "items": 278,
       "credits": "Pictos / MediaFranca",
       "description": "pictonet_graph_dump",
-      "filesize": 75255926
+      "filesize": 75255738
     },
     {
       "filename": "ilustracion-moderna.json",
@@ -80,7 +80,7 @@
       "items": 20,
       "credits": "Pictos / MediaFranca",
       "description": "pictonet_graph_dump",
-      "filesize": 17601811
+      "filesize": 17602286
     },
     {
       "filename": "kitchen.json",
@@ -89,7 +89,7 @@
       "language": "en",
       "items": 6,
       "description": "pictonet_graph_dump",
-      "filesize": 374781
+      "filesize": 374711
     },
     {
       "filename": "mordillo.json",
@@ -168,7 +168,7 @@
       "items": 6,
       "credits": "Pictos / MediaFranca",
       "description": "pictonet_graph_dump",
-      "filesize": 2586463
+      "filesize": 2586685
     },
     {
       "filename": "simplex.json",
