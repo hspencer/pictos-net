@@ -988,7 +988,7 @@ function renderGroup(
     }
     const label = escapeXmlAttr(group.label || group.nodeId);
     // Concept comes from the composed VisualElement tree (NLU-derived);
-    // only synthetic groups (e.g. the 'contexto' orphan bucket) fall back.
+    // only synthetic groups (e.g. the 'unclassified' orphan bucket) fall back.
     const knownConcept = conceptById.get(group.nodeId);
     const conceptAttribute = knownConcept ? ` data-concept="${escapeXmlAttr(knownConcept)}"` : '';
     const lines: string[] = [];
@@ -1192,7 +1192,7 @@ export function assembleFromMapping(
         // (see "Me duele la cabeza": the model discarded a clearly-visible
         // pain-indicator icon despite "preservar es la prioridad") and left
         // unassigned instead, so it flows through the orphan rescue below
-        // and still renders, in an ungrouped 'contexto' bucket, rather than
+        // and still renders, in the 'unclassified' draft group, rather than
         // silently vanishing.
         const [, , vbW, vbH] = inventory.viewBox.split(/\s+/).map(Number);
         const viewBoxArea = (vbW || 1024) * (vbH || 1024);
@@ -1207,7 +1207,7 @@ export function assembleFromMapping(
         }
         if (overriddenDiscards > 0) {
             console.warn(`[assemble] ${overriddenDiscards} descarte(s) del modelo revertido(s) por no ser micro-mancha(s)`);
-            input.onProgress?.(`[ESTRUCTURAR] ${overriddenDiscards} descarte(s) del modelo revertido(s) — no eran micro-manchas, se preservan en 'contexto'`);
+            input.onProgress?.(`[ESTRUCTURAR] ${overriddenDiscards} descarte(s) del modelo revertido(s) — no eran micro-manchas, se preservan sin clasificar`);
         }
 
         // Unaccounted paths → fallback contexto group

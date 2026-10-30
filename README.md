@@ -29,7 +29,7 @@ El sistema implementa un pipeline de tres fases automáticas más una de post-pr
 
 **(3) Producir** (Gemini image — por defecto: Gemini 2.5 Flash) — Genera el pictograma a partir del contexto semántico, los elementos, el prompt espacial y el estilo visual configurado. Los modelos vectoriales producen SVG nativo directamente editable; los modelos raster producen un bitmap PNG. El modelo se configura por librería.
 
-**(4) Estructurar** (Claude Sonnet, opcional) — Reorganiza los paths del SVG crudo en grupos semánticos congruentes con la jerarquía de la fase 2, embebiendo metadatos de accesibilidad según [pictos-svg-schema](https://github.com/mediafranca/pictos-svg-schema). Combina medición geométrica local (anclas reales por `getBBox` + CTM, candidatos de fusión pre-calculados), una sola llamada de visión (set-of-marks con anti-colisión y líneas guía), ensamblaje local con redes de seguridad y pulido geométrico determinístico: las operaciones geométricas se calculan localmente; se envían referencias visuales y un fragmento del SVG al modelo para proponer la estructura. Documentación detallada en [docs/ESTRUCTURAR.md](docs/ESTRUCTURAR.md).
+**(4) Estructurar** (Claude Sonnet, opcional) — Organiza el dibujo en grupos semánticos congruentes con la jerarquía de la fase 2 y embebe NLU, composición, enlaces y metadatos de accesibilidad según [pictos-svg-schema](https://github.com/mediafranca/pictos-svg-schema). Sobre un bitmap, la acción por defecto es **Vectorizar y estructurar**: el bitmap se segmenta localmente en regiones (VTracer 1.0, partición en mosaico) y una sola llamada de visión asigna cada región a un nodo del árbol. Sobre un trazado o un SVG nativo, **Estructurar** asigna sus paths. En ambos casos la geometría se calcula en el navegador, el modelo solo decide la pertenencia, y el resultado se certifica solo si cumple el esquema; si no, queda como borrador editable con su diagnóstico. Documentación detallada en [docs/ESTRUCTURAR.md](docs/ESTRUCTURAR.md).
 
 La cascada automática (1 → 2 → 3) se ejecuta al crear una nueva frase o presionar Play. La fase 4 es opcional y la inicia el usuario manualmente. Los pictogramas pueden evaluarse con el marco [ICAP](https://github.com/mediafranca/ICAP).
 
@@ -88,12 +88,13 @@ flowchart TD
         direction TB
         subgraph F4["<b>(4) ESTRUCTURAR</b> — Claude Sonnet Vision"]
             direction TB
-            f4_measure["Medición local<br><i>anclas reales getBBox + CTM<br>candidatos de fusión (IoU bbox)</i>"]
+            f4_regions["Bitmap: regiones locales<br><i>VTracer 1.0 mosaico · color robusto<br>(Vectorizar y estructurar)</i>"]
+            f4_measure["Trazado: medición local<br><i>anclas reales getBBox + CTM<br>candidatos de fusión (IoU bbox)</i>"]
             f4_marks["Set-of-marks<br><i>marcas numeradas con anti-colisión<br>y líneas guía al ancla</i>"]
-            f4_vision["Claude vision<br><i>asigna paths a elementos<br>confirma fusiones · tool use forzado</i>"]
+            f4_vision["Claude vision<br><i>asigna regiones o paths a elementos<br>marca dudas · tool use forzado</i>"]
             f4_assemble["Ensamblaje local<br><i>uniones booleanas + redes de seguridad<br>geometría nunca sale del browser</i>"]
             f4_polish["Pulido determinístico<br><i>refit selectivo a curvas<br>redondeo de coordenadas</i>"]
-            f4_out["<b>structuredSvg</b><br>pictos-svg-schema · grupos semánticos<br>data-concept congruente con NLU<br>metadatos de accesibilidad"]
+            f4_out["<b>structuredSvg</b> o borrador<br>pictos-svg-schema · grupos semánticos<br>data-concept congruente con NLU<br>metadatos de accesibilidad"]
         end
     end
 

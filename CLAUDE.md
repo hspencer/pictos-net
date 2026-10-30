@@ -29,8 +29,9 @@ Flow: `dev` → `main`
 ## Architecture
 
 4-phase pipeline: 3 automatic (Comprender → Componer → Producir) + 1 optional (Estructurar).
-Phase 4 (Vectorizar/VTracer) is present in the codebase but eliminated from the cascade —
-Gemini image models deliver native SVG output so VTracer is no longer needed.
+Vectorizar is no longer a phase: on a bitmap row, phase 4 starts with "Vectorizar y estructurar"
+(`vectorizeAndStructure`: VTracer 1.0 regions via `lib/vtracer-web` + one `restructure_regions`
+call); TRAZAR (legacy VTracer 0.6 modal) remains a manual trace-only action. Reference: docs/ESTRUCTURAR.md
 
 - **Services**: `services/claudeService.ts` (phases 1-2), `services/geminiService.ts` (phase 3, default), `services/recraftService.ts` (phase 3, Recraft fallback), `services/svgStructureService.ts` (phase 4)
 - **API**: `services/aiClient.ts` — always-proxy client. All calls go through Netlify Functions (`callClaude`, `callRecraft`). No API key ever reaches the browser.
@@ -59,6 +60,8 @@ Gemini image models deliver native SVG output so VTracer is no longer needed.
 - Output: raw SVG string (`rawSvg`) for vector models; bitmap PNG (`bitmap`) for raster models
 
 ### Phase 4: ESTRUCTURAR (Claude Sonnet, optional, user-initiated)
+- Two entries, one assembly: `vectorizeAndStructure` (bitmap → mosaic regions with explicit provenance and robust colour → `restructure_regions`: assign / protect / discard proposal / split request / unresolved; nothing is deleted from the partition) and `structureSVG` (trace or native SVG → `restructure_svg`). Both end in `assembleAndVerify` (mapping validation, local assembly, fidelity at 512 px, merge-free fallback); only schema-conforming results are certified, the rest are drafts
+- Editing a structured SVG: the editor does not block semantic-breaking operations; saving runs `reviseSVG` (schema validation + `manual_edit` revision with parent hash). Drawing edits inside groups stay valid; deleting a group's geometry, cross-group booleans, moving geometry out of groups or ungrouping fall back to a draft
 - Numbering: shown as phase 4 in the UI, but its internal identifier is 5 everywhere it is persisted or logged (`phase5Model`, catalog `phases: [5]`, phase executions, attempt log). 4 was the retired VTracer step. Do not renumber: `phase5Model` lives in saved configurations. The attempt log carries `phaseName` to remove the ambiguity.
 - Input: rawSvg + elements + NLU + GlobalConfig
 - Method: local measurement (real anchors via getBBox+CTM, merge candidates via bbox IoU) → set-of-marks rasterization (anti-collision + leader lines) → vision call → local path assembly (safety nets) → deterministic polish (selective curve refit + coordinate rounding)

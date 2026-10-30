@@ -17,7 +17,7 @@ Rama `feat/vectorizar-estructurar`. Lo implementado declara qué se probó; nada
 | VE2 | Hecho | Binding `lib/vtracer-web` sobre el núcleo fijado `2500df7`. Mosaico con procedencia exacta, cero rendijas, huecos reales. Comparación preliminar con 6 bitmaps: menos píxeles erróneos en los 6, la mitad de bytes, tiempo similar. |
 | VE3 | Hecho | `vectorizeAndStructure` y contrato `restructure_regions` (`regionMapping` + tests). Dos filas reales con Claude Sonnet 4.6: una sola petición, 5,3–7,4 k tokens de entrada, 10–17 s, fidelidad geométrica 0,0–0,65 %, separación solicitada en el contacto persona+pastel. |
 | VE4 | Parcial | Pase de curvas del núcleo (`simplify: 1`), fronteras compartidas del mosaico y color robusto por región. Pendiente: selección de candidatos de tolerancia contra el bitmap, protección de encuentros, ancho de líneas finas (≈1 px menor) y fusión de regiones de igual pintura y entidad. |
-| VE5 | Mínimo | Acción experimental "Vectorizar y estructurar" en filas con bitmap y árbol; instantánea, borrador, promoción y revisión por las guardas existentes. Pendiente: caché por dependencia, cancelación, diagnóstico de ambigüedades en la UI. |
+| VE5 | Parcial | "Vectorizar y estructurar" es la acción principal en filas con bitmap y árbol (decisión del 30 de octubre); TRAZAR queda como "solo trazar". Instantánea, borrador, promoción y revisión por las guardas existentes. Bibliotecas: plantillas sin modelos fijados, modelos retirados quitados al cargar, defaults no persistidos, estilos antiguos convertidos por rol (`libraryConfigMigration.js`). Pendiente: caché por dependencia, cancelación, diagnóstico de ambigüedades en la UI. |
 | VE6–VE8 | Pendiente | Requieren el corpus de VE0 y evaluación con personas. |
 
 Nota sobre D13: martinez ya trataba los anillos anidados de un mismo operando como par-impar, así que los huecos sobrevivían; lo incorrecto era `nonzero` con anillos de igual sentido (debían ser sólidos). Ahora la regla de relleno del path decide.
@@ -65,6 +65,10 @@ Cambios, medidos sobre el mismo piloto (`docs/eval/icap-pilot-10-results-D2-2026
 | Paths sin asignar, media (mediana) | 12,4 % (4,4 %) |
 
 **Variabilidad semántica.** Con el mismo prompt, la respuesta del modelo cambia mucho entre corridas: la cobertura pasó de 55/57 a 51/57 (en "Necesito tomar mi medicina" faltaron cuatro nodos que la corrida anterior sí asignó) y en "Hoy me siento sobrecargado" el modelo dejó 89 regiones sin resolver. Estos cambios no vienen de la corrección de color ni de los descartes. Una corrida por caso no basta para evaluar la semántica: VE6 necesita varias corridas por caso y reportar media y dispersión.
+
+### Edición posterior de un SVG estructurado
+
+Verificado sobre un SVG certificado por la operación conjunta: editar el dibujo dentro de los grupos (mover, escalar, guardar) conserva la validez y crea una revisión `manual_edit` con el hash del padre, sin tocar NLU, composición ni enlaces. Borrar toda la geometría de un grupo, una unión booleana entre grupos, sacar una forma de su grupo o desagrupar un grupo semántico invalidan el esquema: el guardado los deja como borrador y la revisión aceptada no cambia. El editor no advierte antes de esas operaciones; queda como pendiente. Detalle en [ESTRUCTURAR.md](ESTRUCTURAR.md#edición-posterior-en-el-editor).
 
 Hallazgos nuevos durante la implementación:
 

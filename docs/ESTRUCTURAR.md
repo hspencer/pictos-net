@@ -1,133 +1,186 @@
-# ESTRUCTURAR — del trazado crudo al SVG semántico
+# ESTRUCTURAR — del bitmap o el trazado al SVG semántico
 
-Documento de referencia de la fase 4 del pipeline (opcional, iniciada por el usuario). Describe el enfoque vigente tras la serie de mejoras de julio 2026: congruencia semántica con las fases de comprensión y composición, medición geométrica local, candidatos de fusión pre-calculados y pulido determinístico.
+Documento de referencia de la fase 4 del pipeline (opcional, iniciada por el usuario). Actualizado el 30 de octubre de 2026 con la operación conjunta VECTORIZAR+ESTRUCTURAR, las correcciones de preservación del ensamblado y la frontera con el editor. Conserva el enfoque de julio 2026 para estructurar un trazado existente.
 
-Implementación: `services/svgStructureService.ts`, con módulos puros testeables en `services/svgMergeCandidates.ts` y `services/svgPathPolish.ts`.
+Implementación:
 
-> **Plan de evolución — 29 de octubre de 2026:** [Optimización conjunta de VECTORIZAR y ESTRUCTURAR](PLAN_VECTORIZAR_ESTRUCTURAR_2026-10-29.md). Propone una operación integrada con regiones guiadas por el árbol de PICTOS, VTracer actualizado y verificación de preservación. Incluye diagnóstico del código, fuentes primarias, contratos, etapas y criterios de aceptación. Es una propuesta pendiente de implementación; las descripciones de julio que siguen deben contrastarse con los contratos actuales de borradores y certificación señalados en ese plan.
+| Pieza | Archivo |
+|---|---|
+| Orquestación, ensamblado, verificación | `services/svgStructureService.ts` |
+| Validación de la respuesta del modelo | `services/svgMappingValidation.ts` |
+| Contrato de regiones (`restructure_regions`) | `services/regionMapping.ts` |
+| Trazado por regiones (VTracer 1.0) | `services/vtracerWebService.ts`, `lib/vtracer-web/` |
+| Candidatos de fusión, pulido | `services/svgMergeCandidates.ts`, `services/svgPathPolish.ts` |
+| Booleanas | `services/svgBooleanOps.ts` |
+| Contrato del artefacto | `specs/svg-structuring.allium`, `schemas/pictos-svg-schema/` |
+
+Plan y evaluación: [Optimización conjunta de VECTORIZAR y ESTRUCTURAR](PLAN_VECTORIZAR_ESTRUCTURAR_2026-10-29.md) (estado por entrega, piloto de 10 casos de ICAP en `docs/eval/`).
 
 ## Principios
 
-1. **La geometría nunca la escribe el modelo.** El modelo de visión solo asigna ids de paths a nodos semánticos y confirma fusiones; toda manipulación de coordenadas (uniones booleanas, simplificación, redondeo) se calcula localmente en el navegador. Esto elimina la varianza destructiva que retiró al modo redibujo[^1].
-2. **El DOM resultante es congruente con COMPRENDER y COMPONER.** Cada `<g>` corresponde a un nodo del árbol `VisualElement` compuesto en la fase 2, y su `data-concept` proviene de los roles de frame del NLU — no se re-adivina desde el texto del id.
-3. **Preservar es la prioridad.** Ante la duda, un path se conserva (o se fusiona); perder un elemento visible es un error grave, dejar una mota menor es tolerable. Las redes de seguridad del ensamblado hacen imposible el pictograma en blanco.
-4. **Todo lo que pueda calcularse localmente, se calcula localmente.** El modelo recibe evidencia pre-digerida (anclas medidas, candidatos de fusión) y se limita a decidir lo que requiere juicio visual.
+1. **La geometría nunca la escribe el modelo.** El modelo de visión asigna regiones o paths a nodos semánticos; toda manipulación de coordenadas (trazado, uniones booleanas, simplificación, redondeo) se calcula en el navegador. Esto elimina la varianza destructiva que retiró al modo redibujo[^1].
+2. **El DOM resultante es congruente con COMPRENDER y COMPONER.** Cada `<g>` corresponde a un nodo del árbol `VisualElement` de la fase 2, y su `data-concept` proviene de los roles de frame del NLU.
+3. **Preservar es la prioridad.** Ante la duda, la geometría se conserva. Perder un elemento visible es un error grave; dejar una mota es tolerable. En una partición por regiones nada se borra: borrar perfora el dibujo.
+4. **La duda queda visible.** Una región ambigua no se fuerza al nodo más parecido: queda sin asignar en un borrador con su diagnóstico localizado.
+5. **Todo lo que pueda calcularse localmente, se calcula localmente.** El modelo recibe evidencia pre-digerida y decide solo lo que requiere juicio visual.
+6. **El SVG estructurado es la fuente de verdad del pipeline.** Lleva dentro el NLU, la composición, los enlaces entre nodos y grupos, y la procedencia. El esquema `pictos-svg-schema` decide si un resultado puede certificarse; nada lo certifica por haberse producido.
 
-## Pipeline interno
+## Dos entradas, un ensamblado
+
+| Entrada | Cuándo | Qué recibe el modelo | Herramienta |
+|---|---|---|---|
+| **Vectorizar y estructurar** (por defecto en un bitmap con árbol) | La fila tiene bitmap y elementos de COMPONER | Bitmap, regiones numeradas, árbol, paleta | `restructure_regions` |
+| **Estructurar** | La fila ya tiene un trazado o un SVG nativo (modelos vectoriales) | Bitmap de referencia si existe, paths numerados, árbol, paleta | `restructure_svg` |
+
+TRAZAR sigue disponible como acción secundaria ("solo trazar") para obtener un SVG sin estructurar. Ambas entradas terminan en el mismo `assembleAndVerify`, de modo que el resultado inmediato y el revisado (modo de registro) pasan por el mismo ensamblado y la misma verificación.
 
 ```mermaid
-%%{init: {
-  'theme': 'base',
-  'themeVariables': {
-    'primaryColor': '#fce7f3',
-    'primaryTextColor': '#1a1a2e',
-    'primaryBorderColor': '#ec4899',
-    'lineColor': '#888',
-    'fontSize': '13px',
-    'fontFamily': 'Lexend, system-ui, sans-serif'
-  },
-  'flowchart': { 'padding': 16, 'nodeSpacing': 30, 'rankSpacing': 40, 'curve': 'basis' }
-}}%%
 flowchart TD
-    IN["<b>rawSvg</b> + elements (con concept)<br>+ NLU + GlobalConfig<br>+ bitmap de referencia (opcional)"]
-
-    subgraph LOCAL1["Pre-proceso local (sin API)"]
-        direction TB
-        ids["ensurePathIds<br><i>ids estables p0, p1…</i>"]
-        inv["buildPathInventory<br><i>fills, clases, fondo excluido</i>"]
-        anchors["measurePathAnchors<br><i>getBBox + cadena CTM<br>+ isPointInPath (grilla 7×7)</i>"]
-        cand["detectMergeCandidates<br><i>IoU bbox ≥ 0.7 · razón áreas ≥ 0.4<br>mismo fill-role · union-find</i>"]
-        marks["rasterizeWithMarks<br><i>marcas numeradas + anti-colisión<br>+ líneas guía al ancla real</i>"]
-    end
-
-    subgraph MODEL["Una sola llamada de visión"]
-        direction TB
-        vision["restructure_svg (tool use forzado)<br><i>imagen A: bitmap limpio (verdad visual)<br>imagen B: trazado numerado (coordenadas)<br>+ DOM objetivo + paleta CSS<br>+ candidatos de fusión a confirmar</i>"]
-        mapping["<b>StructuringMapping</b><br>groups (keep · cssClass · parentId<br>· merge.sources) + discard"]
-    end
-
-    subgraph LOCAL2["Ensamblado local (sin API)"]
-        direction TB
-        merge["resolveMergeGeometry<br><i>unión Martinez + applySimplify<br>solo sources del modelo</i>"]
-        safety["Redes de seguridad<br><i>huérfanos reparentados a top-level<br>descartes no micro-blob revertidos<br>fallback plano si estructura vacía</i>"]
-        render["renderGroup<br><i>data-concept desde el mapa NLU<br>aria-label · clases de paleta</i>"]
-        post["Post-proceso<br><i>CSS filtrado a clases usadas<br>metadata mf-svg (con visualDom)<br>deriveChildIds · polishGeometry</i>"]
-    end
-
-    OUT["<b>structuredSvg</b><br>pictos-svg-schema · grupos semánticos<br>congruentes con el árbol compuesto"]
-
-    IN --> LOCAL1
-    ids --> inv --> anchors --> cand --> marks
-    LOCAL1 --> MODEL
-    vision --> mapping
-    MODEL --> LOCAL2
-    merge --> safety --> render --> post
-    LOCAL2 --> OUT
-
-    style IN fill:#fed7aa,stroke:#f97316,stroke-width:2px,color:#7c2d12
-    style OUT fill:#fbcfe8,stroke:#ec4899,stroke-width:2px,color:#831843
-    style LOCAL1 fill:#f0fdf4,stroke:#22c55e
-    style LOCAL2 fill:#f0fdf4,stroke:#22c55e
-    style MODEL fill:#fdf2f8,stroke:#ec4899
+    BMP["Bitmap + árbol de COMPONER"] --> SEG["Regiones locales<br><i>VTracer 1.0, mosaico, color robusto</i>"]
+    SEG --> REQ1["Una petición: restructure_regions"]
+    RAW["Trazado o SVG nativo + árbol"] --> INV["Inventario de paths<br><i>anclas medidas, candidatos de fusión</i>"]
+    INV --> REQ2["Una petición: restructure_svg"]
+    REQ1 --> VAL["Validación de la respuesta"]
+    REQ2 --> VAL
+    VAL --> ASM["assembleAndVerify<br><i>ensamblado local + verificación</i>"]
+    ASM --> OK{"¿Cumple el esquema?"}
+    OK -->|Sí| ACC["Revisión aceptada<br>con referencia canónica"]
+    OK -->|No| DRAFT["Borrador editable<br>con diagnóstico localizado"]
 ```
 
-## Congruencia semántica con las fases 1 y 2
+## Vectorizar y estructurar
 
-La fase 2 (COMPONER) emite, por cada elemento del DOM visual, un campo `concept` derivado de los roles de frame del análisis NLU:
+### Regiones
 
-| Concept | Origen en el NLU |
+El bitmap (lado mayor hasta 1024 px) se segmenta con el núcleo VTracer 1.0 (`1.0.0-alpha.4`, commit `2500df7`) a través del binding propio `lib/vtracer-web`:
+
+- **Mosaico por defecto**: una partición visible, sin rendijas, con fronteras compartidas y huecos reales. A diferencia del trazado apilado, reagrupar no puede cambiar el orden de pintura.
+- **Procedencia explícita**: cada path nombra su región (`r<id>`, islas `r<id>_<n>`). Las regiones nunca se fusionan por color a espaldas del ensamblado (`Identity` como ajuste de color, `merge_diff = -1`).
+- **Color robusto**: cada región se pinta con la mediana de los píxeles que realmente muestra; una región fina sin interior toma el núcleo de la línea, no su mezcla con el fondo.
+- **Papel**: una región clara que abarca todo el lienzo es el fondo y no se emite.
+- **Astillas**: una región de menos de 64 px (a 1024²) no se numera; se adjunta a la región que la contiene (`r<padre>_a<hija>`) y sigue su decisión. En bitmaps JPEG, entre el 60 y el 80 % de las regiones son astillas de antialias.
+
+Parámetros fijos, en las unidades del núcleo: `colorPrecision 6`, `layerDifference 16`, `filterSpeckle 2`, `simplify 1`. No se exponen en la configuración de la biblioteca.
+
+### Contrato de regiones
+
+La respuesta de `restructure_regions` puede:
+
+| Campo | Efecto |
 |---|---|
-| `Root` | solo el nodo raíz `pictograma` |
-| `Agent` | roles Agent, Experiencer, Speaker, Addressee |
-| `Action` | la representación visual del `lexical_unit` (gesto, líneas de movimiento) |
-| `Object` | roles Patient, Theme, Object, Instrument, Beneficiary |
-| `Context` | roles Location, Time; escenario y fondo |
-| `Element` | todo lo que no mapea a un rol de frame |
+| `groups[].regions` | Asigna regiones (o números de marca) a un nodo existente |
+| `protected` | Regiones con significado que no deben eliminarse, aunque sean pequeñas |
+| `discardProposals` | Ruido propuesto: se absorbe en la región asignada que lo contiene; nada se borra |
+| `splitRequests` | Una región que contiene varios nodos; queda sin asignar. Si los nodos son un nodo y su propio ancestro, la región va al ancestro |
+| `unresolved` | Regiones de pertenencia dudosa; quedan sin asignar |
 
-Ese `concept` viaja por `VisualElement` hasta el atributo `data-concept` de cada `<g>` del SVG estructurado y hasta `metadata.visualDom` (árbol aplanado id → concept → parentId), de modo que el artefacto final es auditable contra la composición que lo originó. Para filas creadas antes de este cambio existe un fallback legacy que adivina el concept por prefijo del id (`guessConceptFromId`), usado solo cuando el campo no está presente.
+La petición no incluye el NLU completo, el enunciado ni el prompt de composición: bastan el bitmap, las regiones, el árbol y la paleta. Con regiones en vez de código SVG, la entrada usa aproximadamente la mitad de tokens que la ruta de trazado.
 
-## Medición de anclas y set-of-marks
+## Estructurar un trazado existente
 
-El promedio ingenuo de los números del atributo `d` (centroide legacy) fallaba con comandos relativos y arcos, ubicando marcas lejos de su path. El método vigente:
+Es el enfoque de julio 2026, con las correcciones de octubre.
 
-1. Se monta el SVG en un host oculto del DOM (`visibility:hidden`, nunca `display:none`, porque `getBBox` requiere layout).
-2. Cada `path[id]` se mide con `getBBox()` y el resultado se transforma al espacio del viewBox por la cadena CTM completa (`getScreenCTM`), lo que soporta `translate`, `scale`, `matrix` y rotaciones.
-3. Si el centro de la caja cae fuera del relleno (formas en C, anillos), se muestrea una grilla de 7×7 con `Path2D.isPointInPath` respetando `fill-rule`, y gana el punto interior más cercano al centro: la marca queda sobre la figura que etiqueta.
-4. En la rasterización, las marcas que colisionan (paths concéntricos) se separan por relajación iterativa; las desplazadas dibujan una línea guía roja hasta su ancla real, convención que el prompt del sistema explica al modelo.
+### Medición de anclas y marcas
 
-## Candidatos de fusión
+1. El SVG se monta en un host oculto (`visibility:hidden`, nunca `display:none`, porque `getBBox` requiere layout).
+2. Cada `path[id]` se mide con `getBBox()` y se lleva al espacio del viewBox por la cadena CTM completa.
+3. Si el centro cae fuera del relleno (formas en C, anillos), una grilla de 7×7 con `isPointInPath` elige el punto interior más cercano al centro.
+4. Las marcas que colisionan se separan por relajación iterativa; las desplazadas dibujan una línea guía hasta su ancla.
 
-Los contornos dobles (borde interno y externo de una misma línea trazada) se detectan antes de llamar al modelo: pares de paths con el mismo `fill-role`, IoU de bbox ≥ 0.7 y razón de áreas ≥ 0.4, agrupados transitivamente (union-find) en conjuntos de dos o más. El prompt los presenta como candidatos a verificar contra la imagen: el modelo confirma o rechaza en `merge.sources`, y conserva la libertad de proponer fusiones no listadas. La unión geométrica exacta siempre se calcula localmente (sweep-line de Martinez sobre los paths absolutizados, luego refit a curvas con `applySimplify`).
+### Candidatos de fusión
 
-## Pulido geométrico determinístico
+Los contornos dobles (borde interno y externo de una misma línea) se detectan antes de la llamada: IoU de bbox ≥ 0,7, razón de áreas ≥ 0,4, mismo `fill-role` **y misma pintura**, agrupados por union-find. El modelo confirma o rechaza en `merge.sources`. La unión se calcula localmente y solo si todas las fuentes tienen la misma pintura (color, regla de relleno, opacidad): compartir el rol "accent" no basta.
 
-Tras el ensamblado y `deriveChildIds`, `polishGeometry` recorre cada `<path>`:
+## Ensamblado común
 
-1. **Refit selectivo a curvas.** Solo los paths "polyline-pesados" (≥ 24 segmentos con ≥ 60 por ciento de líneas rectas — la firma del ruido de trazado) pasan por `applySimplify`. Los paths ya suaves (salida nativa de Recraft) no se tocan, así el pulido no puede degradar geometría limpia.
-2. **Redondeo de coordenadas** a 1 decimal (sub-0.1px en viewBox 1024): elimina precisión sin significado y reduce el tamaño del archivo.
+- **Validación de la respuesta** (`validateStructuringMapping`): ids de path desconocidos y nodos inexistentes se descartan con diagnóstico; un path reclamado dos veces se emite una sola; los números de marca se resuelven al path correspondiente. Una respuesta malformada falla; no se repara inventando semántica.
+- **Fusiones**: la unión reemplaza solo a sus fuentes; los demás paths del grupo se emiten igual. El path unido conserva el id, la clase y la pintura de su primera fuente. Las transformaciones de los ancestros se hornean completas (no solo traslaciones) y los huecos se derivan de la regla de relleno de la fuente.
+- **Huérfanos**: un `parentId` que apunta a un nodo inexistente se reparenta al nivel superior.
+- **Descartes sospechosos**: en la ruta de trazado, un descarte que no es micro-mancha se revierte. En la ruta de regiones ningún descarte borra geometría.
+- **Geometría sin asignar**: va al grupo `unclassified`, sin concepto inventado. Su presencia impide certificar y produce un borrador.
+- **Post-proceso**: CSS filtrado a las clases usadas, metadata canónica (`mf-accessibility`), `deriveChildIds`, `polishGeometry`.
 
-Cada `d` reescrito se valida; ante cualquier fallo se conserva el original. La heurística de selección y el redondeo viven en `svgPathPolish.ts` (módulo puro, con tests).
+### Verificación de fidelidad
 
-## Redes de seguridad del ensamblado
+`verifyFidelity` compara el resultado con el trazado del que deriva, rasterizado a 512 px:
 
-El ensamblado desconfía sistemáticamente del modelo en los casos donde equivocarse borra contenido visible:
+| Medida | Uso |
+|---|---|
+| Tinta añadida y perdida | Falla sobre 5 % del área dibujada |
+| Peor pérdida local (grilla 16×16) | Falla si una celda pierde la mitad de su tinta: un detalle pequeño no se diluye en el total |
+| Color cambiado en el interior | Se reporta, no falla: una paleta de librería puede recolorear a propósito |
 
-1. **Grupos huérfanos**: un `parentId` que apunta a un nodo inexistente dejaría todo el subárbol sin renderizar; se reparenta a top-level.
-2. **Descartes sospechosos**: un path descartado que no es micro-mancha (área real en el viewBox) se ignora del descarte y fluye al rescate de huérfanos, terminando visible en un grupo `contexto`.
-3. **Estructura vacía**: si tras todos los rescates no queda nada renderizable, se emite un grupo plano con todos los paths no-fondo. Visible y sin estructura es mejor que invisible.
+Si no se puede medir, el resultado es desconocido, nunca un acierto ficticio. Los borradores también se verifican. Un trazo de estilo de la librería (por ejemplo el contorno blanco de 3 pt de `.main`) no se cuenta como pérdida cuando el trazado no tiene trazos propios. Si la verificación falla, se ensambla también la variante sin fusiones y se entrega la que altera menos el dibujo. La verificación nunca bloquea: el aviso queda en el registro.
+
+### Pulido geométrico
+
+`polishGeometry` refitea a curvas solo los paths con firma de ruido de trazado (≥ 24 segmentos y ≥ 60 % de rectas) y redondea coordenadas a 1 decimal. Cada `d` reescrito se valida; ante cualquier fallo se conserva el original.
+
+## Borrador y certificación
+
+El ensamblado produce siempre un borrador cuando puede renderizar algo. Para **certificar** (revisión aceptada con referencia canónica), el resultado debe cumplir `pictos-svg-schema` y coincidir con la fila actual:
+
+- raíz con `role="img"`, `title` y `desc` referenciados y coherentes con el NLU;
+- un único bloque `metadata#mf-accessibility` con NLU, composición, enlaces y procedencia;
+- cada elemento del árbol de COMPONER enlazado a un `<g>` único con `data-concept`, `role="group"`, `tabindex="0"` y `aria-label`, y con geometría;
+- ningún grupo semántico desconocido y ninguna geometría visible fuera de un grupo enlazado;
+- NLU, enunciado y composición idénticos a los de la fila.
+
+Un NLU histórico que no cumple el perfil vigente, un enlace faltante o geometría sin asignar dejan el borrador visible, editable y descargable, con el motivo localizado. Un borrador nunca reemplaza la revisión aceptada anterior.
+
+## Edición posterior en el editor
+
+El editor vectorial trabaja sobre el dibujo, pero **no impide por sí mismo** las ediciones que rompen la estructura: la protección está en el guardado.
+
+Al guardar un SVG estructurado, `prepareSvgEditorUpdate` → `reviseSVG`:
+
+1. valida el SVG editado contra el esquema;
+2. comprueba que NLU, enunciado y composición siguen siendo los de la fila;
+3. crea una revisión nueva (`operation: manual_edit`, con el hash del SVG padre, `review: unreviewed`) y su referencia canónica.
+
+Si algo falla, lo editado se guarda como borrador con el diagnóstico y la revisión aceptada no se toca.
+
+Verificado el 30 de octubre de 2026 sobre un SVG certificado por la operación conjunta:
+
+| Edición | Resultado |
+|---|---|
+| Cargar, mover y redimensionar formas dentro de sus grupos, guardar | Válido: revisión `manual_edit` con padre; NLU, composición y enlaces intactos |
+| Borrar toda la geometría de un grupo | Borrador: grupo semántico sin geometría |
+| Unión booleana de formas de dos grupos distintos | Borrador: uno de los grupos desaparece y su enlace queda roto |
+| Sacar una forma de su grupo hacia la raíz | Borrador: geometría sin enlace semántico |
+| Desagrupar un grupo semántico | Borrador: enlace roto |
+
+Editar el dibujo (mover, escalar, rotar, nodos, estilos, booleanas dentro de un mismo grupo) preserva el esquema. Cambiar la estructura semántica requiere volver a ESTRUCTURAR, o aceptar el resultado como borrador. Pendiente: que el editor advierta antes de aplicar esas operaciones sobre un SVG estructurado.
+
+## Configuración y valores por defecto
+
+- **Modelo**: `phase5Model`, por defecto `claude-sonnet-4-6`. El selector "Fase 4: ESTRUCTURAR" de la configuración avanzada vale para ambas entradas. El identificador interno de la fase sigue siendo 5.
+- **Presupuesto de la llamada a Claude**: 50 s para las herramientas de la fase 5 (30 s para las demás fases), dentro del límite síncrono de 60 s. El pictograma más complejo del piloto (158 regiones) necesitó 25 s.
+- **Bibliotecas**: una plantilla no declara modelos y una biblioteca no guarda un modelo igual a su valor por defecto, así que sigue los defaults de la versión que la abre. Un modelo retirado o desconocido se quita al cargar (con aviso en el registro). Ver `netlify/functions/_shared/libraryConfigMigration.js`.
+
+## Evaluación
+
+El piloto de 10 casos de ICAP 50 V2 (`docs/eval/`, arnés `scripts/eval/vectorizarEstructurarEval.ts`) comparó el trazado antiguo más ESTRUCTURAR con la operación conjunta, con el mismo modelo y medido contra el bitmap:
+
+- **Píxeles erróneos**: 1,0 % de media en la operación conjunta frente a 4,7 % en la ruta antigua. La ruta antigua empeoró su propio trazado en 4 de 10 casos porque reagrupar un trazado apilado cambia el orden de pintura (personas recoloreadas, un corazón pintado de negro, una figura oculta bajo un halo).
+- **Tokens y tamaño**: la mitad de tokens de entrada y un SVG un 64 % más liviano.
+- **Tiempo**: 2 s más lenta en promedio.
+- **Variabilidad**: la parte semántica varía mucho entre corridas con el mismo prompt (cobertura de nodos entre 51 y 55 de 57). Evaluarla requiere varias corridas por caso.
+
+El tiempo humano de retoque no se ha medido.
 
 ## Modo redibujo (experimental, retirado como default)
 
-`redrawSVG` pide al modelo autorar un SVG limpio desde la imagen de referencia. Quedó retirado del flujo por alta varianza: funciona en formas triviales pero destruye pictogramas multi-elemento[^1]. El camino planificado para recuperarlo es el redibujo restringido por grupo con verificación local (ver roadmap).
+`redrawSVG` pide al modelo autorar un SVG limpio desde la imagen de referencia. Quedó retirado por alta varianza: funciona en formas triviales pero destruye pictogramas de varios elementos[^1].
 
-## Roadmap restante
+## Pendientes
 
-Los pasos 1 a 4 del plan de julio 2026 están implementados (congruencia semántica, anclas reales y anti-colisión, candidatos de fusión, pulido determinístico). Quedan:
+1. **Variabilidad semántica**: varias corridas por caso del piloto; media y dispersión de cobertura y regiones sin asignar.
+2. **Corpus VE0 completo**: 50 casos (30 de ajuste, 20 reservados) y protocolo de tiempo humano.
+3. **Geometría (VE4)**: ancho de líneas finas (≈1 px menor que el original), selección de tolerancias contra el bitmap, fusión de regiones de igual pintura y entidad (evita las costuras blancas del estilo con contorno), degradados.
+4. **Separación de regiones (VE7)**: resolver `splitRequests` con máscaras, sin otra llamada general.
+5. **Editor**: advertir antes de una operación que rompe un enlace semántico en un SVG estructurado.
+6. **Artefacto de distribución**: separar el SVG de trabajo del SVG final para AAC (Experimento E del roadmap histórico[^2]).
 
-1. **Paso 5 — Verificación visual automática.** Rasterizar el SVG estructurado y compararlo contra el bitmap de referencia (diff por región, IoU por grupo). Da la métrica de calidad de agrupación sobre corpus y es prerequisito del paso 6.
-2. **Paso 6 — Redibujo restringido por grupo.** Redibujar un grupo a la vez con su recorte raster como referencia, aceptando el resultado solo si supera un umbral de IoU contra el original; si no, conservar el trazo. Es la vía hacia "elegantemente dibujado" sin la varianza del redibujo global.
-3. **Paso 7 — Artefacto de distribución.** `exportSvgForDistribution()`: separar el SVG de trabajo (tabindex en grupos para el editor) del SVG final para AAC (`aria-hidden` en decorativos, ids únicos por instancia, `<desc>` en lenguaje natural). Detallado en el Experimento E del roadmap histórico[^2].
-4. **Paso 8 — Consolidación documental** de los resultados de los pasos 5 a 7.
-
-[^1]: La decisión y su justificación están comentadas en `redrawSVG` (`services/svgStructureService.ts`): el redibujo global autoraba geometría a ciegas y destruía pictogramas limpios de varios elementos.
-[^2]: `docs/ROADMAP_ESTRUCTURAR.md` es el plan de optimización de marzo 2026, anterior a la migración a Recraft; sus experimentos A y D quedaron implementados de otra forma y el Experimento E sigue vigente como paso 7.
+[^1]: La decisión y su justificación están comentadas en `redrawSVG` (`services/svgStructureService.ts`).
+[^2]: `docs/ROADMAP_ESTRUCTURAR.md` es el plan de marzo 2026, anterior a la migración a Recraft; su Experimento E sigue vigente.

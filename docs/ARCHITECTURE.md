@@ -41,9 +41,12 @@ pictos-net/
 ├── services/
 │   ├── claudeService.ts           # Fases 1+2 (NLU, composición) y spatial regen
 │   ├── recraftService.ts          # Fase 3 (SVG vectorial nativo)
-│   ├── svgStructureService.ts     # Fase 4 (estructuración semántica)
+│   ├── svgStructureService.ts     # Fase 4: structureSVG, vectorizeAndStructure, assembleAndVerify
+│   ├── regionMapping.ts           # Contrato restructure_regions (módulo puro)
+│   ├── svgMappingValidation.ts    # Validación de la respuesta del modelo (módulo puro)
+│   ├── vtracerWebService.ts       # VTracer 1.0 por regiones (lib/vtracer-web)
 │   ├── aiClient.ts                # Proxy siempre-server: callClaude(), callRecraft()
-│   ├── vtracerService.ts          # VTracer WASM (presente; no en cascada automática)
+│   ├── vtracerService.ts          # VTracer 0.6 legacy (modal TRAZAR)
 │   ├── indexedDBService.ts        # Capa de persistencia (IndexedDB v3)
 │   ├── svgMergeCandidates.ts      # Detección de contornos dobles (módulo puro)
 │   ├── svgPathPolish.ts           # Pulido geométrico determinístico (módulo puro)
@@ -86,8 +89,9 @@ pictos-net/
 │   ├── style-editor/              # Librería interna de edición de estilos
 │   │   ├── lib/constants.ts       # INITIAL_STYLES
 │   │   └── lib/keyframeConstants.ts # INITIAL_KEYFRAMES
-│   └── vtracer-wasm/              # WASM bundle (visioncortex vtracer-webapp)
-│       └── vtracer_webapp_bg.wasm
+│   ├── vtracer-wasm/              # WASM legacy (visioncortex vtracer-webapp 0.6)
+│   │   └── vtracer_webapp_bg.wasm
+│   └── vtracer-web/               # Binding PICTOS del núcleo VTracer 1.0 (Rust + pkg/ compilado)
 │
 ├── locales/
 │   ├── en-GB.json                 # Traducciones inglés
@@ -125,14 +129,15 @@ pictos-net/
 | AI — fases 1, 2, 4 | Anthropic Claude (Haiku 4.5 / Sonnet 4.6) | via proxy |
 | AI — fase 3 | Recraft V4.1 Vector | via proxy |
 | AI — fase 3 alternativo | Gemini imagen (Vertex AI) | via proxy |
-| Vectorización local | vtracer-webapp WASM (visioncortex) | 0.4.0 |
+| Vectorización local (regiones) | VTracer 1.0 núcleo, binding propio `lib/vtracer-web` | 1.0.0-alpha.4 (`2500df7`) |
+| Vectorización local (legacy, TRAZAR) | vtracer-webapp WASM (visioncortex) | 0.4.0 |
 | Persistencia | IndexedDB (nativo) + localStorage | — |
 | Hosting / Functions | Netlify | — |
 | i18n | Hook personalizado | — |
 
 ## 4. Pipeline de generación
 
-3 fases automáticas (1→2→3) + 1 fase opcional iniciada por el usuario (4). La antigua fase VECTORIZAR (VTracer) fue eliminada de la cascada: Recraft V4.1 entrega SVG nativo; VTracer sigue disponible manualmente.
+3 fases automáticas (1→2→3) + 1 fase opcional iniciada por el usuario (4). PRODUCIR usa por defecto Gemini 2.5 Flash Image (bitmap); los modelos vectoriales (Recraft `*_vector`) entregan SVG nativo. VECTORIZAR dejó de ser una fase: sobre un bitmap, la fase 4 se inicia con "Vectorizar y estructurar" (regiones VTracer 1.0 + una llamada de visión); TRAZAR queda como acción manual para obtener solo el trazado.
 
 ```mermaid
 flowchart TD
@@ -145,11 +150,13 @@ flowchart TD
     F2 --> ELEM["elements: VisualElement[]<br><i>concept por nodo desde roles de frame</i>"]
     F2 --> PROMPT["prompt espacial"]
 
-    ELEM --> F3["(3) PRODUCIR — Recraft V4.1 Vector<br><i>fullPrompt = utterance + NLU<br>+ elements + prompt + visualStylePrompt</i>"]
+    ELEM --> F3["(3) PRODUCIR — Gemini 2.5 Flash Image (default)<br><i>fullPrompt = utterance + NLU<br>+ elements + prompt + visualStylePrompt</i>"]
     PROMPT --> F3
-    F3 --> RAW["rawSvg<br><i>SVG vectorial nativo, sin bitmap intermedio</i>"]
+    F3 --> BMP["bitmap<br><i>modelos raster (default)</i>"]
+    F3 --> RAW["rawSvg<br><i>modelos vectoriales</i>"]
 
-    RAW -->|usuario inicia| F4["(4) ESTRUCTURAR — Claude Sonnet Vision<br><i>medición local + set-of-marks + ensamblaje local<br>+ pulido determinístico — ver docs/ESTRUCTURAR.md</i>"]
+    BMP -->|"usuario inicia: Vectorizar y estructurar"| F4["(4) ESTRUCTURAR — Claude Sonnet Vision<br><i>regiones locales o paths + una llamada de visión<br>+ ensamblaje y verificación locales — ver docs/ESTRUCTURAR.md</i>"]
+    RAW -->|"usuario inicia: Estructurar"| F4
     ELEM -.->|"DOM objetivo + concept"| F4
     F4 --> STRUCT["structuredSvg<br><i>pictos-svg-schema · grupos semánticos<br>data-concept congruente con NLU</i>"]
 ```
@@ -277,11 +284,11 @@ Modelo: `recraftv4_1_vector` (default) y variantes. V4.1 no soporta `style_id` �
 
 ### svgStructureService.ts
 
-Estructuración semántica del SVG crudo (fase 4). Referencia completa: [ESTRUCTURAR.md](ESTRUCTURAR.md).
+Estructuración semántica (fase 4). Referencia completa: [ESTRUCTURAR.md](ESTRUCTURAR.md).
 
-Pipeline interno: pre-proceso local → una sola llamada de visión (`api-claude`) → ensamblaje local → pulido determinístico. La geometría nunca la escribe el modelo.
+Dos entradas: `vectorizeAndStructure` (bitmap → regiones VTracer 1.0 → `restructure_regions`) y `structureSVG` (trazado o SVG nativo → `restructure_svg`). Ambas terminan en `assembleAndVerify`: validación de la respuesta, ensamblado local, verificación de fidelidad a 512 px y pulido. La geometría nunca la escribe el modelo; solo un resultado que cumple pictos-svg-schema se certifica.
 
-**Módulos puros testeables** (`node --test`): `svgMergeCandidates.ts`, `svgPathPolish.ts`, `svgTreeUtils.ts`, `svgGeometryUtils.ts`.
+**Módulos puros testeables** (`node --test`): `svgMergeCandidates.ts`, `svgPathPolish.ts`, `svgTreeUtils.ts`, `svgGeometryUtils.ts`, `svgMappingValidation.ts`, `regionMapping.ts`, `svgBooleanOps.ts`.
 
 ### aiClient.ts
 

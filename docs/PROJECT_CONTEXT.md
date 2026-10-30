@@ -34,7 +34,7 @@ El flujo automático tiene tres fases y una cuarta fase opcional iniciada por el
 1. **COMPRENDER**: `claudeService.generateNLU()` analiza el enunciado y produce `NLUData`. El modelo es configurable por fase; Claude usa tool use forzado y Gemini se enruta por su función específica.
 2. **COMPONER**: `claudeService.generateVisualBlueprint()` convierte el análisis en un árbol de `VisualElement` y un prompt espacial. Cada elemento conserva un `concept` semántico (`Root`, `Agent`, `Action`, `Object`, `Context`, `Element`).
 3. **PRODUCIR**: `App.processStep()` y `App.processCascade()` despachan según `generationModel`. Los modelos Recraft pasan por `recraftService`; los demás modelos de imagen vigentes pasan por `geminiService`. El resultado puede ser `rawSvg` vectorial o `bitmap` raster.
-4. **ESTRUCTURAR**: `svgStructureService.structureSVG()` transforma un `rawSvg` en un SVG semántico compatible con pictos-svg-schema. El modelo de visión asigna paths a grupos; la geometría, fusiones, rescates y pulido se calculan localmente.
+4. **ESTRUCTURAR**: produce un SVG semántico compatible con pictos-svg-schema. Sobre un bitmap, `vectorizeAndStructure()` (acción por defecto "Vectorizar y estructurar") segmenta localmente en regiones y el modelo asigna regiones a nodos; sobre un trazado o SVG nativo, `structureSVG()` asigna paths. La geometría, fusiones, rescates, verificación y pulido se calculan localmente; solo un resultado que cumple el esquema se certifica, el resto queda como borrador.
 
 La edición invalida artefactos posteriores: enunciado → NLU → elementos/prompt → imagen/SVG → SVG estructurado. La cascada automática no incluye ESTRUCTURAR.
 
@@ -109,7 +109,7 @@ Orden práctico para resolver contradicciones:
 
 Divergencias conocidas al 2026-08-13:
 
-- Algunos documentos llaman ESTRUCTURAR fase 4 y otros fase 5 por la antigua presencia de VECTORIZAR.
+- Algunos documentos llaman ESTRUCTURAR fase 4 y otros fase 5 por la antigua presencia de VECTORIZAR. La UI dice fase 4; el identificador persistido es 5 (`phase5Model`). Vectorizar ya no es una fase: es parte de "Vectorizar y estructurar" o la acción manual TRAZAR.
 - `docs/ARCHITECTURE.md` todavía presenta Recraft vectorial como camino principal en secciones donde el código y `CLAUDE.md` usan Gemini Image como default.
 - `docs/SECURITY.md`, `.env.example` y comentarios de cuota no coinciden completamente sobre qué llamadas consumen unidades.
 - La privacidad menciona principalmente Anthropic/Recraft, pero el pipeline vigente también usa Vertex AI/Gemini.
