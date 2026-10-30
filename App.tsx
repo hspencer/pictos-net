@@ -4349,8 +4349,8 @@ const RowComponent: React.FC<{
                 )}
 
                 {/* SVG artifacts: trazado (rawSvg) and/or estructurado (structuredSvg).
-                   ESTRUCTURAR (relabel) needs the trace, so a bitmap alone offers TRAZAR. */}
-                {hasAnyValidSvg(row) || row.structuredSvgDraft ? (
+                   A bitmap alone gets TRAZAR and the joint vectorise+structure action. */}
+                {hasAnyValidSvg(row) || row.structuredSvgDraft || validBitmap(row) ? (
                   <div id="svg-preview">
                     <SVGGenerator
                       row={row}
@@ -4364,15 +4364,6 @@ const RowComponent: React.FC<{
                       onPhase5ModelChange={onPhase5ModelChange}
                     />
                   </div>
-                ) : validBitmap(row) ? (
-                  <button
-                    type="button"
-                    onClick={onOpenVectorizer}
-                    className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold uppercase tracking-widest rounded transition-colors shadow-md hover:shadow-lg"
-                    aria-label={t('svg.traceSvg')}
-                  >
-                    <Scan size={15} aria-hidden="true" /> {t('svg.traceSvg')}
-                  </button>
                 ) : (
                   /* No artifacts at all */
                   <div id="svg-preview" className="border border-slate-200 flex items-center justify-center min-h-[250px]">

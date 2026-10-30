@@ -490,6 +490,8 @@
     "eval": "Evaluación"
   },
   "svg": {
+    "vectorizeAndStructureTitle": "Experimental: traza el bitmap en regiones y las agrupa por entidad con una sola petición al modelo. Reemplaza el trazado actual.",
+    "vectorizeAndStructure": "Vectorizar y estructurar",
     "generate": "Generar SVG",
     "generating": "Procesando...",
     "download": "Descargar SVG",
@@ -881,6 +883,7 @@
     "mergeSuffix": " + fusión"
   },
   "svgGenerator": {
+    "jointRunning": "Trazando regiones y estructurando…",
     "structuringPending": "Certificación semántica pendiente",
     "traceRequired": "Para ESTRUCTURAR se necesita un trazado. Puedes crearlo desde el bitmap con TRAZAR.",
     "modelUnavailable": "El modelo de ESTRUCTURAR ya no está disponible. Elige otro en Ajustes.",

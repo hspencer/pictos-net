@@ -490,6 +490,8 @@
     "eval": "Evaluation"
   },
   "svg": {
+    "vectorizeAndStructureTitle": "Experimental: traces the bitmap into regions and groups them by entity with a single model request. Replaces the current trace.",
+    "vectorizeAndStructure": "Vectorise and structure",
     "generate": "Generate SVG",
     "generating": "Processing...",
     "download": "Download SVG",
@@ -881,6 +883,7 @@
     "mergeSuffix": " + merge"
   },
   "svgGenerator": {
+    "jointRunning": "Tracing regions and structuring…",
     "structuringPending": "Semantic certification pending",
     "traceRequired": "STRUCTURE requires a trace. You can create one from the bitmap using TRACE.",
     "modelUnavailable": "The ESTRUCTURAR model is no longer available. Choose another in Settings.",

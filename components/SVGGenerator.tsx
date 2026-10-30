@@ -5,7 +5,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from '../hooks/useTranslation';
 import { Download, AlertCircle, FileCode, Edit, Layers, Trash2, Scan } from 'lucide-react';
 import { RowData, VisualElement, NLUData, StructuringMapping, PHASE5_MODELS, DEFAULT_PHASE5_MODEL, SvgEditorSource } from '../types';
-import { structureSVG, assembleAndVerify, canStructureSVG } from '../services/svgStructureService';
+import { structureSVG, assembleAndVerify, canStructureSVG, vectorizeAndStructure } from '../services/svgStructureService';
 import { captureSvgSource, prepareSvgPromotion, prepareSvgDraft, canCertifySVG, observedSvgProvenance } from '../services/svgCanonical';
 import { formatSvgStructureError, svgStructureDiagnostic } from '../services/svgStructureDiagnostics';
 import { Phase5ReviewPanel } from './Phase5ReviewPanel';
@@ -119,7 +119,8 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
                 <button onClick={() => triggerDownload(row.structuredSvgDraft!, '-draft')} className="text-xs underline">{t('svgGenerator.downloadDraft')}</button>
             </div>
         </section>}
-        {!review.eligible && <div role="status" className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded text-xs text-amber-900">
+        {/* With a bitmap, TRAZAR and the joint action already answer "trace required". */}
+        {!review.eligible && !(review.reasonKey === 'traceRequired' && bitmapRef) && <div role="status" className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded text-xs text-amber-900">
             <p className="font-medium">{t('svgGenerator.structuringPending')}</p>
             <p className="mt-1">{eligibilityMessage}</p>
             {!!review.fields?.length && <p className="mt-2 break-words">{t('svgGenerator.fieldsToReview', { fields: review.fields.join(', ') })}</p>}
@@ -391,16 +392,103 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
     };
 
 
+    // Experimental joint VECTORIZAR+ESTRUCTURAR (plan VE5): bitmap → region
+    // trace → one semantic request → structure. The region trace replaces the
+    // row's trace (as a retrace would) in the same update as its result.
+    const handleJoint = async () => {
+        const sourceRow = latestRow.current;
+        if (!bitmapRef) return;
+        if (!Array.isArray(sourceRow.elements) || !sourceRow.elements.length) { onLog('error', t('svgGenerator.elementsRequired')); return; }
+        const source = captureSvgSource(sourceRow);
+        try {
+            setError(undefined);
+            setProcessStartTime(Date.now());
+            setElapsedTime(0);
+            setStatus('structuring');
+            setSubStatus(t('svgGenerator.jointRunning'));
+            setStructureProgress(0);
+            activeStructuring.set(row.id, Date.now());
+            startHeartbeat();
+            const sStart = performance.now();
+            const result = await vectorizeAndStructure({
+                bitmap: bitmapRef,
+                nlu: sourceRow.NLU,
+                elements: sourceRow.elements,
+                utterance: sourceRow.UTTERANCE,
+                prompt: sourceRow.prompt || '',
+                provenance: observedSvgProvenance(sourceRow, phase5Model),
+                config,
+                phase5Model,
+                onProgress: (msg) => onLog('info', msg),
+                onStatus: (st) => setSubStatus(st),
+            });
+            stopHeartbeat();
+            if (captureSvgSource(latestRow.current) !== source) throw new Error(t('svgGenerator.inputsChangedDuringGeneration'));
+            if (!result.rawSvg) throw Object.assign(new Error(result.error || 'Structuring failed'), { diagnostic: result.diagnostic });
+            const trace = { rawSvg: result.rawSvg, rawSvgDiscarded: false };
+            const traced = { ...sourceRow, ...trace };
+
+            if (result.pendingReview && result.mapping) {
+                onUpdate(trace);
+                pendingSource.current = { row: structuredClone(traced), config: structuredClone(config), model: phase5Model };
+                setPendingMapping(result.mapping);
+                setStatus('traced');
+                onLog('info', t('svgGenerator.mappingReadyForReview'));
+                return;
+            }
+            // The update gate compares the snapshot with the row as it is now
+            // (before the trace lands), so results carry the source snapshot.
+            if (result.draftSvg) {
+                onUpdate({ ...trace, ...prepareSvgDraft(sourceRow, result.draftSvg, result.diagnostic) });
+                setStatus(sourceRow.structuredSvg && !sourceRow.structuredSvgDiscarded ? 'completed' : 'traced');
+                onLog('info', t('svgGenerator.draftReady'));
+                return;
+            }
+            if (!result.success || !result.svg) {
+                onUpdate(trace); // the trace is usable even when structuring failed
+                throw Object.assign(new Error(result.error || 'Structuring failed'), { diagnostic: result.diagnostic });
+            }
+            onUpdate({ ...trace, ...await prepareSvgPromotion(sourceRow, result.svg) });
+            setStatus('completed');
+            onLog('success', t('svgGenerator.structureCompleted', { duration: ((performance.now() - sStart) / 1000).toFixed(2) }));
+        } catch (err) {
+            stopHeartbeat(0);
+            console.error(err);
+            setStatus('error');
+            setError(svgStructureDiagnostic(err));
+            onLog('error', t('svgGenerator.processFailed', { error: formatSvgStructureError(err, t) }));
+        } finally {
+            activeStructuring.delete(row.id);
+        }
+    };
+
+    const jointButton = bitmapRef && Array.isArray(row.elements) && row.elements.length > 0 && (
+        <button
+            onClick={handleJoint}
+            title={t('svg.vectorizeAndStructureTitle')}
+            className="flex items-center justify-center gap-2 py-2 px-4 text-xs font-bold rounded border border-violet-300 text-violet-700 hover:bg-violet-50 transition-colors"
+        >
+            <Layers size={14} aria-hidden="true" /> {t('svg.vectorizeAndStructure')}
+        </button>
+    );
+
     // A semantic failure must never hide an existing trace or its controls.
     if (!structuredSvgEntry && !rawSvg && status !== 'structuring') {
         return (
             <div className="flex flex-col gap-3">
                 {structureNotice}
                 {bitmapRef && onOpenVectorizer && (
-                    <button onClick={onOpenVectorizer} className="py-3 px-4 bg-violet-600 hover:bg-violet-700 text-white rounded text-xs font-bold" aria-label={t('svg.traceSvg')}>
-                        {t('svg.traceSvg')}
+                    <button
+                        type="button"
+                        onClick={onOpenVectorizer}
+                        className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold uppercase tracking-widest rounded transition-colors shadow-md hover:shadow-lg"
+                        aria-label={t('svg.traceSvg')}
+                    >
+                        <Scan size={15} aria-hidden="true" /> {t('svg.traceSvg')}
                     </button>
                 )}
+                {jointButton}
+                {error && <p role="alert" className="text-xs text-red-600">{t(`svgGenerator.${error.key}`)}</p>}
             </div>
         );
     }
@@ -736,6 +824,7 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
                                         ))}
                                     </select>
                                     <ModelPricing model={phase5Model} />
+                                    {jointButton}
                                     {structureNotice}
                                     {error && <p role="alert" className="text-xs text-red-600">{t(`svgGenerator.${error.key}`)}</p>}
                                 </>
