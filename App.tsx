@@ -2361,34 +2361,38 @@ const App: React.FC<AppProps> = ({ authUser }) => {
     setVectorizerState({ isOpen: false, rowId: null });
   };
 
-  const handleSVGEditorSave = async (updatedSvg: string) => {
-    if (!svgEditorState.rowId) return;
+  // Returns an error message (shown inside the editor, which stays open with
+  // the edit) when the save did not land as an accepted update.
+  const handleSVGEditorSave = async (updatedSvg: string): Promise<string | null> => {
+    if (!svgEditorState.rowId) return null;
     const source = svgEditorState.svgSource;
 
     const rowBeforeSave = rows.find(r => r.id === svgEditorState.rowId);
-    if (!rowBeforeSave || !source) return;
+    if (!rowBeforeSave || !source) return null;
     if (captureSvgSource(rowBeforeSave) !== svgEditorSourceSnapshotRef.current) {
       addLog('error', t('svgGenerator.inputsChangedDuringEdit'));
-      return;
+      return t('svgGenerator.inputsChangedDuringEdit');
     }
     try {
       const update = await prepareSvgEditorUpdate(rowBeforeSave, source, updatedSvg);
       if (captureSvgSource(rowsForSvgRef.current.find(r => r.id === rowBeforeSave.id) ?? {}) !== svgEditorSourceSnapshotRef.current) {
         addLog('error', t('svgGenerator.inputsChangedDuringEdit'));
-        return;
+        return t('svgGenerator.inputsChangedDuringEdit');
       }
       if ('structuredSvg' in update) updatedSvg = update.structuredSvg;
       updateRowById(svgEditorState.rowId, update);
     } catch (error) {
+      const reason = formatSvgStructureError(error, t);
+      addLog('error', reason);
       if (source === 'structured') {
         try {
           const draft = prepareSvgDraft(rowBeforeSave, updatedSvg, svgStructureDiagnostic(error));
           updateRowById(svgEditorState.rowId, draft);
           svgEditorSourceSnapshotRef.current = captureSvgSource(applySvgSafeUpdate(rowBeforeSave, draft));
+          return t('svgEditor.savedAsDraft', { reason });
         } catch { /* Unsafe XML is not retained as a renderable draft. */ }
       }
-      addLog('error', formatSvgStructureError(error, t));
-      return;
+      return t('svgEditor.saveFailed', { reason });
     }
 
     const savedRow = rows.find(r => r.id === svgEditorState.rowId);
@@ -2411,6 +2415,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
     svgEditorBeforeMetricsRef.current = null;
 
     setSvgEditorState({ isOpen: false, rowId: null, svg: null, svgSource: null });
+    return null;
   };
 
   const filteredRows = useMemo(() => {

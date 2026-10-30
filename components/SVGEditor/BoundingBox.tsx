@@ -185,6 +185,15 @@ export default function BoundingBox({ svgElement, elementId, containerElement, o
         };
     };
 
+    // A press that selected this element (SVGCanvas) continues as a move.
+    useEffect(() => {
+        const pending = useSVGEditorStore.getState().pendingPress;
+        if (!bbox || !pending || pending.id !== elementId) return;
+        useSVGEditorStore.getState().setPendingPress(null);
+        handleMouseDown({ clientX: pending.clientX, clientY: pending.clientY, stopPropagation() {} }, 'move');
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [elementId, bbox]);
+
     // Move starts only from a press on this element's own painted geometry (the
     // browser's native hit-test), never from its bounding box: a click in an
     // empty, concave part of the box reaches whatever is visible there instead.
@@ -238,18 +247,29 @@ export default function BoundingBox({ svgElement, elementId, containerElement, o
         updateBoundingBox();
     };
 
-    /** Bake the rendered element's preview transform into geometry and commit once. */
+    /** Bake the rendered element's preview transform into geometry and commit once.
+     *  If the commit does not land (element missing from the document, or the
+     *  semantic guard refuses it), the on-screen preview is reverted: the
+     *  canvas must never show an edit the document does not hold. */
     const commit = () => {
         const el = targetElementRef.current;
         if (!el) return;
+        const revert = () => {
+            const base = dragStartRef.current?.baseTransform ?? null;
+            if (base) el.setAttribute('transform', base);
+            else el.removeAttribute('transform');
+        };
         const finalTransform = el.getAttribute('transform');
         const { svgDocument, commitGeometry } = useSVGEditorStore.getState();
-        if (!svgDocument) return;
+        if (!svgDocument) return revert();
 
         const doc = new DOMParser().parseFromString(svgDocument, 'image/svg+xml');
-        if (doc.querySelector('parsererror')) return;
-        const target = doc.getElementById(elementId);
-        if (!target) return;
+        if (doc.querySelector('parsererror')) return revert();
+        const target = doc.querySelector(`[id="${CSS.escape(elementId)}"]`);
+        if (!target) {
+            console.warn(`[BoundingBox] ${elementId} is not in the document; gesture reverted`);
+            return revert();
+        }
 
         if (finalTransform) target.setAttribute('transform', finalTransform);
         else target.removeAttribute('transform');
@@ -265,7 +285,7 @@ export default function BoundingBox({ svgElement, elementId, containerElement, o
         serialized = serialized
             .replace(/ xmlns="http:\/\/www\.w3\.org\/2000\/svg"/g, '')
             .replace(/<svg /, '<svg xmlns="http://www.w3.org/2000/svg" ');
-        commitGeometry(serialized);
+        if (!commitGeometry(serialized)) revert();
     };
 
     const handleMouseUp = () => {

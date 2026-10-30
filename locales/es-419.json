@@ -528,6 +528,8 @@
     "applyingSemanticSchema": "Aplicando esquema semántico con Gemini…"
   },
   "svgEditor": {
+    "savedAsDraft": "Tu edición no se pudo guardar como revisión certificada ({reason}). Quedó guardada como borrador de esta fila; la versión certificada anterior no cambió.",
+    "saveFailed": "No se pudo guardar: {reason}. Tu edición sigue en el editor; puedes exportarla.",
     "semanticRefused": {
       "missing": "Esta edición eliminaría el grupo «{name}», que está enlazado a una entidad del pictograma.",
       "empty": "Esta edición dejaría sin dibujo al grupo «{name}», que está enlazado a una entidad del pictograma.",

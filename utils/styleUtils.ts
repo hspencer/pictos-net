@@ -5,7 +5,9 @@ const RULE_BLOCK_REGEX = /([^{}]+)\{([^}]*)\}/g;
 
 // Matches override selectors of the form  #element-id.class-name
 // (one ID selector + one class selector, no spaces, no combinators)
-const OVERRIDE_SELECTOR_RE = /^#([\w-]+)\.([\w-]+)$/;
+// Element ids may carry accents (entity names such as "mamá-1"), so the id
+// part accepts anything but separators.
+const OVERRIDE_SELECTOR_RE = /^#([^\s.#{},]+)\.([\w-]+)$/;
 
 const generateId = () => Math.random().toString(36).slice(2, 9);
 
@@ -130,6 +132,29 @@ export function extractLibraryRules(cssText: string): string {
     blocks.push(`${selectorText} {\n${match[2]}\n}`);
   }
 
+  return blocks.join('\n\n');
+}
+
+/**
+ * Rules that are neither library class rules nor #id.class overrides, kept
+ * verbatim when the style block is rebuilt: per-shape colours written by
+ * ESTRUCTURAR (`#mamá-1 { fill: #505052; }`) and the accessibility focus
+ * style (`g[role="group"]:focus`). Dropping them recoloured every edited
+ * structured SVG.
+ */
+export function extractPreservedRules(cssText: string): string {
+  const cleaned = cssText
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/@keyframes[^{]*\{(?:[^{}]*\{[^}]*\})*[^{}]*\}/g, '');
+  const isLibrary = (selector: string) => selector.split(',').every(part => /^(svg\s+)?\.[\w-]+$/.test(part.trim()));
+  const blocks: string[] = [];
+  const regex = new RegExp(RULE_BLOCK_REGEX.source, 'g');
+  let match: RegExpExecArray | null;
+  while ((match = regex.exec(cleaned)) !== null) {
+    const selectorText = match[1].trim();
+    if (!selectorText || !match[2].trim() || isLibrary(selectorText) || OVERRIDE_SELECTOR_RE.test(selectorText)) continue;
+    blocks.push(`${selectorText} {${match[2].replace(/\s+$/, '')}\n}`);
+  }
   return blocks.join('\n\n');
 }
 

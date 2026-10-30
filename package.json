@@ -7,7 +7,7 @@
     "dev": "npm run copy-schemas && npm run optimize-thumbs && netlify dev",
     "build": "npm run copy-schemas && npm run optimize-thumbs && vite build",
     "preview": "npm run copy-schemas && vite preview",
-    "test": "node --test \"netlify/functions/**/*.test.mjs\" \"services/**/*.test.ts\"",
+    "test": "node --test \"netlify/functions/**/*.test.mjs\" \"services/**/*.test.ts\" \"utils/**/*.test.ts\"",
     "generate-index": "node scripts/generate-libraries-index.cjs",
     "validate-i18n": "node scripts/validateTranslations.cjs",
     "typecheck": "tsc --noEmit",

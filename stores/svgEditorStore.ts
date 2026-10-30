@@ -11,6 +11,7 @@ import {
     parseCssToStyleDefinitions,
     updateSvgStyleText,
     parseOverrideRules,
+    extractPreservedRules,
     serializeOverrideRules,
     extractLibraryRules,
     setOverrideRule,
@@ -175,10 +176,14 @@ export interface EditorState {
     // kernel). Unlike loadSVG it does not re-run the load pipeline (background
     // removal, style resolution) — styles are unchanged by a transform.
     // See specs/vector-editor.allium (CommitAndHistory, NonDestructiveManipulation).
-    commitGeometry: (svg: string) => void;
+    /** Returns false when the semantic guard refused the change. */
+    commitGeometry: (svg: string) => boolean;
     /** Last edit refused by the semantic guard (structured SVGs only). */
     semanticRefusal: SemanticRefusal | null;
     dismissSemanticRefusal: () => void;
+    /** A press on a not-yet-selected element: BoundingBox turns it into a move once it mounts. */
+    pendingPress: { id: string; clientX: number; clientY: number } | null;
+    setPendingPress: (press: { id: string; clientX: number; clientY: number } | null) => void;
 
     // Viewport actions (not in undo/redo)
     setViewport: (partial: Partial<Viewport>) => void;
@@ -369,19 +374,21 @@ export const useSVGEditorStore = create<EditorState>((set, get) => {
         const overrides = parseOverrideRules(currentCss);
         const overrideCss = serializeOverrideRules(overrides).trim();
 
+        // Per-shape colours and focus styles are neither library rules nor
+        // overrides: keep them, or every edit recolours a structured SVG.
+        const preservedCss = extractPreservedRules(currentCss).trim();
+
         const usedClasses = getUsedClassNamesFromSvg(svg);
         const usedStyles = getUsedStyles(styles, usedClasses);
         const libraryCss = generateCssString(usedStyles, keyframes).trim();
 
-        // If there are no library styles and no overrides, remove the <style> element
-        if (!libraryCss && !overrideCss) {
+        // If there are no library styles, preserved rules or overrides, remove the <style> element
+        if (!libraryCss && !preservedCss && !overrideCss) {
             return updateSvgStyleText(svg, '', true);
         }
 
-        const parts: string[] = [];
-        if (libraryCss) parts.push(libraryCss);
-        if (overrideCss) parts.push(overrideCss);
-        const combined = parts.join('\n\n/* --- local overrides --- */\n\n');
+        const head = [libraryCss, preservedCss].filter(Boolean).join('\n\n');
+        const combined = overrideCss ? `${head}\n\n/* --- local overrides --- */\n\n${overrideCss}` : head;
 
         return updateSvgStyleText(svg, combined, false);
     };
@@ -413,6 +420,7 @@ export const useSVGEditorStore = create<EditorState>((set, get) => {
         outlineMode: false,
         activeTool: 'select',
         semanticRefusal: null,
+        pendingPress: null,
         viewport: { ...DEFAULT_VIEWPORT },
         history: [],
         historyIndex: -1,
@@ -475,8 +483,10 @@ export const useSVGEditorStore = create<EditorState>((set, get) => {
             element.id = newId;
             let serialized = new XMLSerializer().serializeToString(doc);
 
-            // Migrate override rules: #oldId.class { ... } → #newId.class { ... }
-            const css = getSvgStyleText(serialized);
+            // Rules keyed by the id follow the rename: per-shape colours
+            // (#oldId { fill }) here, #oldId.class overrides just below.
+            const escapedOld = oldId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const css = getSvgStyleText(serialized).replace(new RegExp(`#${escapedOld}(?=[\\s{,:])`, 'g'), `#${newId}`);
             const overrides = parseOverrideRules(css);
             if (overrides.has(oldId)) {
                 overrides.set(newId, overrides.get(oldId)!);
@@ -488,6 +498,8 @@ export const useSVGEditorStore = create<EditorState>((set, get) => {
                 if (overrideCss) parts.push(overrideCss);
                 const combined = parts.join('\n\n/* --- local overrides --- */\n\n');
                 serialized = updateSvgStyleText(serialized, combined, !combined.trim());
+            } else if (css !== getSvgStyleText(serialized)) {
+                serialized = updateSvgStyleText(serialized, css, false);
             }
 
             const nextSvg = applyUsedStylesToSvg(serialized, get().styleDefinitions, get().keyframes);
@@ -1150,8 +1162,9 @@ export const useSVGEditorStore = create<EditorState>((set, get) => {
 
         setActiveTool: (tool) => set({ activeTool: tool }),
 
-        commitGeometry: (svg: string) => { commitSvg(svg); },
+        commitGeometry: (svg: string) => commitSvg(svg),
         dismissSemanticRefusal: () => set({ semanticRefusal: null }),
+        setPendingPress: (press) => set({ pendingPress: press }),
 
         // ── Viewport actions (not in undo/redo) ─────────────────────────────
 
@@ -1505,6 +1518,7 @@ export const useSVGEditorStore = create<EditorState>((set, get) => {
                 outlineMode: false,
                 activeTool: 'select',
                 semanticRefusal: null,
+                pendingPress: null,
                 viewport: { ...DEFAULT_VIEWPORT },
                 history: [],
                 historyIndex: -1,

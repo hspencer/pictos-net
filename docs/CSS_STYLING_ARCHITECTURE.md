@@ -39,6 +39,16 @@ El bloque `<style>` tiene dos secciones ordenadas:
 - Especificidad `(1,1,0)` — siempre supera al nivel 1 `(0,1,0)` sin necesidad de `!important`
 - Escritos por `setOverrideRule()` en `utils/styleUtils.ts`
 - Leídos y parseados por `parseOverrideRules()` en `utils/styleUtils.ts`
+- El id puede llevar acentos (`#mamá-1.main`): los ids de las formas derivan de los nombres de las entidades
+
+### Reglas preservadas
+
+Hay reglas que no son de biblioteca ni overrides y que la reconstrucción del `<style>` conserva tal cual (`extractPreservedRules()` en `utils/styleUtils.ts`):
+
+- **Colores por forma** que escribe ESTRUCTURAR, `#mamá-1 { fill: #505052; }`: el color exacto de cada región o path original. Siguen al elemento si se renombra.
+- **Estilo de foco de accesibilidad**, `g[role="group"]:focus { … }`.
+
+Hasta el 30 de octubre de 2026 el editor las descartaba al cargar un SVG estructurado, así que guardar una edición recoloreaba el pictograma con los colores genéricos de la paleta.
 
 ## Ciclo de vida completo
 

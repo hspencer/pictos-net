@@ -83,7 +83,8 @@ interface SVGEditorModalProps {
     onClose: () => void;
     initialSvg: string;
     utterance: string;
-    onSave: (svg: string) => void;
+    /** Resolves to an error message when the save did not land as intended. */
+    onSave: (svg: string) => void | string | null | Promise<void | string | null>;
     styleDefs?: StyleDefinition[];
     svgSource?: 'raw' | 'structured' | 'draft' | null;
     config?: GlobalConfig;
@@ -173,15 +174,30 @@ export const SVGEditorModal: React.FC<SVGEditorModalProps> = ({
         }
     }, [svgDocument]);
 
-    const handleSave = () => {
-        if (!currentSvg) return;
+    const [saveError, setSaveError] = useState<string | null>(null);
+    const [saving, setSaving] = useState(false);
+
+    const handleSave = async () => {
+        // Read the live document, not the effect-synced copy: a save right
+        // after the last commit must not miss it.
+        const currentSvg = useSVGEditorStore.getState().svgDocument;
+        if (!currentSvg || saving) return;
+        setSaveError(null);
+        setSaving(true);
         // Bake every remaining transform (element + group) into geometry via the
         // kernel, so edits survive when ESTRUCTURAR redistributes paths into new
         // groups. Non-destructive gestures already bake at commit; this is the
         // safety net for any lingering transform. Skip cheaply when there is none.
         const needsBake = currentSvg.includes('transform=');
         const svgToSave = needsBake ? bakeDocumentTransforms(currentSvg) : currentSvg;
-        onSave(svgToSave);
+        // A failed save keeps the editor open with the edit and says why:
+        // an edit must never vanish behind a console message.
+        try {
+            const error = await onSave(svgToSave);
+            if (typeof error === 'string' && error) setSaveError(error);
+        } finally {
+            setSaving(false);
+        }
     };
 
     const handleExport = () => {
@@ -214,6 +230,14 @@ export const SVGEditorModal: React.FC<SVGEditorModalProps> = ({
             <div id="canvas-stage" className="fixed inset-0 z-0">
                 <SVGCanvas />
             </div>
+
+            {/* Save that did not land */}
+            {saveError && (
+                <div role="alert" className="fixed top-20 left-1/2 -translate-x-1/2 z-30 max-w-lg w-[calc(100%-2rem)] bg-red-50 border border-red-300 text-red-900 rounded-lg shadow-lg px-4 py-3 text-sm">
+                    <p className="font-medium">{saveError}</p>
+                    <button type="button" onClick={() => setSaveError(null)} className="mt-2 text-xs font-bold underline">{t('svgEditor.semanticRefusedDismiss')}</button>
+                </div>
+            )}
 
             {/* Refused structural edit (semantic guard) */}
             {semanticRefusal && (
@@ -426,9 +450,10 @@ export const SVGEditorModal: React.FC<SVGEditorModalProps> = ({
                         {t('svg.editorExport')}
                     </button>
 
-                    {/* Save & Close */}
+                    {/* Save: the host closes the editor only when the save lands */}
                     <button
-                        onClick={() => { handleSave(); onClose(); }}
+                        onClick={() => { void handleSave(); }}
+                        disabled={saving}
                         className="px-4 py-1.5 text-sm font-medium rounded bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-lg"
                         data-toolbar-item
                         tabIndex={-1}

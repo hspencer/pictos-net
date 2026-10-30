@@ -134,7 +134,7 @@ El editor cambia el dibujo, no la estructura semántica. Dos protecciones, en es
 
 1. **Guardián semántico** (`components/SVGEditor/editor/semanticGuard.ts`): en un SVG con enlaces en su metadata, cada cambio se compara con el documento anterior antes de aplicarse. Si introduce una violación nueva (un grupo enlazado eliminado, renombrado o sin geometría, sus atributos semánticos alterados, o geometría fuera de todo grupo enlazado), el cambio no se aplica ni entra al historial, y el editor muestra qué grupo rompería. Mover formas entre grupos enlazados está permitido, y en un borrador se puede mover geometría sin clasificar a un grupo. Cargar, deshacer y rehacer no pasan por el guardián; un SVG sin enlaces (un trazado) no está protegido.
 
-2. **Validación al guardar.** Al guardar un SVG estructurado, `prepareSvgEditorUpdate` → `reviseSVG`:
+2. **Validación al guardar.** El editor se cierra solo cuando el guardado termina bien. Si no, queda abierto con la edición y un aviso que dice por qué y dónde quedó guardado lo editado. Al guardar un SVG estructurado, `prepareSvgEditorUpdate` → `reviseSVG`:
 
 1. valida el SVG editado contra el esquema;
 2. comprueba que NLU, enunciado y composición siguen siendo los de la fila;
@@ -156,7 +156,14 @@ Verificado el 30 de octubre de 2026 sobre un SVG certificado por la operación c
 | Sacar una forma de su grupo hacia la raíz | Bloqueada: dibujo fuera de los grupos semánticos |
 | Desagrupar, renombrar o quitar `data-concept` a un grupo enlazado | Bloqueada |
 
-Cambiar qué entidades tiene el pictograma requiere volver a ESTRUCTURAR. Hasta el 30 de octubre las uniones booleanas dejaban siempre el resultado en la raíz del SVG; ahora siguen el spec y lo dejan en el ancestro común de los operandos cuando no hay transformaciones.
+Cambiar qué entidades tiene el pictograma requiere volver a ESTRUCTURAR.
+
+Correcciones del 30 de octubre de 2026, tras un reporte de "edité, guardé y no se aplicó":
+
+- El botón "Guardar Cambios" cerraba el editor sin esperar el resultado del guardado. Si la certificación fallaba, lo editado acababa en un borrador, el error iba solo a la consola y en pantalla seguía la versión anterior.
+- El editor descartaba los colores por forma (`#id { fill }`) al cargar un SVG estructurado; guardar recoloreaba el pictograma. Ahora esas reglas se conservan (ver `docs/CSS_STYLING_ARCHITECTURE.md`).
+- Si un gesto no llegaba al documento (elemento ausente o rechazo del guardián), la vista previa quedaba en pantalla: la forma se veía movida y el guardado guardaba lo anterior. Ahora la pantalla se revierte.
+- Presionar sobre una forma no seleccionada la selecciona y la mueve en el mismo gesto; antes había que seleccionarla primero, y un arrastre directo no movía nada. Hasta el 30 de octubre las uniones booleanas dejaban siempre el resultado en la raíz del SVG; ahora siguen el spec y lo dejan en el ancestro común de los operandos cuando no hay transformaciones.
 
 ## Configuración y valores por defecto
 

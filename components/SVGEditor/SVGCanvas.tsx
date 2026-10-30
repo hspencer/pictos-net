@@ -226,6 +226,29 @@ export default function SVGCanvas() {
         setRefreshKey(prev => prev + 1);
     }, [viewport.zoom, viewport.panX, viewport.panY, svgDocument]);
 
+    // Press on an unselected shape: select it at once and leave the press for
+    // BoundingBox, which continues it as a move — one gesture, as in
+    // VectorCraft. Releasing before BoundingBox mounts drops the press.
+    useEffect(() => {
+        if (!svgElement) return;
+        const onDown = (event: MouseEvent) => {
+            if (event.button !== 0 || event.shiftKey) return;
+            const state = useSVGEditorStore.getState();
+            if (state.pathEditMode || state.activeTool !== 'select') return;
+            const target = event.target;
+            if (!(target instanceof Element) || target === svgElement) return;
+            const el = target.closest('[id]');
+            const id = el && el !== svgElement ? el.getAttribute('id') : null;
+            if (!id || state.selectedElementIds.has(id)) return;
+            event.preventDefault();
+            selectElement(id);
+            state.setPendingPress({ id, clientX: event.clientX, clientY: event.clientY });
+            window.addEventListener('mouseup', () => useSVGEditorStore.getState().setPendingPress(null), { once: true });
+        };
+        svgElement.addEventListener('mousedown', onDown);
+        return () => svgElement.removeEventListener('mousedown', onDown);
+    }, [svgElement, selectElement]);
+
     // Click handler on SVG elements
     useEffect(() => {
         if (!svgElement) return;

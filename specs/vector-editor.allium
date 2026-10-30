@@ -268,6 +268,15 @@ contract StructuredGeometryBoundary {
         -- move between bound groups and a draft's unclassified geometry may
         -- be moved into a group. Loading, undo and redo are not refused.
         -- Documents without bindings are not guarded.
+
+    @invariant WhatYouSeeIsWhatIsSaved
+        -- The canvas never shows an edit the document does not hold: a
+        -- gesture whose commit does not land is reverted on screen. Saving
+        -- writes the live document. The editor closes only after a save that
+        -- landed; a failed save keeps the editor open with the edit and a
+        -- visible reason, including when the edit was kept as a draft.
+        -- Rebuilding the style block keeps per-shape colour rules and the
+        -- focus style; only library class rules are regenerated.
 }
 
 contract TwoLevelStyleModel {
@@ -463,7 +472,8 @@ rule ClickSelect {
         -- derives to that element. Clicking a group selects the group. The
         -- clicked element is the topmost visible art under the pointer
         -- (VisibleGeometryHitTesting), never an element whose box merely
-        -- covers the point.
+        -- covers the point. The selection happens on press, so pressing an
+        -- unselected element and dragging moves it in the same gesture.
 }
 
 rule ClickSelectionMember {

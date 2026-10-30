@@ -528,6 +528,8 @@
     "applyingSemanticSchema": "Applying semantic schema with Gemini…"
   },
   "svgEditor": {
+    "savedAsDraft": "Your edit could not be saved as a certified revision ({reason}). It was saved as this row’s draft; the previous certified version is unchanged.",
+    "saveFailed": "Could not save: {reason}. Your edit is still in the editor; you can export it.",
     "semanticRefused": {
       "missing": "This edit would remove the group “{name}”, which is bound to an entity of the pictogram.",
       "empty": "This edit would leave the group “{name}”, bound to an entity of the pictogram, without any drawing.",
