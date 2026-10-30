@@ -33,8 +33,10 @@ import { applyBooleanN, applySimplify } from './svgBooleanOps';
 import { findUnreachableNodeIds } from './svgTreeUtils';
 import { isMicroBlob } from './svgGeometryUtils';
 import { detectMergeCandidates } from './svgMergeCandidates';
+import { validateStructuringMapping } from './svgMappingValidation';
 import { shouldSimplify, roundPathD } from './svgPathPolish';
 import { canStructureSVG, svgForStructuring } from './svgCanonical';
+import { bakeMatrixIntoPathD, parseTransformToMatrix } from '../utils/svgNormalizer';
 import { assertModelAvailable } from '../netlify/functions/_shared/modelCatalog.js';
 import { svgStructureDiagnostic } from './svgStructureDiagnostics';
 
@@ -280,35 +282,6 @@ function measurePathAnchors(svgString: string): Map<string, MeasuredPathGeometry
         host.remove();
     }
     return anchors;
-}
-
-function offsetPathD(d: string, tx: number, ty: number): string {
-    const tokens = d.match(/[A-Za-z]|[-+]?[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?/g);
-    if (!tokens) return d;
-    const result: string[] = [];
-    let cmd = '';
-    let argIndex = 0;
-    for (const tok of tokens) {
-        if (/^[A-Za-z]$/.test(tok)) { cmd = tok; argIndex = 0; result.push(tok); continue; }
-        const val = parseFloat(tok);
-        const isRelative = cmd === cmd.toLowerCase();
-        if (isRelative) { result.push(tok); argIndex++; continue; }
-        const upper = cmd.toUpperCase();
-        let offsetVal = val;
-        if (upper === 'H') { offsetVal = val + tx; }
-        else if (upper === 'V') { offsetVal = val + ty; }
-        else if (upper === 'A') { const ai = argIndex % 7; if (ai === 5) offsetVal = val + tx; else if (ai === 6) offsetVal = val + ty; }
-        else { if (argIndex % 2 === 0) offsetVal = val + tx; else offsetVal = val + ty; }
-        const str = Number.isInteger(offsetVal) ? String(offsetVal) : offsetVal.toFixed(8).replace(/0+$/, '').replace(/\.$/, '');
-        result.push(str);
-        argIndex++;
-    }
-    let out = '';
-    for (let i = 0; i < result.length; i++) {
-        const tok = result[i];
-        out += (/^[A-Za-z]$/.test(tok) ? (i > 0 ? ' ' : '') : ' ') + tok;
-    }
-    return out.trim();
 }
 
 function extractFill(el: Element): string {
@@ -668,7 +641,7 @@ function buildRestructureToolSchema(nodeList: NodeInfo[]) {
                 groups: {
                     type: 'array',
                     minItems: 1,
-                    description: 'One entry per VisualDOM node. Flat list — use parentId for hierarchy. MUST NOT be empty — an empty array means every path was silently lost; if a node is unclear, assign it to the closest matching node instead of omitting it.',
+                    description: 'One entry per VisualDOM node. Flat list — use parentId for hierarchy. MUST NOT be empty. If it is unclear which node a path depicts, leave that path out of every keep: the system preserves unassigned paths in an unclassified draft group. Never force a path onto the nearest node.',
                     items: {
                         type: 'object',
                         properties: {
@@ -748,7 +721,7 @@ Tu tarea:
 
 Reglas:
 1. Trabaja desde la evidencia visual de las imágenes — no asumas contenido semántico a partir de los nombres de nodos
-2. Cada path que no sea fondo debe aparecer en exactamente un keep de grupo, o en discard
+2. Cada path que no sea fondo aparece como máximo en un keep de grupo, o en discard. Si no está claro a qué nodo pertenece, déjalo sin asignar: el sistema lo conserva en un grupo sin clasificar. Nunca lo fuerces al nodo más parecido
 3. Usa solo los valores de cssClass listados en la paleta
 4. Las clases son de COLOR, no de semántica (la semántica va en data-concept, derivada del DOM). Elige según el fill-role que aparece en la lista de marcas: "k" = formas negras/oscuras, "f" = formas blancas (huecos, luces), "accent" = paths ya coloreados. Nunca recolorees: si el path es negro no le pongas "f" ni "accent"
 5. parentId debe ser null para nodos de nivel superior, o un nodeId válido para nodos hijo`;
@@ -972,6 +945,12 @@ function extractOriginalPaths(rawSvg: string): Map<string, OriginalPathData> {
     return map;
 }
 
+/** Everything that decides how a path is painted — merge sources must agree. */
+function paintKey(p: OriginalPathData): string {
+    const attrs = p.otherAttrs.match(/\b(?:fill-rule|fill-opacity|opacity|stroke[\w-]*)="[^"]*"/g) ?? [];
+    return [p.fill.toLowerCase(), p.className, ...attrs.sort()].join('|');
+}
+
 function escapeXmlAttr(s: string): string {
     return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
@@ -984,7 +963,7 @@ function renderGroup(
     conceptById: Map<string, string>,
     indent = '  ',
 ): string {
-    const dominantRole = getDominantFillRole(group.keep, pathInfoMap);
+    const dominantRole = getDominantFillRole([...(group.keep ?? []), ...(group.merge?.sources ?? [])], pathInfoMap);
     const colorCls = fillRoleToColorClass(dominantRole);
     const semanticCls = group.cssClass || 'f';
     // The class must agree with the ORIGINAL colour of the paths (fillRole,
@@ -1013,18 +992,24 @@ function renderGroup(
     const lines: string[] = [];
     lines.push(`${indent}<g id="${escapeXmlAttr(group.nodeId)}" role="group" tabindex="0"${conceptAttribute} aria-label="${label}" class="${escapeXmlAttr(cls)}">`);
 
-    // Merged path — geometry resolved by resolveMergeGeometry() before render.
+    // Merged path — geometry resolved (and baked to root space) by
+    // resolveMergeGeometry(). It takes the first source's id, class and paint
+    // attributes, so its "#id { fill }" rule and colour survive the union.
+    // The merge replaces only its sources: the group's other keeps follow.
     if (group.merge?.d) {
-        lines.push(`${indent}  <path d="${escapeXmlAttr(group.merge.d)}" />`);
-    } else {
-        for (const pathId of (group.keep ?? [])) {
-            const p = originalPaths.get(pathId);
-            if (!p) { console.warn(`[assemble] path no encontrado: ${pathId}`); continue; }
-            const transformAttr = p.transform ? ` transform="${p.transform}"` : '';
-            const classAttr = p.className ? ` class="${p.className}"` : '';
-            const otherAttrs = p.otherAttrs ? ` ${p.otherAttrs}` : '';
-            lines.push(`${indent}  <path id="${pathId}" d="${p.d}"${classAttr}${transformAttr}${otherAttrs}/>`);
-        }
+        const sourceId = group.merge.sources[0];
+        const p = originalPaths.get(sourceId);
+        const classAttr = p?.className ? ` class="${p.className}"` : '';
+        const otherAttrs = p?.otherAttrs ? ` ${p.otherAttrs}` : '';
+        lines.push(`${indent}  <path id="${sourceId}" d="${escapeXmlAttr(group.merge.d)}"${classAttr}${otherAttrs}/>`);
+    }
+    for (const pathId of (group.keep ?? [])) {
+        const p = originalPaths.get(pathId);
+        if (!p) { console.warn(`[assemble] path no encontrado: ${pathId}`); continue; }
+        const transformAttr = p.transform ? ` transform="${p.transform}"` : '';
+        const classAttr = p.className ? ` class="${p.className}"` : '';
+        const otherAttrs = p.otherAttrs ? ` ${p.otherAttrs}` : '';
+        lines.push(`${indent}  <path id="${pathId}" d="${p.d}"${classAttr}${transformAttr}${otherAttrs}/>`);
     }
 
     // Nested children
@@ -1043,7 +1028,7 @@ function renderGroup(
  * ids; coordinates are never model-authored.
  *
  * Steps per group: bake each source path's local d + transform into absolute
- * root-space coordinates (offsetPathD), union them pairwise (Martinez
+ * root-space coordinates (full matrix bake), union them pairwise (Martinez
  * sweep-line, exact — handles disjoint/contained/overlapping), then
  * applySimplify to refit the polyline union back to smooth Bezier curves
  * (VTracer output is already polyline-based, so nothing is lost).
@@ -1077,24 +1062,29 @@ function resolveMergeGeometry(
             && clusters.length === 1
             && clusters[0].length === infos.length;
         if (!compatible) {
-            onProgress?.(`[ESTRUCTURAR] merge ${g.nodeId}: fuentes no concéntricas [${sources.join(', ')}] — se conservan como paths separados`);
+            onProgress?.(`[ESTRUCTURAR] merge ${g.nodeId}: fuentes no compatibles en forma o pintura [${sources.join(', ')}] — se conservan como paths separados`);
             return { ...g, keep: [...(g.keep ?? []), ...sources], merge: null };
         }
 
-        const absDs: string[] = [];
-        for (const id of sources) {
-            const p = originalPaths.get(id);
-            if (!p) { console.warn(`[assemble] merge: path no encontrado: ${id}`); continue; }
-            const [tx, ty] = getTranslateOffset(p.transform || null);
-            absDs.push(tx || ty ? offsetPathD(p.d, tx, ty) : p.d);
+        const fallback = () => ({ ...g, keep: [...(g.keep ?? []), ...sources], merge: null });
+        const originals = sources.map(id => originalPaths.get(id));
+        if (originals.some(p => !p)) return fallback();
+        // Same fill role is not same paint: the union is painted once, with
+        // the sources' shared paint, so every source must carry exactly it.
+        const paints = new Set(originals.map(p => paintKey(p!)));
+        if (paints.size > 1) {
+            onProgress?.(`[ESTRUCTURAR] merge ${g.nodeId}: pinturas distintas [${sources.join(', ')}] — se conservan como paths separados`);
+            return fallback();
         }
 
-        const fallback = () => ({ ...g, keep: [...(g.keep ?? []), ...sources], merge: null });
-        if (absDs.length < 2) return fallback();
+        // Bake the full ancestor + own transform (scale, rotate, skew too),
+        // so the union is computed where each source is actually drawn.
+        const absDs = originals.map(p => p!.transform ? bakeMatrixIntoPathD(p!.d, parseTransformToMatrix(p!.transform)) : p!.d);
+        const fillRule = /fill-rule="evenodd"/.test(originals[0]!.otherAttrs) ? 'evenodd' : 'nonzero';
 
         let unioned: string | null = null;
         try {
-            unioned = applyBooleanN('union', absDs);
+            unioned = applyBooleanN('union', absDs, fillRule);
         } catch (err) {
             console.warn(`[assemble] merge ${g.nodeId}: unión falló`, err);
         }
@@ -1127,16 +1117,19 @@ export function assembleFromMapping(
         const admission = canStructureSVG({ rawSvg: input.rawSvg, elements: input.elements });
         if (!admission.eligible) throw Object.assign(new Error('Invalid structuring input'), { diagnostic: { key: admission.reasonKey } });
         inspectPassiveSVG(input.rawSvg);
-        if (!Array.isArray(mapping?.groups) || !mapping.groups.length) throw new Error('Invalid mapping groups');
-        const groupIds = new Set<string>();
-        for (const group of mapping.groups) {
-            if (!group || typeof group.nodeId !== 'string' || !group.nodeId.trim() || groupIds.has(group.nodeId)) throw new Error('Invalid mapping group ids');
-            groupIds.add(group.nodeId);
-        }
         const rawSvgWithIds = ensurePathIds(input.rawSvg);
         const inventory = buildPathInventory(rawSvgWithIds);
         const originalPaths = extractOriginalPaths(rawSvgWithIds);
         const pathInfoMap = new Map<string, PathInfo>(inventory.paths.map(p => [p.id, p]));
+
+        // Inventory order = mark order, so mark numbers resolve to path ids.
+        const validated = validateStructuringMapping(mapping, inventory.paths.map(p => p.id), new Set(buildConceptMap(input.elements).keys()));
+        mapping = validated.mapping;
+        const { unknownPaths, unknownNodes, duplicatePaths } = validated.issues;
+        if (unknownPaths.length || unknownNodes.length || duplicatePaths.length) {
+            input.onProgress?.(`[ESTRUCTURAR] respuesta corregida: ${unknownPaths.length} path(s) desconocido(s), ${unknownNodes.length} nodo(s) desconocido(s), ${duplicatePaths.length} path(s) duplicado(s)`);
+        }
+        const groupIds = new Set(mapping.groups.map(g => g.nodeId));
 
         // Apply selection and label overrides (from Phase5_Review)
         let effectiveGroups = mapping.groups.map(g => ({
@@ -1764,12 +1757,29 @@ export async function redrawSVG(input: SVGStructureInput): Promise<SVGStructureR
 // ponytail: single global knob; per-element thresholds if ever needed.
 const FIDELITY_DIFF_LIMIT = 0.05;
 const FIDELITY_RASTER_SIZE = 256;
+// A 16×16 grid of 16 px cells: losing half the ink of any one cell fails,
+// so a small detail (an eye, a pain mark) is not diluted by a large drawing.
+const FIDELITY_CELL = 16;
+const FIDELITY_CELL_MIN_INK = 8;
+const FIDELITY_CELL_LOSS_LIMIT = 0.5;
+// RGB distance above which an interior pixel counts as recoloured. Reported,
+// not failing: a library palette may recolour on purpose.
+const FIDELITY_COLOUR_DISTANCE = 60;
 
-/** Rasterize an SVG to a binary ink mask (1 = clearly darker than paper).
- *  Colour-tolerant on purpose: palette mapping may shift hues, but the
- *  guarantee is that INK STAYS WHERE IT WAS — holes not filled, shapes not
- *  deformed, elements not dropped. */
-async function rasterizeInkMask(svg: string, size: number): Promise<Uint8Array | null> {
+export interface FidelityReport {
+    /** null = could not be measured (unknown), never a silent pass. */
+    ok: boolean | null;
+    diffFraction: number;
+    added: number;
+    removed: number;
+    /** Fraction of interior inked pixels whose colour changed. */
+    recoloured: number;
+    /** Worst per-cell fraction of original ink lost. */
+    worstCellLoss: number;
+}
+
+/** Rasterize an SVG over white paper to RGBA. */
+async function rasterizeRGBA(svg: string, size: number): Promise<Uint8ClampedArray | null> {
     const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
     try {
         const img = new Image();
@@ -1781,13 +1791,7 @@ async function rasterizeInkMask(svg: string, size: number): Promise<Uint8Array |
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, size, size);
         ctx.drawImage(img, 0, 0, size, size);
-        const data = ctx.getImageData(0, 0, size, size).data;
-        const mask = new Uint8Array(size * size);
-        for (let i = 0; i < mask.length; i++) {
-            const lum = (0.299 * data[i * 4] + 0.587 * data[i * 4 + 1] + 0.114 * data[i * 4 + 2]) / 255;
-            mask[i] = lum < 0.75 ? 1 : 0;
-        }
-        return mask;
+        return ctx.getImageData(0, 0, size, size).data;
     } catch {
         return null;
     } finally {
@@ -1795,25 +1799,56 @@ async function rasterizeInkMask(svg: string, size: number): Promise<Uint8Array |
     }
 }
 
-/** Compare raw vs structured ink coverage. All fractions are relative to the
- *  raw drawing's inked area. `added` = ink the structure invented (filled
- *  holes, solid blobs); `removed` = ink it lost (dropped shapes, background).
- *  Unmeasurable (canvas failure) → ok, don't flag. */
-export async function verifyFidelity(rawSvg: string, structuredSvg: string): Promise<{ ok: boolean; diffFraction: number; added: number; removed: number }> {
-    const [a, b] = await Promise.all([
-        rasterizeInkMask(rawSvg, FIDELITY_RASTER_SIZE),
-        rasterizeInkMask(structuredSvg, FIDELITY_RASTER_SIZE),
-    ]);
-    if (!a || !b) return { ok: true, diffFraction: 0, added: 0, removed: 0 };
-    let ink = 0, added = 0, removed = 0;
+/** Binary ink mask (1 = clearly darker than paper). Colour-tolerant on
+ *  purpose: the guarantee is that INK STAYS WHERE IT WAS — holes not filled,
+ *  shapes not deformed, elements not dropped. */
+function inkMask(data: Uint8ClampedArray): Uint8Array {
+    const mask = new Uint8Array(data.length / 4);
+    for (let i = 0; i < mask.length; i++) {
+        const lum = (0.299 * data[i * 4] + 0.587 * data[i * 4 + 1] + 0.114 * data[i * 4 + 2]) / 255;
+        mask[i] = lum < 0.75 ? 1 : 0;
+    }
+    return mask;
+}
+
+/** Compare raw vs structured rendering. Ink fractions are relative to the raw
+ *  drawing's inked area. `added` = ink the structure invented (filled holes,
+ *  solid blobs); `removed` = ink it lost (dropped shapes, background). */
+export async function verifyFidelity(rawSvg: string, structuredSvg: string): Promise<FidelityReport> {
+    const size = FIDELITY_RASTER_SIZE;
+    const [ra, rb] = await Promise.all([rasterizeRGBA(rawSvg, size), rasterizeRGBA(structuredSvg, size)]);
+    if (!ra || !rb) return { ok: null, diffFraction: NaN, added: NaN, removed: NaN, recoloured: NaN, worstCellLoss: NaN };
+    const a = inkMask(ra), b = inkMask(rb);
+    let ink = 0, added = 0, removed = 0, interior = 0, recoloured = 0;
+    const cells = size / FIDELITY_CELL;
+    const cellInk = new Uint32Array(cells * cells), cellLost = new Uint32Array(cells * cells);
     for (let i = 0; i < a.length; i++) {
-        if (a[i]) ink++;
+        const x = i % size, y = (i - x) / size;
+        const cell = Math.floor(y / FIDELITY_CELL) * cells + Math.floor(x / FIDELITY_CELL);
+        if (a[i]) { ink++; cellInk[cell]++; }
         if (!a[i] && b[i]) added++;
-        else if (a[i] && !b[i]) removed++;
+        else if (a[i] && !b[i]) { removed++; cellLost[cell]++; }
+        // Colour is compared away from antialiased edges only.
+        if (a[i] && b[i] && x > 0 && y > 0 && x < size - 1 && y < size - 1 && a[i - 1] && a[i + 1] && a[i - size] && a[i + size]) {
+            interior++;
+            const k = i * 4;
+            if (Math.hypot(ra[k] - rb[k], ra[k + 1] - rb[k + 1], ra[k + 2] - rb[k + 2]) > FIDELITY_COLOUR_DISTANCE) recoloured++;
+        }
+    }
+    let worstCellLoss = 0;
+    for (let c = 0; c < cellInk.length; c++) {
+        if (cellInk[c] >= FIDELITY_CELL_MIN_INK) worstCellLoss = Math.max(worstCellLoss, cellLost[c] / cellInk[c]);
     }
     const denom = Math.max(ink, 1);
     const diffFraction = (added + removed) / denom;
-    return { ok: diffFraction <= FIDELITY_DIFF_LIMIT, diffFraction, added: added / denom, removed: removed / denom };
+    return {
+        ok: diffFraction <= FIDELITY_DIFF_LIMIT && worstCellLoss <= FIDELITY_CELL_LOSS_LIMIT,
+        diffFraction,
+        added: added / denom,
+        removed: removed / denom,
+        recoloured: recoloured / Math.max(interior, 1),
+        worstCellLoss,
+    };
 }
 
 /** Demote every proposed merge to plain keeps (union skipped, geometry
@@ -1825,6 +1860,54 @@ function stripMerges(mapping: StructuringMapping): StructuringMapping {
             ? { ...g, keep: [...(g.keep ?? []), ...g.merge.sources], merge: null }
             : g),
     };
+}
+
+/**
+ * Assemble a mapping and measure its fidelity against the raw trace. NEVER
+ * blocks: a structured result with issues beats no result (user decision
+ * 2026-07-18). When the comparison fails, the merge-free variant is also
+ * assembled and whichever alters the drawing LESS is delivered; the
+ * measurement is surfaced as a warning so the source of the difference can be
+ * diagnosed from the log. The single path for immediate and reviewed
+ * assembly (svg-structuring.allium: OneAssemblyPathForImmediateAndReviewed).
+ * Used in: structureSVG and SVGGenerator (recording-mode review confirm).
+ */
+export async function assembleAndVerify(
+    mapping: StructuringMapping,
+    input: SVGStructureInput,
+    selectionOverrides?: Map<string, boolean>,
+    labelOverrides?: Map<string, string>,
+): Promise<SVGStructureResult> {
+    if (typeof input.rawSvg === 'string') input = { ...input, rawSvg: svgForStructuring(input.rawSvg) };
+    // Drafts are measured too: they are what the user edits when semantics
+    // block certification.
+    const artifact = (r: SVGStructureResult) => r.svg || r.draftSvg;
+    let result = assembleFromMapping(mapping, input, selectionOverrides, labelOverrides);
+    if (!result.success || !artifact(result)) return result;
+
+    const rawSvgWithIds = ensurePathIds(input.rawSvg);
+    const pct = (n: number) => `${(n * 100).toFixed(1)}%`;
+    let fidelity = await verifyFidelity(rawSvgWithIds, artifact(result)!);
+    if (fidelity.ok === null) {
+        input.onProgress?.('[ESTRUCTURAR] fidelidad no medible (no se pudo rasterizar) — calidad desconocida, revisa el resultado');
+        return result;
+    }
+    if (!fidelity.ok) {
+        const noMerge = assembleFromMapping(stripMerges(mapping), input, selectionOverrides, labelOverrides);
+        if (noMerge.success && artifact(noMerge)) {
+            const nmFidelity = await verifyFidelity(rawSvgWithIds, artifact(noMerge)!);
+            if (nmFidelity.ok !== null && nmFidelity.diffFraction + nmFidelity.worstCellLoss < fidelity.diffFraction + fidelity.worstCellLoss) {
+                input.onProgress?.(`[ESTRUCTURAR] variante sin fusiones es más fiel (${pct(nmFidelity.diffFraction)} vs ${pct(fidelity.diffFraction)}) — usando esa`);
+                result = noMerge;
+                fidelity = nmFidelity;
+            }
+        }
+    }
+    const detail = `${pct(fidelity.diffFraction)} del área dibujada difiere (+${pct(fidelity.added)} tinta añadida, -${pct(fidelity.removed)} tinta perdida), peor zona local -${pct(fidelity.worstCellLoss)}, color cambiado en ${pct(fidelity.recoloured)} del interior`;
+    input.onProgress?.(fidelity.ok
+        ? `[ESTRUCTURAR] fidelidad OK: ${detail}`
+        : `[ESTRUCTURAR] aviso de fidelidad: ${detail} — revisa el resultado`);
+    return result;
 }
 
 // ─── Main structuring function ────────────────────────────────────────────────
@@ -1896,33 +1979,7 @@ export async function structureSVG(input: SVGStructureInput): Promise<SVGStructu
             return { svg: '', success: true, mapping, pendingReview: true };
         }
 
-        // Immediate assembly + fidelity measurement. NEVER blocks: a structured
-        // result with issues beats no result (user decision 2026-07-18). When
-        // the diff exceeds the threshold, the merge-free variant is also
-        // assembled and whichever alters the drawing LESS is delivered; the
-        // measurement is surfaced as a warning with an added/removed breakdown
-        // so the source of the difference can be diagnosed from the log.
-        let result = assembleFromMapping(mapping, input);
-        if (!result.success || !result.svg) return result;
-
-        let fidelity = await verifyFidelity(rawSvgWithIds, result.svg);
-        if (!fidelity.ok) {
-            const noMerge = assembleFromMapping(stripMerges(mapping), input);
-            if (noMerge.success && noMerge.svg) {
-                const nmFidelity = await verifyFidelity(rawSvgWithIds, noMerge.svg);
-                if (nmFidelity.diffFraction < fidelity.diffFraction) {
-                    input.onProgress?.(`[ESTRUCTURAR] variante sin fusiones es más fiel (${(nmFidelity.diffFraction * 100).toFixed(1)}% vs ${(fidelity.diffFraction * 100).toFixed(1)}%) — usando esa`);
-                    result = noMerge;
-                    fidelity = nmFidelity;
-                }
-            }
-        }
-        if (!fidelity.ok) {
-            input.onProgress?.(`[ESTRUCTURAR] aviso de fidelidad: ${(fidelity.diffFraction * 100).toFixed(1)}% del área dibujada difiere (+${(fidelity.added * 100).toFixed(1)}% tinta añadida, -${(fidelity.removed * 100).toFixed(1)}% tinta perdida) — revisa el resultado`);
-        } else {
-            input.onProgress?.(`[ESTRUCTURAR] fidelidad: ${(fidelity.diffFraction * 100).toFixed(1)}% de diferencia — OK`);
-        }
-        return result;
+        return await assembleAndVerify(mapping, input);
 
     } catch (error) {
         return {

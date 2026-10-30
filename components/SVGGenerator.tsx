@@ -5,7 +5,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from '../hooks/useTranslation';
 import { Download, AlertCircle, FileCode, Edit, Layers, Trash2, Scan } from 'lucide-react';
 import { RowData, VisualElement, NLUData, StructuringMapping, PHASE5_MODELS, DEFAULT_PHASE5_MODEL, SvgEditorSource } from '../types';
-import { structureSVG, assembleFromMapping, canStructureSVG } from '../services/svgStructureService';
+import { structureSVG, assembleAndVerify, canStructureSVG } from '../services/svgStructureService';
 import { captureSvgSource, prepareSvgPromotion, prepareSvgDraft, canCertifySVG, observedSvgProvenance } from '../services/svgCanonical';
 import { formatSvgStructureError, svgStructureDiagnostic } from '../services/svgStructureDiagnostics';
 import { Phase5ReviewPanel } from './Phase5ReviewPanel';
@@ -687,7 +687,7 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
                                         if (!captured || captureSvgSource(captured.row) !== captureSvgSource(latestRow.current)) { onLog('error', t('svgGenerator.inputsChangedDuringReview')); return; }
                                         const sourceRow = captured.row;
                                         const nluData = sourceRow.NLU;
-                                        const assembled = assembleFromMapping(pendingMapping, {
+                                        const assembled = await assembleAndVerify(pendingMapping, {
                                             rawSvg: sourceRow.rawSvg!,
                                             nlu: nluData,
                                             elements: sourceRow.elements || [],

@@ -23,6 +23,7 @@ import paper from 'paper/dist/paper-core.js';
 import * as martinez from 'martinez-polygon-clipping';
 
 export type BooleanOp = 'union' | 'subtract' | 'intersect';
+export type FillRule = 'nonzero' | 'evenodd';
 
 const FLATTEN_TOLERANCE = 0.25;       // px, sub-pixel flattening for crisp results
 const RECT_PIXEL_EPSILON = 0.05;      // px, snap-to-integer threshold on output
@@ -70,14 +71,65 @@ function pathDToRings(d: string): martinez.Ring[] {
     return rings;
 }
 
+function signedArea(r: martinez.Ring): number {
+    let s = 0;
+    for (let i = 0; i < r.length - 1; i++) s += r[i][0] * r[i + 1][1] - r[i + 1][0] * r[i][1];
+    return s / 2;
+}
+
+function pointInRing([x, y]: martinez.Position, r: martinez.Ring): boolean {
+    let inside = false;
+    for (let i = 0, j = r.length - 1; i < r.length; j = i++) {
+        const [xi, yi] = r[i], [xj, yj] = r[j];
+        if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
+    }
+    return inside;
+}
+
 /**
- * Wrap rings as a martinez MultiPolygon. Each ring becomes its own Polygon
- * (i.e. its own outer with no holes). Martinez treats nested rings of equal
- * orientation as overlapping fills and resolves them per the requested op,
- * so this works for inputs where one sub-path nests inside another.
+ * Wrap the sub-path rings of ONE path as a martinez MultiPolygon, honouring
+ * its fill rule so holes stay holes: a ring whose inside is unpainted while
+ * its container is painted becomes a hole of that container's polygon; a
+ * painted ring inside an unpainted region starts a new polygon (an island).
+ * Treating every ring as an outer would fill the hole of a ring/eye on union.
+ * ponytail: nesting is tested with each ring's first vertex, which assumes
+ * sub-paths do not cross each other (true for traced output).
  */
-function ringsToMultiPolygon(rings: martinez.Ring[]): martinez.MultiPolygon {
-    return rings.map(r => [r] as martinez.Polygon);
+function ringsToMultiPolygon(rings: martinez.Ring[], fillRule: FillRule = 'nonzero'): martinez.MultiPolygon {
+    const areas = rings.map(r => Math.abs(signedArea(r)));
+    const parent = rings.map((r, i) => {
+        let best = -1;
+        rings.forEach((o, j) => {
+            if (j !== i && areas[j] > areas[i] && pointInRing(r[0], o) && (best < 0 || areas[j] < areas[best])) best = j;
+        });
+        return best;
+    });
+    const depth = (i: number): number => (i < 0 ? 0 : 1 + depth(parent[i]));
+    const winding = (i: number): number => (i < 0 ? 0 : Math.sign(signedArea(rings[i])) + winding(parent[i]));
+    const painted = (i: number) => i >= 0 && (fillRule === 'evenodd' ? depth(i) % 2 === 1 : winding(i) !== 0);
+
+    const polygonOf = new Map<number, martinez.Polygon>();
+    const polygons: martinez.Polygon[] = [];
+    const order = rings.map((_, i) => i).sort((a, b) => depth(a) - depth(b));
+    for (const i of order) {
+        if (painted(i) && !painted(parent[i])) {
+            const poly: martinez.Polygon = [rings[i]];
+            polygons.push(poly);
+            polygonOf.set(i, poly);
+        } else if (!painted(i) && painted(parent[i])) {
+            let a = parent[i];
+            while (a >= 0 && !polygonOf.has(a)) a = parent[a];
+            if (a >= 0) polygonOf.get(a)!.push(rings[i]);
+        }
+        // Otherwise the ring does not change what is painted: skip it.
+    }
+    return polygons;
+}
+
+/** Outer ring and holes wound in opposite directions render the same under
+ *  both fill rules, so the result never depends on the attribute. */
+function orient(ring: martinez.Ring, positive: boolean): martinez.Ring {
+    return (signedArea(ring) > 0) === positive ? ring : [...ring].reverse();
 }
 
 /**
@@ -110,8 +162,9 @@ function geometryToPathD(geom: martinez.Geometry | null): string | null {
         : (geom as martinez.MultiPolygon);
     const subpaths: string[] = [];
     for (const polygon of mp) {
-        for (const ring of polygon) {
-            if (ring.length < 4) continue; // need at least a closed triangle
+        for (const [k, raw] of polygon.entries()) {
+            if (raw.length < 4) continue; // need at least a closed triangle
+            const ring = orient(raw, k === 0);
             const cmds: string[] = [`M${snap(ring[0][0])},${snap(ring[0][1])}`];
             // Skip the explicit closing point — Z handles closure.
             for (let i = 1; i < ring.length - 1; i++) {
@@ -130,7 +183,7 @@ function geometryToPathD(geom: martinez.Geometry | null): string | null {
  *
  * Returns the resulting path d, or null if the result is geometrically empty.
  */
-export function applyBoolean(op: BooleanOp, baseD: string, otherD: string): string | null {
+export function applyBoolean(op: BooleanOp, baseD: string, otherD: string, fillRule: FillRule = 'nonzero'): string | null {
     if (!baseD || !otherD) return null;
     ensureScope();
 
@@ -138,8 +191,8 @@ export function applyBoolean(op: BooleanOp, baseD: string, otherD: string): stri
     const otherRings = pathDToRings(otherD);
     if (baseRings.length === 0 || otherRings.length === 0) return null;
 
-    const baseMP = ringsToMultiPolygon(baseRings);
-    const otherMP = ringsToMultiPolygon(otherRings);
+    const baseMP = ringsToMultiPolygon(baseRings, fillRule);
+    const otherMP = ringsToMultiPolygon(otherRings, fillRule);
 
     let result: martinez.Geometry | null = null;
     switch (op) {
@@ -164,11 +217,11 @@ export function applyBoolean(op: BooleanOp, baseD: string, otherD: string): stri
  * Order is irrelevant for the geometric result of union and intersect, but
  * the first operand is conventionally the Base at the higher layer.
  */
-export function applyBooleanN(op: 'union' | 'intersect', ds: string[]): string | null {
+export function applyBooleanN(op: 'union' | 'intersect', ds: string[], fillRule: FillRule = 'nonzero'): string | null {
     if (ds.length < 2) return null;
     let acc: string | null = ds[0];
     for (let i = 1; i < ds.length && acc !== null; i++) {
-        acc = applyBoolean(op, acc, ds[i]);
+        acc = applyBoolean(op, acc, ds[i], fillRule);
     }
     return acc;
 }

@@ -95,3 +95,31 @@ test('applySimplify returns null for empty input', () => {
     assert.equal(applySimplify(''), null);
     assert.equal(applySimplify('   '), null);
 });
+
+// Ring = outer square + inner square. Opposite winding = hole under both rules;
+// same winding = hole only under evenodd.
+const RING_OPPOSITE = 'M0,0 L20,0 L20,20 L0,20 Z M5,5 L5,15 L15,15 L15,5 Z';
+const RING_SAME = 'M0,0 L20,0 L20,20 L0,20 Z M5,5 L15,5 L15,15 L5,15 Z';
+const FAR = 'M100,100 L110,100 L110,110 L100,110 Z';
+const subpaths = (d: string | null) => (d?.match(/M/g) ?? []).length;
+
+test('union keeps the hole of an opposite-wound ring', () => {
+    assert.equal(subpaths(applyBoolean('union', RING_OPPOSITE, FAR)), 3, 'outer + hole + far square');
+});
+
+test('union honours evenodd holes and nonzero solids for same-wound rings', () => {
+    assert.equal(subpaths(applyBoolean('union', RING_SAME, FAR, 'evenodd')), 3);
+    assert.equal(subpaths(applyBoolean('union', RING_SAME, FAR, 'nonzero')), 2, 'same winding under nonzero is solid');
+});
+
+test('union of a double-contour ring keeps its interior empty', () => {
+    const inner = 'M1,1 L19,1 L19,19 L1,19 Z M4,4 L4,16 L16,16 L16,4 Z';
+    const d = applyBoolean('union', RING_OPPOSITE, inner);
+    assert.equal(subpaths(d), 2, 'one outer ring and one hole');
+    assert.match(d!, /\b5\b/, 'hole boundary from the outer contour survives');
+});
+
+test('an island inside a hole stays a separate painted polygon', () => {
+    const withIsland = `${RING_OPPOSITE} M8,8 L12,8 L12,12 L8,12 Z`;
+    assert.equal(subpaths(applyBoolean('union', withIsland, FAR)), 4);
+});

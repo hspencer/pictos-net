@@ -95,6 +95,35 @@ contract LocalGeometryAssembly {
         -- If an ink comparison exceeds config.fidelity_warning_ratio of the
         -- original inked area, report added/removed coverage and compare the
         -- merge-free candidate. This existing warning policy is non-blocking.
+        -- An accepted merge replaces only its own sources: every other kept
+        -- path of the same group is still emitted. A merge requires identical
+        -- observed paint (fill, fill-rule, opacity) across its sources; a
+        -- shared fill role such as accent is not evidence of equal paint. The
+        -- union keeps the sources' paint and resolves full ancestor
+        -- transforms, not only translations. Holes are derived from the
+        -- source fill rule and stay empty after union.
+
+    @invariant UncertaintyIsNotAssignment
+        -- The regrouping request never asks the model to force an unclear path
+        -- onto the nearest node. Leaving a path unassigned is a valid answer;
+        -- its geometry survives in the diagnostic fallback group.
+
+    @invariant MappingIsValidatedBeforeAssembly
+        -- A provider response is checked against the frozen path inventory and
+        -- composition tree before assembly: unknown path ids, unknown nodes and
+        -- paths claimed twice are reported as diagnostics. A path claimed twice
+        -- is emitted once; a path claimed only under an unknown node keeps its
+        -- geometry as unassigned. A type cast is not validation.
+
+    @invariant OneAssemblyPathForImmediateAndReviewed
+        -- Assembly after recording-mode review runs the same assembly, ink
+        -- comparison and merge-free fallback as immediate assembly.
+
+    @invariant UnmeasuredFidelityIsUnknown
+        -- If the ink comparison cannot be measured, its result is unknown,
+        -- never a passing zero difference. The comparison also reports colour
+        -- changed inside originally inked areas and the worst local loss, so
+        -- a lost small detail is not diluted by a large unchanged drawing.
 
     @invariant ParseFailureIsNotSemanticRepair
         -- Empty, non-string, malformed or empty-group assignments fail with

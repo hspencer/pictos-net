@@ -18,6 +18,9 @@
 export interface MergeCandidatePath {
     id: string;
     fillRole: 'dark' | 'light' | 'accent' | 'unknown';
+    /** Observed fill colour. Two accents of different colour are not one
+     *  shape, so a known, differing fill rules the pair out. */
+    fill?: string;
     /** Real bounding box in viewBox space [x, y, w, h] — paths without a
      *  measured bbox are skipped. */
     bbox?: [number, number, number, number];
@@ -53,6 +56,7 @@ export function detectMergeCandidates(paths: MergeCandidatePath[]): string[][] {
         for (let j = i + 1; j < measurable.length; j++) {
             const a = measurable[i], b = measurable[j];
             if (a.fillRole !== b.fillRole) continue;
+            if (a.fill && b.fill && a.fill.toLowerCase() !== b.fill.toLowerCase()) continue;
             const bbA = a.bbox!, bbB = b.bbox!;
             const areaA = bbA[2] * bbA[3], areaB = bbB[2] * bbB[3];
             const areaRatio = Math.min(areaA, areaB) / Math.max(areaA, areaB);

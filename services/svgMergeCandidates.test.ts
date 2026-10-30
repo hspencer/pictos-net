@@ -71,3 +71,11 @@ test('area ratio below 0.4 disqualifies even with decent overlap', () => {
     ]);
     assert.equal(result.length, 0);
 });
+
+test('two accents of different colour are never paired', () => {
+    const result = detectMergeCandidates([
+        { ...path('red', [100, 100, 200, 200], 'accent'), fill: '#e53935' },
+        { ...path('blue', [104, 104, 192, 192], 'accent'), fill: '#1e88e5' },
+    ]);
+    assert.equal(result.length, 0);
+});
