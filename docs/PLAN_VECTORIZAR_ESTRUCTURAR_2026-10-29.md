@@ -6,6 +6,29 @@
 **Fecha de investigación:** 29 de octubre de 2026, America/Santiago.  
 **Alcance de este documento:** diagnóstico, literatura, arquitectura, contratos propuestos, secuencia de implementación y protocolo de verificación. No acredita mejoras ya medidas.
 
+## Estado de implementación — 30 de octubre de 2026
+
+Rama `feat/vectorizar-estructurar`. Lo implementado declara qué se probó; nada de esto acredita todavía la mejora de producto (§12.5), que requiere VE0 completo y VE6.
+
+| Entrega | Estado | Evidencia |
+|---|---|---|
+| VE0 | Parcial | Contratos expresados en `svg-structuring.allium` (`LocalGeometryAssembly`, `JointVectorizeStructure`) y `library-views.allium`. Fixtures sintéticos en tests. Pendiente: corpus de 50 casos (30/20), protocolo de tiempo humano y línea base. |
+| VE1 | Hecho | D08, D09, D11, D12, D13 (parcial, ver nota), D15 y D16 corregidos. Tests: `svgMappingValidation`, `svgBooleanOps` (huecos), `svgMergeCandidates` (pintura). Casos de regresión §12.3 de merge, anillo, acentos, transformaciones e ids verificados en navegador. |
+| VE2 | Hecho | Binding `lib/vtracer-web` sobre el núcleo fijado `2500df7`. Mosaico con procedencia exacta, cero rendijas, huecos reales. Comparación preliminar con 6 bitmaps: menos píxeles erróneos en los 6, la mitad de bytes, tiempo similar. |
+| VE3 | Hecho | `vectorizeAndStructure` y contrato `restructure_regions` (`regionMapping` + tests). Dos filas reales con Claude Sonnet 4.6: una sola petición, 5,3–7,4 k tokens de entrada, 10–17 s, fidelidad geométrica 0,0–0,65 %, separación solicitada en el contacto persona+pastel. |
+| VE4 | Parcial | Usa el pase de curvas del núcleo (`simplify: 1`) y las fronteras compartidas del mosaico. Pendiente: selección de candidatos de tolerancia contra el bitmap y protección de encuentros. |
+| VE5 | Mínimo | Acción experimental "Vectorizar y estructurar" en filas con bitmap y árbol; instantánea, borrador, promoción y revisión por las guardas existentes. Pendiente: caché por dependencia, cancelación, diagnóstico de ambigüedades en la UI. |
+| VE6–VE8 | Pendiente | Requieren el corpus de VE0 y evaluación con personas. |
+
+Nota sobre D13: martinez ya trataba los anillos anidados de un mismo operando como par-impar, así que los huecos sobrevivían; lo incorrecto era `nonzero` con anillos de igual sentido (debían ser sólidos). Ahora la regla de relleno del path decide.
+
+Hallazgos nuevos durante la implementación:
+
+- Los borradores nunca pasaban por el verificador de fidelidad; ahora sí.
+- Un trazo de estilo de librería (p. ej. contorno blanco de 3 pt en `.main`) se medía como pérdida de tinta; el verificador lo excluye cuando el trazado no tiene trazos propios.
+- Entre 60 y 80 % de las regiones de un bitmap JPEG miden menos de 64 px (astillas de antialias): se adjuntan a la región que las contiene en vez de numerarse.
+- Con el estilo de contorno blanco, cada frontera interna de una misma entidad muestra una costura blanca. Fusionar regiones de igual pintura y entidad antes de estilizar es trabajo de VE4.
+
 ## Índice
 
 1. [Resultado que se busca](#1-resultado-que-se-busca)
