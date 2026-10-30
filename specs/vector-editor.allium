@@ -256,6 +256,18 @@ contract StructuredGeometryBoundary {
     @invariant GeometryStaysLocal
         -- Path geometry never leaves the browser. The kernel and every library
         -- black box run locally.
+
+    @invariant SemanticStructureIsGuarded
+        -- On a document whose metadata binds composition elements to groups,
+        -- every commit is compared with the document before it. An edit that
+        -- adds a binding violation (a bound group removed, renamed or left
+        -- without geometry, its semantic attributes changed, or geometry left
+        -- outside every bound group) is refused before it reaches the
+        -- document or the history, and the editor says which group it would
+        -- break. Edits that keep or reduce violations apply, so geometry may
+        -- move between bound groups and a draft's unclassified geometry may
+        -- be moved into a group. Loading, undo and redo are not refused.
+        -- Documents without bindings are not guarded.
 }
 
 contract TwoLevelStyleModel {

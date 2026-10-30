@@ -98,7 +98,7 @@ Los contornos dobles (borde interno y externo de una misma línea) se detectan a
 - **Huérfanos**: un `parentId` que apunta a un nodo inexistente se reparenta al nivel superior.
 - **Descartes sospechosos**: en la ruta de trazado, un descarte que no es micro-mancha se revierte. En la ruta de regiones ningún descarte borra geometría.
 - **Geometría sin asignar**: va al grupo `unclassified`, sin concepto inventado. Su presencia impide certificar y produce un borrador.
-- **Post-proceso**: CSS filtrado a las clases usadas, metadata canónica (`mf-accessibility`), `deriveChildIds`, `polishGeometry`.
+- **Post-proceso**: CSS filtrado a las clases usadas, metadata canónica (`mf-accessibility`), `deriveChildIds` (los paths toman el nombre de su entidad: `mamá-1`, `mamá-2`…, también en borradores; las reglas `#id` del CSS los siguen), `polishGeometry`.
 
 ### Verificación de fidelidad
 
@@ -130,9 +130,11 @@ Un NLU histórico que no cumple el perfil vigente, un enlace faltante o geometr�
 
 ## Edición posterior en el editor
 
-El editor vectorial trabaja sobre el dibujo, pero **no impide por sí mismo** las ediciones que rompen la estructura: la protección está en el guardado.
+El editor cambia el dibujo, no la estructura semántica. Dos protecciones, en este orden:
 
-Al guardar un SVG estructurado, `prepareSvgEditorUpdate` → `reviseSVG`:
+1. **Guardián semántico** (`components/SVGEditor/editor/semanticGuard.ts`): en un SVG con enlaces en su metadata, cada cambio se compara con el documento anterior antes de aplicarse. Si introduce una violación nueva (un grupo enlazado eliminado, renombrado o sin geometría, sus atributos semánticos alterados, o geometría fuera de todo grupo enlazado), el cambio no se aplica ni entra al historial, y el editor muestra qué grupo rompería. Mover formas entre grupos enlazados está permitido, y en un borrador se puede mover geometría sin clasificar a un grupo. Cargar, deshacer y rehacer no pasan por el guardián; un SVG sin enlaces (un trazado) no está protegido.
+
+2. **Validación al guardar.** Al guardar un SVG estructurado, `prepareSvgEditorUpdate` → `reviseSVG`:
 
 1. valida el SVG editado contra el esquema;
 2. comprueba que NLU, enunciado y composición siguen siendo los de la fila;
@@ -144,13 +146,17 @@ Verificado el 30 de octubre de 2026 sobre un SVG certificado por la operación c
 
 | Edición | Resultado |
 |---|---|
-| Cargar, mover y redimensionar formas dentro de sus grupos, guardar | Válido: revisión `manual_edit` con padre; NLU, composición y enlaces intactos |
-| Borrar toda la geometría de un grupo | Borrador: grupo semántico sin geometría |
-| Unión booleana de formas de dos grupos distintos | Borrador: uno de los grupos desaparece y su enlace queda roto |
-| Sacar una forma de su grupo hacia la raíz | Borrador: geometría sin enlace semántico |
-| Desagrupar un grupo semántico | Borrador: enlace roto |
+| Mover y redimensionar formas dentro de sus grupos, guardar | Aplicada; al guardar, revisión `manual_edit` con padre; NLU, composición y enlaces intactos |
+| Borrar una forma de un grupo que conserva otras | Aplicada |
+| Mover una forma de un grupo enlazado a otro | Aplicada; sigue válido |
+| Unión booleana dentro de un mismo grupo | Aplicada; el resultado queda en el grupo (ancestro común de los operandos) |
+| Renombrar un path | Aplicada |
+| Borrar toda la geometría de un grupo, o el grupo | Bloqueada: grupo sin dibujo / grupo eliminado |
+| Unión booleana entre formas de dos grupos | Bloqueada: el resultado quedaría fuera de los grupos |
+| Sacar una forma de su grupo hacia la raíz | Bloqueada: dibujo fuera de los grupos semánticos |
+| Desagrupar, renombrar o quitar `data-concept` a un grupo enlazado | Bloqueada |
 
-Editar el dibujo (mover, escalar, rotar, nodos, estilos, booleanas dentro de un mismo grupo) preserva el esquema. Cambiar la estructura semántica requiere volver a ESTRUCTURAR, o aceptar el resultado como borrador. Pendiente: que el editor advierta antes de aplicar esas operaciones sobre un SVG estructurado.
+Cambiar qué entidades tiene el pictograma requiere volver a ESTRUCTURAR. Hasta el 30 de octubre las uniones booleanas dejaban siempre el resultado en la raíz del SVG; ahora siguen el spec y lo dejan en el ancestro común de los operandos cuando no hay transformaciones.
 
 ## Configuración y valores por defecto
 
@@ -179,7 +185,7 @@ El tiempo humano de retoque no se ha medido.
 2. **Corpus VE0 completo**: 50 casos (30 de ajuste, 20 reservados) y protocolo de tiempo humano.
 3. **Geometría (VE4)**: ancho de líneas finas (≈1 px menor que el original), selección de tolerancias contra el bitmap, fusión de regiones de igual pintura y entidad (evita las costuras blancas del estilo con contorno), degradados.
 4. **Separación de regiones (VE7)**: resolver `splitRequests` con máscaras, sin otra llamada general.
-5. **Editor**: advertir antes de una operación que rompe un enlace semántico en un SVG estructurado.
+5. **Acciones implícitas**: una acción del árbol sin dibujo propio (p. ej. "ubicación" en "¿Dónde está mamá?") solo se certifica con un enlace implícito suministrado (`implicitBindings`: la acción y quien la realiza), y hoy nada en la app lo produce. Esos casos quedan como borrador con `bindingsNeedReview`.
 6. **Artefacto de distribución**: separar el SVG de trabajo del SVG final para AAC (Experimento E del roadmap histórico[^2]).
 
 [^1]: La decisión y su justificación están comentadas en `redrawSVG` (`services/svgStructureService.ts`).

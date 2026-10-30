@@ -122,6 +122,8 @@ export const SVGEditorModal: React.FC<SVGEditorModalProps> = ({
     const zoomToFit = useSVGEditorStore(state => state.zoomToFit);
     const styleDefinitions = useSVGEditorStore(state => state.styleDefinitions);
     const outlineMode = useSVGEditorStore(state => state.outlineMode);
+    const semanticRefusal = useSVGEditorStore(state => state.semanticRefusal);
+    const dismissSemanticRefusal = useSVGEditorStore(state => state.dismissSemanticRefusal);
     const toggleOutlineMode = useSVGEditorStore(state => state.toggleOutlineMode);
 
     // Track which toolbar item is active for roving tabindex
@@ -198,6 +200,12 @@ export const SVGEditorModal: React.FC<SVGEditorModalProps> = ({
         zoomToFit(window.innerWidth, window.innerHeight);
     }, [zoomToFit]);
 
+    // The refused group's human label, read from the (unchanged) document.
+    const groupLabel = (id: string) => {
+        const g = svgDocument ? new DOMParser().parseFromString(svgDocument, 'image/svg+xml').querySelector(`[id="${CSS.escape(id)}"]`) : null;
+        return g?.getAttribute('aria-label') || id;
+    };
+
     if (!isOpen) return null;
 
     return (
@@ -206,6 +214,15 @@ export const SVGEditorModal: React.FC<SVGEditorModalProps> = ({
             <div id="canvas-stage" className="fixed inset-0 z-0">
                 <SVGCanvas />
             </div>
+
+            {/* Refused structural edit (semantic guard) */}
+            {semanticRefusal && (
+                <div role="alert" className="fixed top-20 left-1/2 -translate-x-1/2 z-30 max-w-lg w-[calc(100%-2rem)] bg-amber-50 border border-amber-300 text-amber-900 rounded-lg shadow-lg px-4 py-3 text-sm">
+                    <p className="font-medium">{t(`svgEditor.semanticRefused.${semanticRefusal.kind}`, { name: groupLabel(semanticRefusal.target) })}</p>
+                    <p className="mt-1 text-xs">{t('svgEditor.semanticRefusedHint')}</p>
+                    <button type="button" onClick={dismissSemanticRefusal} className="mt-2 text-xs font-bold underline">{t('svgEditor.semanticRefusedDismiss')}</button>
+                </div>
+            )}
 
             {/* Left Panel: Semantic Tree (collapsible) */}
             {treeOpen ? (

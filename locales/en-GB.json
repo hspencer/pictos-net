@@ -527,6 +527,14 @@
     "applyingSemanticSchema": "Applying semantic schema with Gemini…"
   },
   "svgEditor": {
+    "semanticRefused": {
+      "missing": "This edit would remove the group “{name}”, which is bound to an entity of the pictogram.",
+      "empty": "This edit would leave the group “{name}”, bound to an entity of the pictogram, without any drawing.",
+      "attrs": "This edit would change the semantic attributes of the group “{name}”.",
+      "unbound": "This edit would leave part of the drawing outside the semantic groups."
+    },
+    "semanticRefusedHint": "The editor changes the drawing, not the semantic structure: the edit was not applied. To change which part of the drawing belongs to each entity, move shapes between groups or run STRUCTURE again.",
+    "semanticRefusedDismiss": "Got it",
     "collapsePanel": "Collapse panel",
     "expandPanel": "Expand panel",
     "localOverride": "Local overrides",

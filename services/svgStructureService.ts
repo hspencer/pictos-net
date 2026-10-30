@@ -1255,8 +1255,9 @@ export function assembleFromMapping(
         }
 
         const draftMetadata = { status: 'draft', nlu: input.nlu, composition: { elements: input.elements, prompt: input.prompt }, provenance: input.provenance ?? {} };
-        const candidateDraft = assembleStructuredSVG(body, input, draftMetadata, filteredCSS, inventory.viewBox)
-            .replace('id="mf-accessibility"', 'id="pictonet-draft"');
+        // Drafts get readable child ids too (entity-n), like accepted revisions.
+        const candidateDraft = deriveChildIds(assembleStructuredSVG(body, input, draftMetadata, filteredCSS, inventory.viewBox)
+            .replace('id="mf-accessibility"', 'id="pictonet-draft"'));
         inspectPassiveSVG(candidateDraft);
         draftSvg = candidateDraft;
         if (orphans.length || effectiveGroups.some(g => !conceptById.has(g.nodeId))) throw new Error('Unassigned geometry requires binding review');
@@ -1330,7 +1331,9 @@ function deriveChildIds(svgContent: string): string {
             if (!(child instanceof Element) || child.tagName === 'g') return;
             const oldId = child.getAttribute('id');
             if (!oldId) { child.setAttribute('id', `${gId}-${counter++}`); return; }
-            if (vtracerHashRe.test(oldId) || /^(p|g|path|rect|circle)\d+$/.test(oldId)) {
+            // Generated ids: legacy trace ids (p12, path3…) and region ids
+            // from the joint path (r12, r12_1, r12_a813, r12_a813x1).
+            if (vtracerHashRe.test(oldId) || /^(p|g|path|rect|circle)\d+$/.test(oldId) || /^r\d+(?:_(?:\d+|a\d+(?:x\d+)?))?$/.test(oldId)) {
                 const newId = `${gId}-${counter++}`;
                 child.setAttribute('id', newId);
                 renames.set(oldId, newId);

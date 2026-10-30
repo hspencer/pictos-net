@@ -20,6 +20,7 @@ import {
 import { flattenGroupTransforms } from '../utils/svgNormalizer';
 import { parsePathToNodes, serializeNodesToPath } from '../utils/pathParser';
 import { applyBoolean, applyBooleanN, applySimplify, type BooleanOp } from '../services/svgBooleanOps';
+import { refuseIfBreaking, type SemanticRefusal } from '../components/SVGEditor/editor/semanticGuard';
 import {
     getAbsolutePathData,
     checkBooleanEligibility,
@@ -175,6 +176,9 @@ export interface EditorState {
     // removal, style resolution) — styles are unchanged by a transform.
     // See specs/vector-editor.allium (CommitAndHistory, NonDestructiveManipulation).
     commitGeometry: (svg: string) => void;
+    /** Last edit refused by the semantic guard (structured SVGs only). */
+    semanticRefusal: SemanticRefusal | null;
+    dismissSemanticRefusal: () => void;
 
     // Viewport actions (not in undo/redo)
     setViewport: (partial: Partial<Viewport>) => void;
@@ -284,8 +288,20 @@ const updateElementClassesInSvg = (svg: string, id: string, classes: string[]): 
 };
 
 export const useSVGEditorStore = create<EditorState>((set, get) => {
-    const commitSvg = (svg: string) => {
+    // Every edit passes the semantic guard: on a structured SVG, a change that
+    // would break a binding is refused and reported (semanticGuard.ts). Only
+    // loading a document skips it. Returns whether the change was applied.
+    const commitSvg = (svg: string, guard = true): boolean => {
+        const previous = get().svgDocument;
+        if (guard && previous && previous !== svg) {
+            const refusal = refuseIfBreaking(previous, svg);
+            if (refusal) {
+                set({ semanticRefusal: refusal });
+                return false;
+            }
+        }
         set((state) => ({
+            semanticRefusal: null,
             svgDocument: svg,
             history: [...state.history.slice(0, state.historyIndex + 1), svg],
             historyIndex: state.historyIndex + 1,
@@ -296,6 +312,7 @@ export const useSVGEditorStore = create<EditorState>((set, get) => {
         if (onChange) {
             onChange(svg);
         }
+        return true;
     };
 
     // Single source of truth for selection. `selectedElementIds` is the full,
@@ -395,6 +412,7 @@ export const useSVGEditorStore = create<EditorState>((set, get) => {
         pathEditTool: 'select',
         outlineMode: false,
         activeTool: 'select',
+        semanticRefusal: null,
         viewport: { ...DEFAULT_VIEWPORT },
         history: [],
         historyIndex: -1,
@@ -417,7 +435,7 @@ export const useSVGEditorStore = create<EditorState>((set, get) => {
                     overrideMap: new Map(),
                     libraryValues: new Map(),
                 }));
-                commitSvg(withIds);
+                commitSvg(withIds, false);
                 return;
             }
 
@@ -434,7 +452,7 @@ export const useSVGEditorStore = create<EditorState>((set, get) => {
                 overrideMap,
                 libraryValues,
             }));
-            commitSvg(nextSvg);
+            commitSvg(nextSvg, false);
         },
 
         updateSVGDOM: (dom: SVGElement) => {
@@ -476,16 +494,12 @@ export const useSVGEditorStore = create<EditorState>((set, get) => {
             const newOverrideMap = parseOverrideRules(getSvgStyleText(nextSvg));
             const wasSelected = get().selectedElementId === oldId;
 
-            // Batch document, history, overrideMap and selectedElementId in one set
+            // Through commitSvg so the semantic guard sees renames of bound groups.
+            if (!commitSvg(nextSvg)) return;
             set((state) => ({
-                svgDocument: nextSvg,
-                history: [...state.history.slice(0, state.historyIndex + 1), nextSvg],
-                historyIndex: state.historyIndex + 1,
                 overrideMap: newOverrideMap,
                 selectedElementId: wasSelected ? newId : state.selectedElementId,
             }));
-            const onChange = get().onSvgChange;
-            if (onChange) onChange(nextSvg);
         },
 
         updateElement: (id: string, updates: Partial<SVGElement>) => {
@@ -584,8 +598,7 @@ export const useSVGEditorStore = create<EditorState>((set, get) => {
                 get().styleDefinitions,
                 get().keyframes
             );
-            commitSvg(nextSvg);
-            applySelection([]);
+            if (commitSvg(nextSvg)) applySelection([]);
         },
 
         // Delete every selected element in one commit (Delete/Backspace).
@@ -604,8 +617,7 @@ export const useSVGEditorStore = create<EditorState>((set, get) => {
             const nextSvg = svgSource === 'raw'
                 ? serialized
                 : applyUsedStylesToSvg(serialized, get().styleDefinitions, get().keyframes);
-            commitSvg(nextSvg);
-            applySelection([]);
+            if (commitSvg(nextSvg)) applySelection([]);
         },
 
         setStyles: (styles: StyleDefinition[]) => {
@@ -763,8 +775,7 @@ export const useSVGEditorStore = create<EditorState>((set, get) => {
                 get().styleDefinitions,
                 get().keyframes
             );
-            commitSvg(nextSvg);
-            set({ selectedElementId: null, selectedElementIds: new Set() });
+            if (commitSvg(nextSvg)) set({ selectedElementId: null, selectedElementIds: new Set() });
         },
 
         // ── Boolean operations ─────────────────────────────────────────────────
@@ -830,8 +841,8 @@ export const useSVGEditorStore = create<EditorState>((set, get) => {
             }
 
             // Replace the Base in-place with a <path> carrying the result.
-            // Other operands are removed. Result is placed at the SVG root
-            // (V1: collapse toward root; DCA logic comes later).
+            // Other operands are removed. Placement: see the deepest common
+            // ancestor below.
             const surviving = doc.createElementNS('http://www.w3.org/2000/svg', 'path');
             // Inherit Base identity (id, classes) per spec.
             const baseClass = baseEl.getAttribute('class');
@@ -861,25 +872,31 @@ export const useSVGEditorStore = create<EditorState>((set, get) => {
                 );
             }
 
-            // Resolve the insertion anchor (Base's top-level ancestor under
-            // root) BEFORE removing operands.
-            const rootNode: Node = svgRoot;
-            let baseTopAncestor: Element = baseEl;
-            while (baseTopAncestor.parentNode && baseTopAncestor.parentNode !== rootNode) {
-                baseTopAncestor = baseTopAncestor.parentNode as Element;
+            // Place the result in the operands' deepest common ancestor, at the
+            // Base's z-position (svg-boolean-operations.allium), so a union of
+            // two shapes of one semantic group stays in that group. resultD is
+            // in root space: if that ancestor or any above it is transformed,
+            // fall back to the root. A marker holds the slot while operands go:
+            // removing first avoids two elements briefly sharing Base.id.
+            const chain = (el: Element) => {
+                const out: Element[] = [];
+                for (let a = el.parentNode as Element | null; a && a.nodeType === 1; a = a.parentNode as Element | null) { out.unshift(a); if (a === svgRoot) break; }
+                return out;
+            };
+            const chains = operandData.map(({ el }) => chain(el));
+            let common: Element = svgRoot;
+            for (let i = 0; chains.every(c => c[i] && c[i] === chains[0][i]); i++) common = chains[0][i];
+            for (let a: Element | null = common; a && a !== svgRoot; a = a.parentNode as Element | null) {
+                if (a.getAttribute('transform')) { common = svgRoot; break; }
             }
-            const insertReference = baseTopAncestor.nextSibling;
-
-            // Remove every operand FIRST, then insert the result. Doing it the
-            // other way around briefly creates two elements sharing the same
-            // id (Base.id), and a later querySelector would match the new
-            // path instead of the original Base.
+            let slot: Element = baseEl;
+            while (slot.parentNode && slot.parentNode !== common) slot = slot.parentNode as Element;
+            const marker = doc.createComment('boolean-result');
+            common.insertBefore(marker, slot);
             for (const { el } of operandData) {
                 el.remove();
             }
-
-            // Insert the new path at the Base's z-position.
-            svgRoot.insertBefore(surviving, insertReference);
+            common.replaceChild(surviving, marker);
 
             purgeEmptyGroups(svgRoot);
 
@@ -890,7 +907,7 @@ export const useSVGEditorStore = create<EditorState>((set, get) => {
                 get().styleDefinitions,
                 get().keyframes
             );
-            commitSvg(nextSvg);
+            if (!commitSvg(nextSvg)) return { ok: false, reason: 'semantic' };
 
             // Result selection: the surviving Base.
             set({ selectedElementId: baseId, selectedElementIds: new Set([baseId]) });
@@ -1133,7 +1150,8 @@ export const useSVGEditorStore = create<EditorState>((set, get) => {
 
         setActiveTool: (tool) => set({ activeTool: tool }),
 
-        commitGeometry: (svg: string) => commitSvg(svg),
+        commitGeometry: (svg: string) => { commitSvg(svg); },
+        dismissSemanticRefusal: () => set({ semanticRefusal: null }),
 
         // ── Viewport actions (not in undo/redo) ─────────────────────────────
 
@@ -1486,6 +1504,7 @@ export const useSVGEditorStore = create<EditorState>((set, get) => {
                 pathEditTool: 'select',
                 outlineMode: false,
                 activeTool: 'select',
+                semanticRefusal: null,
                 viewport: { ...DEFAULT_VIEWPORT },
                 history: [],
                 historyIndex: -1,

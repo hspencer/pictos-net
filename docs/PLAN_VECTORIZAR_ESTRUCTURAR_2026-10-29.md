@@ -68,7 +68,7 @@ Cambios, medidos sobre el mismo piloto (`docs/eval/icap-pilot-10-results-D2-2026
 
 ### Edición posterior de un SVG estructurado
 
-Verificado sobre un SVG certificado por la operación conjunta: editar el dibujo dentro de los grupos (mover, escalar, guardar) conserva la validez y crea una revisión `manual_edit` con el hash del padre, sin tocar NLU, composición ni enlaces. Borrar toda la geometría de un grupo, una unión booleana entre grupos, sacar una forma de su grupo o desagrupar un grupo semántico invalidan el esquema: el guardado los deja como borrador y la revisión aceptada no cambia. El editor no advierte antes de esas operaciones; queda como pendiente. Detalle en [ESTRUCTURAR.md](ESTRUCTURAR.md#edición-posterior-en-el-editor).
+Verificado sobre un SVG certificado por la operación conjunta: editar el dibujo dentro de los grupos (mover, escalar, guardar) conserva la validez y crea una revisión `manual_edit` con el hash del padre, sin tocar NLU, composición ni enlaces. Borrar toda la geometría de un grupo, una unión booleana entre grupos, sacar una forma de su grupo o desagrupar un grupo semántico invalidan el esquema: el guardado los deja como borrador y la revisión aceptada no cambia. Desde el mismo día el editor las bloquea antes de aplicarlas (guardián semántico en cada commit) y explica qué grupo rompería; mover formas entre grupos sigue permitido. Las booleanas ahora dejan el resultado en el ancestro común de los operandos, como pedía el spec, en vez de la raíz. Detalle en [ESTRUCTURAR.md](ESTRUCTURAR.md#edición-posterior-en-el-editor).
 
 Hallazgos nuevos durante la implementación:
 
