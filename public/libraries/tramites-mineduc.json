@@ -5,7 +5,6 @@
   "timestamp": "2026-07-11T13:09:38.780Z",
   "config": {
     "lang": "es-419",
-    "generationModel": "gemini-3.1-flash-image",
     "name": "Trámites MINEDUC",
     "credits": "Herbert Spencer González (e[ad] PUCV), investigación doctoral Pictos.net. Corpus original: Ana María Torres, Coordinación Institucional Ley Autismo y Sordera, Secretaría Ministerial de Educación Región de Valparaíso, Ministerio de Educación de Chile.",
     "license": "CC BY-SA 4.0",
@@ -1728,8 +1727,6 @@
       "#f5ed0a"
     ],
     "advancedConfigOpen": false,
-    "aspectRatio": "1:1",
-    "imageModel": "pro",
     "svgStyles": {
       "f": {
         "fill": "#000000",
@@ -1743,8 +1740,7 @@
       }
     },
     "libraryViewMode": "list",
-    "uiLang": "es-419",
-    "phase5Model": "claude-opus-4-6"
+    "uiLang": "es-419"
   },
   "rows": [
     {

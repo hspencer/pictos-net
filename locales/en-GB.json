@@ -263,7 +263,7 @@
       "experimental": "experimental, not yet verified in PICTOS"
     },
     "phase5Model": "Phase 4: STRUCTURE",
-    "phase5ModelTooltip": "Vision model to assign semantic groups to the SVG (optional structuring step). Persisted per library.",
+    "phase5ModelTooltip": "Vision model that groups by tree entity the regions of a bitmap (Vectorise and structure) or the paths of a trace (Structure). Persisted per library.",
     "checkConnection": "Check",
     "connectionChecking": "Checking…",
     "connectionOk": "OK",
@@ -407,6 +407,7 @@
     "fileFormatError": "File format not recognised",
     "graphRestored": "Graph restored: {count} nodes.",
     "graphRestoredPlural": "Graph restored: {count} nodes.",
+    "configMigrated": "Configuration updated (retired models and legacy fields): {changes}",
     "configRestored": "Global configuration restored.",
     "allCleared": "All nodes and logs have been cleared.",
     "loadingLibrary": "Loading {name}...",
@@ -490,7 +491,8 @@
     "eval": "Evaluation"
   },
   "svg": {
-    "vectorizeAndStructureTitle": "Experimental: traces the bitmap into regions and groups them by entity with a single model request. Replaces the current trace.",
+    "traceOnlyTitle": "Trace only: produces the unstructured SVG, to edit or structure later.",
+    "vectorizeAndStructureTitle": "Traces the bitmap into regions and groups them by entity with a single model request. Replaces the current trace if there is one.",
     "vectorizeAndStructure": "Vectorise and structure",
     "generate": "Generate SVG",
     "generating": "Processing...",

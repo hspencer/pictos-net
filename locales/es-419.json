@@ -263,7 +263,7 @@
       "experimental": "experimental, sin verificar en PICTOS"
     },
     "phase5Model": "Fase 4: ESTRUCTURAR",
-    "phase5ModelTooltip": "Modelo de visión para asignar grupos semánticos al SVG (estructuración opcional). Se persiste por librería.",
+    "phase5ModelTooltip": "Modelo de visión que agrupa por entidad del árbol las regiones de un bitmap (Vectorizar y estructurar) o los paths de un trazado (Estructurar). Se persiste por librería.",
     "checkConnection": "Verificar",
     "connectionChecking": "Verificando…",
     "connectionOk": "OK",
@@ -407,6 +407,7 @@
     "fileFormatError": "Formato de archivo no reconocido",
     "graphRestored": "Grafo restaurado: {count} nodos.",
     "graphRestoredPlural": "Grafo restaurado: {count} nodos.",
+    "configMigrated": "Configuración actualizada (modelos retirados y campos antiguos): {changes}",
     "configRestored": "Configuración global restaurada.",
     "allCleared": "Todos los nodos y logs han sido borrados.",
     "loadingLibrary": "Cargando {name}...",
@@ -490,7 +491,8 @@
     "eval": "Evaluación"
   },
   "svg": {
-    "vectorizeAndStructureTitle": "Experimental: traza el bitmap en regiones y las agrupa por entidad con una sola petición al modelo. Reemplaza el trazado actual.",
+    "traceOnlyTitle": "Solo trazar: produce el SVG sin estructurar, para editarlo o estructurarlo después.",
+    "vectorizeAndStructureTitle": "Traza el bitmap en regiones y las agrupa por entidad con una sola petición al modelo. Si ya hay un trazado, lo reemplaza.",
     "vectorizeAndStructure": "Vectorizar y estructurar",
     "generate": "Generar SVG",
     "generating": "Procesando...",

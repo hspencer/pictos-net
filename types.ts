@@ -388,16 +388,6 @@ export const GENERATION_MODEL_LABELS = Object.fromEntries(
 ) as Record<GenerationModel, string>;
 
 
-/** Migrates a legacy imageModel string to the canonical GenerationModel value. */
-export function migrateImageModel(imageModel: string | undefined): GenerationModel {
-  if (!imageModel) return DEFAULT_GENERATION_MODEL;
-  if (imageModel === 'recraftv4_1_vector') return 'recraftv4_1_vector';
-  if (imageModel === 'recraftv4_1') return 'recraftv4_1';
-  if (imageModel.includes('pro')) return 'gemini-3-pro-image';
-  if (imageModel.includes('flash') || imageModel.startsWith('gemini')) return 'gemini-2.5-flash-image';
-  return DEFAULT_GENERATION_MODEL;
-}
-
 const VALID_GENERATION_MODELS = modelIdsForPhase(3);
 
 /** Migrates a stored generationModel string — maps removed -preview IDs to stable IDs. */

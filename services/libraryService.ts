@@ -23,6 +23,7 @@
 
 import JSZip from 'jszip';
 import type { RowData, GlobalConfig, LibraryMeta, Sequence, Board } from '../types';
+import { DEFAULT_NLU_MODEL, DEFAULT_GENERATION_MODEL, DEFAULT_PHASE5_MODEL } from '../types';
 import { rekeyBoardsForLibrary } from './libraryTransferService';
 import * as IndexedDBService from './indexedDBService';
 
@@ -225,8 +226,21 @@ export function getLibraryConfig(id: string): GlobalConfig | null {
   }
 }
 
+// A model equal to its phase default is not stored, so the library follows
+// the default of whichever version opens it (user decision 2026-10-30).
+const MODEL_DEFAULTS: Partial<Record<keyof GlobalConfig, string>> = {
+  comprenderModel: DEFAULT_NLU_MODEL,
+  componerModel: DEFAULT_NLU_MODEL,
+  generationModel: DEFAULT_GENERATION_MODEL,
+  phase5Model: DEFAULT_PHASE5_MODEL,
+};
+
 export function saveLibraryConfig(id: string, config: GlobalConfig): void {
-  localStorage.setItem(libConfigKey(id), JSON.stringify(config));
+  const stored: Partial<GlobalConfig> = { ...config };
+  for (const [field, model] of Object.entries(MODEL_DEFAULTS)) {
+    if (stored[field as keyof GlobalConfig] === model) delete stored[field as keyof GlobalConfig];
+  }
+  localStorage.setItem(libConfigKey(id), JSON.stringify(stored));
 }
 
 // ── Sequences ────────────────────────────────────────────────────────────────

@@ -5,7 +5,6 @@
   "timestamp": "2026-07-14T02:00:58.669Z",
   "config": {
     "lang": "es",
-    "generationModel": "gemini-3.1-flash-image",
     "name": "Ilustración moderna",
     "credits": "Pictos / MediaFranca",
     "license": "cc-by-sa",
@@ -1741,10 +1740,7 @@
       }
     },
     "libraryViewMode": "list",
-    "uiLang": "es-419",
-    "phase5Model": "claude-opus-4-6",
-    "aspectRatio": "1:1",
-    "imageModel": "pro"
+    "uiLang": "es-419"
   },
   "rows": [
     {

@@ -9,7 +9,6 @@
     "uiLang": "es-419",
     "license": "CC BY 4.0",
     "credits": "Pictos / MediaFranca",
-    "generationModel": "gemini-3.1-flash-image",
     "geoContext": {
       "lat": "-33.0498135",
       "lng": "-71.4415282",
@@ -1709,8 +1708,6 @@
       "#f5ed0a"
     ],
     "advancedConfigOpen": true,
-    "aspectRatio": "1:1",
-    "imageModel": "pro",
     "svgStyles": {
       "f": {
         "fill": "#000000",
@@ -1723,9 +1720,7 @@
         "strokeWidth": 0
       }
     },
-    "libraryViewMode": "list",
-    "phase5Model": "claude-opus-4-6",
-    "author": "Pictos.net"
+    "libraryViewMode": "list"
   },
   "rows": [
     {

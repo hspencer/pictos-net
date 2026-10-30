@@ -4,8 +4,6 @@
   "timestamp": "2026-02-03T00:37:15.751Z",
   "config": {
     "lang": "en",
-    "aspectRatio": "1:1",
-    "imageModel": "flash",
     "name": "Kitchen",
     "license": "CC BY 4.0",
     "visualStylePrompt": "Silhouettes on a flat white background. No gradients, no shadows, no textures and no outlines. Geometry: use thick, consistent strokes and geometric simplification. All limbs and terminals must have rounded ends and softened vertices. Composition: centred, flat 2D representation. Use negative (white) space to define the internal separation between overlapping black shapes (for example, the gap between a head and a torso). Clarity: maximise legibility and semantic recognition at small sizes. Avoid any facial features or intricate details. Use colour only on the distinctive element, if needed.",

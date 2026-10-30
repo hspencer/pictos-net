@@ -201,12 +201,15 @@ invariant RetraceRequiresBitmap {
 }
 
 invariant JointActionRequiresBitmapAndTree {
-  -- The experimental joint "Vectorizar y estructurar" action
-  -- (svg-structuring.allium JointVectorizeStructure) sits beside the retrace
-  -- action: available only when the row has a bitmap and a nonempty element
-  -- tree. A bitmap-only row shows both actions instead of a "trace required"
-  -- notice. Its region trace replaces rawSvg in the same update as its draft
-  -- or accepted revision; an earlier accepted revision becomes outdated.
+  -- The joint "Vectorizar y estructurar" action
+  -- (svg-structuring.allium JointVectorizeStructure) is available only when
+  -- the row has a bitmap and a nonempty element tree. On a bitmap-only row it
+  -- is the primary action and trace-only (TRAZAR) is secondary; with no tree,
+  -- TRAZAR stays primary. Once a trace exists it is secondary beside
+  -- ESTRUCTURAR. A bitmap-only row shows these actions instead of a "trace
+  -- required" notice. Its region trace replaces rawSvg in the same update as
+  -- its draft or accepted revision; an earlier accepted revision becomes
+  -- outdated.
   joint action is available iff row.bitmap exists and row.elements is nonempty
 }
 

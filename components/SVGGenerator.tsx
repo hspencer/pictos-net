@@ -462,13 +462,19 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
         }
     };
 
-    const jointButton = bitmapRef && Array.isArray(row.elements) && row.elements.length > 0 && (
+    // Primary on a bitmap (the default path, user decision 2026-10-30);
+    // secondary beside ESTRUCTURAR once a trace exists.
+    const canJoin = !!bitmapRef && Array.isArray(row.elements) && row.elements.length > 0;
+    const jointButton = (primary: boolean) => canJoin && (
         <button
+            type="button"
             onClick={handleJoint}
             title={t('svg.vectorizeAndStructureTitle')}
-            className="flex items-center justify-center gap-2 py-2 px-4 text-xs font-bold rounded border border-violet-300 text-violet-700 hover:bg-violet-50 transition-colors"
+            className={primary
+                ? 'w-full flex items-center justify-center gap-2 py-3 px-4 bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold uppercase tracking-widest rounded transition-colors shadow-md hover:shadow-lg'
+                : 'flex items-center justify-center gap-2 py-2 px-4 text-xs font-bold rounded border border-violet-300 text-violet-700 hover:bg-violet-50 transition-colors'}
         >
-            <Layers size={14} aria-hidden="true" /> {t('svg.vectorizeAndStructure')}
+            <Layers size={primary ? 15 : 14} aria-hidden="true" /> {t('svg.vectorizeAndStructure')}
         </button>
     );
 
@@ -477,17 +483,20 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
         return (
             <div className="flex flex-col gap-3">
                 {structureNotice}
+                {jointButton(true)}
                 {bitmapRef && onOpenVectorizer && (
                     <button
                         type="button"
                         onClick={onOpenVectorizer}
-                        className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold uppercase tracking-widest rounded transition-colors shadow-md hover:shadow-lg"
+                        title={t('svg.traceOnlyTitle')}
+                        className={canJoin
+                            ? 'flex items-center justify-center gap-2 py-2 px-4 text-xs font-bold rounded border border-slate-300 text-slate-600 hover:bg-slate-50 transition-colors'
+                            : 'w-full flex items-center justify-center gap-2 py-3 px-4 bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold uppercase tracking-widest rounded transition-colors shadow-md hover:shadow-lg'}
                         aria-label={t('svg.traceSvg')}
                     >
-                        <Scan size={15} aria-hidden="true" /> {t('svg.traceSvg')}
+                        <Scan size={canJoin ? 14 : 15} aria-hidden="true" /> {t('svg.traceSvg')}
                     </button>
                 )}
-                {jointButton}
                 {error && <p role="alert" className="text-xs text-red-600">{t(`svgGenerator.${error.key}`)}</p>}
             </div>
         );
@@ -824,7 +833,7 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
                                         ))}
                                     </select>
                                     <ModelPricing model={phase5Model} />
-                                    {jointButton}
+                                    {jointButton(false)}
                                     {structureNotice}
                                     {error && <p role="alert" className="text-xs text-red-600">{t(`svgGenerator.${error.key}`)}</p>}
                                 </>

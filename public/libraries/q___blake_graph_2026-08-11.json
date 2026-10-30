@@ -5,7 +5,6 @@
   "timestamp": "2026-08-11T03:29:45.927Z",
   "config": {
     "lang": "es",
-    "generationModel": "gemini-3.1-flash-image",
     "name": "Q • Blake",
     "credits": "Pictos / MediaFranca",
     "license": "cc-by",
@@ -1709,8 +1708,6 @@
     "advancedConfigOpen": true,
     "uiLang": "es-419",
     "annotatedContext": "",
-    "aspectRatio": "1:1",
-    "imageModel": "pro",
     "svgStyles": {
       "f": {
         "fill": "#000000",
@@ -1723,9 +1720,7 @@
         "strokeWidth": 0
       }
     },
-    "libraryViewMode": "grid",
-    "phase5Model": "claude-opus-4-6",
-    "author": "Pictos.net"
+    "libraryViewMode": "grid"
   },
   "rows": [
     {

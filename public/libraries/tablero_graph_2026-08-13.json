@@ -5,7 +5,6 @@
   "timestamp": "2026-08-13T16:22:42.257Z",
   "config": {
     "lang": "es",
-    "generationModel": "gemini-3.1-flash-image",
     "name": "Tablero",
     "credits": "Pictos / MediaFranca",
     "license": "cc-by",
@@ -1709,8 +1708,6 @@
     "advancedConfigOpen": true,
     "uiLang": "es-419",
     "annotatedContext": "",
-    "aspectRatio": "1:1",
-    "imageModel": "pro",
     "svgStyles": {
       "f": {
         "fill": "#000000",
@@ -1723,11 +1720,7 @@
         "strokeWidth": 0
       }
     },
-    "libraryViewMode": "list",
-    "phase5Model": "claude-opus-4-6",
-    "author": "Pictos.net",
-    "comprenderModel": "gemini-2.5-flash",
-    "componerModel": "gemini-2.5-flash"
+    "libraryViewMode": "list"
   },
   "rows": [
     {

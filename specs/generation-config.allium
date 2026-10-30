@@ -64,8 +64,12 @@ contract ModelCatalogBoundary {
     @invariant SelectionIsProspectiveAndExplicit
         -- Preserve existing defaults and saved selections. Adding a candidate
         -- does not replace a user's model or regenerate existing artifacts.
-        -- A saved selection whose model is retired or unknown is shown as
-        -- unavailable and is never replaced silently.
+        -- A saved selection whose model is retired or unknown is removed when
+        -- the library configuration is loaded, imported or restored, so that
+        -- phase follows the current default; the change is logged, never
+        -- silent (user decision 2026-10-30, shared libraryConfigMigration).
+        -- Valid saved selections are kept. A shipped template declares no
+        -- model: it follows the defaults of the version that imports it.
         -- Validate model and phase before any provider call. Unsupported
         -- combinations fail explicitly, without provider/model substitution:
         -- a run whose configured model may not run its phase is refused before

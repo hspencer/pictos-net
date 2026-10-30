@@ -5,7 +5,6 @@
   "timestamp": "2026-08-26T10:59:21.087Z",
   "config": {
     "lang": "es",
-    "generationModel": "gemini-3.1-flash-image",
     "name": "Escena descriptiva",
     "credits": "Pictos / MediaFranca",
     "license": "cc-by-sa",
@@ -1728,8 +1727,6 @@
     ],
     "advancedConfigOpen": true,
     "annotatedContext": "Composición bidimensional (2D) plana, perfectamente centrada sobre fondo blanco puro y con amplio espacio negativo perimetral. Diseño optimizado para máxima accesibilidad cognitiva. NUNCA incluir texto, letras, números, símbolos tipográficos, globos de diálogo ni firmas. Sin sombreado, sin volumen, sin perspectiva 3D, sin texturas de ningún tipo y sin líneas de suelo decorativas. Un único concepto visual, limpio, geométrico y legible de un solo vistazo.",
-    "aspectRatio": "1:1",
-    "imageModel": "pro",
     "svgStyles": {
       "f": {
         "fill": "#000000",
@@ -1743,8 +1740,7 @@
       }
     },
     "libraryViewMode": "list",
-    "uiLang": "es-419",
-    "phase5Model": "claude-opus-4-6"
+    "uiLang": "es-419"
   },
   "rows": [
     {

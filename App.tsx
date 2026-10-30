@@ -24,7 +24,7 @@ import * as Claude from './services/claudeService';
 import { generateImage } from './services/imageGenerationService';
 import * as Batch from './services/batchService';
 import { ExternalProviderQuotaError, ProviderRequestError, QuotaExceededError, callCheck } from './services/aiClient';
-import { GenerationModel, OpenAIImageQuality, DEFAULT_GENERATION_MODEL, migrateImageModel, migrateGenerationModel, GENERATION_MODEL_LABELS, Phase3Result, getModelFamily, configuredModel } from './types';
+import { GenerationModel, OpenAIImageQuality, DEFAULT_GENERATION_MODEL, GENERATION_MODEL_LABELS, Phase3Result, getModelFamily, configuredModel } from './types';
 import { structureSVG } from './services/svgStructureService';
 import { applySvgSafeUpdate, captureSvgSource, prepareSvgPromotion, prepareSvgDraft, observedSvgProvenance, svgForEditing, prepareSvgEditorUpdate } from './services/svgCanonical';
 import { verifySvgReference } from './schemas/pictos-svg-schema/index.js';
@@ -41,6 +41,7 @@ import * as IndexedDBService from './services/indexedDBService';
 import * as libraryService from './services/libraryService';
 import { createGraphDump, GRAPH_DUMP_SCHEMA_VERSION, rekeyBoardsForLibrary } from './services/libraryTransferService';
 import { INITIAL_STYLES } from './lib/style-editor/lib/constants';
+import { migrateLibraryConfig } from './netlify/functions/_shared/libraryConfigMigration.js';
 import { INITIAL_KEYFRAMES } from './lib/style-editor/lib/keyframeConstants';
 import packageJson from './package.json';
 import { SVGEditorModal } from './components/SVGEditor/SVGEditorModal';
@@ -463,15 +464,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
       if (savedConfig) {
         try {
           const parsed = typeof savedConfig === 'string' ? JSON.parse(savedConfig) : savedConfig;
-          if (parsed.imageModel !== undefined && !parsed.generationModel) {
-            parsed.generationModel = migrateImageModel(parsed.imageModel);
-            delete parsed.imageModel;
-          } else if (!parsed.generationModel) {
-            parsed.generationModel = DEFAULT_GENERATION_MODEL;
-          } else {
-            parsed.generationModel = migrateGenerationModel(parsed.generationModel);
-          }
-          setConfig({ ...DEFAULT_APP_CONFIG, ...parsed });
+          setConfig({ ...DEFAULT_APP_CONFIG, ...migrateConfig(parsed) });
         } catch (e) { console.error('Failed to load config', e); }
       }
 
@@ -720,7 +713,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
       // Merge over the baseline, NOT over prev — otherwise fields the library
       // never stored (svgStyleDefs, paletteColors, …) leak in from the
       // previously open library.
-      setConfig(savedConfig ? { ...DEFAULT_APP_CONFIG, ...savedConfig } : DEFAULT_APP_CONFIG);
+      setConfig(savedConfig ? { ...DEFAULT_APP_CONFIG, ...migrateConfig(savedConfig) } : DEFAULT_APP_CONFIG);
 
       // Merge IDB binaries (SVGs / bitmaps) asynchronously after the sync load.
       // Chain bitmap read behind any in-flight write to avoid a race where
@@ -1043,6 +1036,15 @@ const App: React.FC<AppProps> = ({ authUser }) => {
     if (type === 'success' || type === 'error') announce(message);
   };
 
+  /** Every configuration that enters the app passes the shared migration:
+   *  retired/unknown models dropped (phase follows the default), legacy fields
+   *  and styles converted. Templates also drop their pinned models. */
+  const migrateConfig = (raw: Partial<GlobalConfig>, pins: 'keep' | 'drop' = 'keep'): Partial<GlobalConfig> => {
+    const { config: migrated, changes } = migrateLibraryConfig(raw, { pins, baseStyleDefs: INITIAL_STYLES });
+    if (changes.length) addLog('info', t('messages.configMigrated', { changes: changes.join('; ') }));
+    return migrated;
+  };
+
   const processPhrases = (text: string) => {
     try {
       const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
@@ -1143,19 +1145,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
           const sanitized = parsed.rows.map(sanitizeRow);
           setRows(sanitized);
           if (parsed.config) {
-            const newConfig = { ...parsed.config };
-            // Retrocompatibilidad: author → name
-            if (!newConfig.name && newConfig.author) {
-              newConfig.name = newConfig.author;
-              delete newConfig.author;
-            }
-            if (!newConfig.generationModel) {
-              newConfig.generationModel = newConfig.imageModel
-                ? migrateImageModel(newConfig.imageModel)
-                : DEFAULT_GENERATION_MODEL;
-            }
-            delete newConfig.imageModel;
-            delete newConfig.aspectRatio;
+            const newConfig = { ...DEFAULT_APP_CONFIG, ...migrateConfig(parsed.config) };
             if (!newConfig.credits) newConfig.credits = '';
             if (!newConfig.license) newConfig.license = 'cc-by';
             setConfig(newConfig);
@@ -1312,10 +1302,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
         // effect would write the template config to the previously active library.
         let pendingConfig: GlobalConfig | null = null;
         if (data.config) {
-          pendingConfig = { ...data.config } as GlobalConfig;
-          if (!pendingConfig.name && (data.config as any).author) {
-            pendingConfig.name = (data.config as any).author;
-          }
+          pendingConfig = migrateConfig(data.config, 'drop') as GlobalConfig;
           libraryService.saveLibraryConfig(newLib.id, pendingConfig);
         }
 

@@ -5,7 +5,6 @@
   "timestamp": "2026-07-12T06:15:15.585Z",
   "config": {
     "lang": "es",
-    "generationModel": "gemini-2.5-flash-image",
     "name": "Simplex",
     "credits": "Pictos / MediaFranca",
     "license": "cc-by-sa",
@@ -1708,8 +1707,6 @@
       "#f5ed0a"
     ],
     "advancedConfigOpen": false,
-    "aspectRatio": "1:1",
-    "imageModel": "pro",
     "svgStyles": {
       "f": {
         "fill": "#000000",
@@ -1723,10 +1720,7 @@
       }
     },
     "uiLang": "es-419",
-    "libraryViewMode": "list",
-    "phase5Model": "claude-opus-4-6",
-    "comprenderModel": "gemini-2.5-flash",
-    "componerModel": "gemini-2.5-flash"
+    "libraryViewMode": "list"
   },
   "rows": [
     {
