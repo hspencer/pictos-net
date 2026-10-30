@@ -32,6 +32,8 @@ export interface TraceOptions {
     spliceThreshold?: number;
     simplify?: number;
     pathPrecision?: number;
+    /** Region colour: 'robust' (default, from shown pixels) | 'mean' (core cluster mean). */
+    colour?: 'robust' | 'mean';
 }
 
 export interface TraceRegion { regionId: number; color: string; bbox: [number, number, number, number]; area: number }

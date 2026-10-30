@@ -16,7 +16,7 @@ Rama `feat/vectorizar-estructurar`. Lo implementado declara qué se probó; nada
 | VE1 | Hecho | D08, D09, D11, D12, D13 (parcial, ver nota), D15 y D16 corregidos. Tests: `svgMappingValidation`, `svgBooleanOps` (huecos), `svgMergeCandidates` (pintura). Casos de regresión §12.3 de merge, anillo, acentos, transformaciones e ids verificados en navegador. |
 | VE2 | Hecho | Binding `lib/vtracer-web` sobre el núcleo fijado `2500df7`. Mosaico con procedencia exacta, cero rendijas, huecos reales. Comparación preliminar con 6 bitmaps: menos píxeles erróneos en los 6, la mitad de bytes, tiempo similar. |
 | VE3 | Hecho | `vectorizeAndStructure` y contrato `restructure_regions` (`regionMapping` + tests). Dos filas reales con Claude Sonnet 4.6: una sola petición, 5,3–7,4 k tokens de entrada, 10–17 s, fidelidad geométrica 0,0–0,65 %, separación solicitada en el contacto persona+pastel. |
-| VE4 | Parcial | Usa el pase de curvas del núcleo (`simplify: 1`) y las fronteras compartidas del mosaico. Pendiente: selección de candidatos de tolerancia contra el bitmap y protección de encuentros. |
+| VE4 | Parcial | Pase de curvas del núcleo (`simplify: 1`), fronteras compartidas del mosaico y color robusto por región. Pendiente: selección de candidatos de tolerancia contra el bitmap, protección de encuentros, ancho de líneas finas (≈1 px menor) y fusión de regiones de igual pintura y entidad. |
 | VE5 | Mínimo | Acción experimental "Vectorizar y estructurar" en filas con bitmap y árbol; instantánea, borrador, promoción y revisión por las guardas existentes. Pendiente: caché por dependencia, cancelación, diagnóstico de ambigüedades en la UI. |
 | VE6–VE8 | Pendiente | Requieren el corpus de VE0 y evaluación con personas. |
 
@@ -45,6 +45,26 @@ Lectura:
 - D pide separaciones donde hay contacto real (persona y pastel; "yo"+"tú" abrazados). En "Me duele la barriga" pidió separar `torso` de su propio padre `persona`; una región que abarca a un nodo y a su ancestro ahora se asigna al ancestro (con test). La segunda corrida de ese caso no repitió la solicitud: el modelo no es determinista y esa regla quedó cubierta solo por el test.
 - Ningún caso se certificó en ninguna variante: los NLU y bindings de ICAP son históricos (`nluNeedsReview`, `bindingsNeedReview`).
 - No mide tiempo humano de retoque. Este piloto no es el conjunto reservado: los ajustes hechos sobre él no pueden validarse con él.
+
+### Corrección de color y segunda medición de D (D2)
+
+Cambios, medidos sobre el mismo piloto (`docs/eval/icap-pilot-10-results-D2-2026-10-30.json`):
+
+- **Color robusto por región** (binding): mediana de los píxeles interiores visibles; en regiones sin interior, mediana del cuarto de píxeles más alejado del color circundante. A nivel de trazado baja el error de color sobre la tinta en los 10 casos (p. ej. 44: 7,4 → 6,1; 26: 10,6 → 9,1; pizza: 22,9 → 19,6). Límite: un halo en degradado recibe un plano algo más oscuro, lo que sube sus píxeles erróneos (pizza 1,0 → 2,6 %).
+- **La pérdida local de líneas finas era en buena parte un artefacto de medir a 256 px.** A 1024 px el color de la línea es correcto y su ancho es ≈1 px menor; a 256 esa línea cruza el umbral de tinta. El verificador de ensamblado pasa a 512 px (celdas de 32 px, misma proporción). A 512, la mediana de peor pérdida local de D2 es 11,8 % (a 256 seguía en 20,9 %).
+- **Ningún descarte borra geometría en el camino conjunto.** En una partición en mosaico no hay nada debajo de una región: borrarla perfora el dibujo. En "No me gusta que me toquen" el modelo propuso descartar 78 paths reales y el gate de micro-manchas (0,15 % por caja) lo permitía; ahora el ruido propuesto se absorbe en la región asignada que lo contiene (`absorbDiscards`, con test). El caso volvió a 124 paths y su peor celda bajó de 40 % a 10 %.
+- **Presupuesto de Claude para la fase 5: 50 s** (antes 30 s, límite síncrono 60 s). El caso más grande (158 regiones, ~1 900 tokens de salida) fallaba con 500 al cortar a 30 s; ahora completa en 25 s.
+
+| Medida (D2) | Valor |
+|---|---|
+| Píxeles erróneos a 256, media (sin la pizza) | 1,18 % (1,02 %) |
+| Píxeles erróneos a 512, media | 0,69 % |
+| Peor pérdida local a 512, mediana | 11,8 % |
+| Error de color sobre tinta a 512, media | 7,97 |
+| Nodos con geometría | 51 de 57 |
+| Paths sin asignar, media (mediana) | 12,4 % (4,4 %) |
+
+**Variabilidad semántica.** Con el mismo prompt, la respuesta del modelo cambia mucho entre corridas: la cobertura pasó de 55/57 a 51/57 (en "Necesito tomar mi medicina" faltaron cuatro nodos que la corrida anterior sí asignó) y en "Hoy me siento sobrecargado" el modelo dejó 89 regiones sin resolver. Estos cambios no vienen de la corrección de color ni de los descartes. Una corrida por caso no basta para evaluar la semántica: VE6 necesita varias corridas por caso y reportar media y dispersión.
 
 Hallazgos nuevos durante la implementación:
 

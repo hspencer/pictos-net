@@ -27,6 +27,14 @@ prints the SHA-256 of the WASM; record it in the commit message.
 - `finish(options)` traces every region and names the region of each path.
   It re-uses the segmentation, so changing curve options never re-segments.
 
+Colour: each region is repainted from the source pixels it shows (median of
+its visible interior pixels; for a region too thin to have an interior, the
+median of the quarter of its pixels farthest from the surrounding colour).
+The core's cluster mean includes the antialiased edge, so thin lines came out
+lighter than drawn. `colour: "mean"` restores the core's paint for comparison.
+On the ICAP pilot it lowered the mean colour error over inked pixels in all
+10 cases; a gradient region (pizza halo) gets a slightly darker flat colour.
+
 Semantic safety: the pipeline uses the `Identity` colour fitter and disables
 neighbour merging (`merge_diff = -1`), so no palette snap or merge can fuse two
 regions. Mosaic shapes carry only a paint, so each layer is painted with its

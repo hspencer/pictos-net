@@ -6,6 +6,9 @@
 //! path names the region it came from: provenance is explicit, never inferred
 //! from output order (the core drops empty shapes and carries no ids).
 //!
+//! Colour: each region is repainted from the source pixels it shows
+//! (`robust_paints`), so thin lines keep their drawn colour.
+//!
 //! Semantic safety: the pipeline is built by hand with the `Identity` color
 //! fitter and neighbour merging disabled, so no palette snap or merge can fuse
 //! two regions behind PICTOS's back.
@@ -22,6 +25,7 @@ use vtracer::colorfit::Identity;
 use vtracer::ir::Paint;
 use vtracer::compose::Compositing;
 use vtracer::ir::{Layer, Segmentation, Shape, VectorDoc};
+use vtracer::mosaic::{LabelMap, OUTSIDE};
 use vtracer::svg::SvgWriter;
 use vtracer::{Color, ColorImage, Config, Hierarchical, Pipeline};
 use wasm_bindgen::prelude::*;
@@ -42,6 +46,8 @@ struct Options {
     splice_threshold: Option<i32>,
     /// Curve simplification tolerance in px (omit = off).
     simplify: Option<f64>,
+    /// Region colour: "robust" (default, see `robust_paints`) | "mean" (core).
+    colour: Option<String>,
     path_precision: Option<u32>,
 }
 
@@ -66,12 +72,12 @@ fn err(msg: impl std::fmt::Display) -> JsValue {
     JsValue::from_str(&msg.to_string())
 }
 
-fn config_from(options: JsValue) -> Result<Config, JsValue> {
-    let o: Options = if options.is_undefined() || options.is_null() {
-        Options::default()
-    } else {
-        serde_wasm_bindgen::from_value(options).map_err(err)?
-    };
+fn parse_options(options: &JsValue) -> Result<Options, JsValue> {
+    if options.is_undefined() || options.is_null() { return Ok(Options::default()); }
+    serde_wasm_bindgen::from_value(options.clone()).map_err(err)
+}
+
+fn config_from(o: Options) -> Result<Config, JsValue> {
     let mut c = Config::default();
     if let Some(v) = o.clustering { c.clustering = v.parse().map_err(err)?; }
     c.hierarchical = match o.compositing.as_deref() {
@@ -127,6 +133,71 @@ fn path_d(writer: &SvgWriter, width: u32, height: u32, shape: Shape) -> Option<S
     Some(svg[start..end].to_string())
 }
 
+/// Recolour every region from the source pixels it actually shows.
+///
+/// The core paints a region with its cluster mean, which includes the
+/// antialiased edge: a thin line comes out lighter (or darker) than drawn.
+/// Here a region takes the per-channel median of its visible interior pixels
+/// (all four neighbours in the same region). A region too thin to have an
+/// interior takes the median of the quarter of its pixels farthest from the
+/// colour around it — the core of the line, not its blend with the paper.
+fn robust_paints(seg: &mut Segmentation, img: &ColorImage) {
+    let map = LabelMap::from_segmentation(seg);
+    let (w, h) = (map.width as usize, map.height as usize);
+    let n = seg.layers.len();
+    let px = |i: usize| [img.pixels[i * 4], img.pixels[i * 4 + 1], img.pixels[i * 4 + 2]];
+    let mut interior: Vec<Vec<[u8; 3]>> = vec![Vec::new(); n];
+    let mut all: Vec<Vec<[u8; 3]>> = vec![Vec::new(); n];
+    let mut around: Vec<[u64; 4]> = vec![[0; 4]; n];
+    for y in 0..h {
+        for x in 0..w {
+            let i = y * w + x;
+            let l = map.labels[i];
+            if l == OUTSIDE { continue; }
+            let l = l as usize;
+            let c = px(i);
+            all[l].push(c);
+            let mut inside = true;
+            for (dx, dy) in [(-1i32, 0i32), (1, 0), (0, -1), (0, 1)] {
+                let (nx, ny) = (x as i32 + dx, y as i32 + dy);
+                if nx < 0 || ny < 0 || nx as usize >= w || ny as usize >= h { continue; }
+                let j = ny as usize * w + nx as usize;
+                if map.labels[j] != l as u32 {
+                    inside = false;
+                    let o = px(j);
+                    let a = &mut around[l];
+                    a[0] += o[0] as u64; a[1] += o[1] as u64; a[2] += o[2] as u64; a[3] += 1;
+                }
+            }
+            if inside { interior[l].push(c); }
+        }
+    }
+    let median = |v: &mut Vec<[u8; 3]>| -> Color {
+        let mut ch = [0u8; 3];
+        for k in 0..3 {
+            v.sort_unstable_by_key(|c| c[k]);
+            ch[k] = v[v.len() / 2][k];
+        }
+        Color::new(ch[0], ch[1], ch[2])
+    };
+    for (l, layer) in seg.layers.iter_mut().enumerate() {
+        let mut pick = if interior[l].len() >= 4 {
+            std::mem::take(&mut interior[l])
+        } else if !all[l].is_empty() && around[l][3] > 0 {
+            let a = around[l];
+            let m = [a[0] as f64 / a[3] as f64, a[1] as f64 / a[3] as f64, a[2] as f64 / a[3] as f64];
+            let dist = |c: &[u8; 3]| (0..3).map(|k| (c[k] as f64 - m[k]).powi(2)).sum::<f64>();
+            let mut v = std::mem::take(&mut all[l]);
+            v.sort_by(|p, q| dist(q).partial_cmp(&dist(p)).unwrap());
+            v.truncate((v.len() / 4).max(1));
+            v
+        } else {
+            continue; // fully covered or isolated: keep the core's paint
+        };
+        layer.paint = Paint::Solid(median(&mut pick));
+    }
+}
+
 #[wasm_bindgen]
 pub struct TraceSession {
     seg: Segmentation,
@@ -140,9 +211,12 @@ impl TraceSession {
         if rgba.len() != width * height * 4 {
             return Err(err(format!("rgba length {} != width*height*4 ({})", rgba.len(), width * height * 4)));
         }
-        let config = config_from(options)?;
+        let opts = parse_options(&options)?;
+        let robust = opts.colour.as_deref() != Some("mean");
+        let config = config_from(opts)?;
         let img = ColorImage { pixels: rgba, width, height };
-        let seg = safe_pipeline(&config)?.segment(&img).map_err(err)?;
+        let mut seg = safe_pipeline(&config)?.segment(&img).map_err(err)?;
+        if robust { robust_paints(&mut seg, &img); }
         Ok(TraceSession { seg })
     }
 
@@ -178,7 +252,7 @@ impl TraceSession {
     /// a region may yield several paths (disjoint visible islands in mosaic)
     /// or none (empty, or fully covered in mosaic).
     pub fn finish(&self, options: JsValue) -> Result<JsValue, JsValue> {
-        let config = config_from(options)?;
+        let config = config_from(parse_options(&options)?)?;
         let pipeline = safe_pipeline(&config)?;
         let writer = SvgWriter { relative: false, shorthands: false, precision: config.path_precision };
         let (w, h) = (self.seg.width, self.seg.height);

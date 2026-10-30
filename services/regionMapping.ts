@@ -165,3 +165,31 @@ export function regionAnswerToMapping(
     const { mapping, issues } = validateStructuringMapping(draft, orderedPathIds, nodeIds);
     return { mapping, diagnostics: { ...issues, protectedRegions, splitRequests, unresolved } };
 }
+
+export interface RegionBox { regionId: number; bbox: [number, number, number, number] }
+
+/**
+ * In a mosaic partition nothing lies under a region: deleting one punches a
+ * hole in the drawing. So a region proposed as noise is never removed; it is
+ * absorbed by the smallest assigned region whose box contains its centre (it
+ * follows that group, like a sliver), or left unassigned when none does.
+ * ponytail: containment by bbox centre, not adjacency (same as slivers).
+ */
+export function absorbDiscards(mapping: StructuringMapping, regionOf: (pathId: string) => RegionBox | undefined): { mapping: StructuringMapping; absorbed: number } {
+    const owners = mapping.groups.flatMap(g => g.keep.map(id => ({ group: g, box: regionOf(id) })))
+        .filter((o): o is { group: StructuringMapping['groups'][number]; box: RegionBox } => !!o.box);
+    let absorbed = 0;
+    for (const id of mapping.discard) {
+        const r = regionOf(id);
+        if (!r) continue;
+        const cx = r.bbox[0] + r.bbox[2] / 2, cy = r.bbox[1] + r.bbox[3] / 2;
+        let best: (typeof owners)[number] | null = null;
+        for (const o of owners) {
+            const [x, y, w, h] = o.box.bbox;
+            if (o.box.regionId === r.regionId || cx < x || cx > x + w || cy < y || cy > y + h) continue;
+            if (!best || w * h < best.box.bbox[2] * best.box.bbox[3]) best = o;
+        }
+        if (best) { best.group.keep.push(id); absorbed++; }
+    }
+    return { mapping: { ...mapping, discard: [] }, absorbed };
+}

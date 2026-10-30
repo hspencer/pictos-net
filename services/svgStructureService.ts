@@ -34,7 +34,7 @@ import { findUnreachableNodeIds } from './svgTreeUtils';
 import { isMicroBlob } from './svgGeometryUtils';
 import { detectMergeCandidates } from './svgMergeCandidates';
 import { validateStructuringMapping } from './svgMappingValidation';
-import { REGION_TOOL, buildRegionToolSchema, regionAnswerToMapping, type RegionDiagnostics } from './regionMapping';
+import { REGION_TOOL, absorbDiscards, buildRegionToolSchema, regionAnswerToMapping, type RegionDiagnostics } from './regionMapping';
 import { openTraceSession, VTRACER_WEB_ENGINE, type TraceOptions, type TraceRegion, type TracedRegionPath } from './vtracerWebService';
 import { shouldSimplify, roundPathD } from './svgPathPolish';
 import { canStructureSVG, svgForStructuring } from './svgCanonical';
@@ -1758,11 +1758,13 @@ export async function redrawSVG(input: SVGStructureInput): Promise<SVGStructureR
 // pictograms on a large viewBox are judged at the same sensitivity.
 // ponytail: single global knob; per-element thresholds if ever needed.
 const FIDELITY_DIFF_LIMIT = 0.05;
-const FIDELITY_RASTER_SIZE = 256;
-// A 16×16 grid of 16 px cells: losing half the ink of any one cell fails,
+// 512 px: at 256 a thin line (≈5 px at 1024) renders as a sub-pixel blend that
+// crosses the ink threshold and reads as a false local loss.
+const FIDELITY_RASTER_SIZE = 512;
+// A 16×16 grid of 32 px cells: losing half the ink of any one cell fails,
 // so a small detail (an eye, a pain mark) is not diluted by a large drawing.
-const FIDELITY_CELL = 16;
-const FIDELITY_CELL_MIN_INK = 8;
+const FIDELITY_CELL = 32;
+const FIDELITY_CELL_MIN_INK = 32;
 const FIDELITY_CELL_LOSS_LIMIT = 0.5;
 // RGB distance above which an interior pixel counts as recoloured. Reported,
 // not failing: a library palette may recolour on purpose.
@@ -2165,12 +2167,17 @@ ${regionLines}`;
         if (response.usage) input.onProgress?.(`[VECTORIZAR+ESTRUCTURAR] tokens: entrada=${response.usage.input_tokens}, salida=${response.usage.output_tokens}`);
 
         // Mark numbers index markedPaths, so marked ids come first.
-        const { mapping, diagnostics } = regionAnswerToMapping(
+        let { mapping, diagnostics } = regionAnswerToMapping(
             extractToolUse(response, REGION_TOOL),
             [...markedPaths.map(p => p.id), ...inventory.paths.filter(p => !markedSet.has(p.id)).map(p => p.id)],
             new Set(nodeList.map(n => n.id)),
             new Map(nodeList.map(n => [n.id, n.parentId])),
         );
+        // Never delete from a partition: proposed noise joins its container.
+        const proposed = mapping.discard.length;
+        const absorbedResult = absorbDiscards(mapping, trace.regionOf);
+        mapping = absorbedResult.mapping;
+        if (proposed) input.onProgress?.(`[VECTORIZAR+ESTRUCTURAR] ${proposed} path(s) propuesto(s) como ruido: ${absorbedResult.absorbed} absorbido(s) por la región que los contiene, el resto queda sin asignar (nada se borra de la partición)`);
         if (diagnostics.splitRequests.length || diagnostics.unresolved.length) {
             input.onProgress?.(`[VECTORIZAR+ESTRUCTURAR] ambigüedades: ${diagnostics.splitRequests.map(s => `${s.region} → ${s.entities.join('+')}`).join(', ') || 'ninguna separación'}; sin resolver: ${diagnostics.unresolved.join(', ') || 'ninguna'}`);
         }

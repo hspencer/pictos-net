@@ -161,14 +161,18 @@ contract JointVectorizeStructure {
         -- fused by colour or neighbour merging behind the caller. A light
         -- region spanning the whole canvas is paper. A region too small to
         -- mark follows the region containing it and is never dropped for
-        -- being small alone.
+        -- being small alone. A region is painted from the source pixels it
+        -- shows (interior median), not its cluster mean, so thin lines keep
+        -- their drawn colour.
 
     @invariant VersionedRegionContract
         -- The request uses its own tool name, so an answer is never read
         -- under the path contract. Its answer may assign, protect, propose a
-        -- discard, request a split or leave a region unresolved. Protected
-        -- regions are never discarded; a discard proposal still passes the
-        -- local micro-blob gate.
+        -- discard, request a split or leave a region unresolved. In a mosaic
+        -- partition nothing lies under a region, so no proposal deletes
+        -- geometry: proposed noise is absorbed by the assigned region that
+        -- contains it, or stays unassigned. A split between a node and its
+        -- own ancestor assigns the region to the ancestor.
 
     @invariant DoubtStaysVisible
         -- A split-requested or unresolved region is assigned to no node: its

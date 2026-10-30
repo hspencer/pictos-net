@@ -18,6 +18,8 @@ import { providerFailure } from './_shared/providerError.js';
 import { modelAllowed } from './_shared/modelCatalog.js';
 import { contractAudit } from './_shared/pipelineContracts.js';
 
+const PHASE5_TOOLS = new Set(['restructure_svg', 'restructure_regions', 'redraw_svg']);
+
 const ALLOWED_ORIGINS = [
   'https://pictos.net',
   'https://next.pictos.net',
@@ -130,7 +132,9 @@ async function handleRequest(event, context) {
         retries: 2,
         baseDelayMs: 1000,
         retryOn429: true,
-        maxTotalMs: 30_000,
+        // Phase 5 answers for large pictograms (150+ regions) can exceed 30 s;
+        // still well inside the 60 s synchronous function limit.
+        maxTotalMs: PHASE5_TOOLS.has(tool_choice?.name) ? 50_000 : 30_000,
         onRetry: (attempt, total, waitMs, status) => {
           providerAttempts = attempt + 1;
           console.warn(`[api-claude] request=${clientRequestId} provider_retry=${attempt}/${total} status=${status} wait_ms=${Math.round(waitMs)}`);

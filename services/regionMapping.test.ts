@@ -5,7 +5,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildRegionToolSchema, regionAnswerToMapping } from './regionMapping.ts';
+import { absorbDiscards, buildRegionToolSchema, regionAnswerToMapping } from './regionMapping.ts';
 
 const PATHS = ['r1', 'r2', 'r2_1', 'r2_a7', 'r3', 'r4'];
 const NODES = new Set(['persona', 'mano', 'vaso']);
@@ -69,4 +69,17 @@ test('a split between a node and its descendant goes to the ancestor', () => {
     assert.deepEqual(mapping.groups.find(g => g.nodeId === 'persona')?.keep, ['r2', 'r2_1', 'r2_a7']);
     assert.ok(!mapping.groups.some(g => g.keep.includes('r4')), 'siblings stay unresolved');
     assert.equal(diagnostics.splitRequests.length, 2, 'both splits stay recorded');
+});
+
+test('a proposed discard is absorbed by the region containing it, never removed', () => {
+    const boxes: Record<string, [number, number, number, number]> = { r1: [0, 0, 100, 100], r2: [10, 10, 20, 20], r3: [40, 40, 5, 5], r4: [500, 500, 5, 5] };
+    const regionOf = (id: string) => boxes[id.replace(/_.*$/, '')] && { regionId: Number(id.replace(/_.*$/, '').slice(1)), bbox: boxes[id.replace(/_.*$/, '')] };
+    const mapping = { description: '', discard: ['r3', 'r4'], groups: [
+        { nodeId: 'persona', label: 'p', cssClass: 'k', keep: ['r1'], selected: true, merge: null, parentId: null },
+        { nodeId: 'mano', label: 'm', cssClass: 'k', keep: ['r2'], selected: true, merge: null, parentId: 'persona' },
+    ] };
+    const { mapping: out, absorbed } = absorbDiscards(mapping, regionOf);
+    assert.deepEqual(out.discard, []);
+    assert.deepEqual(out.groups[0].keep, ['r1', 'r3'], 'r3 lies inside r1 only');
+    assert.equal(absorbed, 1, 'r4 is contained by no assigned region: left unassigned');
 });
