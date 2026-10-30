@@ -13,7 +13,7 @@
  *
  * ponytail: runs on the main thread (~100 ms at 1024² on the reference
  * machine). Move to a Worker, cancelled by terminate(), if it ever blocks the UI.
- * Used in: (VE3 joint vectorise+structure — not wired into the cascade yet).
+ * Used in: svgStructureService.vectorizeAndStructure.
  */
 
 import init, { TraceSession } from '../lib/vtracer-web/pkg/vtracer_web.js';
@@ -51,19 +51,4 @@ export async function openTraceSession(bitmap: HTMLImageElement | ImageBitmap, m
     const ctx = canvas.getContext('2d')!;
     ctx.drawImage(bitmap, 0, 0, w, h);
     return new TraceSession(new Uint8Array(ctx.getImageData(0, 0, w, h).data.buffer), w, h, options);
-}
-
-/** Regions plus their traced paths as one SVG whose path ids are `r<regionId>`
- *  (a region split into islands repeats as `r<id>_<n>`). */
-export function regionsToSvg(session: TraceSession, options: TraceOptions = {}): { svg: string; regions: TraceRegion[]; paths: TracedRegionPath[] } {
-    const regions = session.regions() as TraceRegion[];
-    const paths = session.finish(options) as TracedRegionPath[];
-    const seen = new Map<number, number>();
-    const body = paths.map(p => {
-        const n = seen.get(p.regionId) ?? 0;
-        seen.set(p.regionId, n + 1);
-        return `<path id="r${p.regionId}${n ? `_${n}` : ''}" d="${p.d}" fill="${p.color}"/>`;
-    }).join('');
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${session.width()} ${session.height()}">${body}</svg>`;
-    return { svg, regions, paths };
 }

@@ -22,7 +22,7 @@ export const handler = async (event, context) => {
     provider = MODEL_CATALOG[input.model]?.provider;
     if (!['gemini', 'openai'].includes(provider) || !modelSupportsPhase(input.model, 5)) throw new Error('Unsupported structuring model');
     const name = input.tool_choice?.name;
-    if (input.tool_choice?.type !== 'tool' || !['restructure_svg', 'redraw_svg'].includes(name) ||
+    if (input.tool_choice?.type !== 'tool' || !['restructure_svg', 'restructure_regions', 'redraw_svg'].includes(name) ||
         !Array.isArray(input.tools) || input.tools.length !== 1 || input.tools[0]?.name !== name ||
         !input.tools[0].input_schema || !Array.isArray(input.messages) || !input.messages.length) throw new Error('Staging requires a Phase 5 tool request');
     if (provider === 'openai') {

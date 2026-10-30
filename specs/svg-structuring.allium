@@ -146,6 +146,43 @@ contract LocalGeometryAssembly {
         -- diagnostic.
 }
 
+contract JointVectorizeStructure {
+    vectorize_and_structure: (bitmap: String, input: StructuringInput) -> String
+
+    @invariant OneSemanticRequest
+        -- Tracing, region compaction, assembly and verification are local.
+        -- The operation makes one semantic request; changing only curve
+        -- tolerance never repeats it. The NLU, utterance and composition
+        -- prompt are not sent: the bitmap, the numbered regions, the tree and
+        -- the palette suffice.
+
+    @invariant RegionsKeepProvenance
+        -- Every traced path names the region it came from; regions are never
+        -- fused by colour or neighbour merging behind the caller. A light
+        -- region spanning the whole canvas is paper. A region too small to
+        -- mark follows the region containing it and is never dropped for
+        -- being small alone.
+
+    @invariant VersionedRegionContract
+        -- The request uses its own tool name, so an answer is never read
+        -- under the path contract. Its answer may assign, protect, propose a
+        -- discard, request a split or leave a region unresolved. Protected
+        -- regions are never discarded; a discard proposal still passes the
+        -- local micro-blob gate.
+
+    @invariant DoubtStaysVisible
+        -- A split-requested or unresolved region is assigned to no node: its
+        -- geometry survives as unassigned in a draft with the localized
+        -- ambiguity. No split is performed by renaming; resolving a split
+        -- needs a mask (a later stage) or the editor.
+
+    @invariant SameAssemblyAndVerification
+        -- The region trace goes through the same assembly and fidelity
+        -- comparison as ESTRUCTURAR, and is returned as the technical artifact
+        -- the structure derives from. Explicit library style strokes are not
+        -- counted as geometry loss when the trace has no strokes of its own.
+}
+
 contract GeometricEditingBoundary {
     can_trace: (bitmap_available: Boolean) -> Boolean
     can_edit_trace: (trace_available: Boolean) -> Boolean

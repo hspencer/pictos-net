@@ -34,6 +34,8 @@ import { findUnreachableNodeIds } from './svgTreeUtils';
 import { isMicroBlob } from './svgGeometryUtils';
 import { detectMergeCandidates } from './svgMergeCandidates';
 import { validateStructuringMapping } from './svgMappingValidation';
+import { REGION_TOOL, buildRegionToolSchema, regionAnswerToMapping, type RegionDiagnostics } from './regionMapping';
+import { openTraceSession, VTRACER_WEB_ENGINE, type TraceOptions, type TraceRegion, type TracedRegionPath } from './vtracerWebService';
 import { shouldSimplify, roundPathD } from './svgPathPolish';
 import { canStructureSVG, svgForStructuring } from './svgCanonical';
 import { bakeMatrixIntoPathD, parseTransformToMatrix } from '../utils/svgNormalizer';
@@ -1887,7 +1889,12 @@ export async function assembleAndVerify(
 
     const rawSvgWithIds = ensurePathIds(input.rawSvg);
     const pct = (n: number) => `${(n * 100).toFixed(1)}%`;
-    let fidelity = await verifyFidelity(rawSvgWithIds, artifact(result)!);
+    // A library class may add a stroke (e.g. a white 3pt outline): that is an
+    // explicit style, not a geometry change. When the raw drawing has no
+    // strokes at all (traced output), compare with style strokes neutralised.
+    const styleStrokes = !/\bstroke\s*[=:]/.test(rawSvgWithIds);
+    const measured = (svg: string) => styleStrokes ? svg.replace('</style>', 'svg path { stroke: none !important; }</style>') : svg;
+    let fidelity = await verifyFidelity(rawSvgWithIds, measured(artifact(result)!));
     if (fidelity.ok === null) {
         input.onProgress?.('[ESTRUCTURAR] fidelidad no medible (no se pudo rasterizar) — calidad desconocida, revisa el resultado');
         return result;
@@ -1895,7 +1902,7 @@ export async function assembleAndVerify(
     if (!fidelity.ok) {
         const noMerge = assembleFromMapping(stripMerges(mapping), input, selectionOverrides, labelOverrides);
         if (noMerge.success && artifact(noMerge)) {
-            const nmFidelity = await verifyFidelity(rawSvgWithIds, artifact(noMerge)!);
+            const nmFidelity = await verifyFidelity(rawSvgWithIds, measured(artifact(noMerge)!));
             if (nmFidelity.ok !== null && nmFidelity.diffFraction + nmFidelity.worstCellLoss < fidelity.diffFraction + fidelity.worstCellLoss) {
                 input.onProgress?.(`[ESTRUCTURAR] variante sin fusiones es más fiel (${pct(nmFidelity.diffFraction)} vs ${pct(fidelity.diffFraction)}) — usando esa`);
                 result = noMerge;
@@ -1903,7 +1910,7 @@ export async function assembleAndVerify(
             }
         }
     }
-    const detail = `${pct(fidelity.diffFraction)} del área dibujada difiere (+${pct(fidelity.added)} tinta añadida, -${pct(fidelity.removed)} tinta perdida), peor zona local -${pct(fidelity.worstCellLoss)}, color cambiado en ${pct(fidelity.recoloured)} del interior`;
+    const detail = `${styleStrokes ? '(trazos de estilo excluidos) ' : ''}${pct(fidelity.diffFraction)} del área dibujada difiere (+${pct(fidelity.added)} tinta añadida, -${pct(fidelity.removed)} tinta perdida), peor zona local -${pct(fidelity.worstCellLoss)}, color cambiado en ${pct(fidelity.recoloured)} del interior`;
     input.onProgress?.(fidelity.ok
         ? `[ESTRUCTURAR] fidelidad OK: ${detail}`
         : `[ESTRUCTURAR] aviso de fidelidad: ${detail} — revisa el resultado`);
@@ -1987,6 +1994,197 @@ export async function structureSVG(input: SVGStructureInput): Promise<SVGStructu
             success: false,
             diagnostic: svgStructureDiagnostic(error),
             error: error instanceof Error ? error.message : 'Error desconocido en ESTRUCTURAR',
+        };
+    }
+}
+
+// ─── Joint VECTORIZAR + ESTRUCTURAR (plan VE3) ────────────────────────────────
+
+export interface JointStructureInput extends Omit<SVGStructureInput, 'rawSvg' | 'referenceImage'> {
+    /** Source bitmap as a data URL: the visual truth and the tracing input. */
+    bitmap: string;
+}
+
+export interface JointStructureResult extends SVGStructureResult {
+    /** The region trace the structure was built from (a technical artifact). */
+    rawSvg?: string;
+    regionDiagnostics?: RegionDiagnostics;
+}
+
+// Conservative segmentation: a 2 px speckle filter (4 px area) keeps small
+// details; the colour settings are the legacy pictogram preset's, in the
+// core's own units.
+const JOINT_SEGMENT: TraceOptions = { colorPrecision: 6, layerDifference: 16, filterSpeckle: 2 };
+const JOINT_FINISH: TraceOptions = { simplify: 1 };
+// Regions under 64 px at 1024² (scaled with the canvas) are not marked.
+const JOINT_TINY_AREA = 64 / (1024 * 1024);
+
+function lightness(hex: string): number {
+    const n = parseInt(hex.replace('#', ''), 16);
+    return (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
+}
+
+/**
+ * Turn traced regions into the SVG the structuring request works on.
+ * - A light region spanning the whole canvas is the paper: not emitted
+ *   (rendering on white is unchanged; the verifier measures it).
+ * - A region under JOINT_TINY_AREA is attached to the smallest marked region
+ *   whose box contains its centre, as `r<parent>_a<child>`: it follows its
+ *   parent's semantic decision. A tiny light speck held only by the paper is
+ *   paper; a tiny dark one stays its own unassigned region.
+ * ponytail: containment by bbox centre, not true adjacency — the binding does
+ *   not expose neighbours yet.
+ */
+function buildJointTrace(width: number, height: number, regions: TraceRegion[], paths: TracedRegionPath[]) {
+    const tiny = JOINT_TINY_AREA * width * height;
+    const byId = new Map(regions.map(r => [r.regionId, r]));
+    const paper = new Set(regions
+        .filter(r => r.bbox[0] <= 0 && r.bbox[1] <= 0 && r.bbox[2] >= width && r.bbox[3] >= height && lightness(r.color) > 0.85)
+        .map(r => r.regionId));
+    const containers = regions.filter(r => r.area >= tiny && !paper.has(r.regionId));
+    const parentOf = new Map<number, number>();
+    for (const r of regions) {
+        if (r.area >= tiny || paper.has(r.regionId)) continue;
+        const cx = r.bbox[0] + r.bbox[2] / 2, cy = r.bbox[1] + r.bbox[3] / 2;
+        let best: TraceRegion | null = null;
+        for (const c of containers) {
+            const [x, y, w, h] = c.bbox;
+            if (cx >= x && cx <= x + w && cy >= y && cy <= y + h && (!best || w * h < best.bbox[2] * best.bbox[3])) best = c;
+        }
+        if (best) parentOf.set(r.regionId, best.regionId);
+        else if (lightness(r.color) > 0.85) paper.add(r.regionId);
+    }
+
+    const islands = new Map<number, number>();
+    const body: string[] = [];
+    const marked: string[] = [];
+    const attached: string[] = [];
+    for (const p of paths) {
+        if (paper.has(p.regionId)) continue;
+        const n = islands.get(p.regionId) ?? 0;
+        islands.set(p.regionId, n + 1);
+        const parent = parentOf.get(p.regionId);
+        const id = parent === undefined
+            ? `r${p.regionId}${n ? `_${n}` : ''}`
+            : `r${parent}_a${p.regionId}${n ? `x${n}` : ''}`;
+        (parent === undefined ? marked : attached).push(id);
+        body.push(`<path id="${id}" d="${p.d}" fill="${p.color}"/>`);
+    }
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}">${body.join('')}</svg>`;
+    const regionOf = (id: string) => byId.get(Number(id.slice(1).replace(/_.*$/, '')));
+    return { svg, marked, attached, paperCount: paper.size, regionOf };
+}
+
+function buildRegionSystemPrompt(): string {
+    return `Eres un agente de estructuración semántica de pictogramas AAC (Comunicación Aumentativa y Alternativa).
+
+Recibes:
+1. IMAGEN A — el bitmap original. Es la VERDAD visual.
+2. IMAGEN B — el mismo dibujo vectorizado como partición en regiones de color. Cada región visible lleva un círculo rojo numerado (marca); si una marca se desplazó para ser legible, una línea roja fina la une a su región.
+3. El árbol semántico: nodos existentes con id, concepto y etiqueta.
+4. La lista de regiones: marca, id, color, caja y área.
+5. La paleta CSS de la librería.
+
+Tu tarea es decidir a qué nodo pertenece cada región. La geometría ya está calculada: nunca la escribes ni la redibujas.
+
+Reglas:
+1. Cada región va a lo sumo en un grupo (campo regions; usa el id rN o el número de marca).
+2. Si una región contiene visiblemente varios nodos (p. ej. una sola forma negra que es a la vez mano y vaso), decláralo en splitRequests con esos nodos y una pista de dónde está el límite, y no la asignes a ningún grupo.
+3. Si no está claro a qué nodo pertenece una región, ponla en unresolved. Nunca la fuerces al nodo más parecido.
+4. Marca en protected toda región con significado aunque sea pequeña: ojos, dedos, flechas, marcas de dolor o movimiento.
+5. En discardProposals propón solo lo que en la IMAGEN A no existe (motas del trazado). Es una propuesta: el sistema decide localmente.
+6. Un nodo sin región visible (por ejemplo una acción implícita) no lleva grupo. No inventes grupos ni nodos.
+7. cssClass es una clase de COLOR de la paleta acorde al color de la región ("k" oscuro, "f" claro, "accent" color). Nunca recolorees.
+8. parentId es null en el nivel superior o un nodeId válido.`;
+}
+
+/**
+ * Joint VECTORIZAR + ESTRUCTURAR: trace the bitmap into regions locally,
+ * make ONE semantic request, and assemble locally through the same
+ * assembleAndVerify path as ESTRUCTURAR. The NLU, utterance and composition
+ * prompt are not sent (plan §2.1). Returns the region trace too, so the
+ * caller can keep it as the technical artifact the structure derives from.
+ * Experimental: not wired into the cascade (plan VE5).
+ */
+export async function vectorizeAndStructure(input: JointStructureInput): Promise<JointStructureResult> {
+    try {
+        const model = input.phase5Model ?? 'claude-sonnet-4-6';
+        assertModelAvailable(model, [5]);
+        const ref = parseDataUrl(input.bitmap);
+        if (!ref) return { svg: '', success: false, diagnostic: { key: 'traceRequired' } };
+
+        input.onProgress?.(`[VECTORIZAR+ESTRUCTURAR] segmentando regiones (${VTRACER_WEB_ENGINE.core})…`);
+        const img = new Image();
+        img.src = input.bitmap;
+        await img.decode();
+        const session = await openTraceSession(img, 1024, JOINT_SEGMENT);
+        let trace: ReturnType<typeof buildJointTrace>;
+        try {
+            trace = buildJointTrace(session.width(), session.height(), session.regions() as TraceRegion[], session.finish(JOINT_FINISH) as TracedRegionPath[]);
+        } finally {
+            session.free();
+        }
+        const rawSvg = trace.svg;
+        input.onProgress?.(`[VECTORIZAR+ESTRUCTURAR] ${trace.marked.length} regiones marcadas, ${trace.attached.length} astillas adjuntas, ${trace.paperCount} región(es) de papel`);
+
+        const admission = canStructureSVG({ rawSvg, elements: input.elements });
+        if (!admission.eligible) return { svg: '', rawSvg, success: false, diagnostic: { key: admission.reasonKey! } };
+        const inventory = buildPathInventory(rawSvg);
+        const markedSet = new Set(trace.marked);
+        const markedPaths = inventory.paths.filter(p => markedSet.has(p.id));
+        const image = await rasterizeWithMarks(rawSvg, { ...inventory, paths: markedPaths });
+
+        const nodeList = flattenElements(input.elements);
+        const regionLines = markedPaths.map((p, i) => {
+            const r = trace.regionOf(p.id);
+            const [x, y, w, h] = (p.bbox ?? [0, 0, 0, 0]).map(Math.round);
+            return `  mark ${i}: ${p.id} color=${r?.color ?? p.fill} caja=(${x},${y},${w},${h}) área=${r?.area ?? '?'}px`;
+        }).join('\n');
+        const userText = `Árbol semántico:
+${nodeList.map(n => `- ${n.id} [${n.concept}] "${n.label}"${n.parentId ? ` (hijo de ${n.parentId})` : ''}`).join('\n')}
+
+Paleta CSS disponible:
+${extractPaletteClasses(generateStylesheet(input.config))}
+
+Regiones (${markedPaths.length}; además ${trace.attached.length} astillas de borde sin marca que siguen a la región que las contiene):
+${regionLines}`;
+
+        input.onProgress?.(`[VECTORIZAR+ESTRUCTURAR] llamando ${model} (${userText.length} chars, marcas ${image.widthPx}×${image.heightPx}px)…`);
+        const response: ClaudeResponse = await callStructuringModel({
+            model,
+            max_tokens: 8192,
+            system: buildRegionSystemPrompt(),
+            tools: [buildRegionToolSchema(nodeList.map(n => n.id))],
+            tool_choice: { type: 'tool', name: REGION_TOOL },
+            messages: [{ role: 'user', content: [
+                { type: 'image', source: { type: 'base64', media_type: ref.mediaType, data: ref.base64 } },
+                { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: image.base64 } },
+                { type: 'text', text: userText },
+            ] }],
+        });
+        if (response.usage) input.onProgress?.(`[VECTORIZAR+ESTRUCTURAR] tokens: entrada=${response.usage.input_tokens}, salida=${response.usage.output_tokens}`);
+
+        // Mark numbers index markedPaths, so marked ids come first.
+        const { mapping, diagnostics } = regionAnswerToMapping(
+            extractToolUse(response, REGION_TOOL),
+            [...markedPaths.map(p => p.id), ...inventory.paths.filter(p => !markedSet.has(p.id)).map(p => p.id)],
+            new Set(nodeList.map(n => n.id)),
+        );
+        if (diagnostics.splitRequests.length || diagnostics.unresolved.length) {
+            input.onProgress?.(`[VECTORIZAR+ESTRUCTURAR] ambigüedades: ${diagnostics.splitRequests.map(s => `${s.region} → ${s.entities.join('+')}`).join(', ') || 'ninguna separación'}; sin resolver: ${diagnostics.unresolved.join(', ') || 'ninguna'}`);
+        }
+
+        if (input.config.recording?.enabled) {
+            return { svg: '', rawSvg, success: true, mapping, pendingReview: true, regionDiagnostics: diagnostics };
+        }
+        const result = await assembleAndVerify(mapping, { ...input, rawSvg, referenceImage: input.bitmap });
+        return { ...result, rawSvg, regionDiagnostics: diagnostics };
+    } catch (error) {
+        return {
+            svg: '',
+            success: false,
+            diagnostic: svgStructureDiagnostic(error),
+            error: error instanceof Error ? error.message : 'Error desconocido en VECTORIZAR+ESTRUCTURAR',
         };
     }
 }

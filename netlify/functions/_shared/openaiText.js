@@ -5,7 +5,7 @@ import { fetchWithRetry } from './httpRetry.js';
 import { providerHttpError } from './providerError.js';
 
 export const OPENAI_REASONING_EFFORT = 'low';
-const TOOL_PHASE = { analyze_utterance: 1, compose_pictogram: 2, regenerate_spatial_prompt: 2, restructure_svg: 5, redraw_svg: 5 };
+const TOOL_PHASE = { analyze_utterance: 1, compose_pictogram: 2, regenerate_spatial_prompt: 2, restructure_svg: 5, restructure_regions: 5, redraw_svg: 5 };
 const invalid = message => Object.assign(new Error(message), { status: 400, provider: 'openai', code: 'invalid_request' });
 
 export function openAITextPhase(params) {
