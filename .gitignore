@@ -59,3 +59,6 @@ public/tutorial/*.docx
 public/tutorial/~$*
 public/tutorial/img/
 public/tutorial/img-en/
+
+# VTracer web binding build output (pkg/ is committed)
+lib/vtracer-web/target/

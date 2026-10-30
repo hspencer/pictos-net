@@ -1,0 +1,23 @@
+[package]
+name = "vtracer-web"
+description = "PICTOS browser binding for the VTracer 1.0 core: segment once, finish many times, with explicit region provenance."
+version = "0.1.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+publish = false
+
+# Core pinned to 1.0.0-alpha.4 (commit 2500df7). Re-evaluate before bumping:
+# it is a pre-release. Build: scripts/build-vtracer-web.sh
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+vtracer = { git = "https://github.com/visioncortex/vtracer", rev = "2500df76b5aea0ac22d15296b22722442f825c5b" }
+wasm-bindgen = "0.2"
+serde = { version = "1", features = ["derive"] }
+serde-wasm-bindgen = "0.6"
+
+[profile.release]
+opt-level = "s"
+lto = true
