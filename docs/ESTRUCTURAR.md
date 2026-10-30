@@ -4,6 +4,8 @@ Documento de referencia de la fase 4 del pipeline (opcional, iniciada por el usu
 
 Implementación: `services/svgStructureService.ts`, con módulos puros testeables en `services/svgMergeCandidates.ts` y `services/svgPathPolish.ts`.
 
+> **Plan de evolución — 29 de octubre de 2026:** [Optimización conjunta de VECTORIZAR y ESTRUCTURAR](PLAN_VECTORIZAR_ESTRUCTURAR_2026-10-29.md). Propone una operación integrada con regiones guiadas por el árbol de PICTOS, VTracer actualizado y verificación de preservación. Incluye diagnóstico del código, fuentes primarias, contratos, etapas y criterios de aceptación. Es una propuesta pendiente de implementación; las descripciones de julio que siguen deben contrastarse con los contratos actuales de borradores y certificación señalados en ese plan.
+
 ## Principios
 
 1. **La geometría nunca la escribe el modelo.** El modelo de visión solo asigna ids de paths a nodos semánticos y confirma fusiones; toda manipulación de coordenadas (uniones booleanas, simplificación, redondeo) se calcula localmente en el navegador. Esto elimina la varianza destructiva que retiró al modo redibujo[^1].

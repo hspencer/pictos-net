@@ -5,6 +5,8 @@ Branch de experimentación: `exp/optimize-structure`
 Creado: 2026-03-05
 Estado: Histórico — reemplazado en julio 2026 por el plan documentado en [ESTRUCTURAR.md](ESTRUCTURAR.md)
 
+Plan posterior de referencia: [Optimización conjunta de VECTORIZAR y ESTRUCTURAR — 29 de octubre de 2026](PLAN_VECTORIZAR_ESTRUCTURAR_2026-10-29.md). Documenta la propuesta de integración, la investigación reciente y las verificaciones necesarias; no declara implementadas sus etapas.
+
 Nota (2026-07-04): este documento describe la línea base vtracer + Gemini, anterior a la migración a Recraft V4.1. El Experimento A (CSS mínimo) quedó cubierto por `buildFilteredCSS`, el Experimento D (IDs semánticos) por `deriveChildIds`, y el Experimento C por el selector `phase5Model`. El Experimento E (SVG de trabajo vs distribución) sigue vigente como paso 7 del plan actual. Para el enfoque vigente de la fase, ver [ESTRUCTURAR.md](ESTRUCTURAR.md).
 
 ---
