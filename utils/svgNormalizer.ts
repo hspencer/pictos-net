@@ -191,7 +191,7 @@ export function parseTransformToMatrix(transform: string | null): DOMMatrix {
  * - Pure identity: → "" (no transform needed)
  * - Everything else: → "matrix(a,b,c,d,e,f)"
  */
-function matrixToTransform(m: DOMMatrix): string {
+export function matrixToTransform(m: DOMMatrix): string {
     const r = (n: number) => Math.round(n * 10000) / 10000; // 4 decimal places
 
     const isIdentity =

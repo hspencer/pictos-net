@@ -101,6 +101,12 @@ export interface EditorState {
     // Display modes
     outlineMode: boolean;
 
+    // Active tool — the editor is a 3-state machine. 'node' is active while a
+    // path is in node-edit mode; 'pan' while panning the canvas. See
+    // specs/vector-editor.allium (ToolStateMachine). outlineMode is a view
+    // toggle, orthogonal to the active tool.
+    activeTool: 'select' | 'node' | 'pan';
+
     // Viewport state (excluded from undo/redo)
     viewport: Viewport;
 
@@ -121,6 +127,7 @@ export interface EditorState {
     updateElementAttributes: (id: string, attributes: Record<string, string | null>) => void;
     moveElement: (dragId: string, targetId: string, mode?: 'inside' | 'after' | 'before') => void;
     deleteElement: (id: string) => void;
+    deleteSelection: () => void;
 
     // Multi-select actions
     selectElements: (ids: string[]) => void;
@@ -161,6 +168,13 @@ export interface EditorState {
 
     // Display mode actions
     toggleOutlineMode: () => void;
+    setActiveTool: (tool: 'select' | 'node' | 'pan') => void;
+
+    // Commit a geometry-only change (move/scale/rotate baked by the geometry
+    // kernel). Unlike loadSVG it does not re-run the load pipeline (background
+    // removal, style resolution) — styles are unchanged by a transform.
+    // See specs/vector-editor.allium (CommitAndHistory, NonDestructiveManipulation).
+    commitGeometry: (svg: string) => void;
 
     // Viewport actions (not in undo/redo)
     setViewport: (partial: Partial<Viewport>) => void;
@@ -284,6 +298,19 @@ export const useSVGEditorStore = create<EditorState>((set, get) => {
         }
     };
 
+    // Single source of truth for selection. `selectedElementIds` is the full,
+    // insertion-ordered selection; `selectedElementId` is always its most-recent
+    // member (the primary), or null when empty. Every selection mutation routes
+    // through here, so the two fields can never diverge — they are two views of
+    // one ordered list. See specs/vector-editor.allium (UnifiedSelectionModel).
+    const applySelection = (ids: string[]) => {
+        const unique = Array.from(new Set(ids));
+        set({
+            selectedElementIds: new Set(unique),
+            selectedElementId: unique.length ? unique[unique.length - 1] : null,
+        });
+    };
+
     const getUsedClassNamesFromSvg = (svg: string): Set<string> => {
         const parser = new DOMParser();
         const doc = parser.parseFromString(svg, 'image/svg+xml');
@@ -367,6 +394,7 @@ export const useSVGEditorStore = create<EditorState>((set, get) => {
         selectedNodeIndex: null,
         pathEditTool: 'select',
         outlineMode: false,
+        activeTool: 'select',
         viewport: { ...DEFAULT_VIEWPORT },
         history: [],
         historyIndex: -1,
@@ -414,7 +442,7 @@ export const useSVGEditorStore = create<EditorState>((set, get) => {
         },
 
         selectElement: (id: string | null) => {
-            set({ selectedElementId: id, selectedElementIds: new Set() });
+            applySelection(id ? [id] : []);
         },
 
         updateElementId: (oldId: string, newId: string) => {
@@ -557,7 +585,27 @@ export const useSVGEditorStore = create<EditorState>((set, get) => {
                 get().keyframes
             );
             commitSvg(nextSvg);
-            set({ selectedElementId: null });
+            applySelection([]);
+        },
+
+        // Delete every selected element in one commit (Delete/Backspace).
+        deleteSelection: () => {
+            const { svgDocument, selectedElementIds, svgSource } = get();
+            if (!svgDocument || selectedElementIds.size === 0) return;
+            const doc = new DOMParser().parseFromString(svgDocument, 'image/svg+xml');
+            if (doc.querySelector('parsererror')) return;
+            let removed = 0;
+            for (const id of selectedElementIds) {
+                const el = doc.querySelector(`#${CSS.escape(id)}`);
+                if (el) { el.remove(); removed++; }
+            }
+            if (removed === 0) return;
+            const serialized = new XMLSerializer().serializeToString(doc);
+            const nextSvg = svgSource === 'raw'
+                ? serialized
+                : applyUsedStylesToSvg(serialized, get().styleDefinitions, get().keyframes);
+            commitSvg(nextSvg);
+            applySelection([]);
         },
 
         setStyles: (styles: StyleDefinition[]) => {
@@ -624,35 +672,22 @@ export const useSVGEditorStore = create<EditorState>((set, get) => {
         // ── Multi-select actions ──────────────────────────────────────────────
 
         selectElements: (ids: string[]) => {
-            set({
-                selectedElementIds: new Set(ids),
-                selectedElementId: ids.length === 1 ? ids[0] : ids.length > 0 ? ids[0] : null,
-            });
+            applySelection(ids);
         },
 
         toggleSelection: (id: string) => {
-            const state = get();
-            const current = new Set(state.selectedElementIds);
-            // Bridge single-select → multi-select: if there's a single
-            // selectedElementId not yet in the multi-set, include it before
-            // toggling. Without this, shift+click after a normal click would
-            // drop the previously-selected element.
-            if (current.size === 0 && state.selectedElementId && state.selectedElementId !== id) {
-                current.add(state.selectedElementId);
-            }
-            if (current.has(id)) {
-                current.delete(id);
-            } else {
-                current.add(id);
-            }
-            set({
-                selectedElementIds: current,
-                selectedElementId: current.size === 1 ? Array.from(current)[0] : current.size > 0 ? id : null,
-            });
+            // selectedElementIds is always the full selection (applySelection
+            // keeps selectedElementId inside it), so no bridging is needed:
+            // toggle the id against the current ordered list.
+            const current = Array.from(get().selectedElementIds);
+            const idx = current.indexOf(id);
+            if (idx >= 0) current.splice(idx, 1);
+            else current.push(id);
+            applySelection(current);
         },
 
         clearSelection: () => {
-            set({ selectedElementIds: new Set(), selectedElementId: null });
+            applySelection([]);
         },
 
         // ── Group / Ungroup actions ────────────────────────────────────────────
@@ -1096,6 +1131,10 @@ export const useSVGEditorStore = create<EditorState>((set, get) => {
             set((state) => ({ outlineMode: !state.outlineMode }));
         },
 
+        setActiveTool: (tool) => set({ activeTool: tool }),
+
+        commitGeometry: (svg: string) => commitSvg(svg),
+
         // ── Viewport actions (not in undo/redo) ─────────────────────────────
 
         setViewport: (partial) => {
@@ -1218,11 +1257,11 @@ export const useSVGEditorStore = create<EditorState>((set, get) => {
             const elementType = supportedDirectly.includes(tag)
                 ? tag as 'path' | 'polygon' | 'polyline' | 'line'
                 : unsupported.includes(tag) ? 'unsupported' as const : 'unsupported' as const;
-            set({ pathEditMode: { elementId, elementType }, selectedNodeIndex: null, pathEditTool: 'select' });
+            set({ pathEditMode: { elementId, elementType }, selectedNodeIndex: null, pathEditTool: 'select', activeTool: 'node' });
         },
 
         exitPathEditMode: () => {
-            set({ pathEditMode: null, selectedNodeIndex: null, pathEditTool: 'select' });
+            set({ pathEditMode: null, selectedNodeIndex: null, pathEditTool: 'select', activeTool: 'select' });
         },
 
         updatePathData: (elementId: string, newPathData: string) => {
@@ -1446,6 +1485,7 @@ export const useSVGEditorStore = create<EditorState>((set, get) => {
                 selectedNodeIndex: null,
                 pathEditTool: 'select',
                 outlineMode: false,
+                activeTool: 'select',
                 viewport: { ...DEFAULT_VIEWPORT },
                 history: [],
                 historyIndex: -1,

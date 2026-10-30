@@ -1,11 +1,30 @@
 /**
- * Bounding Box Component
- * Implements Move, Scale and Rotate operations with correct SVG coordinate transformation
+ * Bounding Box — selection overlay with non-destructive Move, Scale and Rotate.
+ *
+ * A gesture is a single matrix built by the geometry kernel (translate / scale /
+ * rotate). While dragging, the matrix is written to the rendered node's
+ * `transform` only (live preview, geometry untouched). On mouse-up the transform
+ * is baked into the element's geometry once, through the kernel, and committed as
+ * one history step via `commitGeometry`. Primitives stay primitives unless a
+ * rotation/skew forces promotion to <path> (see editor/geometry.ts).
+ *
+ * Modifiers follow specs/vector-editor.allium: Shift = proportional scale,
+ * Alt = scale from centre, Shift (while rotating) = 45-degree steps. Rotation is
+ * reached only through the dedicated rotate handle.
  */
 
 import React, { useEffect, useState, useRef } from 'react';
 import { useSVGEditorStore } from '../../stores/svgEditorStore';
 import { useTranslation } from '../../hooks/useTranslation';
+import {
+    parseTransformToMatrix,
+    translateMatrix,
+    scaleMatrix,
+    rotateMatrix,
+    previewGesture,
+    bakeElementTransform,
+    flattenGroupTransforms,
+} from './editor/geometry';
 
 interface BoundingBoxProps {
     svgElement: SVGSVGElement;
@@ -23,307 +42,58 @@ interface BBox {
 
 type HandleType = 'move' | 'nw' | 'ne' | 'sw' | 'se' | 'n' | 's' | 'w' | 'e' | 'rotate';
 
-const SVG_NS = 'http://www.w3.org/2000/svg';
-const NUMBER_REGEX = /-?\d*\.?\d+(?:e[-+]?\d+)?/gi;
-const EPSILON = 1e-6;
-
-function parseNumbers(input: string): number[] {
-    const matches = input.match(NUMBER_REGEX);
-    return matches ? matches.map((value) => Number(value)) : [];
+interface DragStart {
+    clientX: number;
+    clientY: number;
+    bbox: BBox;                 // overlay bbox in SVG-root space at press
+    baseTransform: string | null;
+    center: { x: number; y: number };  // for rotate
+    startAngle: number;                // for rotate (radians)
+    moved: boolean;                    // past the drag threshold
 }
 
-function formatNumber(value: number): string {
-    if (!Number.isFinite(value)) return '0';
-    const rounded = Math.round(value * 1000) / 1000;
-    const normalized = Object.is(rounded, -0) ? 0 : rounded;
-    return `${normalized}`;
+/** Screen pixels the pointer must travel before a press becomes a drag. */
+const DRAG_THRESHOLD = 3;
+
+/** Swallow the click the browser fires after a drag, so it doesn't re-select or deselect. */
+function swallowNextClick() {
+    const h = (ev: MouseEvent) => { ev.stopPropagation(); ev.preventDefault(); };
+    window.addEventListener('click', h, { capture: true, once: true });
+    setTimeout(() => window.removeEventListener('click', h, true), 0);
 }
 
-function formatNumberList(values: number[]): string {
-    return values.map(formatNumber).join(' ');
-}
+/** The smallest resulting dimension (root units) a resize may shrink to. */
+const MIN_DIM = 1;
 
-function rotatePoint(x: number, y: number, cx: number, cy: number, angleRad: number) {
-    const cos = Math.cos(angleRad);
-    const sin = Math.sin(angleRad);
-    const dx = x - cx;
-    const dy = y - cy;
-    return {
-        x: cx + dx * cos - dy * sin,
-        y: cy + dx * sin + dy * cos,
-    };
-}
+/** Build the scale matrix for a resize handle (SVG-root space). */
+function resizeMatrix(handle: HandleType, b: BBox, dx: number, dy: number, alt: boolean, shift: boolean): DOMMatrix {
+    const movesLeft = handle === 'nw' || handle === 'sw' || handle === 'w';
+    const movesRight = handle === 'ne' || handle === 'se' || handle === 'e';
+    const movesTop = handle === 'nw' || handle === 'ne' || handle === 'n';
+    const movesBottom = handle === 'sw' || handle === 'se' || handle === 's';
 
-function rotatePathData(d: string, cx: number, cy: number, angleRad: number): string {
-    const commandRegex = /([a-zA-Z])([^a-zA-Z]*)/g;
-    const paramCounts: Record<string, number> = {
-        M: 2, L: 2, H: 1, V: 1, C: 6, S: 4, Q: 4, T: 2, A: 7, Z: 0,
-    };
-
-    const angleDeg = (angleRad * 180) / Math.PI;
-    const parts: string[] = [];
-    let match: RegExpExecArray | null;
-    let currentX = 0;
-    let currentY = 0;
-    let startX = 0;
-    let startY = 0;
-
-    while ((match = commandRegex.exec(d)) !== null) {
-        const command = match[1];
-        const upper = command.toUpperCase();
-        const params = parseNumbers(match[2] ?? '');
-        const isRelative = command === command.toLowerCase();
-
-        if (upper === 'Z') {
-            parts.push('Z');
-            currentX = startX;
-            currentY = startY;
-            continue;
-        }
-
-        const paramCount = paramCounts[upper];
-        if (!paramCount || params.length === 0) {
-            continue;
-        }
-
-        const pushMapped = (cmd: string, values: number[]) => {
-            parts.push(`${cmd}${formatNumberList(values)}`);
-        };
-
-        if (upper === 'M') {
-            let index = 0;
-            while (index + 1 < params.length) {
-                let x = params[index];
-                let y = params[index + 1];
-                if (isRelative) {
-                    x += currentX;
-                    y += currentY;
-                }
-                const rotated = rotatePoint(x, y, cx, cy, angleRad);
-                if (index === 0) {
-                    startX = x;
-                    startY = y;
-                    pushMapped('M', [rotated.x, rotated.y]);
-                } else {
-                    pushMapped('L', [rotated.x, rotated.y]);
-                }
-                currentX = x;
-                currentY = y;
-                index += 2;
-            }
-            continue;
-        }
-
-        let index = 0;
-        while (index + paramCount - 1 < params.length) {
-            const chunk = params.slice(index, index + paramCount);
-
-            switch (upper) {
-                case 'L': {
-                    let x = chunk[0];
-                    let y = chunk[1];
-                    if (isRelative) { x += currentX; y += currentY; }
-                    const rotated = rotatePoint(x, y, cx, cy, angleRad);
-                    pushMapped('L', [rotated.x, rotated.y]);
-                    currentX = x; currentY = y;
-                    break;
-                }
-                case 'H': {
-                    let x = chunk[0];
-                    if (isRelative) x += currentX;
-                    const rotated = rotatePoint(x, currentY, cx, cy, angleRad);
-                    pushMapped('L', [rotated.x, rotated.y]);
-                    currentX = x;
-                    break;
-                }
-                case 'V': {
-                    let y = chunk[0];
-                    if (isRelative) y += currentY;
-                    const rotated = rotatePoint(currentX, y, cx, cy, angleRad);
-                    pushMapped('L', [rotated.x, rotated.y]);
-                    currentY = y;
-                    break;
-                }
-                case 'C': {
-                    let [x1, y1, x2, y2, x, y] = chunk;
-                    if (isRelative) { x1 += currentX; y1 += currentY; x2 += currentX; y2 += currentY; x += currentX; y += currentY; }
-                    const r1 = rotatePoint(x1, y1, cx, cy, angleRad);
-                    const r2 = rotatePoint(x2, y2, cx, cy, angleRad);
-                    const r = rotatePoint(x, y, cx, cy, angleRad);
-                    pushMapped('C', [r1.x, r1.y, r2.x, r2.y, r.x, r.y]);
-                    currentX = x; currentY = y;
-                    break;
-                }
-                case 'S': {
-                    let [x2, y2, x, y] = chunk;
-                    if (isRelative) { x2 += currentX; y2 += currentY; x += currentX; y += currentY; }
-                    const r2 = rotatePoint(x2, y2, cx, cy, angleRad);
-                    const r = rotatePoint(x, y, cx, cy, angleRad);
-                    pushMapped('S', [r2.x, r2.y, r.x, r.y]);
-                    currentX = x; currentY = y;
-                    break;
-                }
-                case 'Q': {
-                    let [x1, y1, x, y] = chunk;
-                    if (isRelative) { x1 += currentX; y1 += currentY; x += currentX; y += currentY; }
-                    const r1 = rotatePoint(x1, y1, cx, cy, angleRad);
-                    const r = rotatePoint(x, y, cx, cy, angleRad);
-                    pushMapped('Q', [r1.x, r1.y, r.x, r.y]);
-                    currentX = x; currentY = y;
-                    break;
-                }
-                case 'T': {
-                    let [x, y] = chunk;
-                    if (isRelative) { x += currentX; y += currentY; }
-                    const r = rotatePoint(x, y, cx, cy, angleRad);
-                    pushMapped('T', [r.x, r.y]);
-                    currentX = x; currentY = y;
-                    break;
-                }
-                case 'A': {
-                    let [rx, ry, rotation, largeArcFlag, sweepFlag, x, y] = chunk;
-                    if (isRelative) { x += currentX; y += currentY; }
-                    const r = rotatePoint(x, y, cx, cy, angleRad);
-                    const newRotation = rotation + angleDeg;
-                    pushMapped('A', [Math.abs(rx), Math.abs(ry), newRotation, Math.round(largeArcFlag), Math.round(sweepFlag), r.x, r.y]);
-                    currentX = x; currentY = y;
-                    break;
-                }
-                default: break;
-            }
-            index += paramCount;
-        }
+    let sx = 1, sy = 1;
+    if (movesLeft || movesRight) {
+        let newW = b.width + (movesRight ? dx : -dx);
+        if (newW < MIN_DIM) newW = MIN_DIM;
+        sx = newW / b.width;
     }
-    return parts.join(' ');
-}
-
-function transformPathData(
-    d: string,
-    mapX: (x: number) => number,
-    mapY: (y: number) => number,
-    scaleX: number,
-    scaleY: number
-): string {
-    const commandRegex = /([a-zA-Z])([^a-zA-Z]*)/g;
-    const paramCounts: Record<string, number> = {
-        M: 2, L: 2, H: 1, V: 1, C: 6, S: 4, Q: 4, T: 2, A: 7, Z: 0,
-    };
-
-    const parts: string[] = [];
-    let match: RegExpExecArray | null;
-    let currentX = 0;
-    let currentY = 0;
-    let startX = 0;
-    let startY = 0;
-
-    while ((match = commandRegex.exec(d)) !== null) {
-        const command = match[1];
-        const upper = command.toUpperCase();
-        const params = parseNumbers(match[2] ?? '');
-        const isRelative = command === command.toLowerCase();
-
-        if (upper === 'Z') {
-            parts.push('Z');
-            currentX = startX;
-            currentY = startY;
-            continue;
-        }
-
-        const paramCount = paramCounts[upper];
-        if (!paramCount || params.length === 0) continue;
-
-        const pushMapped = (cmd: string, values: number[]) => {
-            parts.push(`${cmd}${formatNumberList(values)}`);
-        };
-
-        if (upper === 'M') {
-            let index = 0;
-            while (index + 1 < params.length) {
-                let x = params[index];
-                let y = params[index + 1];
-                if (isRelative) { x += currentX; y += currentY; }
-                if (index === 0) {
-                    startX = x; startY = y;
-                    pushMapped('M', [mapX(x), mapY(y)]);
-                } else {
-                    pushMapped('L', [mapX(x), mapY(y)]);
-                }
-                currentX = x; currentY = y;
-                index += 2;
-            }
-            continue;
-        }
-
-        let index = 0;
-        while (index + paramCount - 1 < params.length) {
-            const chunk = params.slice(index, index + paramCount);
-
-            switch (upper) {
-                case 'L': {
-                    let x = chunk[0];
-                    let y = chunk[1];
-                    if (isRelative) { x += currentX; y += currentY; }
-                    pushMapped('L', [mapX(x), mapY(y)]);
-                    currentX = x; currentY = y;
-                    break;
-                }
-                case 'H': {
-                    let x = chunk[0];
-                    if (isRelative) x += currentX;
-                    pushMapped('L', [mapX(x), mapY(currentY)]);
-                    currentX = x;
-                    break;
-                }
-                case 'V': {
-                    let y = chunk[0];
-                    if (isRelative) y += currentY;
-                    pushMapped('L', [mapX(currentX), mapY(y)]);
-                    currentY = y;
-                    break;
-                }
-                case 'C': {
-                    let [x1, y1, x2, y2, x, y] = chunk;
-                    if (isRelative) { x1 += currentX; y1 += currentY; x2 += currentX; y2 += currentY; x += currentX; y += currentY; }
-                    pushMapped('C', [mapX(x1), mapY(y1), mapX(x2), mapY(y2), mapX(x), mapY(y)]);
-                    currentX = x; currentY = y;
-                    break;
-                }
-                case 'S': {
-                    let [x2, y2, x, y] = chunk;
-                    if (isRelative) { x2 += currentX; y2 += currentY; x += currentX; y += currentY; }
-                    pushMapped('S', [mapX(x2), mapY(y2), mapX(x), mapY(y)]);
-                    currentX = x; currentY = y;
-                    break;
-                }
-                case 'Q': {
-                    let [x1, y1, x, y] = chunk;
-                    if (isRelative) { x1 += currentX; y1 += currentY; x += currentX; y += currentY; }
-                    pushMapped('Q', [mapX(x1), mapY(y1), mapX(x), mapY(y)]);
-                    currentX = x; currentY = y;
-                    break;
-                }
-                case 'T': {
-                    let [x, y] = chunk;
-                    if (isRelative) { x += currentX; y += currentY; }
-                    pushMapped('T', [mapX(x), mapY(y)]);
-                    currentX = x; currentY = y;
-                    break;
-                }
-                case 'A': {
-                    let [rx, ry, rotation, largeArcFlag, sweepFlag, x, y] = chunk;
-                    if (isRelative) { x += currentX; y += currentY; }
-                    rx = Math.abs(rx * scaleX);
-                    ry = Math.abs(ry * scaleY);
-                    pushMapped('A', [rx, ry, rotation, Math.round(largeArcFlag), Math.round(sweepFlag), mapX(x), mapY(y)]);
-                    currentX = x; currentY = y;
-                    break;
-                }
-                default: break;
-            }
-            index += paramCount;
-        }
+    if (movesTop || movesBottom) {
+        let newH = b.height + (movesBottom ? dy : -dy);
+        if (newH < MIN_DIM) newH = MIN_DIM;
+        sy = newH / b.height;
     }
-    return parts.join(' ');
+
+    // Shift on a corner constrains to a proportional scale.
+    if (shift && (movesLeft || movesRight) && (movesTop || movesBottom)) {
+        const s = Math.max(sx, sy);
+        sx = s; sy = s;
+    }
+
+    // Origin: Alt scales from the centre; otherwise the opposite edge is fixed.
+    const ox = alt ? b.x + b.width / 2 : movesLeft ? b.x + b.width : b.x;
+    const oy = alt ? b.y + b.height / 2 : movesTop ? b.y + b.height : b.y;
+    return scaleMatrix(sx, sy, ox, oy);
 }
 
 export default function BoundingBox({ svgElement, elementId, containerElement, onTransformComplete }: BoundingBoxProps) {
@@ -332,72 +102,55 @@ export default function BoundingBox({ svgElement, elementId, containerElement, o
     const [bbox, setBbox] = useState<BBox | null>(null);
     const [isDragging, setIsDragging] = useState(false);
     const [activeHandle, setActiveHandle] = useState<HandleType | null>(null);
-    const dragStartRef = useRef<{
-        x: number;
-        y: number;
-        bbox: BBox;
-        elementBBox: DOMRect;
-        rotation?: {
-            center: { x: number; y: number };
-            startAngle: number;
-            angle: number;
-            originalTransform: string | null;
-        };
-    } | null>(null);
+    const dragStartRef = useRef<DragStart | null>(null);
     const targetElementRef = useRef<SVGGraphicsElement | null>(null);
-    const { loadSVG } = useSVGEditorStore();
 
     useEffect(() => {
         updateBoundingBox();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [svgElement, elementId, containerElement]);
 
     useEffect(() => {
         const handleResize = () => updateBoundingBox();
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [svgElement, elementId, containerElement]);
+
+    /** Map a client point into SVG-root space (angle/position, zoom-invariant). */
+    const toRootLocal = (clientX: number, clientY: number) => {
+        const ctm = svgElement.getScreenCTM();
+        if (!ctm) return null;
+        const p = svgElement.createSVGPoint();
+        p.x = clientX; p.y = clientY;
+        return p.matrixTransform(ctm.inverse());
+    };
 
     const updateBoundingBox = () => {
         const element = svgElement.querySelector(`#${CSS.escape(elementId)}`);
         if (element && element instanceof SVGGraphicsElement) {
             targetElementRef.current = element;
             try {
-                const elementBBox = element.getBBox();
-
-                const points = [
-                    { x: elementBBox.x, y: elementBBox.y },
-                    { x: elementBBox.x + elementBBox.width, y: elementBBox.y },
-                    { x: elementBBox.x + elementBBox.width, y: elementBBox.y + elementBBox.height },
-                    { x: elementBBox.x, y: elementBBox.y + elementBBox.height },
+                const eb = element.getBBox();
+                const corners = [
+                    { x: eb.x, y: eb.y },
+                    { x: eb.x + eb.width, y: eb.y },
+                    { x: eb.x + eb.width, y: eb.y + eb.height },
+                    { x: eb.x, y: eb.y + eb.height },
                 ];
-
-                // Use relative CTM (element to SVG root) so bbox is in SVG-local coords.
-                // The CSS transform on the viewport div handles visual placement.
                 const elementCTM = element.getScreenCTM();
                 const svgCTM = svgElement.getScreenCTM();
-
                 if (elementCTM && svgCTM) {
                     const relCTM = svgCTM.inverse().multiply(elementCTM);
-                    const transformed = points.map((point) => {
-                        const svgPoint = svgElement.createSVGPoint();
-                        svgPoint.x = point.x;
-                        svgPoint.y = point.y;
-                        return svgPoint.matrixTransform(relCTM);
+                    const pts = corners.map((c) => {
+                        const p = svgElement.createSVGPoint();
+                        p.x = c.x; p.y = c.y;
+                        return p.matrixTransform(relCTM);
                     });
-
-                    const xs = transformed.map((p) => p.x);
-                    const ys = transformed.map((p) => p.y);
-                    const minX = Math.min(...xs);
-                    const maxX = Math.max(...xs);
-                    const minY = Math.min(...ys);
-                    const maxY = Math.max(...ys);
-
-                    setBbox({
-                        x: minX,
-                        y: minY,
-                        width: maxX - minX,
-                        height: maxY - minY,
-                    });
+                    const xs = pts.map(p => p.x), ys = pts.map(p => p.y);
+                    const minX = Math.min(...xs), maxX = Math.max(...xs);
+                    const minY = Math.min(...ys), maxY = Math.max(...ys);
+                    setBbox({ x: minX, y: minY, width: maxX - minX, height: maxY - minY });
                 }
             } catch (error) {
                 console.error('Error calculating bounding box:', error);
@@ -409,484 +162,125 @@ export default function BoundingBox({ svgElement, elementId, containerElement, o
         }
     };
 
-    const handleMouseDown = (e: React.MouseEvent, handle: HandleType) => {
+    const handleMouseDown = (e: { clientX: number; clientY: number; stopPropagation(): void }, handle: HandleType) => {
         e.stopPropagation();
         if (!bbox || !targetElementRef.current) return;
-
         setIsDragging(true);
-        const isCornerHandle = ['nw', 'ne', 'sw', 'se'].includes(handle);
-        const isRotateHandle = handle === 'rotate';
-        const rotateMode = isRotateHandle || (isCornerHandle && (e.altKey || e.shiftKey));
+        setActiveHandle(handle);
 
-        setActiveHandle(rotateMode ? 'rotate' : handle);
-
-        const elementBBox = targetElementRef.current.getBBox();
-
-        const nextDragStart: any = {
-            x: e.clientX,
-            y: e.clientY,
-            bbox: { ...bbox },
-            elementBBox: elementBBox,
-        };
-
-        if (rotateMode) {
-            const svgCTM = svgElement.getScreenCTM();
-            if (svgCTM) {
-                const inverseCTM = svgCTM.inverse();
-                const point = svgElement.createSVGPoint();
-                point.x = e.clientX;
-                point.y = e.clientY;
-                const svgPoint = point.matrixTransform(inverseCTM);
-                const center = {
-                    x: elementBBox.x + elementBBox.width / 2,
-                    y: elementBBox.y + elementBBox.height / 2,
-                };
-                const startAngle = Math.atan2(svgPoint.y - center.y, svgPoint.x - center.x);
-                nextDragStart.rotation = {
-                    center,
-                    startAngle,
-                    angle: 0,
-                    originalTransform: targetElementRef.current.getAttribute('transform'),
-                };
-            }
+        const center = { x: bbox.x + bbox.width / 2, y: bbox.y + bbox.height / 2 };
+        let startAngle = 0;
+        if (handle === 'rotate') {
+            const p = toRootLocal(e.clientX, e.clientY);
+            if (p) startAngle = Math.atan2(p.y - center.y, p.x - center.x);
         }
-
-        dragStartRef.current = nextDragStart;
+        dragStartRef.current = {
+            clientX: e.clientX,
+            clientY: e.clientY,
+            bbox: { ...bbox },
+            baseTransform: targetElementRef.current.getAttribute('transform'),
+            center,
+            startAngle,
+            moved: false,
+        };
     };
 
+    // Move starts only from a press on this element's own painted geometry (the
+    // browser's native hit-test), never from its bounding box: a click in an
+    // empty, concave part of the box reaches whatever is visible there instead.
+    // See specs/vector-editor.allium and VectorCraft's doc/src/hit.rs.
+    useEffect(() => {
+        const onDown = (e: MouseEvent) => {
+            if (e.button !== 0 || e.shiftKey) return;
+            if (useSVGEditorStore.getState().pathEditMode) return;
+            const t = e.target;
+            if (!(t instanceof Element)) return;
+            const own = svgElement.querySelector(`#${CSS.escape(elementId)}`);
+            if (!own || !(own === t || own.contains(t))) return;
+            e.preventDefault();
+            handleMouseDown(e, 'move');
+        };
+        svgElement.addEventListener('mousedown', onDown);
+        return () => svgElement.removeEventListener('mousedown', onDown);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [svgElement, elementId, bbox]);
+
     const handleMouseMove = (e: MouseEvent) => {
-        if (!isDragging || !dragStartRef.current || !bbox || !activeHandle || !targetElementRef.current) return;
+        const ds = dragStartRef.current;
+        const el = targetElementRef.current;
+        if (!isDragging || !ds || !activeHandle || !el) return;
 
-        if (activeHandle === 'rotate' && dragStartRef.current.rotation) {
-            const svgCTM = svgElement.getScreenCTM();
-            if (!svgCTM) return;
-            const inverseCTM = svgCTM.inverse();
-            const point = svgElement.createSVGPoint();
-            point.x = e.clientX;
-            point.y = e.clientY;
-            const svgPoint = point.matrixTransform(inverseCTM);
-            const rotation = dragStartRef.current.rotation;
-            const currentAngle = Math.atan2(svgPoint.y - rotation.center.y, svgPoint.x - rotation.center.x);
-            const deltaAngle = currentAngle - rotation.startAngle;
-            rotation.angle = deltaAngle;
-
-            const element = targetElementRef.current;
-            const originalTransform = rotation.originalTransform;
-            const rotateDeg = (deltaAngle * 180) / Math.PI;
-            const rotateTransform = `rotate(${rotateDeg} ${rotation.center.x} ${rotation.center.y})`;
-            const combined = originalTransform ? `${originalTransform} ${rotateTransform}` : rotateTransform;
-            element.setAttribute('transform', combined.trim());
-            updateBoundingBox();
-            return;
+        if (!ds.moved) {
+            if (Math.hypot(e.clientX - ds.clientX, e.clientY - ds.clientY) < DRAG_THRESHOLD) return;
+            ds.moved = true;
         }
 
-        // Screen-pixel deltas scaled to SVG-local coords via zoom
-        const { zoom } = useSVGEditorStore.getState().viewport;
-        const dx = (e.clientX - dragStartRef.current.x) / zoom;
-        const dy = (e.clientY - dragStartRef.current.y) / zoom;
-        const startBBox = dragStartRef.current.bbox;
+        const base = parseTransformToMatrix(ds.baseTransform);
+        let gesture: DOMMatrix;
 
-        let newBBox = { ...bbox };
-
-        switch (activeHandle) {
-            case 'move':
-                newBBox.x = startBBox.x + dx;
-                newBBox.y = startBBox.y + dy;
-                break;
-            case 'nw':
-                newBBox.x = startBBox.x + dx;
-                newBBox.y = startBBox.y + dy;
-                newBBox.width = startBBox.width - dx;
-                newBBox.height = startBBox.height - dy;
-                break;
-            case 'ne':
-                newBBox.y = startBBox.y + dy;
-                newBBox.width = startBBox.width + dx;
-                newBBox.height = startBBox.height - dy;
-                break;
-            case 'sw':
-                newBBox.x = startBBox.x + dx;
-                newBBox.width = startBBox.width - dx;
-                newBBox.height = startBBox.height + dy;
-                break;
-            case 'se':
-                newBBox.width = startBBox.width + dx;
-                newBBox.height = startBBox.height + dy;
-                break;
-            case 'n':
-                newBBox.y = startBBox.y + dy;
-                newBBox.height = startBBox.height - dy;
-                break;
-            case 's':
-                newBBox.height = startBBox.height + dy;
-                break;
-            case 'w':
-                newBBox.x = startBBox.x + dx;
-                newBBox.width = startBBox.width - dx;
-                break;
-            case 'e':
-                newBBox.width = startBBox.width + dx;
-                break;
+        if (activeHandle === 'rotate') {
+            const p = toRootLocal(e.clientX, e.clientY);
+            if (!p) return;
+            let deg = ((Math.atan2(p.y - ds.center.y, p.x - ds.center.x) - ds.startAngle) * 180) / Math.PI;
+            if (e.shiftKey) deg = Math.round(deg / 45) * 45;
+            gesture = rotateMatrix(deg, ds.center.x, ds.center.y);
+        } else if (activeHandle === 'move') {
+            const dx = (e.clientX - ds.clientX) / zoom;
+            const dy = (e.clientY - ds.clientY) / zoom;
+            gesture = translateMatrix(dx, dy);
+        } else {
+            const dx = (e.clientX - ds.clientX) / zoom;
+            const dy = (e.clientY - ds.clientY) / zoom;
+            gesture = resizeMatrix(activeHandle, ds.bbox, dx, dy, e.altKey, e.shiftKey);
         }
 
-        if (newBBox.width < 10) newBBox.width = 10;
-        if (newBBox.height < 10) newBBox.height = 10;
+        previewGesture(el, gesture, base, svgElement);
+        updateBoundingBox();
+    };
 
-        setBbox(newBBox);
+    /** Bake the rendered element's preview transform into geometry and commit once. */
+    const commit = () => {
+        const el = targetElementRef.current;
+        if (!el) return;
+        const finalTransform = el.getAttribute('transform');
+        const { svgDocument, commitGeometry } = useSVGEditorStore.getState();
+        if (!svgDocument) return;
+
+        const doc = new DOMParser().parseFromString(svgDocument, 'image/svg+xml');
+        if (doc.querySelector('parsererror')) return;
+        const target = doc.getElementById(elementId);
+        if (!target) return;
+
+        if (finalTransform) target.setAttribute('transform', finalTransform);
+        else target.removeAttribute('transform');
+
+        let serialized: string;
+        if (target.tagName.toLowerCase() === 'g') {
+            // Groups: distribute the transform into children (kernel-backed flatten).
+            serialized = flattenGroupTransforms(new XMLSerializer().serializeToString(doc), [elementId]);
+        } else {
+            bakeElementTransform(target); // keep-primitive bake
+            serialized = new XMLSerializer().serializeToString(doc);
+        }
+        serialized = serialized
+            .replace(/ xmlns="http:\/\/www\.w3\.org\/2000\/svg"/g, '')
+            .replace(/<svg /, '<svg xmlns="http://www.w3.org/2000/svg" ');
+        commitGeometry(serialized);
     };
 
     const handleMouseUp = () => {
-        if (isDragging && dragStartRef.current && bbox && targetElementRef.current) {
-            if (activeHandle === 'rotate') {
-                applyRotation();
-            } else {
-                applyTransform();
-            }
+        // A press that never passed the threshold is a click: no gesture, no
+        // history step; the click itself goes on to the selection logic.
+        const moved = !!dragStartRef.current?.moved;
+        if (isDragging && moved && targetElementRef.current) {
+            commit();
+            swallowNextClick();
         }
-
         setIsDragging(false);
         setActiveHandle(null);
         dragStartRef.current = null;
-    };
-
-    const applyTransform = () => {
-        if (!targetElementRef.current || !dragStartRef.current || !bbox || !svgElement) return;
-
-        const element = targetElementRef.current;
-        const elementBBox = dragStartRef.current.elementBBox;
-
-        // Use the element's own CTM to map screen coordinates into the element's local
-        // coordinate space — where x, y, cx, cy, d etc. are defined.
-        let inverseCTM: DOMMatrix | null = null;
-        const elementCTM = element.getScreenCTM();
-        if (elementCTM) {
-            inverseCTM = elementCTM.inverse();
-        } else {
-            const svgCTM = svgElement.getScreenCTM();
-            if (svgCTM) inverseCTM = svgCTM.inverse();
-        }
-
-        if (!inverseCTM) return;
-
-        // BBox is in SVG-local coords. Convert to screen using svgElement.getScreenCTM()
-        // so the existing screenToLocal logic works correctly with the CSS transform.
-        const svgCTM = svgElement.getScreenCTM();
-        if (!svgCTM) return;
-
-        const screenToLocal = (x: number, y: number) => {
-            const point = svgElement.createSVGPoint();
-            point.x = x;
-            point.y = y;
-            return point.matrixTransform(inverseCTM!);
-        };
-
-        const screenLeft = svgCTM.a * bbox.x + svgCTM.e;
-        const screenTop = svgCTM.d * bbox.y + svgCTM.f;
-        const screenRight = svgCTM.a * (bbox.x + bbox.width) + svgCTM.e;
-        const screenBottom = svgCTM.d * (bbox.y + bbox.height) + svgCTM.f;
-
-        const svgTopLeft = screenToLocal(screenLeft, screenTop);
-        const svgBottomRight = screenToLocal(screenRight, screenBottom);
-
-        const newBBox = {
-            x: Math.min(svgTopLeft.x, svgBottomRight.x),
-            y: Math.min(svgTopLeft.y, svgBottomRight.y),
-            width: Math.abs(svgBottomRight.x - svgTopLeft.x),
-            height: Math.abs(svgBottomRight.y - svgTopLeft.y),
-        };
-
-        if (elementBBox.width < EPSILON || elementBBox.height < EPSILON) return;
-
-        const scaleX = newBBox.width / elementBBox.width;
-        const scaleY = newBBox.height / elementBBox.height;
-
-        const mapX = (x: number) => (x - elementBBox.x) * scaleX + newBBox.x;
-        const mapY = (y: number) => (y - elementBBox.y) * scaleY + newBBox.y;
-
-        const applyMapToElement = (target: SVGGraphicsElement): SVGGraphicsElement => {
-            const tag = target.tagName.toLowerCase();
-
-            switch (tag) {
-                case 'rect': {
-                    const x = parseFloat(target.getAttribute('x') || '0');
-                    const y = parseFloat(target.getAttribute('y') || '0');
-                    const width = parseFloat(target.getAttribute('width') || '0');
-                    const height = parseFloat(target.getAttribute('height') || '0');
-                    const rx = target.getAttribute('rx');
-                    const ry = target.getAttribute('ry');
-
-                    target.setAttribute('x', formatNumber(mapX(x)));
-                    target.setAttribute('y', formatNumber(mapY(y)));
-                    target.setAttribute('width', formatNumber(width * scaleX));
-                    target.setAttribute('height', formatNumber(height * scaleY));
-
-                    if (rx !== null) target.setAttribute('rx', formatNumber(parseFloat(rx) * scaleX));
-                    if (ry !== null) target.setAttribute('ry', formatNumber(parseFloat(ry) * scaleY));
-                    return target;
-                }
-                case 'circle': {
-                    const cx = parseFloat(target.getAttribute('cx') || '0');
-                    const cy = parseFloat(target.getAttribute('cy') || '0');
-                    const r = parseFloat(target.getAttribute('r') || '0');
-                    const nextCx = mapX(cx);
-                    const nextCy = mapY(cy);
-                    const nextRx = Math.abs(r * scaleX);
-                    const nextRy = Math.abs(r * scaleY);
-
-                    if (Math.abs(scaleX - scaleY) > 0.001) {
-                        const ellipse = target.ownerDocument.createElementNS(SVG_NS, 'ellipse');
-                        Array.from(target.attributes).forEach((attr) => {
-                            if (attr.name === 'cx' || attr.name === 'cy' || attr.name === 'r') return;
-                            ellipse.setAttribute(attr.name, attr.value);
-                        });
-                        ellipse.setAttribute('cx', formatNumber(nextCx));
-                        ellipse.setAttribute('cy', formatNumber(nextCy));
-                        ellipse.setAttribute('rx', formatNumber(nextRx));
-                        ellipse.setAttribute('ry', formatNumber(nextRy));
-                        target.parentNode?.replaceChild(ellipse, target);
-                        return ellipse as SVGGraphicsElement;
-                    }
-
-                    target.setAttribute('cx', formatNumber(nextCx));
-                    target.setAttribute('cy', formatNumber(nextCy));
-                    target.setAttribute('r', formatNumber(nextRx));
-                    return target;
-                }
-                case 'ellipse': {
-                    const cx = parseFloat(target.getAttribute('cx') || '0');
-                    const cy = parseFloat(target.getAttribute('cy') || '0');
-                    const rx = parseFloat(target.getAttribute('rx') || '0');
-                    const ry = parseFloat(target.getAttribute('ry') || '0');
-
-                    target.setAttribute('cx', formatNumber(mapX(cx)));
-                    target.setAttribute('cy', formatNumber(mapY(cy)));
-                    target.setAttribute('rx', formatNumber(Math.abs(rx * scaleX)));
-                    target.setAttribute('ry', formatNumber(Math.abs(ry * scaleY)));
-                    return target;
-                }
-                case 'line': {
-                    const x1 = parseFloat(target.getAttribute('x1') || '0');
-                    const y1 = parseFloat(target.getAttribute('y1') || '0');
-                    const x2 = parseFloat(target.getAttribute('x2') || '0');
-                    const y2 = parseFloat(target.getAttribute('y2') || '0');
-
-                    target.setAttribute('x1', formatNumber(mapX(x1)));
-                    target.setAttribute('y1', formatNumber(mapY(y1)));
-                    target.setAttribute('x2', formatNumber(mapX(x2)));
-                    target.setAttribute('y2', formatNumber(mapY(y2)));
-                    return target;
-                }
-                case 'polyline':
-                case 'polygon': {
-                    const points = target.getAttribute('points') || '';
-                    const nums = parseNumbers(points);
-                    const mapped: number[] = [];
-                    for (let i = 0; i + 1 < nums.length; i += 2) {
-                        mapped.push(mapX(nums[i]), mapY(nums[i + 1]));
-                    }
-                    const formatted = [];
-                    for (let i = 0; i + 1 < mapped.length; i += 2) {
-                        formatted.push(`${formatNumber(mapped[i])},${formatNumber(mapped[i + 1])}`);
-                    }
-                    target.setAttribute('points', formatted.join(' '));
-                    return target;
-                }
-                case 'path': {
-                    const d = target.getAttribute('d');
-                    if (d) {
-                        const transformed = transformPathData(d, mapX, mapY, scaleX, scaleY);
-                        target.setAttribute('d', transformed);
-                    }
-                    return target;
-                }
-                default:
-                    return target;
-            }
-        };
-
-        let updatedTarget = element;
-
-        if (element.tagName.toLowerCase() === 'g') {
-            // Groups: compose an affine transform on the <g> itself so all
-            // children move/scale together, preserving spatial relationships.
-            const tx = newBBox.x - scaleX * elementBBox.x;
-            const ty = newBBox.y - scaleY * elementBBox.y;
-            const delta = new DOMMatrix([scaleX, 0, 0, scaleY, tx, ty]);
-
-            let existing = new DOMMatrix();
-            const baseVal = (element as SVGGraphicsElement).transform?.baseVal;
-            if (baseVal) {
-                for (let i = 0; i < baseVal.numberOfItems; i++) {
-                    const m = baseVal.getItem(i).matrix;
-                    existing = existing.multiply(new DOMMatrix([m.a, m.b, m.c, m.d, m.e, m.f]));
-                }
-            }
-
-            const composed = existing.multiply(delta);
-            element.setAttribute('transform',
-                `matrix(${composed.a},${composed.b},${composed.c},${composed.d},${composed.e},${composed.f})`
-            );
-        } else {
-            updatedTarget = applyMapToElement(element);
-        }
-
-        if (updatedTarget !== element) {
-            targetElementRef.current = updatedTarget;
-        }
-
-        const serializer = new XMLSerializer();
-        const updatedSVG = serializer.serializeToString(svgElement);
-        loadSVG(updatedSVG);
-
         updateBoundingBox();
-
-        if (onTransformComplete) {
-            onTransformComplete();
-        }
-    };
-
-    const applyRotation = () => {
-        if (!targetElementRef.current || !dragStartRef.current || !svgElement) return;
-        const rotation = dragStartRef.current.rotation;
-        if (!rotation) return;
-        if (Math.abs(rotation.angle) < 0.0001) {
-            const originalTransform = rotation.originalTransform;
-            if (originalTransform) {
-                targetElementRef.current.setAttribute('transform', originalTransform);
-            } else {
-                targetElementRef.current.removeAttribute('transform');
-            }
-            return;
-        }
-
-        const element = targetElementRef.current;
-        const center = rotation.center;
-        const angle = rotation.angle;
-
-        const applyRotateToElement = (target: SVGGraphicsElement): SVGGraphicsElement => {
-            const tag = target.tagName.toLowerCase();
-            const doc = target.ownerDocument;
-
-            switch (tag) {
-                case 'rect': {
-                    const x = parseFloat(target.getAttribute('x') || '0');
-                    const y = parseFloat(target.getAttribute('y') || '0');
-                    const width = parseFloat(target.getAttribute('width') || '0');
-                    const height = parseFloat(target.getAttribute('height') || '0');
-
-                    const corners = [
-                        rotatePoint(x, y, center.x, center.y, angle),
-                        rotatePoint(x + width, y, center.x, center.y, angle),
-                        rotatePoint(x + width, y + height, center.x, center.y, angle),
-                        rotatePoint(x, y + height, center.x, center.y, angle),
-                    ];
-
-                    const polygon = doc.createElementNS(SVG_NS, 'polygon');
-                    Array.from(target.attributes).forEach((attr) => {
-                        if (['x', 'y', 'width', 'height', 'rx', 'ry'].includes(attr.name)) return;
-                        polygon.setAttribute(attr.name, attr.value);
-                    });
-                    polygon.setAttribute('points', corners.map((p) => `${formatNumber(p.x)},${formatNumber(p.y)}`).join(' '));
-                    target.parentNode?.replaceChild(polygon, target);
-                    return polygon as SVGGraphicsElement;
-                }
-                case 'circle':
-                case 'ellipse': {
-                    const cx = parseFloat(target.getAttribute('cx') || '0');
-                    const cy = parseFloat(target.getAttribute('cy') || '0');
-                    const rx = tag === 'circle' ? parseFloat(target.getAttribute('r') || '0') : parseFloat(target.getAttribute('rx') || '0');
-                    const ry = tag === 'circle' ? parseFloat(target.getAttribute('r') || '0') : parseFloat(target.getAttribute('ry') || '0');
-
-                    const path = doc.createElementNS(SVG_NS, 'path');
-                    Array.from(target.attributes).forEach((attr) => {
-                        if (['cx', 'cy', 'r', 'rx', 'ry'].includes(attr.name)) return;
-                        path.setAttribute(attr.name, attr.value);
-                    });
-                    const d = [
-                        `M ${formatNumber(cx + rx)} ${formatNumber(cy)}`,
-                        `A ${formatNumber(rx)} ${formatNumber(ry)} 0 1 0 ${formatNumber(cx - rx)} ${formatNumber(cy)}`,
-                        `A ${formatNumber(rx)} ${formatNumber(ry)} 0 1 0 ${formatNumber(cx + rx)} ${formatNumber(cy)}`,
-                        'Z',
-                    ].join(' ');
-                    const rotated = rotatePathData(d, center.x, center.y, angle);
-                    path.setAttribute('d', rotated);
-                    target.parentNode?.replaceChild(path, target);
-                    return path as SVGGraphicsElement;
-                }
-                case 'line': {
-                    const x1 = parseFloat(target.getAttribute('x1') || '0');
-                    const y1 = parseFloat(target.getAttribute('y1') || '0');
-                    const x2 = parseFloat(target.getAttribute('x2') || '0');
-                    const y2 = parseFloat(target.getAttribute('y2') || '0');
-
-                    const p1 = rotatePoint(x1, y1, center.x, center.y, angle);
-                    const p2 = rotatePoint(x2, y2, center.x, center.y, angle);
-
-                    target.setAttribute('x1', formatNumber(p1.x));
-                    target.setAttribute('y1', formatNumber(p1.y));
-                    target.setAttribute('x2', formatNumber(p2.x));
-                    target.setAttribute('y2', formatNumber(p2.y));
-                    return target;
-                }
-                case 'polyline':
-                case 'polygon': {
-                    const points = target.getAttribute('points') || '';
-                    const nums = parseNumbers(points);
-                    const mapped: number[] = [];
-                    for (let i = 0; i + 1 < nums.length; i += 2) {
-                        const rotated = rotatePoint(nums[i], nums[i + 1], center.x, center.y, angle);
-                        mapped.push(rotated.x, rotated.y);
-                    }
-                    const formatted = [];
-                    for (let i = 0; i + 1 < mapped.length; i += 2) {
-                        formatted.push(`${formatNumber(mapped[i])},${formatNumber(mapped[i + 1])}`);
-                    }
-                    target.setAttribute('points', formatted.join(' '));
-                    return target;
-                }
-                case 'path': {
-                    const d = target.getAttribute('d');
-                    if (d) {
-                        const rotated = rotatePathData(d, center.x, center.y, angle);
-                        target.setAttribute('d', rotated);
-                    }
-                    return target;
-                }
-                default: return target;
-            }
-        };
-
-        let updatedTarget = element;
-
-        if (element.tagName.toLowerCase() === 'g') {
-            // Groups: the drag preview (handleMouseMove) already set the
-            // correct composed transform on the <g> element:
-            //   originalTransform + " rotate(θ, cx, cy)"
-            // Nothing else to do — just serialize below.
-        } else {
-            updatedTarget = applyRotateToElement(element);
-
-            const originalTransform = rotation.originalTransform;
-            if (originalTransform) {
-                updatedTarget.setAttribute('transform', originalTransform);
-            } else {
-                updatedTarget.removeAttribute('transform');
-            }
-        }
-
-        if (updatedTarget !== element) {
-            targetElementRef.current = updatedTarget;
-        }
-
-        const serializer = new XMLSerializer();
-        const updatedSVG = serializer.serializeToString(svgElement);
-        loadSVG(updatedSVG);
-
-        updateBoundingBox();
-
-        if (onTransformComplete) {
-            onTransformComplete();
-        }
+        if (moved) onTransformComplete?.();
     };
 
     useEffect(() => {
@@ -898,19 +292,19 @@ export default function BoundingBox({ svgElement, elementId, containerElement, o
                 window.removeEventListener('mouseup', handleMouseUp);
             };
         }
-    }, [isDragging, bbox, activeHandle]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isDragging, activeHandle]);
 
     if (!bbox) return null;
 
     // Counter-scale so handles keep a constant screen size regardless of zoom
-    const iz = 1 / zoom;                // inverse zoom
-    const handlePx = 12;                 // handle diameter in screen px
-    const handleSvg = handlePx * iz;     // handle size in SVG-local units
+    const iz = 1 / zoom;
+    const handleSvg = 12 * iz;
     const halfH = handleSvg / 2;
-    const borderW = Math.max(1, iz);     // border always ~1 screen px
-    const rotStemH = 24 * iz;            // rotation stem height
-    const rotBtnSvg = 20 * iz;           // rotation button size
-    const rotIconSvg = 12 * iz;          // rotation icon size
+    const borderW = Math.max(1, iz);
+    const rotStemH = 24 * iz;
+    const rotBtnSvg = 20 * iz;
+    const rotIconSvg = 12 * iz;
 
     const handleStyle: React.CSSProperties = {
         position: 'absolute',
@@ -921,22 +315,23 @@ export default function BoundingBox({ svgElement, elementId, containerElement, o
         border: `${borderW}px solid white`,
         boxShadow: '0 1px 2px rgba(0,0,0,0.15)',
         cursor: 'pointer',
+        pointerEvents: 'auto',
     };
 
+    // The frame is display-only (pointer-events: none): clicks inside the box
+    // fall through to the visible art. Only the handles take the pointer.
     return (
         <div
-            className="absolute pointer-events-auto"
+            className="absolute pointer-events-none"
             style={{
                 left: `${bbox.x}px`,
                 top: `${bbox.y}px`,
                 width: `${bbox.width}px`,
                 height: `${bbox.height}px`,
-                cursor: isDragging && activeHandle === 'move' ? 'grabbing' : 'grab',
                 border: `${borderW}px solid #2563eb`,
                 boxShadow: `0 0 0 ${borderW}px rgba(255,255,255,0.4)`,
                 overflow: 'visible',
             }}
-            onMouseDown={(e) => handleMouseDown(e, 'move')}
         >
             {/* Rotation stem + button */}
             <div style={{
@@ -957,6 +352,7 @@ export default function BoundingBox({ svgElement, elementId, containerElement, o
                     border: `${borderW}px solid #2563eb`,
                     borderRadius: '50%',
                     cursor: 'grab',
+                    pointerEvents: 'auto',
                     zIndex: 50,
                     left: '50%',
                     top: `${-(rotStemH + rotBtnSvg * 0.65)}px`,

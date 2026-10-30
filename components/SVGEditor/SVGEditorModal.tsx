@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { X, Undo, Redo, Download, ZoomIn, ZoomOut, Maximize2, Palette, Scan } from 'lucide-react';
+import { X, Undo, Redo, Download, ZoomIn, ZoomOut, Maximize2, Palette, Scan, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen } from 'lucide-react';
 import { useSVGEditorStore } from '../../stores/svgEditorStore';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useDialogA11y } from '../../hooks/useDialogA11y';
@@ -11,7 +11,8 @@ import type { StyleDefinition } from '../../lib/style-editor/lib/types';
 import type { GlobalConfig } from '../../types';
 import { StyleEditor } from '../PictoForge/StyleEditor';
 import { convertInlineAttrsToCssRules } from '../../utils/styleUtils';
-import { normalizeSVGTransforms } from '../../utils/svgNormalizer';
+import { bakeDocumentTransforms } from './editor/geometry';
+import { handleToolbarKeyDown } from './editor/toolbarKeydown';
 
 /**
  * Detects and removes a background rectangle or path that covers >=85% of the
@@ -77,45 +78,6 @@ function removeBackgroundRect(svgString: string): string {
     return svgString;
 }
 
-/** WCAG arrow-key navigation for toolbar children with [data-toolbar-item] */
-function handleToolbarKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
-    const toolbar = e.currentTarget;
-    const items: HTMLElement[] = Array.from(toolbar.querySelectorAll('[data-toolbar-item]:not(:disabled)'));
-    if (items.length === 0) return;
-
-    const current = document.activeElement as HTMLElement;
-    const idx = items.indexOf(current);
-    let next = -1;
-
-    switch (e.key) {
-        case 'ArrowRight':
-        case 'ArrowDown':
-            e.preventDefault();
-            next = idx < items.length - 1 ? idx + 1 : 0;
-            break;
-        case 'ArrowLeft':
-        case 'ArrowUp':
-            e.preventDefault();
-            next = idx > 0 ? idx - 1 : items.length - 1;
-            break;
-        case 'Home':
-            e.preventDefault();
-            next = 0;
-            break;
-        case 'End':
-            e.preventDefault();
-            next = items.length - 1;
-            break;
-        default:
-            return;
-    }
-
-    if (next >= 0) {
-        items.forEach((item, i) => item.tabIndex = i === next ? 0 : -1);
-        items[next].focus();
-    }
-}
-
 interface SVGEditorModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -165,6 +127,10 @@ export const SVGEditorModal: React.FC<SVGEditorModalProps> = ({
     // Track which toolbar item is active for roving tabindex
     const toolbarRef = useRef<HTMLDivElement>(null);
 
+    // Collapsible side panels — more canvas, less surface.
+    const [treeOpen, setTreeOpen] = useState(true);
+    const [propsOpen, setPropsOpen] = useState(true);
+
     useEffect(() => {
         if (isOpen && initialSvg) {
             const preserveAppearance = svgSource === 'raw' || svgSource === 'draft';
@@ -207,11 +173,12 @@ export const SVGEditorModal: React.FC<SVGEditorModalProps> = ({
 
     const handleSave = () => {
         if (!currentSvg) return;
-        // Bake group transforms destructively into path coordinates.
-        // This ensures edits survive when ESTRUCTURAR redistributes paths into new groups.
-        // Skip cheaply if there are no transforms to process.
+        // Bake every remaining transform (element + group) into geometry via the
+        // kernel, so edits survive when ESTRUCTURAR redistributes paths into new
+        // groups. Non-destructive gestures already bake at commit; this is the
+        // safety net for any lingering transform. Skip cheaply when there is none.
         const needsBake = currentSvg.includes('transform=');
-        const svgToSave = needsBake ? normalizeSVGTransforms(currentSvg) : currentSvg;
+        const svgToSave = needsBake ? bakeDocumentTransforms(currentSvg) : currentSvg;
         onSave(svgToSave);
     };
 
@@ -240,28 +207,68 @@ export const SVGEditorModal: React.FC<SVGEditorModalProps> = ({
                 <SVGCanvas />
             </div>
 
-            {/* Left Panel: Semantic Tree */}
-            <aside
-                id="svg-editor-tree-panel"
-                className="fixed top-16 left-0 bottom-0 w-72 z-10 bg-white border-r border-slate-200 flex flex-col shadow-xl text-slate-700"
-            >
-                <div id="svg-editor-tree-header" className="p-3 border-b border-slate-100 bg-slate-50">
-                    <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                        {t('svg.editorLayers')}
-                    </h3>
-                </div>
-                <div id="svg-editor-tree-content" className="flex-1 overflow-y-auto p-2">
-                    <SemanticTree />
-                </div>
-            </aside>
+            {/* Left Panel: Semantic Tree (collapsible) */}
+            {treeOpen ? (
+                <aside
+                    id="svg-editor-tree-panel"
+                    className="fixed top-16 left-0 bottom-0 w-72 z-10 bg-white border-r border-slate-200 flex flex-col shadow-xl text-slate-700"
+                >
+                    <div id="svg-editor-tree-header" className="p-3 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+                        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                            {t('svg.editorLayers')}
+                        </h3>
+                        <button
+                            onClick={() => setTreeOpen(false)}
+                            className="text-slate-400 hover:text-slate-700 transition-colors"
+                            title={t('svgEditor.collapsePanel')}
+                            aria-label={t('svgEditor.collapsePanel')}
+                        >
+                            <PanelLeftClose size={16} aria-hidden="true" />
+                        </button>
+                    </div>
+                    <div id="svg-editor-tree-content" className="flex-1 overflow-y-auto p-2">
+                        <SemanticTree />
+                    </div>
+                </aside>
+            ) : (
+                <button
+                    onClick={() => setTreeOpen(true)}
+                    className="fixed top-20 left-3 z-10 p-2 rounded-md bg-white border border-slate-200 shadow-lg text-slate-500 hover:text-slate-800 transition-colors"
+                    title={t('svgEditor.expandPanel')}
+                    aria-label={t('svgEditor.expandPanel')}
+                >
+                    <PanelLeftOpen size={18} aria-hidden="true" />
+                </button>
+            )}
 
-            {/* Right Panel: Style Properties */}
-            <aside
-                id="svg-editor-properties-panel"
-                className="fixed top-16 right-0 bottom-0 w-80 z-10 border-l border-slate-200 bg-white flex flex-col shrink-0 shadow-lg text-slate-700"
-            >
-                <StylePanel styleDefs={styleDefs} svgSource={svgSource === 'draft' ? 'raw' : svgSource} />
-            </aside>
+            {/* Right Panel: Style Properties (collapsible) */}
+            {propsOpen ? (
+                <aside
+                    id="svg-editor-properties-panel"
+                    className="fixed top-16 right-0 bottom-0 w-80 z-10 border-l border-slate-200 bg-white flex flex-col shrink-0 shadow-lg text-slate-700"
+                >
+                    <div className="p-2 border-b border-slate-100 bg-slate-50 flex items-center justify-end">
+                        <button
+                            onClick={() => setPropsOpen(false)}
+                            className="text-slate-400 hover:text-slate-700 transition-colors"
+                            title={t('svgEditor.collapsePanel')}
+                            aria-label={t('svgEditor.collapsePanel')}
+                        >
+                            <PanelRightClose size={16} aria-hidden="true" />
+                        </button>
+                    </div>
+                    <StylePanel styleDefs={styleDefs} svgSource={svgSource === 'draft' ? 'raw' : svgSource} />
+                </aside>
+            ) : (
+                <button
+                    onClick={() => setPropsOpen(true)}
+                    className="fixed top-20 right-3 z-10 p-2 rounded-md bg-white border border-slate-200 shadow-lg text-slate-500 hover:text-slate-800 transition-colors"
+                    title={t('svgEditor.expandPanel')}
+                    aria-label={t('svgEditor.expandPanel')}
+                >
+                    <PanelRightOpen size={18} aria-hidden="true" />
+                </button>
+            )}
 
             {/* Contextual Selection Toolbar */}
             <SelectionToolbar styleDefs={styleDefinitions} />

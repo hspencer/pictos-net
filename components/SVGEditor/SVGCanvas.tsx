@@ -13,6 +13,10 @@ import { normalizeSVG, parseSVGToDOM } from '../../utils/svgNormalizer';
 import BoundingBox from './BoundingBox';
 import PathEditor from './PathEditor';
 import { updateDynamicStyles } from '../../lib/style-editor/lib/utils/cssGenerator';
+import { geometryTouchesRect } from './editor/geometry';
+
+/** Containers whose contents are not on-canvas art (never marquee-selectable). */
+const NON_ART = 'defs, clipPath, mask, symbol, pattern, marker, style';
 
 export default function SVGCanvas() {
     const { t } = useTranslation();
@@ -254,8 +258,13 @@ export default function SVGCanvas() {
             }
 
             if (id) {
+                const current = useSVGEditorStore.getState().selectedElementIds;
                 if (event.shiftKey) {
                     toggleSelection(id);
+                } else if (current.size > 1 && current.has(id)) {
+                    // A click on a member of a multi-selection keeps the selection
+                    // and makes it the primary (VectorCraft's key object).
+                    useSVGEditorStore.getState().selectElements([...Array.from(current).filter(x => x !== id), id]);
                 } else {
                     selectElement(id);
                 }
@@ -348,6 +357,14 @@ export default function SVGCanvas() {
                 } else if (state.selectedElementId || state.selectedElementIds.size > 0) {
                     e.preventDefault();
                     state.clearSelection();
+                }
+            } else if (e.key === 'Delete' || e.key === 'Backspace') {
+                const state = useSVGEditorStore.getState();
+                // In node-edit mode the path editor owns Delete/Backspace;
+                // here Delete/Backspace removes the whole selection.
+                if (!state.pathEditMode && state.selectedElementIds.size > 0) {
+                    e.preventDefault();
+                    state.deleteSelection();
                 }
             }
         };
@@ -465,29 +482,49 @@ export default function SVGCanvas() {
                     bottom: stageRect.top + panY + (top + height) * zoom,
                 };
 
+                // The marquee touches visible geometry, not bounding boxes (as
+                // VectorCraft's `marquee`): a path counts when its outline or fill
+                // meets the rectangle; a group when one of its shapes does; only
+                // text, images and other non-path art fall back to their box.
+                const candidates = Array.from(svgElement.querySelectorAll('[id]'))
+                    .filter(el => el !== svgElement && !el.closest(NON_ART));
+                const touchedShapes = new Set<Element>();
+                for (const el of candidates) {
+                    if (el instanceof SVGGeometryElement) {
+                        try {
+                            if (geometryTouchesRect(el, marqueeScreenRect)) touchedShapes.add(el);
+                        } catch { /* ignore measurement errors */ }
+                    }
+                }
                 const hits: string[] = [];
-                const allElements = svgElement.querySelectorAll('[id]');
-                allElements.forEach(el => {
-                    if (el === svgElement) return;
-                    try {
-                        const elRect = el.getBoundingClientRect();
-                        if (elRect.width === 0 && elRect.height === 0) return;
-                        if (
-                            elRect.left < marqueeScreenRect.right &&
-                            elRect.right > marqueeScreenRect.left &&
-                            elRect.top < marqueeScreenRect.bottom &&
-                            elRect.bottom > marqueeScreenRect.top
-                        ) {
-                            const id = el.getAttribute('id');
-                            if (id) hits.push(id);
-                        }
-                    } catch { /* ignore bbox errors */ }
-                });
+                for (const el of candidates) {
+                    let touched: boolean;
+                    if (el instanceof SVGGeometryElement) {
+                        touched = touchedShapes.has(el);
+                    } else if (el instanceof SVGGElement) {
+                        touched = Array.from(touchedShapes).some(s => el.contains(s));
+                    } else {
+                        const b = el.getBoundingClientRect();
+                        touched = (b.width > 0 || b.height > 0) &&
+                            b.left < marqueeScreenRect.right && b.right > marqueeScreenRect.left &&
+                            b.top < marqueeScreenRect.bottom && b.bottom > marqueeScreenRect.top;
+                    }
+                    const id = el.getAttribute('id');
+                    if (touched && id) hits.push(id);
+                }
 
                 if (hits.length > 0) {
                     selectElements(hits);
+                } else {
+                    // Marquee dragged over empty space → deselect.
+                    useSVGEditorStore.getState().clearSelection();
                 }
             }
+        } else {
+            // A plain click on empty background (not a drag) deselects.
+            // handleStageMouseDown only arms a marquee off any element with an id,
+            // so reaching here means the click landed on empty canvas.
+            useSVGEditorStore.getState().clearSelection();
         }
 
         setMarquee(null);
@@ -604,16 +641,6 @@ export default function SVGCanvas() {
                         onTransformComplete={() => setRefreshKey(prev => prev + 1)}
                     />
                 ))}
-                {svgElement && selectedElementId && selectedElementIds.size === 0
-                    && (!pathEditMode || pathEditMode.elementId !== selectedElementId) && (
-                    <BoundingBox
-                        key={refreshKey}
-                        svgElement={svgElement}
-                        elementId={selectedElementId}
-                        containerElement={svgContentRef.current ?? svgElement}
-                        onTransformComplete={() => setRefreshKey(prev => prev + 1)}
-                    />
-                )}
 
                 {/* Path Edit Mode — node handles */}
                 {pathEditMode && svgElement && (

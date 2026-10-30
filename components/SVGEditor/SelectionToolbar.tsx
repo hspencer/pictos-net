@@ -14,6 +14,7 @@ import type { StyleDefinition } from '../../lib/style-editor/lib/types';
 import { StylePickerModal } from './StylePickerModal';
 import { checkBooleanEligibility } from '../../utils/svgBooleanHelpers';
 import type { BooleanOp } from '../../services/svgBooleanOps';
+import { handleToolbarKeyDown } from './editor/toolbarKeydown';
 
 // ── Boolean operation icons ──────────────────────────────────────────────────
 // Lucide has no boolean-op iconography, so these are minimal inline SVGs
@@ -67,45 +68,6 @@ const BOOL_ICON: Record<BooleanOp, React.FC> = {
 
 const LEFT_PANEL = 288;
 const RIGHT_PANEL = 320;
-
-/** WCAG arrow-key navigation for toolbar children with [data-toolbar-item] */
-function handleToolbarKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
-    const toolbar = e.currentTarget;
-    const items: HTMLElement[] = Array.from(toolbar.querySelectorAll('[data-toolbar-item]:not(:disabled)'));
-    if (items.length === 0) return;
-
-    const current = document.activeElement as HTMLElement;
-    const idx = items.indexOf(current);
-    let next = -1;
-
-    switch (e.key) {
-        case 'ArrowRight':
-        case 'ArrowDown':
-            e.preventDefault();
-            next = idx < items.length - 1 ? idx + 1 : 0;
-            break;
-        case 'ArrowLeft':
-        case 'ArrowUp':
-            e.preventDefault();
-            next = idx > 0 ? idx - 1 : items.length - 1;
-            break;
-        case 'Home':
-            e.preventDefault();
-            next = 0;
-            break;
-        case 'End':
-            e.preventDefault();
-            next = items.length - 1;
-            break;
-        default:
-            return;
-    }
-
-    if (next >= 0) {
-        items.forEach((item, i) => item.tabIndex = i === next ? 0 : -1);
-        items[next].focus();
-    }
-}
 
 // ── ToolbarStylePicker — reads styleDefs from store ──────────────────────────
 

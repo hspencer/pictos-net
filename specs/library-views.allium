@@ -20,6 +20,16 @@
 --     — already implemented; this spec covers steps 3 and 4
 --   - The home view (welcome / empty library) — orthogonal
 --   - Bitmap editing — no tool implemented; deferred (see open questions)
+--   - The SVG editor's internal behaviour (see vector-editor.allium). The
+--     editor is not coupled to VTracer: it edits whatever SVG a slot holds
+--     (native Phase 3 output or a structured artifact), independent of how a
+--     trazado was produced.
+-- Phase 4 / VTracer status: VTracer (trazado from a bitmap) is present in the
+--   codebase but removed from the automatic cascade — Gemini image models emit
+--   native SVG, so Producir usually yields a vector directly (see CLAUDE.md and
+--   local-generation.allium). Retrace / trazar is therefore a separate,
+--   user-initiated action on a bitmap row, not a pipeline step. The retrace
+--   controls below describe that optional action.
 -- Dependencies:
 --   - RowData (utterance, NLU, elements, prompt, bitmap, rawSvg,
 --     structuredSvg, generationModel, plus *Status fields)
@@ -85,8 +95,10 @@ external FocusViewModal {
 }
 
 external VectorizerModal {
-  -- The VTracer wrapper modal. Triggered from format step left column
-  -- (bitmap rows only).
+  -- The VTracer wrapper modal. Triggered from the format step left column
+  -- (bitmap rows only) as a separate, user-initiated action. VTracer is not
+  -- part of the automatic cascade and the SVG editor does not depend on it
+  -- (see the Phase 4 / VTracer status note in the header and vector-editor.allium).
 }
 
 external SVGEditorModal {

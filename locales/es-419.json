@@ -523,6 +523,8 @@
     "applyingSemanticSchema": "Aplicando esquema semántico con Gemini…"
   },
   "svgEditor": {
+    "collapsePanel": "Colapsar panel",
+    "expandPanel": "Expandir panel",
     "localOverride": "Estilos locales",
     "restoreToLibrary": "Restaurar",
     "overriddenIndicator": "Modificado respecto a librería",

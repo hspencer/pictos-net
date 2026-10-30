@@ -1,0 +1,738 @@
+-- allium: 3
+-- vector-editor.allium
+
+-- Scope: The SVG vector editor — the in-browser workspace where a user
+--   directly manipulates a pictogram's geometry, structure and styling. This
+--   is the governing spec for the editor rewrite. It fixes the single source
+--   of truth (a live in-memory SVG tree), a unified selection model, an
+--   explicit tool state machine, non-destructive manipulation that bakes
+--   geometry only at commit, declarative tool overlays, and a single
+--   commit/history path.
+-- Includes:
+--   - EditorDocument: the live SVG tree as the only mutation target; the SVG
+--     string is a load/serialize/persist boundary, derived at commit.
+--   - Selection: one ordered set of element ids with a derived primary.
+--   - Tool state machine: activeTool in {select, node, pan}; outlineMode as a
+--     view toggle, not a tool.
+--   - Non-destructive manipulation: live transform preview, baked to clean
+--     geometry at commit through one geometry kernel; primitives stay
+--     primitives unless the transform forces promotion to <path>.
+--   - Declarative overlays: tools emit descriptors in document space; the view
+--     only renders them.
+--   - Commit/history: one commit() path pushes a snapshot; undo/redo restore a
+--     snapshot and re-derive style definitions and overrides from it.
+--   - Interface surfaces: one contextual task bar, a collapsible element-tree
+--     panel, a collapsible inspector panel.
+-- Excludes:
+--   - The polygon/Bezier geometry algorithms (library-provided black boxes).
+--   - Boolean path operations (see svg-boolean-operations.allium).
+--   - The mf-svg structured-SVG conformance contract (see svg-structuring.allium).
+--   - Intervention recording of edit events (see intervention-recording.allium).
+--   - VTracer / VectorizerModal: tracing is a separate user-initiated action
+--     outside the cascade; the editor is not coupled to it (see library-views.allium
+--     and local-generation.allium).
+-- Dependencies:
+--   - svg-boolean-operations.allium — consumes this spec's unified Selection.
+--   - svg-structuring.allium — the bake must produce geometry compatible with
+--     the mf-svg structured-SVG contract the editor reads and writes.
+--   - intervention-recording.allium — svg_raw / svg_structured edit events are
+--     recorded on save.
+--   - docs/CSS_STYLING_ARCHITECTURE.md — the two-level CSS model (library rules
+--     plus local overrides), zero inline presentation attributes.
+
+------------------------------------------------------------
+-- External Entities
+------------------------------------------------------------
+
+-- The portable structured SVG contract the editor reads on open and writes on
+-- save. Governed by svg-structuring.allium (the mf-svg revision). The bake
+-- target must stay compatible with that profile.
+external entity StructuredArtifact {
+    content: String
+}
+
+-- The library-class citation registry (citeClass / unciteClass) and the
+-- resolved style values, as described in docs/CSS_STYLING_ARCHITECTURE.md.
+-- The editor reads and mutates it through that two-level model; it is not
+-- redefined here.
+external entity StyleRegistry {
+    library_classes: Set<String>       -- level 1: pure-class rules in use
+}
+
+------------------------------------------------------------
+-- Value Types
+------------------------------------------------------------
+
+-- A committed state of the whole document. undo/redo restore one of these and
+-- re-derive the live tree, style definitions and overrides from it.
+value Snapshot {
+    svg: String                        -- the serialized document at commit
+}
+
+-- A declarative tool overlay, expressed in document coordinate space. Tools
+-- emit these; the overlay layer only renders them and never bakes geometry.
+value Overlay {
+    kind: OverlayKind
+    target: String?                    -- element id the overlay annotates, if any
+}
+
+------------------------------------------------------------
+-- Contracts
+------------------------------------------------------------
+
+contract LiveModelSource {
+    load: (svg: String) -> EditorDocument
+    serialize: (document: EditorDocument) -> String
+
+    @invariant LiveTreeIsTheSourceOfTruth
+        -- During an editing session the live in-memory SVG tree is the single
+        -- source of truth. Every selection, manipulation and style edit targets
+        -- the live model. The SVG string is never the mutation target.
+
+    @invariant StringIsBoundaryOnly
+        -- The SVG string exists only at three boundaries: load (parse once into
+        -- the live tree), serialize (derive at commit), and persist. No action
+        -- re-parses the string to read current state and no action mutates the
+        -- string in place. This forbids the old model where the string was the
+        -- source of truth and every action re-parsed it.
+
+    @invariant SerializeIsDerivation
+        -- serialize is a pure projection of the live tree at a commit point. A
+        -- serialized string that is never committed has no authority and is
+        -- discarded.
+}
+
+contract UnifiedSelectionModel {
+    primary_of: (selection: Selection) -> DocumentElement
+
+    @invariant OneSelectionSet
+        -- Selection is exactly one ordered set of element ids. There is no
+        -- separate stored single-id field. This replaces the old pair of
+        -- selectedElementId plus selectedElementIds reconciled by hand.
+
+    @invariant PrimaryIsDerivedNotStored
+        -- primary is derived from the set (the most recently added member),
+        -- never stored. When the set is empty primary is null. Any view that
+        -- needs "the one selected element" reads the derived primary.
+
+    @invariant SelectableEligibility
+        -- Only elements that carry an id, and groups, are selectable. A member
+        -- is always a selectable element; unselectable nodes never enter the
+        -- set.
+}
+
+contract VisibleGeometryHitTesting {
+    touched_by: (document: EditorDocument, marquee: Overlay) -> Set<DocumentElement>
+
+    @invariant HitsVisibleArtNotBoxes
+        -- What a pointer reaches is decided by the art it paints, never by its
+        -- bounding box (as VectorCraft's doc/src/hit.rs): a click picks the
+        -- topmost element whose painted fill contains the point or whose stroke
+        -- lies under it. A concave shape is not reachable through its empty
+        -- regions; whatever is visible there is reached instead. Bounds stand in
+        -- only for art with no path geometry (text, images).
+
+    @invariant SelectionFrameIsDisplayOnly
+        -- The selection's bounding-box frame is drawn but takes no pointer
+        -- input. Only its handles (resize, rotate) do. A press inside the frame
+        -- reaches the visible art beneath it.
+
+    @invariant MoveStartsOnSelectedArt
+        -- A move gesture begins only from a press on the painted art of a
+        -- selected element, and only after the pointer travels past a small
+        -- drag threshold; a press that does not travel is a click and records
+        -- no history step.
+
+    @invariant MarqueeTouchesGeometry
+        -- touched_by returns the elements whose geometry meets the marquee: a
+        -- path when its outline (widened by half its stroke) crosses or lies
+        -- inside the band, or when the band lies inside its painted fill; a
+        -- group when one of its shapes is touched. A band that overlaps only
+        -- an element's bounding box does not touch it.
+}
+
+contract ToolStateMachine {
+    activate: (session: EditorSession, tool: ToolMode) -> EditorSession
+
+    @invariant ExactlyOneActiveTool
+        -- activeTool is exactly one of select, node or pan. The select tool
+        -- does whole-object move, scale and rotate on the selection. The node
+        -- tool edits path anchors and their bezier handles. The pan tool moves
+        -- the viewport only and mutates no geometry.
+
+    @invariant OutlineModeIsAViewToggle
+        -- outlineMode is an orthogonal view toggle, not a tool. Toggling it
+        -- changes rendering only; it leaves activeTool, the selection and the
+        -- live tree unchanged.
+
+    @invariant NoToolSwitchMidGesture
+        -- The tool cannot change while a gesture is previewing. The in-progress
+        -- gesture must first commit or cancel.
+}
+
+contract NonDestructiveManipulation {
+    begin: (session: EditorSession, kind: GestureKind) -> Gesture
+    bake: (operand: DocumentElement, gesture: Gesture) -> DocumentElement
+
+    @invariant GesturePreviewIsLive
+        -- A manipulation produces a live transform that previews continuously.
+        -- The underlying geometry is untouched while the gesture previews; only
+        -- a transform is shown.
+
+    @invariant BakeOnlyAtCommit
+        -- Geometry is baked to clean attributes only when the gesture commits.
+        -- There is no baking during preview and none in the overlay layer.
+
+    @invariant SingleGeometryKernel
+        -- All baking goes through one geometry kernel. Move, scale and rotate,
+        -- and every other transform, share that kernel; no caller bakes
+        -- coordinates on its own.
+
+    @invariant PrimitiveStaysPrimitive
+        -- A primitive stays a primitive when the transform can be expressed on
+        -- it: a translated or uniformly scaled rect stays a rect, a circle
+        -- stays a circle. Promotion to <path> happens only when the transform
+        -- cannot be represented on the primitive (for example a non-uniform
+        -- scale or rotation of a circle).
+
+    @invariant EscapeRestoresPrePressState
+        -- Escape cancels the in-progress gesture and the art returns exactly to
+        -- its pre-press state. Because nothing was baked, cancellation discards
+        -- the transform and touches no geometry.
+
+    @invariant ModifiersAreGestureParameters
+        -- Shift constrains scale to proportional and rotation to 45-degree
+        -- steps; Alt scales from the centre. These are parameters of the live
+        -- gesture, resolved by the kernel at bake time, not separate commits.
+}
+
+contract DeclarativeOverlayLayer {
+    overlays_for: (session: EditorSession) -> Set<Overlay>
+
+    @invariant OverlaysInDocumentSpace
+        -- Tools output overlay descriptors (Marquee, BBoxHandle, Anchor,
+        -- Handle, Label) in document coordinate space. Mapping to screen space
+        -- is the view's concern.
+
+    @invariant ViewRendersOnly
+        -- The view renders the descriptors and does nothing else with them. It
+        -- reads no geometry back out of the rendered overlays.
+
+    @invariant OverlayLayerNeverBakes
+        -- The overlay layer performs no geometry baking. Overlays are a
+        -- read-only projection of (activeTool, selection, gesture).
+}
+
+contract CommitAndHistory {
+    commit: (session: EditorSession) -> Snapshot
+    restore: (session: EditorSession, snapshot: Snapshot) -> EditorDocument
+
+    @invariant SingleCommitPath
+        -- Every durable change flows through one commit path that pushes a
+        -- snapshot. Manipulation commits through this path and must not commit
+        -- by re-running the full document load pipeline.
+
+    @invariant UndoRedoRestoreSnapshots
+        -- undo and redo restore a snapshot. Restoring re-derives the live tree,
+        -- the level-1 style definitions and the local overrides from that
+        -- snapshot; it does not patch the current tree in place.
+
+    @invariant CommitTruncatesRedoTail
+        -- Committing a new snapshot after an undo discards the redo tail. The
+        -- history is a single linear sequence with one cursor.
+}
+
+contract StructuredGeometryBoundary {
+    read_structured: (artifact: StructuredArtifact) -> EditorDocument
+    write_structured: (document: EditorDocument) -> StructuredArtifact
+
+    @invariant BakeMatchesStructuredProfile
+        -- The baked geometry the editor serializes stays compatible with the
+        -- mf-svg structured-SVG contract (svg-structuring.allium): semantic
+        -- groups, data-concept, unique ids and accessibility metadata survive a
+        -- round trip through the editor. The editor reads and writes that
+        -- artifact; it does not redefine its conformance rules.
+
+    @invariant GeometryStaysLocal
+        -- Path geometry never leaves the browser. The kernel and every library
+        -- black box run locally.
+}
+
+contract TwoLevelStyleModel {
+    cite_class: (element: DocumentElement, class_name: String) -> DocumentElement
+    uncite_class: (element: DocumentElement, class_name: String) -> DocumentElement
+
+    @invariant ZeroInlinePresentationAttributes
+        -- No element carries fill, stroke, stroke-width, opacity or style as an
+        -- inline attribute. All presentation lives in the document's <style>
+        -- block (docs/CSS_STYLING_ARCHITECTURE.md).
+
+    @invariant TwoLevels
+        -- Level 1 is library rules (pure-class selectors, garbage collected to
+        -- those actually used). Level 2 is local overrides (#id.class selectors)
+        -- the user edits. cite / uncite / local-override / restore operate on
+        -- these two levels through the existing StyleRegistry.
+
+    @invariant StyleIsReDerivedOnRestore
+        -- After undo/redo, style definitions and overrides are re-derived from
+        -- the restored snapshot's <style> block, keeping the registry in step
+        -- with the live tree.
+}
+
+contract EditEventsOnSave {
+    record_edit: (session: EditorSession, artifact: EditedArtifact) -> EditorSession
+
+    @invariant RawAndStructuredEditsRecorded
+        -- Saving an editor session records an edit event for the affected
+        -- artifact (svg_raw or svg_structured) through intervention-recording.
+        -- The editor emits the save signal; the recording spec owns the event
+        -- schema, metrics and session grouping.
+}
+
+contract VtracerDecoupling {
+    is_coupled_to_vtracer: (session: EditorSession) -> Boolean
+
+    @invariant EditorIndependentOfVtracer
+        -- The editor is not coupled to VTracer or VectorizerModal. It edits
+        -- whatever SVG it is given (native Phase 3 output or a structured
+        -- artifact). Tracing a bitmap into a vector SVG is a separate,
+        -- user-initiated action upstream of the editor, not a step the editor
+        -- runs or depends on.
+}
+
+------------------------------------------------------------
+-- Enumerations
+------------------------------------------------------------
+
+enum ToolMode {
+    select          -- whole-object move / scale / rotate
+    | node          -- path anchor and bezier handle editing
+    | pan           -- viewport only, no geometry change
+}
+
+enum GestureKind { move | scale | rotate }
+
+enum ElementKind {
+    path            -- <path>
+    | primitive     -- <rect>, <circle>, <ellipse>, <polygon>, <polyline>
+    | group         -- <g>
+}
+
+enum OverlayKind {
+    marquee         -- rubber-band selection rectangle
+    | bbox_handle   -- selection bounding-box move/scale/rotate handle
+    | anchor        -- a path anchor point (node tool)
+    | handle        -- a bezier control handle (node tool)
+    | label         -- a text annotation
+}
+
+-- The artifact an editor session was editing, for the save edit event. Mirrors
+-- intervention-recording.allium's phase values svg_raw and svg_structured.
+enum EditedArtifact { svg_raw | svg_structured }
+
+------------------------------------------------------------
+-- Entities and Variants
+------------------------------------------------------------
+
+entity EditorDocument {
+    -- The live in-memory SVG tree: the single source of truth for a session.
+    loaded_svg: String                 -- the string parsed once at load (boundary in)
+    committed_svg: String              -- serialized at commit (boundary out), derived
+    elements: DocumentElement with document = this
+    style: StyleRegistry
+
+    element_count: elements.count
+}
+
+entity DocumentElement {
+    id: String
+    document: EditorDocument
+    kind: ElementKind
+
+    has_id: id != ""
+    selectable: has_id or kind = group
+}
+
+entity Selection {
+    document: EditorDocument
+    -- One ordered set. Order is selection recency: the most recent member is
+    -- last. There is no separate single-id field.
+    members: List<DocumentElement>
+
+    is_empty: members.count = 0
+    -- Derived primary, never stored. Most recently added member, or null.
+    primary: if members.count = 0: null else: members.last
+}
+
+entity Gesture {
+    session: EditorSession
+    kind: GestureKind
+    status: previewing | committed | cancelled
+
+    -- Modifier parameters resolved by the kernel at bake time.
+    proportional: Boolean              -- Shift: proportional scale
+    from_center: Boolean               -- Alt: scale from centre
+    angle_snapped: Boolean             -- Shift: 45-degree rotation steps
+
+    transitions status {
+        previewing -> committed
+        previewing -> cancelled
+        terminal: committed, cancelled
+    }
+}
+
+entity HistoryStack {
+    session: EditorSession
+    snapshots: List<Snapshot>
+    cursor: Integer                    -- index of the current snapshot
+
+    can_undo: cursor > 0
+    can_redo: cursor < snapshots.count - 1
+}
+
+entity EditorSession {
+    active_tool: ToolMode
+    outline_mode: Boolean
+    document: EditorDocument
+    selection: Selection
+    history: HistoryStack
+    gesture: Gesture?                  -- present only while a gesture previews
+
+    tree_panel_collapsed: Boolean
+    inspector_collapsed: Boolean
+
+    is_manipulating: gesture != null
+
+    transitions active_tool {
+        select -> node
+        select -> pan
+        node -> select
+        node -> pan
+        pan -> select
+        pan -> node
+    }
+}
+
+------------------------------------------------------------
+-- Rules
+------------------------------------------------------------
+
+-- === Tool state machine ===
+
+rule ActivateTool {
+    when: ToolActivated(session, tool)
+    requires: session.active_tool != tool
+    requires: session.gesture = null
+    ensures: session.active_tool = tool
+
+    @guidance
+        -- Switching tool clears any transient node-tool overlays but never the
+        -- selection. Blocked while a gesture previews (NoToolSwitchMidGesture).
+}
+
+rule ToggleOutlineMode {
+    when: OutlineModeToggled(session)
+    ensures: session.outline_mode = not session.outline_mode
+
+    @guidance
+        -- A pure view toggle: activeTool, selection and the live tree are
+        -- untouched.
+}
+
+-- === Unified selection ===
+
+rule ClickSelect {
+    when: ElementClicked(session, element)
+    requires: element.selectable and (session.selection.members.count <= 1 or not (element in session.selection.members))
+    ensures: session.selection.members = select_only(element)
+
+    @guidance
+        -- Replaces the selection with the single clicked element. primary
+        -- derives to that element. Clicking a group selects the group. The
+        -- clicked element is the topmost visible art under the pointer
+        -- (VisibleGeometryHitTesting), never an element whose box merely
+        -- covers the point.
+}
+
+rule ClickSelectionMember {
+    when: ElementClicked(session, element)
+    requires: element in session.selection.members and session.selection.members.count > 1
+    ensures: session.selection.members = make_primary(session.selection.members, element)
+
+    @guidance
+        -- A click (no drag) on a member of a multi-selection keeps the
+        -- selection and makes that member the primary (VectorCraft's key
+        -- object). To collapse to one element, click empty canvas first.
+}
+
+rule ShiftClickToggle {
+    when: ElementShiftClicked(session, element)
+    requires: element.selectable
+    ensures: session.selection.members = toggle(session.selection.members, element)
+
+    @guidance
+        -- Adds the element if absent (becoming the most recent, hence primary),
+        -- removes it if present. toggle preserves selection recency order.
+}
+
+rule MarqueeSelect {
+    when: MarqueeReleased(session, marquee)
+    ensures: session.selection.members = marquee_members(session.document, marquee)
+
+    @guidance
+        -- Rubber-band select. marquee_members returns the selectable elements
+        -- the band touches by their geometry (VisibleGeometryHitTesting
+        -- touched_by), in document order. A band touching nothing empties the
+        -- selection. While dragging, the band shows as a Marquee overlay
+        -- (DeclarativeOverlayLayer).
+}
+
+rule ClearSelection {
+    when: SelectionCleared(session)
+    ensures: session.selection.members = empty_selection()
+
+    @guidance
+        -- Clicking empty canvas or pressing Escape with no gesture in progress
+        -- empties the selection; primary becomes null.
+}
+
+-- === Non-destructive manipulation ===
+
+rule BeginGesture {
+    when: GesturePressed(session, kind, proportional, from_center, angle_snapped)
+    requires: session.active_tool = select
+    requires: not session.selection.is_empty
+    requires: session.gesture = null
+    ensures: Gesture.created(
+        session: session,
+        kind: kind,
+        status: previewing,
+        proportional: proportional,
+        from_center: from_center,
+        angle_snapped: angle_snapped
+    )
+
+    @guidance
+        -- Opens a live transform over the current selection. No geometry is
+        -- baked; a BBoxHandle overlay follows the pointer. The node tool edits
+        -- anchors and handles through the same begin/preview/commit shape over
+        -- individual path points rather than the selection bbox.
+}
+
+rule CommitGesture {
+    when: GestureReleased(session)
+    let gesture = session.gesture
+    requires: gesture != null
+    requires: gesture.status = previewing
+    ensures: gesture.status = committed
+    ensures:
+        for operand in session.selection.members:
+            operand = bake_transform(operand, gesture)
+    ensures: EditCommitted(session: session)
+
+    @guidance
+        -- Releasing bakes the live transform into clean geometry through the
+        -- single kernel (bake_transform), keeping primitives as primitives
+        -- where possible, then routes through the one commit path. It must not
+        -- commit by re-running the document load pipeline.
+}
+
+rule CancelGesture {
+    when: GestureCancelled(session)
+    let gesture = session.gesture
+    requires: gesture != null
+    requires: gesture.status = previewing
+    ensures: gesture.status = cancelled
+
+    @guidance
+        -- Escape during a gesture. Nothing was baked, so discarding the
+        -- transform returns the art to its pre-press state; the selection and
+        -- the live tree are unchanged.
+}
+
+-- === Commit and history ===
+
+rule CommitEdit {
+    when: EditCommitted(session)
+    let snapshot = serialize_document(session.document)
+    ensures: session.document.committed_svg = snapshot.svg
+    ensures: push_snapshot(session.history, snapshot)
+
+    @guidance
+        -- The single commit path. serialize_document derives the string from
+        -- the live tree; push_snapshot truncates any redo tail, appends the
+        -- snapshot and advances the cursor. Also fired by boolean operations
+        -- and style edits that need to be undoable.
+}
+
+rule Undo {
+    when: UndoRequested(session)
+    requires: session.history.can_undo
+    ensures: restore_snapshot(session, session.history.cursor - 1)
+
+    @guidance
+        -- restore_snapshot re-derives the live tree, style definitions and
+        -- overrides from the target snapshot and moves the cursor; it does not
+        -- patch the current tree.
+}
+
+rule Redo {
+    when: RedoRequested(session)
+    requires: session.history.can_redo
+    ensures: restore_snapshot(session, session.history.cursor + 1)
+}
+
+-- === Save ===
+
+rule SaveSession {
+    when: SessionSaved(session, artifact)
+    ensures: EditCommitted(session: session)
+    ensures: EditRecorded(session: session, artifact: artifact)
+
+    @guidance
+        -- Saving commits the current state and emits an edit event for the
+        -- affected artifact (svg_raw or svg_structured), which
+        -- intervention-recording.allium consumes.
+}
+
+------------------------------------------------------------
+-- Invariants
+------------------------------------------------------------
+
+invariant SelectionMembersAreSelectable {
+    for selection in Selections:
+        selection.members.all(m => m.selectable)
+}
+
+invariant NoToolSwitchWhileManipulating {
+    for session in EditorSessions:
+        session.is_manipulating implies session.gesture.status = previewing
+}
+
+invariant HistoryCursorInRange {
+    for history in HistoryStacks:
+        history.cursor >= 0 and history.cursor < history.snapshots.count
+}
+
+invariant OneGesturePerSession {
+    for a in Gestures:
+        for b in Gestures:
+            a != b and a.session = b.session
+                implies not (a.status = previewing and b.status = previewing)
+}
+
+------------------------------------------------------------
+-- Surfaces
+------------------------------------------------------------
+
+surface EditorTaskBar {
+    facing session: EditorSession
+
+    contracts:
+        fulfils LiveModelSource
+        fulfils UnifiedSelectionModel
+        fulfils ToolStateMachine
+        fulfils NonDestructiveManipulation
+        fulfils DeclarativeOverlayLayer
+        fulfils CommitAndHistory
+        fulfils TwoLevelStyleModel
+        fulfils VtracerDecoupling
+        demands StructuredGeometryBoundary
+        demands EditEventsOnSave
+
+    exposes:
+        session.active_tool
+        session.outline_mode
+        session.selection.primary
+        session.selection.is_empty
+        session.history.can_undo
+        session.history.can_redo
+
+    provides:
+        ToolActivated(session, tool)
+        OutlineModeToggled(session)
+        ElementClicked(session, element)
+        ElementShiftClicked(session, element)
+        MarqueeReleased(session, marquee)
+        SelectionCleared(session)
+        GesturePressed(session, kind, proportional, from_center, angle_snapped)
+            when session.active_tool = select and not session.selection.is_empty
+        GestureReleased(session)
+        GestureCancelled(session)
+        UndoRequested(session) when session.history.can_undo
+        RedoRequested(session) when session.history.can_redo
+        SessionSaved(session, artifact)
+
+    @guarantee ContextualContents
+        -- One contextual task bar. Its contents are a function of (activeTool,
+        -- selection): the select tool with a selection shows move/scale/rotate
+        -- and the boolean block (svg-boolean-operations.allium); the node tool
+        -- shows anchor and handle controls; an empty selection shows only
+        -- document-level actions. Buttons follow eligibility, matching the
+        -- boolean toolbar's visible-not-disabled convention.
+
+    @guarantee OutlineIsAToggle
+        -- The outline control is a toggle in the bar, visually distinct from
+        -- the mutually exclusive tool buttons, because it changes the view, not
+        -- the tool.
+}
+
+surface ElementTreePanel {
+    facing session: EditorSession
+
+    exposes:
+        session.document.elements
+        session.selection.members
+        session.tree_panel_collapsed
+
+    provides:
+        ElementClicked(session, element)
+        ElementShiftClicked(session, element)
+        TreePanelToggled(session)
+
+    @guarantee SelectionMirrorsCanvas
+        -- The tree reflects the one unified selection: selecting in the tree and
+        -- selecting on the canvas drive the same set, and the tree highlights
+        -- primary distinctly. The panel is collapsible.
+
+    @guidance
+        -- This is the SVG editor's element-tree panel (the live DOM tree of the
+        -- document being edited). It is distinct from element-tree.allium, which
+        -- governs the COMPONER-phase VisualElement hierarchy — a name collision,
+        -- different concern.
+}
+
+surface InspectorPanel {
+    facing session: EditorSession
+
+    contracts:
+        fulfils TwoLevelStyleModel
+
+    exposes:
+        session.selection.primary
+        session.inspector_collapsed
+
+    provides:
+        CiteClassRequested(session, element, class_name)
+        UnciteClassRequested(session, element, class_name)
+        LocalOverrideSet(session, element, class_name)
+        LocalOverrideRestored(session, element, class_name)
+        InspectorToggled(session)
+
+    @guarantee EditsPrimaryThroughTwoLevels
+        -- The inspector edits the derived primary element's presentation only
+        -- through the two-level CSS model (cite / uncite / local-override /
+        -- restore); it never writes an inline presentation attribute. The panel
+        -- is collapsible.
+}
+
+------------------------------------------------------------
+-- Open Questions
+------------------------------------------------------------
+
+open question "primary resolution: is primary the first-selected or the most-recently-added member? This spec takes most-recent (members.last) so the newest shift-click leads; a first-wins policy would make anchoring operations more predictable."
+
+
+open question "Panel-toggle rules: TreePanelToggled, InspectorToggled, and the inspector's cite/uncite/override/restore triggers are exposed on surfaces but not yet given witnessing rules here; the two-level CSS behaviour is specified in docs/CSS_STYLING_ARCHITECTURE.md and may stay there or be lifted into this spec."
+
+open question "Node-tool gesture shape: anchor and handle editing is described as reusing begin/preview/commit over individual path points. Should the node tool have its own gesture entity distinct from the select tool's bbox gesture, or share Gesture with an added target field?"

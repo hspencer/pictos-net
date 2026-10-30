@@ -11,12 +11,16 @@
 --   placement in the semantic tree, style survival, empty-result handling,
 --   history.
 -- Excludes:
---   - Multi-selection mechanics (external to this spec)
+--   - Multi-selection mechanics: the unified selection model is owned by
+--     vector-editor.allium. This spec only consumes the current selection.
 --   - The polygon/Bezier clipping algorithm (library-provided black box)
---   - Undo/redo machinery (inherited from the editor's history)
---   - Vectorization itself (Phase 4, separate spec)
--- Dependencies: SVG editor selection model, pictos-svg-schema semantic tree,
---   two-level CSS model (see docs/CSS_STYLING_ARCHITECTURE.md).
+--   - Undo/redo machinery (inherited from the editor's history, see
+--     vector-editor.allium CommitAndHistory)
+--   - Vectorization itself (VTracer, a separate user-initiated action outside
+--     the cascade; the editor is not coupled to it)
+-- Dependencies: vector-editor.allium (unified Selection and the single commit
+--   path), pictos-svg-schema semantic tree, two-level CSS model (see
+--   docs/CSS_STYLING_ARCHITECTURE.md).
 
 ------------------------------------------------------------
 -- External Entities
@@ -38,7 +42,11 @@ external entity Shape {
     has_non_geometric_descendants: Boolean   -- text, image, foreignObject
 }
 
--- Provided by the editor's multi-select mechanism, in user selection order.
+-- The unified selection, owned by vector-editor.allium. One ordered set in
+-- user selection order; `shapes` is that set as this spec sees it (each member
+-- is a selectable Shape). The first member is the selection's base/primary for
+-- operand ordering. This spec reads it and never maintains a second selection
+-- field of its own.
 external entity Selection {
     shapes: List<Shape>
 }

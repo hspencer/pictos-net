@@ -1,6 +1,12 @@
 -- allium: 3
 -- element-tree.allium
 
+-- Disambiguation: this spec governs the COMPONER-phase VisualElement hierarchy
+--   (the compositional tree a user arranges before image generation). It is
+--   NOT the SVG editor's SemanticTree / element-tree panel, which lists the
+--   live SVG DOM of a document being edited. Same name, different concern; the
+--   SVG editor's tree panel is specified in vector-editor.allium.
+
 -- Scope: Hierarchical element tree editor for the COMPONER phase
 -- Includes: Tree structure, drag-and-drop reordering, visual connections, invalidation
 -- Excludes:
