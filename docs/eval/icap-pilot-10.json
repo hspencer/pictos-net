@@ -1,0 +1,17 @@
+{
+  "library": "/libraries/icap.json",
+  "model": "claude-sonnet-4-6",
+  "note": "Piloto de 10 casos de ICAP 50 V2, elegidos por rasgos visuales medidos (regiones, color, detalles pequeños, tamaño del árbol). No es el conjunto reservado de VE0: los umbrales pueden ajustarse sobre él.",
+  "cases": [
+    { "index": 34, "id": "R_PHRASE_1772680567287_34", "utterance": "¿Dónde está mamá?", "reason": "silueta monocroma simple (7 regiones)", "bitmapSha256": "5bd2d7a2f138e762d3ddd3a8c8a78e06312c1d60044cdbec72b4577e5fddf0ec" },
+    { "index": 11, "id": "R_PHRASE_1772680567287_11", "utterance": "Dame la mano", "reason": "entidades del mismo color que se tocan (manos)", "bitmapSha256": "a8525c91e55bb1cf0043bd74117c89e43125c1729184e268b4dfd34c8c1a531b" },
+    { "index": 21, "id": "R_PHRASE_1772680567287_21", "utterance": "Te quiero", "reason": "contacto entre figuras y acento de color", "bitmapSha256": "eec7cc2ab456be4aa1ea88c9b36dec2b6bbb2d5349d0c8917bdeba0f963a2723" },
+    { "index": 25, "id": "R_PHRASE_1772680567287_25", "utterance": "Me duele la barriga", "reason": "detalle funcional pequeño (indicador de dolor)", "bitmapSha256": "eaa757044b4c54bad46cb475ddce6e493075a390e7b5bc84f123b0d43d8010cb" },
+    { "index": 2, "id": "R_PHRASE_1772680567287_2", "utterance": "Necesito tomar mi medicina", "reason": "árbol grande (8 nodos) con pocas regiones", "bitmapSha256": "9c36a59eb31be6a3dbe91a566ea2eb455367ba8d0f42718ad01abff52e82e0b5" },
+    { "index": 33, "id": "R_PHRASE_1772680567287_33", "utterance": "¿Cuándo vamos al parque?", "reason": "árbol máximo (10 nodos)", "bitmapSha256": "f177620b1ca09535b34d2dbdc1a4f424cdfe69fd593cb145207f37eb6185de52" },
+    { "index": 1, "id": "R_PHRASE_1772680567287_1", "utterance": "Quiero comer pizza", "reason": "entidad multicolor, 30 % de área en color", "bitmapSha256": "5aaa8432aac2053f50c6dd8bc539b5bf26dc85e64c2bae67a477ae21aeaf46e6" },
+    { "index": 44, "id": "R_PHRASE_1772680567287_44", "utterance": "Hoy me siento sobrecargado", "reason": "caso más complejo: 339 regiones, 42 % color, 116 detalles pequeños", "bitmapSha256": "ee5dbf0b786500833a984e7505078e19b5432328c9a4584e54530b3d07e44dbe" },
+    { "index": 26, "id": "R_PHRASE_1772680567287_26", "utterance": "Está lloviendo", "reason": "muchos componentes desconectados de una misma entidad (lluvia)", "bitmapSha256": "2e5c4f1dbe74482235d98fea9e7ec48a014c55dd5c5a41c3f16e8f25e5a782f8" },
+    { "index": 46, "id": "R_PHRASE_1772680567287_46", "utterance": "No me gusta que me toquen", "reason": "color y contacto con muchos detalles pequeños", "bitmapSha256": "a3977831fabc039257f16755dbf8b1ed2aaa4a597b255bcefc57b1f8eddc218c" }
+  ]
+}

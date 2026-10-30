@@ -111,6 +111,7 @@ export function regionAnswerToMapping(
     raw: unknown,
     orderedPathIds: string[],
     nodeIds: Set<string>,
+    parentOf: Map<string, string | null> = new Map(),
 ): { mapping: StructuringMapping; diagnostics: RegionDiagnostics } {
     const a = (raw ?? {}) as RegionAnswer;
     const expand = expander(orderedPathIds);
@@ -118,18 +119,43 @@ export function regionAnswerToMapping(
     const unresolved = Array.isArray(a.unresolved) ? a.unresolved.filter((r): r is string => typeof r === 'string') : [];
     const protectedRegions = Array.isArray(a.protected) ? a.protected.filter((r): r is string => typeof r === 'string') : [];
 
+    // A split between a node and its own descendants is not ambiguous: the
+    // whole region lies within that node, so it goes to it. The finer split
+    // stays recorded as a diagnostic.
+    const ancestors = (id: string) => {
+        const out: string[] = [];
+        for (let p = parentOf.get(id); p; p = parentOf.get(p)) out.push(p);
+        return out;
+    };
+    const owners = new Map<string, string>();
+    for (const sp of splitRequests) {
+        const entities = Array.isArray(sp.entities) ? sp.entities : [];
+        const owner = entities.find(e => entities.every(o => o === e || ancestors(o).includes(e)));
+        if (owner) owners.set(sp.region, owner);
+    }
+
     // Doubtful regions stay unassigned: removed from every group.
-    const doubtful = new Set(expand([...splitRequests.map(s => s.region), ...unresolved]));
+    const doubtful = new Set(expand([...splitRequests.filter(sp => !owners.has(sp.region)).map(sp => sp.region), ...unresolved]));
     const keepOut = new Set([...doubtful, ...expand(protectedRegions)]);
+
+    const groups = (Array.isArray(a.groups) ? a.groups : []).map(g => ({
+        nodeId: g?.nodeId,
+        label: g?.label ?? g?.nodeId,
+        cssClass: g?.cssClass ?? '',
+        parentId: g?.parentId ?? null,
+        regions: [...(Array.isArray(g?.regions) ? g.regions : [])],
+    }));
+    for (const [region, owner] of owners) {
+        let g = groups.find(x => x.nodeId === owner);
+        if (!g) groups.push(g = { nodeId: owner, label: owner, cssClass: '', parentId: parentOf.get(owner) ?? null, regions: [] });
+        g.regions.unshift(region); // first claim wins over a child group's
+    }
 
     const draft = {
         description: a.description,
-        groups: (Array.isArray(a.groups) ? a.groups : []).map(g => ({
-            nodeId: g?.nodeId,
-            label: g?.label ?? g?.nodeId,
-            cssClass: g?.cssClass ?? '',
-            parentId: g?.parentId ?? null,
-            keep: expand(g?.regions).filter(id => !doubtful.has(id as string)),
+        groups: groups.map(({ regions, ...g }) => ({
+            ...g,
+            keep: expand(regions).filter(id => !doubtful.has(id as string)),
             selected: true,
             merge: null,
         })),

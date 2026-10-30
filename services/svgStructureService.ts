@@ -2169,6 +2169,7 @@ ${regionLines}`;
             extractToolUse(response, REGION_TOOL),
             [...markedPaths.map(p => p.id), ...inventory.paths.filter(p => !markedSet.has(p.id)).map(p => p.id)],
             new Set(nodeList.map(n => n.id)),
+            new Map(nodeList.map(n => [n.id, n.parentId])),
         );
         if (diagnostics.splitRequests.length || diagnostics.unresolved.length) {
             input.onProgress?.(`[VECTORIZAR+ESTRUCTURAR] ambigüedades: ${diagnostics.splitRequests.map(s => `${s.region} → ${s.entities.join('+')}`).join(', ') || 'ninguna separación'}; sin resolver: ${diagnostics.unresolved.join(', ') || 'ninguna'}`);

@@ -12,7 +12,7 @@ Rama `feat/vectorizar-estructurar`. Lo implementado declara qué se probó; nada
 
 | Entrega | Estado | Evidencia |
 |---|---|---|
-| VE0 | Parcial | Contratos expresados en `svg-structuring.allium` (`LocalGeometryAssembly`, `JointVectorizeStructure`) y `library-views.allium`. Fixtures sintéticos en tests. Pendiente: corpus de 50 casos (30/20), protocolo de tiempo humano y línea base. |
+| VE0 | Parcial | Piloto de 10 casos de ICAP con manifiesto y resultados (ver abajo). Contratos expresados en `svg-structuring.allium` (`LocalGeometryAssembly`, `JointVectorizeStructure`) y `library-views.allium`. Fixtures sintéticos en tests. Pendiente: corpus de 50 casos (30/20), protocolo de tiempo humano y línea base. |
 | VE1 | Hecho | D08, D09, D11, D12, D13 (parcial, ver nota), D15 y D16 corregidos. Tests: `svgMappingValidation`, `svgBooleanOps` (huecos), `svgMergeCandidates` (pintura). Casos de regresión §12.3 de merge, anillo, acentos, transformaciones e ids verificados en navegador. |
 | VE2 | Hecho | Binding `lib/vtracer-web` sobre el núcleo fijado `2500df7`. Mosaico con procedencia exacta, cero rendijas, huecos reales. Comparación preliminar con 6 bitmaps: menos píxeles erróneos en los 6, la mitad de bytes, tiempo similar. |
 | VE3 | Hecho | `vectorizeAndStructure` y contrato `restructure_regions` (`regionMapping` + tests). Dos filas reales con Claude Sonnet 4.6: una sola petición, 5,3–7,4 k tokens de entrada, 10–17 s, fidelidad geométrica 0,0–0,65 %, separación solicitada en el contacto persona+pastel. |
@@ -21,6 +21,30 @@ Rama `feat/vectorizar-estructurar`. Lo implementado declara qué se probó; nada
 | VE6–VE8 | Pendiente | Requieren el corpus de VE0 y evaluación con personas. |
 
 Nota sobre D13: martinez ya trataba los anillos anidados de un mismo operando como par-impar, así que los huecos sobrevivían; lo incorrecto era `nonzero` con anillos de igual sentido (debían ser sólidos). Ahora la regla de relleno del path decide.
+
+### Evaluación piloto: 10 casos de ICAP 50 V2
+
+Manifiesto `docs/eval/icap-pilot-10.json` (casos elegidos por rasgos visuales medidos sobre las 50 imágenes: silueta simple, contacto del mismo color, detalle pequeño, árboles de 8 y 10 nodos, entidad multicolor, el caso más complejo, componentes desconectados). Resultados completos en `docs/eval/icap-pilot-10-results-2026-10-30.json`; arnés reproducible en `scripts/eval/vectorizarEstructurarEval.ts`. Mismo modelo (`claude-sonnet-4-6`) y configuración en ambas variantes; medidas contra el bitmap de origen a 256 px, con trazos de estilo neutralizados.
+
+| Medida | A: trazado antiguo + ESTRUCTURAR | D: conjunto por regiones |
+|---|---|---|
+| Píxeles erróneos, media (mediana) | 4,68 % (2,16 %) | 1,02 % (1,04 %) |
+| Casos donde la estructura empeora su propio trazado más del doble | 4 de 10 (1, 21, 26, 46) | 0 de 10 |
+| Nodos del árbol con geometría | 51 de 57 | 55 de 57 |
+| Tokens de entrada, media | 11 953 | 6 156 |
+| Tokens de salida, media | 778 | 825 |
+| Tiempo total, media | 11,4 s | 13,5 s |
+| Tamaño del SVG, media | 103 KB | 37 KB |
+| Paths sin asignar, media | 1,9 % | 3,7 % |
+| Peor pérdida local, mediana | 12,7 % | 20,9 % |
+
+Lectura:
+
+- A falla por el orden de pintura (D17): al reagrupar un trazado apilado, capas que estaban debajo quedan encima. En "Quiero comer pizza" la persona y la pizza desaparecen bajo el halo; en "Te quiero" el corazón queda negro; en "No me gusta que me toquen" las personas quedan color salmón. La partición en mosaico de D no tiene orden que romper.
+- La peor pérdida local de D (casos 34 y 11) ya está en el trazado de regiones: líneas finas y claras salen más claras porque el color de la región es la media de su clúster, que incluye el antialias. No es forma perdida. Afinar la segmentación (precisión de color 7) solo baja la mediana a 16 % con 41 % más regiones. Corrección prevista en VE4: color robusto tomado del interior de cada región.
+- D pide separaciones donde hay contacto real (persona y pastel; "yo"+"tú" abrazados). En "Me duele la barriga" pidió separar `torso` de su propio padre `persona`; una región que abarca a un nodo y a su ancestro ahora se asigna al ancestro (con test). La segunda corrida de ese caso no repitió la solicitud: el modelo no es determinista y esa regla quedó cubierta solo por el test.
+- Ningún caso se certificó en ninguna variante: los NLU y bindings de ICAP son históricos (`nluNeedsReview`, `bindingsNeedReview`).
+- No mide tiempo humano de retoque. Este piloto no es el conjunto reservado: los ajustes hechos sobre él no pueden validarse con él.
 
 Hallazgos nuevos durante la implementación:
 

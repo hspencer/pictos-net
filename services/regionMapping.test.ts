@@ -59,3 +59,14 @@ test('the schema only offers existing nodes', () => {
     assert.equal(schema.name, 'restructure_regions');
     assert.deepEqual(schema.input_schema.properties.groups.items.properties.nodeId.enum, ['persona', 'vaso']);
 });
+
+test('a split between a node and its descendant goes to the ancestor', () => {
+    const parents = new Map<string, string | null>([['persona', null], ['mano', 'persona'], ['vaso', null]]);
+    const { mapping, diagnostics } = regionAnswerToMapping(answer({
+        groups: [{ nodeId: 'mano', label: 'm', cssClass: 'k', regions: ['r3'] }],
+        splitRequests: [{ region: 'r2', entities: ['mano', 'persona'] }, { region: 'r4', entities: ['mano', 'vaso'] }],
+    }), PATHS, NODES, parents);
+    assert.deepEqual(mapping.groups.find(g => g.nodeId === 'persona')?.keep, ['r2', 'r2_1', 'r2_a7']);
+    assert.ok(!mapping.groups.some(g => g.keep.includes('r4')), 'siblings stay unresolved');
+    assert.equal(diagnostics.splitRequests.length, 2, 'both splits stay recorded');
+});

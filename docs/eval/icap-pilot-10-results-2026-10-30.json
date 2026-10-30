@@ -1,0 +1,469 @@
+{
+  "date": "2026-10-30",
+  "manifest": "docs/eval/icap-pilot-10.json",
+  "model": "claude-sonnet-4-6",
+  "variants": {
+    "A": "legacy VTracer 0.6 webapp (pictogram preset) + ESTRUCTURAR (branch code, with VE1)",
+    "D": "vectorizeAndStructure: VTracer 1.0.0-alpha.4 @2500df7 mosaic regions + restructure_regions"
+  },
+  "measuredAgainst": "source bitmap at 256 px, style strokes neutralised",
+  "results": [
+    {
+      "index": 34,
+      "utterance": "¿Dónde está mamá?",
+      "A": {
+        "ok": true,
+        "certified": false,
+        "diagnostic": "nluNeedsReview",
+        "traceMs": 82,
+        "totalMs": 7144,
+        "tokensIn": 10379,
+        "tokensOut": 360,
+        "wrongPixelPct": 0.52,
+        "worstCellLossPct": 12.1,
+        "paths": 6,
+        "kb": 25.2,
+        "nodesCovered": "4/4",
+        "missingNodes": [],
+        "unassignedPathPct": 0,
+        "traceVsBitmap": {
+          "wrongPixelPct": 0.59,
+          "worstCellLossPct": 12.1
+        }
+      },
+      "D": {
+        "ok": true,
+        "certified": false,
+        "diagnostic": "nluNeedsReview",
+        "totalMs": 7070,
+        "tokensIn": 4842,
+        "tokensOut": 406,
+        "markedRegions": 6,
+        "slivers": 0,
+        "splitRequests": [],
+        "unresolved": 0,
+        "protected": 3,
+        "wrongPixelPct": 0.58,
+        "worstCellLossPct": 50,
+        "paths": 6,
+        "kb": 8.9,
+        "nodesCovered": "4/4",
+        "missingNodes": [],
+        "unassignedPathPct": 0
+      }
+    },
+    {
+      "index": 11,
+      "utterance": "Dame la mano",
+      "A": {
+        "ok": true,
+        "certified": false,
+        "diagnostic": "nluNeedsReview",
+        "traceMs": 154,
+        "totalMs": 8498,
+        "tokensIn": 10710,
+        "tokensOut": 490,
+        "wrongPixelPct": 2.49,
+        "worstCellLossPct": 53.1,
+        "paths": 27,
+        "kb": 80.8,
+        "nodesCovered": "4/4",
+        "missingNodes": [],
+        "unassignedPathPct": 0,
+        "traceVsBitmap": {
+          "wrongPixelPct": 1.43,
+          "worstCellLossPct": 53.1
+        }
+      },
+      "D": {
+        "ok": true,
+        "certified": false,
+        "diagnostic": "nluNeedsReview",
+        "totalMs": 8686,
+        "tokensIn": 5251,
+        "tokensOut": 500,
+        "markedRegions": 18,
+        "slivers": 25,
+        "splitRequests": [],
+        "unresolved": 0,
+        "protected": 5,
+        "wrongPixelPct": 1.52,
+        "worstCellLossPct": 100,
+        "paths": 43,
+        "kb": 23.7,
+        "nodesCovered": "4/4",
+        "missingNodes": [],
+        "unassignedPathPct": 0
+      }
+    },
+    {
+      "index": 21,
+      "utterance": "Te quiero",
+      "A": {
+        "ok": true,
+        "certified": false,
+        "diagnostic": "bindingsNeedReview",
+        "traceMs": 100,
+        "totalMs": 8148,
+        "tokensIn": 11284,
+        "tokensOut": 533,
+        "wrongPixelPct": 6.11,
+        "worstCellLossPct": 1.9,
+        "paths": 51,
+        "kb": 89.2,
+        "nodesCovered": "4/4",
+        "missingNodes": [],
+        "unassignedPathPct": 5.9,
+        "traceVsBitmap": {
+          "wrongPixelPct": 1.08,
+          "worstCellLossPct": 2.3
+        }
+      },
+      "D": {
+        "ok": true,
+        "certified": false,
+        "diagnostic": "bindingsNeedReview",
+        "totalMs": 17391,
+        "tokensIn": 5697,
+        "tokensOut": 948,
+        "markedRegions": 34,
+        "slivers": 35,
+        "splitRequests": [
+          "r1:yo+tu+sentimiento_amor",
+          "r6:yo+tu"
+        ],
+        "unresolved": 2,
+        "protected": 4,
+        "wrongPixelPct": 1.07,
+        "worstCellLossPct": 16.7,
+        "paths": 69,
+        "kb": 36.9,
+        "nodesCovered": "4/4",
+        "missingNodes": [],
+        "unassignedPathPct": 8.7
+      }
+    },
+    {
+      "index": 25,
+      "utterance": "Me duele la barriga",
+      "A": {
+        "ok": true,
+        "certified": false,
+        "diagnostic": "bindingsNeedReview",
+        "traceMs": 87,
+        "totalMs": 10525,
+        "tokensIn": 11443,
+        "tokensOut": 637,
+        "wrongPixelPct": 1.82,
+        "worstCellLossPct": 13.2,
+        "paths": 55,
+        "kb": 78.5,
+        "nodesCovered": "6/6",
+        "missingNodes": [],
+        "unassignedPathPct": 3.6,
+        "traceVsBitmap": {
+          "wrongPixelPct": 0.99,
+          "worstCellLossPct": 8.7
+        }
+      },
+      "D": {
+        "ok": true,
+        "certified": false,
+        "diagnostic": "bindingsNeedReview",
+        "totalMs": 13995,
+        "tokensIn": 5830,
+        "tokensOut": 888,
+        "markedRegions": 37,
+        "slivers": 25,
+        "splitRequests": [
+          "r1:torso+persona",
+          "r2:torso+persona"
+        ],
+        "unresolved": 4,
+        "protected": 14,
+        "wrongPixelPct": 0.85,
+        "worstCellLossPct": 6.2,
+        "paths": 62,
+        "kb": 26.2,
+        "nodesCovered": "6/6",
+        "missingNodes": [],
+        "unassignedPathPct": 17.7
+      }
+    },
+    {
+      "index": 2,
+      "utterance": "Necesito tomar mi medicina",
+      "A": {
+        "ok": true,
+        "certified": false,
+        "diagnostic": "nluNeedsReview",
+        "traceMs": 78,
+        "totalMs": 9237,
+        "tokensIn": 10662,
+        "tokensOut": 590,
+        "wrongPixelPct": 1.34,
+        "worstCellLossPct": 7.7,
+        "paths": 18,
+        "kb": 45.1,
+        "nodesCovered": "7/8",
+        "missingNodes": [
+          "boca"
+        ],
+        "unassignedPathPct": 0,
+        "traceVsBitmap": {
+          "wrongPixelPct": 1.43,
+          "worstCellLossPct": 7.7
+        }
+      },
+      "D": {
+        "ok": true,
+        "certified": false,
+        "diagnostic": "nluNeedsReview",
+        "totalMs": 13104,
+        "tokensIn": 5145,
+        "tokensOut": 612,
+        "markedRegions": 13,
+        "slivers": 8,
+        "splitRequests": [],
+        "unresolved": 0,
+        "protected": 6,
+        "wrongPixelPct": 1.32,
+        "worstCellLossPct": 14.3,
+        "paths": 21,
+        "kb": 14.5,
+        "nodesCovered": "6/8",
+        "missingNodes": [
+          "cabeza",
+          "boca"
+        ],
+        "unassignedPathPct": 0
+      }
+    },
+    {
+      "index": 33,
+      "utterance": "¿Cuándo vamos al parque?",
+      "A": {
+        "ok": true,
+        "certified": false,
+        "diagnostic": "nluNeedsReview",
+        "traceMs": 77,
+        "totalMs": 11097,
+        "tokensIn": 10876,
+        "tokensOut": 780,
+        "wrongPixelPct": 0.9,
+        "worstCellLossPct": 50,
+        "paths": 19,
+        "kb": 45.3,
+        "nodesCovered": "10/10",
+        "missingNodes": [],
+        "unassignedPathPct": 0,
+        "traceVsBitmap": {
+          "wrongPixelPct": 0.81,
+          "worstCellLossPct": 50
+        }
+      },
+      "D": {
+        "ok": true,
+        "certified": false,
+        "diagnostic": "bindingsNeedReview",
+        "totalMs": 15477,
+        "tokensIn": 5343,
+        "tokensOut": 835,
+        "markedRegions": 17,
+        "slivers": 3,
+        "splitRequests": [],
+        "unresolved": 0,
+        "protected": 6,
+        "wrongPixelPct": 0.91,
+        "worstCellLossPct": 31.3,
+        "paths": 20,
+        "kb": 14.4,
+        "nodesCovered": "10/10",
+        "missingNodes": [],
+        "unassignedPathPct": 5
+      }
+    },
+    {
+      "index": 1,
+      "utterance": "Quiero comer pizza",
+      "A": {
+        "ok": true,
+        "certified": false,
+        "diagnostic": "bindingsNeedReview",
+        "traceMs": 159,
+        "totalMs": 13322,
+        "tokensIn": 11674,
+        "tokensOut": 721,
+        "wrongPixelPct": 14.58,
+        "worstCellLossPct": 100,
+        "paths": 61,
+        "kb": 127.2,
+        "nodesCovered": "4/4",
+        "missingNodes": [],
+        "unassignedPathPct": 1.6,
+        "traceVsBitmap": {
+          "wrongPixelPct": 1.29,
+          "worstCellLossPct": 100
+        }
+      },
+      "D": {
+        "ok": true,
+        "certified": false,
+        "diagnostic": "bindingsNeedReview",
+        "totalMs": 10988,
+        "tokensIn": 5962,
+        "tokensOut": 648,
+        "markedRegions": 41,
+        "slivers": 44,
+        "splitRequests": [],
+        "unresolved": 0,
+        "protected": 7,
+        "wrongPixelPct": 1,
+        "worstCellLossPct": 100,
+        "paths": 83,
+        "kb": 40.2,
+        "nodesCovered": "4/4",
+        "missingNodes": [],
+        "unassignedPathPct": 1.2
+      }
+    },
+    {
+      "index": 44,
+      "utterance": "Hoy me siento sobrecargado",
+      "A": {
+        "ok": true,
+        "certified": false,
+        "diagnostic": "nluNeedsReview",
+        "traceMs": 156,
+        "totalMs": 21050,
+        "tokensIn": 17518,
+        "tokensOut": 1837,
+        "wrongPixelPct": 0.39,
+        "worstCellLossPct": 25,
+        "paths": 293,
+        "kb": 302.2,
+        "nodesCovered": "3/8",
+        "missingNodes": [
+          "tarea_1",
+          "tarea_2",
+          "tarea_3",
+          "tarea_4",
+          "tarea_5"
+        ],
+        "unassignedPathPct": 0,
+        "traceVsBitmap": {
+          "wrongPixelPct": 0.41,
+          "worstCellLossPct": 25
+        }
+      },
+      "D": {
+        "ok": true,
+        "certified": false,
+        "diagnostic": "bindingsNeedReview",
+        "totalMs": 23334,
+        "tokensIn": 9599,
+        "tokensOut": 1712,
+        "markedRegions": 158,
+        "slivers": 195,
+        "splitRequests": [],
+        "unresolved": 13,
+        "protected": 27,
+        "wrongPixelPct": 0.31,
+        "worstCellLossPct": 25,
+        "paths": 353,
+        "kb": 120.7,
+        "nodesCovered": "8/8",
+        "missingNodes": [],
+        "unassignedPathPct": 3.7
+      }
+    },
+    {
+      "index": 26,
+      "utterance": "Está lloviendo",
+      "A": {
+        "ok": true,
+        "certified": false,
+        "diagnostic": "bindingsNeedReview",
+        "traceMs": 155,
+        "totalMs": 9273,
+        "tokensIn": 12602,
+        "tokensOut": 728,
+        "wrongPixelPct": 4.15,
+        "worstCellLossPct": 1.9,
+        "paths": 102,
+        "kb": 120,
+        "nodesCovered": "4/4",
+        "missingNodes": [],
+        "unassignedPathPct": 5.9,
+        "traceVsBitmap": {
+          "wrongPixelPct": 1.48,
+          "worstCellLossPct": 11.8
+        }
+      },
+      "D": {
+        "ok": true,
+        "certified": false,
+        "diagnostic": "nluNeedsReview",
+        "totalMs": 12142,
+        "tokensIn": 7695,
+        "tokensOut": 971,
+        "markedRegions": 99,
+        "slivers": 7,
+        "splitRequests": [],
+        "unresolved": 0,
+        "protected": 91,
+        "wrongPixelPct": 1.35,
+        "worstCellLossPct": 11.1,
+        "paths": 106,
+        "kb": 41.4,
+        "nodesCovered": "4/4",
+        "missingNodes": [],
+        "unassignedPathPct": 0
+      }
+    },
+    {
+      "index": 46,
+      "utterance": "No me gusta que me toquen",
+      "A": {
+        "ok": true,
+        "certified": false,
+        "diagnostic": "bindingsNeedReview",
+        "traceMs": 113,
+        "totalMs": 16178,
+        "tokensIn": 12385,
+        "tokensOut": 1106,
+        "wrongPixelPct": 14.46,
+        "worstCellLossPct": 10,
+        "paths": 93,
+        "kb": 114.3,
+        "nodesCovered": "5/5",
+        "missingNodes": [],
+        "unassignedPathPct": 2.2,
+        "traceVsBitmap": {
+          "wrongPixelPct": 1.56,
+          "worstCellLossPct": 10
+        }
+      },
+      "D": {
+        "ok": true,
+        "certified": false,
+        "diagnostic": "bindingsNeedReview",
+        "totalMs": 12644,
+        "tokensIn": 6193,
+        "tokensOut": 731,
+        "markedRegions": 48,
+        "slivers": 76,
+        "splitRequests": [],
+        "unresolved": 0,
+        "protected": 8,
+        "wrongPixelPct": 1.27,
+        "worstCellLossPct": 10,
+        "paths": 123,
+        "kb": 41.9,
+        "nodesCovered": "5/5",
+        "missingNodes": [],
+        "unassignedPathPct": 0.8
+      }
+    }
+  ]
+}
