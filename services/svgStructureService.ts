@@ -1257,7 +1257,7 @@ export function assembleFromMapping(
         const draftMetadata = { status: 'draft', nlu: input.nlu, composition: { elements: input.elements, prompt: input.prompt }, provenance: input.provenance ?? {} };
         // Drafts get readable child ids too (entity-n), like accepted revisions.
         const candidateDraft = deriveChildIds(assembleStructuredSVG(body, input, draftMetadata, filteredCSS, inventory.viewBox)
-            .replace('id="mf-accessibility"', 'id="pictonet-draft"'));
+            .replace('id="mf-accessibility"', 'id="pictonet-draft"'), input.config.lang);
         inspectPassiveSVG(candidateDraft);
         draftSvg = candidateDraft;
         if (orphans.length || effectiveGroups.some(g => !conceptById.has(g.nodeId))) throw new Error('Unassigned geometry requires binding review');
@@ -1270,7 +1270,7 @@ export function assembleFromMapping(
         if (validation) {
             input.onProgress?.(`[ESTRUCTURAR] advertencia XML: ${validation.slice(0, 120)}`);
         } else {
-            svgContent = deriveChildIds(svgContent);
+            svgContent = deriveChildIds(svgContent, input.config.lang);
             svgContent = polishGeometry(svgContent, input.onProgress);
         }
 
@@ -1317,27 +1317,27 @@ function buildFilteredCSS(fullCSS: string, usedClasses: Set<string>): string {
     return keptRules.join('\n\n');
 }
 
-function deriveChildIds(svgContent: string): string {
+function deriveChildIds(svgContent: string, lang?: string): string {
     const parser = new DOMParser();
     const doc = parser.parseFromString(svgContent, 'image/svg+xml');
     if (doc.querySelector('parsererror')) { console.warn('[deriveChildIds] SVG parse failed'); return svgContent; }
     const renames = new Map<string, string>();
     const vtracerHashRe = /^el-[0-9a-z]+$/i;
+    // Generated ids: legacy trace ids (p12, path3…) and region ids from the
+    // joint path (r12, r12_1, r12_a813, r12_a813x1).
+    const generated = (id: string | null) => !id || vtracerHashRe.test(id) || /^(p|g|path|rect|circle)\d+$/.test(id) || /^r\d+(?:_(?:\d+|a\d+(?:x\d+)?))?$/.test(id);
+    // The group already holds the entity name, so a lone shape is
+    // "<entity>-forma" and several are numbered "<entity>-1", "<entity>-2".
+    const single = lang?.startsWith('en') ? 'shape' : 'forma';
     doc.querySelectorAll('g[id]').forEach(group => {
         const gId = group.getAttribute('id')!;
         if (vtracerHashRe.test(gId)) return;
-        let counter = 1;
-        group.childNodes.forEach(child => {
-            if (!(child instanceof Element) || child.tagName === 'g') return;
+        const children = Array.from(group.children).filter(child => child.tagName !== 'g' && generated(child.getAttribute('id')));
+        children.forEach((child, i) => {
+            const newId = children.length === 1 ? `${gId}-${single}` : `${gId}-${i + 1}`;
             const oldId = child.getAttribute('id');
-            if (!oldId) { child.setAttribute('id', `${gId}-${counter++}`); return; }
-            // Generated ids: legacy trace ids (p12, path3…) and region ids
-            // from the joint path (r12, r12_1, r12_a813, r12_a813x1).
-            if (vtracerHashRe.test(oldId) || /^(p|g|path|rect|circle)\d+$/.test(oldId) || /^r\d+(?:_(?:\d+|a\d+(?:x\d+)?))?$/.test(oldId)) {
-                const newId = `${gId}-${counter++}`;
-                child.setAttribute('id', newId);
-                renames.set(oldId, newId);
-            }
+            child.setAttribute('id', newId);
+            if (oldId) renames.set(oldId, newId);
         });
     });
     let result = new XMLSerializer().serializeToString(doc);
@@ -1738,7 +1738,7 @@ export async function redrawSVG(input: SVGStructureInput): Promise<SVGStructureR
         if (validation) {
             input.onProgress?.(`[ESTRUCTURAR] advertencia XML: ${validation.slice(0, 120)}`);
         } else {
-            svgContent = deriveChildIds(svgContent);
+            svgContent = deriveChildIds(svgContent, input.config.lang);
             svgContent = polishGeometry(svgContent, input.onProgress);
         }
 
@@ -2118,7 +2118,7 @@ export async function vectorizeAndStructure(input: JointStructureInput): Promise
         const ref = parseDataUrl(input.bitmap);
         if (!ref) return { svg: '', success: false, diagnostic: { key: 'traceRequired' } };
 
-        input.onProgress?.(`[VECTORIZAR+ESTRUCTURAR] segmentando regiones (${VTRACER_WEB_ENGINE.core})…`);
+        input.onProgress?.(`[ESTRUCTURAR desde bitmap] segmentando regiones (${VTRACER_WEB_ENGINE.core})…`);
         const img = new Image();
         img.src = input.bitmap;
         await img.decode();
@@ -2130,7 +2130,7 @@ export async function vectorizeAndStructure(input: JointStructureInput): Promise
             session.free();
         }
         const rawSvg = trace.svg;
-        input.onProgress?.(`[VECTORIZAR+ESTRUCTURAR] ${trace.marked.length} regiones marcadas, ${trace.attached.length} astillas adjuntas, ${trace.paperCount} región(es) de papel`);
+        input.onProgress?.(`[ESTRUCTURAR desde bitmap] ${trace.marked.length} regiones marcadas, ${trace.attached.length} astillas adjuntas, ${trace.paperCount} región(es) de papel`);
 
         const admission = canStructureSVG({ rawSvg, elements: input.elements });
         if (!admission.eligible) return { svg: '', rawSvg, success: false, diagnostic: { key: admission.reasonKey! } };
@@ -2154,7 +2154,7 @@ ${extractPaletteClasses(generateStylesheet(input.config))}
 Regiones (${markedPaths.length}; además ${trace.attached.length} astillas de borde sin marca que siguen a la región que las contiene):
 ${regionLines}`;
 
-        input.onProgress?.(`[VECTORIZAR+ESTRUCTURAR] llamando ${model} (${userText.length} chars, marcas ${image.widthPx}×${image.heightPx}px)…`);
+        input.onProgress?.(`[ESTRUCTURAR desde bitmap] llamando ${model} (${userText.length} chars, marcas ${image.widthPx}×${image.heightPx}px)…`);
         const response: ClaudeResponse = await callStructuringModel({
             model,
             max_tokens: 8192,
@@ -2167,7 +2167,7 @@ ${regionLines}`;
                 { type: 'text', text: userText },
             ] }],
         });
-        if (response.usage) input.onProgress?.(`[VECTORIZAR+ESTRUCTURAR] tokens: entrada=${response.usage.input_tokens}, salida=${response.usage.output_tokens}`);
+        if (response.usage) input.onProgress?.(`[ESTRUCTURAR desde bitmap] tokens: entrada=${response.usage.input_tokens}, salida=${response.usage.output_tokens}`);
 
         // Mark numbers index markedPaths, so marked ids come first.
         let { mapping, diagnostics } = regionAnswerToMapping(
@@ -2180,9 +2180,9 @@ ${regionLines}`;
         const proposed = mapping.discard.length;
         const absorbedResult = absorbDiscards(mapping, trace.regionOf);
         mapping = absorbedResult.mapping;
-        if (proposed) input.onProgress?.(`[VECTORIZAR+ESTRUCTURAR] ${proposed} path(s) propuesto(s) como ruido: ${absorbedResult.absorbed} absorbido(s) por la región que los contiene, el resto queda sin asignar (nada se borra de la partición)`);
+        if (proposed) input.onProgress?.(`[ESTRUCTURAR desde bitmap] ${proposed} path(s) propuesto(s) como ruido: ${absorbedResult.absorbed} absorbido(s) por la región que los contiene, el resto queda sin asignar (nada se borra de la partición)`);
         if (diagnostics.splitRequests.length || diagnostics.unresolved.length) {
-            input.onProgress?.(`[VECTORIZAR+ESTRUCTURAR] ambigüedades: ${diagnostics.splitRequests.map(s => `${s.region} → ${s.entities.join('+')}`).join(', ') || 'ninguna separación'}; sin resolver: ${diagnostics.unresolved.join(', ') || 'ninguna'}`);
+            input.onProgress?.(`[ESTRUCTURAR desde bitmap] ambigüedades: ${diagnostics.splitRequests.map(s => `${s.region} → ${s.entities.join('+')}`).join(', ') || 'ninguna separación'}; sin resolver: ${diagnostics.unresolved.join(', ') || 'ninguna'}`);
         }
 
         if (input.config.recording?.enabled) {
@@ -2195,7 +2195,7 @@ ${regionLines}`;
             svg: '',
             success: false,
             diagnostic: svgStructureDiagnostic(error),
-            error: error instanceof Error ? error.message : 'Error desconocido en VECTORIZAR+ESTRUCTURAR',
+            error: error instanceof Error ? error.message : 'Error desconocido en ESTRUCTURAR desde bitmap',
         };
     }
 }

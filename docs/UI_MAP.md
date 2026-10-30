@@ -102,8 +102,8 @@ APP-SHELL (#app-shell) [via div.min-h-screen]
 │               └── StepBox [#block-produce] 
 │                   ├── #bitmap-preview          [bg-neutral-200, flex, min-h-250]
 │                   └── SVGGenerator   [se monta también con solo bitmap]
-│                       ├── bitmap + árbol → "Vectorizar y estructurar" (principal) · "Trazar" (secundario)
-│                       ├── con trazado → "Estructurar" + "Vectorizar y estructurar" (secundario)
+│                       ├── bitmap + árbol → "Estructurar" (principal) · "Solo trazar" (secundario)
+│                       ├── con trazado → "Estructurar trazado" + "Estructurar desde el bitmap" (secundario)
 │                       └── #svg-output  [NEW]
 │
 ├── #console-panel (#console)       [fixed bottom-0, h-64, condicional]

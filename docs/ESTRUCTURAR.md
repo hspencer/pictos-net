@@ -29,10 +29,10 @@ Plan y evaluación: [Optimización conjunta de VECTORIZAR y ESTRUCTURAR](PLAN_VE
 
 | Entrada | Cuándo | Qué recibe el modelo | Herramienta |
 |---|---|---|---|
-| **Vectorizar y estructurar** (por defecto en un bitmap con árbol) | La fila tiene bitmap y elementos de COMPONER | Bitmap, regiones numeradas, árbol, paleta | `restructure_regions` |
-| **Estructurar** | La fila ya tiene un trazado o un SVG nativo (modelos vectoriales) | Bitmap de referencia si existe, paths numerados, árbol, paleta | `restructure_svg` |
+| **Estructurar** (desde el bitmap; principal en un bitmap con árbol) | La fila tiene bitmap y elementos de COMPONER | Bitmap, regiones numeradas, árbol, paleta | `restructure_regions` |
+| **Estructurar trazado** | La fila ya tiene un trazado o un SVG nativo (modelos vectoriales) | Bitmap de referencia si existe, paths numerados, árbol, paleta | `restructure_svg` |
 
-TRAZAR sigue disponible como acción secundaria ("solo trazar") para obtener un SVG sin estructurar. Ambas entradas terminan en el mismo `assembleAndVerify`, de modo que el resultado inmediato y el revisado (modo de registro) pasan por el mismo ensamblado y la misma verificación.
+Con solo bitmap, la UI ofrece "Estructurar" como acción principal y "Solo trazar" como secundaria (SVG sin estructurar). Con un trazado existente, "Estructurar trazado" y, como secundaria, "Estructurar desde el bitmap" (que reemplaza el trazado). Internamente la primera ruta es `vectorizeAndStructure` y la segunda `structureSVG`. Ambas entradas terminan en el mismo `assembleAndVerify`, de modo que el resultado inmediato y el revisado (modo de registro) pasan por el mismo ensamblado y la misma verificación.
 
 ```mermaid
 flowchart TD
@@ -48,7 +48,7 @@ flowchart TD
     OK -->|No| DRAFT["Borrador editable<br>con diagnóstico localizado"]
 ```
 
-## Vectorizar y estructurar
+## Estructurar desde el bitmap
 
 ### Regiones
 
@@ -98,7 +98,7 @@ Los contornos dobles (borde interno y externo de una misma línea) se detectan a
 - **Huérfanos**: un `parentId` que apunta a un nodo inexistente se reparenta al nivel superior.
 - **Descartes sospechosos**: en la ruta de trazado, un descarte que no es micro-mancha se revierte. En la ruta de regiones ningún descarte borra geometría.
 - **Geometría sin asignar**: va al grupo `unclassified`, sin concepto inventado. Su presencia impide certificar y produce un borrador.
-- **Post-proceso**: CSS filtrado a las clases usadas, metadata canónica (`mf-accessibility`), `deriveChildIds` (los paths toman el nombre de su entidad: `mamá-1`, `mamá-2`…, también en borradores; las reglas `#id` del CSS los siguen), `polishGeometry`.
+- **Post-proceso**: CSS filtrado a las clases usadas, metadata canónica (`mf-accessibility`), `deriveChildIds` (los paths toman el nombre de su entidad: una forma sola es `lugar-forma` y varias se numeran `mamá-1`, `mamá-2`…, porque el id de la entidad ya lo lleva su grupo; también en borradores, y las reglas `#id` del CSS los siguen), `polishGeometry`.
 
 ### Verificación de fidelidad
 

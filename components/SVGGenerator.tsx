@@ -469,12 +469,12 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
         <button
             type="button"
             onClick={handleJoint}
-            title={t('svg.vectorizeAndStructureTitle')}
+            title={t('svg.structureFromBitmapTitle')}
             className={primary
                 ? 'w-full flex items-center justify-center gap-2 py-3 px-4 bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold uppercase tracking-widest rounded transition-colors shadow-md hover:shadow-lg'
                 : 'flex items-center justify-center gap-2 py-2 px-4 text-xs font-bold rounded border border-violet-300 text-violet-700 hover:bg-violet-50 transition-colors'}
         >
-            <Layers size={primary ? 15 : 14} aria-hidden="true" /> {t('svg.vectorizeAndStructure')}
+            <Layers size={primary ? 15 : 14} aria-hidden="true" /> {t(primary ? 'svg.structure' : 'svg.structureFromBitmap')}
         </button>
     );
 
@@ -492,9 +492,9 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
                         className={canJoin
                             ? 'flex items-center justify-center gap-2 py-2 px-4 text-xs font-bold rounded border border-slate-300 text-slate-600 hover:bg-slate-50 transition-colors'
                             : 'w-full flex items-center justify-center gap-2 py-3 px-4 bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold uppercase tracking-widest rounded transition-colors shadow-md hover:shadow-lg'}
-                        aria-label={t('svg.traceSvg')}
+                        aria-label={t(canJoin ? 'svg.traceOnly' : 'svg.traceSvg')}
                     >
-                        <Scan size={canJoin ? 14 : 15} aria-hidden="true" /> {t('svg.traceSvg')}
+                        <Scan size={canJoin ? 14 : 15} aria-hidden="true" /> {t(canJoin ? 'svg.traceOnly' : 'svg.traceSvg')}
                     </button>
                 )}
                 {error && <p role="alert" className="text-xs text-red-600">{t(`svgGenerator.${error.key}`)}</p>}
@@ -932,6 +932,7 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
                     >
                         <Layers size={16} aria-hidden="true" /> {t('svg.formatGemini')}
                     </button>
+                    {jointButton(false)}
 
                     {onOpenVectorizer && !!row.bitmap && !row.bitmapDiscarded && (
                         <button

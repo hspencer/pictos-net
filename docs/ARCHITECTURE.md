@@ -137,7 +137,7 @@ pictos-net/
 
 ## 4. Pipeline de generación
 
-3 fases automáticas (1→2→3) + 1 fase opcional iniciada por el usuario (4). PRODUCIR usa por defecto Gemini 2.5 Flash Image (bitmap); los modelos vectoriales (Recraft `*_vector`) entregan SVG nativo. VECTORIZAR dejó de ser una fase: sobre un bitmap, la fase 4 se inicia con "Vectorizar y estructurar" (regiones VTracer 1.0 + una llamada de visión); TRAZAR queda como acción manual para obtener solo el trazado.
+3 fases automáticas (1→2→3) + 1 fase opcional iniciada por el usuario (4). PRODUCIR usa por defecto Gemini 2.5 Flash Image (bitmap); los modelos vectoriales (Recraft `*_vector`) entregan SVG nativo. VECTORIZAR dejó de ser una fase: sobre un bitmap, la fase 4 se inicia con "Estructurar" (regiones VTracer 1.0 + una llamada de visión); "Solo trazar" queda como acción manual para obtener solo el trazado.
 
 ```mermaid
 flowchart TD
@@ -155,8 +155,8 @@ flowchart TD
     F3 --> BMP["bitmap<br><i>modelos raster (default)</i>"]
     F3 --> RAW["rawSvg<br><i>modelos vectoriales</i>"]
 
-    BMP -->|"usuario inicia: Vectorizar y estructurar"| F4["(4) ESTRUCTURAR — Claude Sonnet Vision<br><i>regiones locales o paths + una llamada de visión<br>+ ensamblaje y verificación locales — ver docs/ESTRUCTURAR.md</i>"]
-    RAW -->|"usuario inicia: Estructurar"| F4
+    BMP -->|"usuario inicia: Estructurar"| F4["(4) ESTRUCTURAR — Claude Sonnet Vision<br><i>regiones locales o paths + una llamada de visión<br>+ ensamblaje y verificación locales — ver docs/ESTRUCTURAR.md</i>"]
+    RAW -->|"usuario inicia: Estructurar trazado"| F4
     ELEM -.->|"DOM objetivo + concept"| F4
     F4 --> STRUCT["structuredSvg<br><i>pictos-svg-schema · grupos semánticos<br>data-concept congruente con NLU</i>"]
 ```
