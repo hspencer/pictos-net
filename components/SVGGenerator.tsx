@@ -462,6 +462,40 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
         }
     };
 
+    // Recording mode: the reviewed mapping is assembled against the inputs it
+    // was proposed for; any change since then voids it.
+    const confirmReview = async (selectionOverrides: Map<string, boolean>, labelOverrides: Map<string, string>) => {
+        const mapping = pendingMapping;
+        setPendingMapping(null);
+        const captured = pendingSource.current;
+        pendingSource.current = null;
+        if (!mapping || !captured || captureSvgSource(captured.row) !== captureSvgSource(latestRow.current)) { onLog('error', t('svgGenerator.inputsChangedDuringReview')); return; }
+        const sourceRow = captured.row;
+        const assembled = await assembleAndVerify(mapping, {
+            rawSvg: sourceRow.rawSvg!,
+            nlu: sourceRow.NLU,
+            elements: sourceRow.elements || [],
+            utterance: sourceRow.UTTERANCE,
+            prompt: sourceRow.prompt || '',
+            provenance: observedSvgProvenance(sourceRow, captured.model),
+            config: captured.config,
+            onProgress: (msg) => onLog('info', msg),
+        }, selectionOverrides, labelOverrides);
+        if (assembled.draftSvg) {
+            onUpdate(prepareSvgDraft(sourceRow, assembled.draftSvg, assembled.diagnostic));
+            onLog('info', t('svgGenerator.draftReady'));
+        } else if (assembled.success && assembled.svg) {
+            try {
+                const promotion = await prepareSvgPromotion(sourceRow, assembled.svg);
+                if (captureSvgSource(latestRow.current) !== promotion.svgSourceSnapshot) throw new Error(t('svgGenerator.inputsChangedDuringReview'));
+                onUpdate(promotion);
+            } catch (error) { onLog('error', formatSvgStructureError(error, t)); return; }
+            onLog('success', t('svgGenerator.assembledAfterReview'));
+        } else {
+            onLog('error', formatSvgStructureError({ message: assembled.error, diagnostic: assembled.diagnostic }, t));
+        }
+    };
+
     // Primary on a bitmap (the default path, user decision 2026-10-30);
     // secondary beside ESTRUCTURAR once a trace exists.
     const canJoin = !!bitmapRef && Array.isArray(row.elements) && row.elements.length > 0;
@@ -777,37 +811,7 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
                             {pendingMapping ? (
                                 <Phase5ReviewPanel
                                     mapping={pendingMapping}
-                                    onConfirm={async (selectionOverrides, labelOverrides) => {
-                                        setPendingMapping(null);
-                                        const captured = pendingSource.current;
-                                        pendingSource.current = null;
-                                        if (!captured || captureSvgSource(captured.row) !== captureSvgSource(latestRow.current)) { onLog('error', t('svgGenerator.inputsChangedDuringReview')); return; }
-                                        const sourceRow = captured.row;
-                                        const nluData = sourceRow.NLU;
-                                        const assembled = await assembleAndVerify(pendingMapping, {
-                                            rawSvg: sourceRow.rawSvg!,
-                                            nlu: nluData,
-                                            elements: sourceRow.elements || [],
-                                            utterance: sourceRow.UTTERANCE,
-                                            prompt: sourceRow.prompt || '',
-                                            provenance: observedSvgProvenance(sourceRow, captured.model),
-                                            config: captured.config,
-                                            onProgress: (msg) => onLog('info', msg),
-                                        }, selectionOverrides, labelOverrides);
-                                        if (assembled.draftSvg) {
-                                            onUpdate(prepareSvgDraft(sourceRow, assembled.draftSvg, assembled.diagnostic));
-                                            onLog('info', t('svgGenerator.draftReady'));
-                                        } else if (assembled.success && assembled.svg) {
-                                            try {
-                                                const promotion = await prepareSvgPromotion(sourceRow, assembled.svg);
-                                                if (captureSvgSource(latestRow.current) !== promotion.svgSourceSnapshot) throw new Error(t('svgGenerator.inputsChangedDuringReview'));
-                                                onUpdate(promotion);
-                                            } catch (error) { onLog('error', formatSvgStructureError(error, t)); return; }
-                                            onLog('success', t('svgGenerator.assembledAfterReview'));
-                                        } else {
-                                            onLog('error', formatSvgStructureError({ message: assembled.error, diagnostic: assembled.diagnostic }, t));
-                                        }
-                                    }}
+                                    onConfirm={confirmReview}
                                 />
                             ) : (
                                 <>
@@ -922,7 +926,7 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
                     />
                 </div>
 
-                <div className="flex gap-2">
+                {pendingMapping ? <Phase5ReviewPanel mapping={pendingMapping} onConfirm={confirmReview} /> : <div className="flex gap-2">
                     <button
                         onClick={() => handleFormat()}
                         disabled={!structureEligibility.eligible}
@@ -945,11 +949,11 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
                         </button>
                     )}
 
-                </div>
+                </div>}
 
                 {structureNotice}
                 {error && <p role="alert" className="mt-2 text-xs text-red-600">{t(`svgGenerator.${error.key}`)}</p>}
-                {structureEligibility.eligible && !row.structuredSvgDraft && <div className="mt-1 text-center text-xs text-slate-500">
+                {structureEligibility.eligible && !row.structuredSvgDraft && !pendingMapping && !error && <div className="mt-1 text-center text-xs text-slate-500">
                     {t('svg.traceDone')}
                 </div>}
             </div>

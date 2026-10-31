@@ -98,6 +98,8 @@ export interface ClaudeTextBlock {
 export interface ClaudeParams {
     model: string;
     max_tokens?: number;
+    /** Forwarded by the Claude proxy only; 0 makes repeated runs agree. */
+    temperature?: number;
     /** Accepts a plain string or a content-block array (required for cache_control). */
     system?: string | ClaudeTextBlock[];
     tools?: object[];

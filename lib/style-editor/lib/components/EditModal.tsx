@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Plus, Trash2, Square, Circle, Triangle, Slash, Activity, Heart } from 'lucide-react';
 import { StyleDefinition, CssRule, ShapeType, KeyframeDefinition } from '../types';
 import { SVG_CSS_PROPERTIES } from '../utils/svgProperties';
@@ -11,6 +12,8 @@ interface Props {
   onClose: () => void;
   onSave: (updated: StyleDefinition) => void;
   onDelete: (id: string) => void;
+  /** False hides delete; a string disables it and says why. */
+  canDelete?: boolean | string;
   currentShape?: ShapeType;
   keyframes?: KeyframeDefinition[];
 }
@@ -30,7 +33,7 @@ const shapeIcons: Record<ShapeType, React.ComponentType<{ size?: number }>> = {
   heart: Heart,
 };
 
-const EditModal: React.FC<Props> = ({ styleDef, isOpen, onClose, onSave, onDelete, currentShape = 'square', keyframes }) => {
+const EditModal: React.FC<Props> = ({ styleDef, isOpen, onClose, onSave, onDelete, canDelete = true, currentShape = 'square', keyframes }) => {
   const { dialogProps } = useDialogA11y({ isOpen, onClose, label: styleDef ? `Edit: ${styleDef.selectors.join(', ')}` : 'New class' });
   const [selectors, setSelectors] = useState('');
   const [rules, setRules] = useState<CssRule[]>([]);
@@ -210,7 +213,9 @@ const EditModal: React.FC<Props> = ({ styleDef, isOpen, onClose, onSave, onDelet
     );
   };
 
-  return (
+  // Portalled: hosts such as the SVG editor's side panel create their own
+  // stacking context, which would trap the modal under floating toolbars.
+  return createPortal(
     <div className="fixed inset-0 z-[80] flex items-start justify-center overflow-y-auto py-10 px-[10vw]">
       <div
         id="style-edit-modal-backdrop"
@@ -325,13 +330,17 @@ const EditModal: React.FC<Props> = ({ styleDef, isOpen, onClose, onSave, onDelet
 
             {/* Footer */}
             <div id="style-edit-modal-footer" className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-between items-center">
-              {styleDef ? (
-                 <button
-                   onClick={() => { onDelete(styleDef.id); onClose(); }}
-                   className="text-red-500 text-sm font-medium hover:text-red-600 flex items-center gap-1 px-3 py-2 rounded hover:bg-red-50"
-                 >
-                   <Trash2 size={16} /> Eliminar
-                 </button>
+              {styleDef && canDelete !== false ? (
+                 <div className="flex items-center gap-2 min-w-0">
+                   <button
+                     onClick={() => { onDelete(styleDef.id); onClose(); }}
+                     disabled={typeof canDelete === 'string'}
+                     className="text-red-500 text-sm font-medium hover:text-red-600 flex items-center gap-1 px-3 py-2 rounded hover:bg-red-50 disabled:text-gray-400 disabled:hover:bg-transparent disabled:cursor-not-allowed"
+                   >
+                     <Trash2 size={16} /> Eliminar
+                   </button>
+                   {typeof canDelete === 'string' && <span className="text-xs text-gray-500">{canDelete}</span>}
+                 </div>
               ) : <div />}
 
               <div className="flex gap-3">
@@ -421,7 +430,8 @@ const EditModal: React.FC<Props> = ({ styleDef, isOpen, onClose, onSave, onDelet
 
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };
 

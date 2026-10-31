@@ -66,6 +66,24 @@ Cambios, medidos sobre el mismo piloto (`docs/eval/icap-pilot-10-results-D2-2026
 
 **Variabilidad semántica.** Con el mismo prompt, la respuesta del modelo cambia mucho entre corridas: la cobertura pasó de 55/57 a 51/57 (en "Necesito tomar mi medicina" faltaron cuatro nodos que la corrida anterior sí asignó) y en "Hoy me siento sobrecargado" el modelo dejó 89 regiones sin resolver. Estos cambios no vienen de la corrección de color ni de los descartes. Una corrida por caso no basta para evaluar la semántica: VE6 necesita varias corridas por caso y reportar media y dispersión.
 
+### Respuesta a la estructura (D3, 2026-10-31)
+
+Las dudas del modelo dejaban mucha geometría fuera del árbol. Cambios locales, sin tocar el prompt, medidos sobre el mismo piloto (`docs/eval/icap-pilot-10-results-D3-2026-10-31.json`):
+
+- **Una región con varios nodos va a su ancestro común más profundo** ("torso+barriga" va a la persona). Solo dos figuras de nivel superior la dejan sin asignar.
+- **Todo path fuera de los grupos se absorbe**: el ruido propuesto, lo no resuelto y lo no mencionado pasan a la región asignada más pequeña que sea mayor que él y cuya caja contenga su centro (`absorbUnassigned`, con test). Nada se borra.
+- **Temperatura 0** en la petición de regiones (y en la de ESTRUCTURAR), para que corridas repetidas coincidan.
+
+| Medida | D2 | D3 |
+|---|---|---|
+| Paths sin asignar, media (mediana) | 12,4 % (4,4 %) | 0,3 % (0 %) |
+| "Hoy me siento sobrecargado", sin asignar | 58,6 % | 0 % (93 regiones sin resolver, absorbidas) |
+| "Me duele la barriga", sin asignar | 37,1 % | 1,6 % |
+| Nodos con geometría | 51 de 57 | 53 de 57 |
+| Peor pérdida local a 512, por caso | igual | igual |
+
+La fidelidad no cambia: la absorción solo reasigna grupos. Faltan nodos donde una sola región negra contiene varios ("Necesito tomar mi medicina": cabeza, boca y cuerpo quedan dentro de la persona); separarlos sigue siendo VE7. La variabilidad con temperatura 0 aún no se midió con corridas repetidas.
+
 ### Edición posterior de un SVG estructurado
 
 Verificado sobre un SVG certificado por la operación conjunta: editar el dibujo dentro de los grupos (mover, escalar, guardar) conserva la validez y crea una revisión `manual_edit` con el hash del padre, sin tocar NLU, composición ni enlaces. Borrar toda la geometría de un grupo, una unión booleana entre grupos, sacar una forma de su grupo o desagrupar un grupo semántico invalidan el esquema: el guardado los deja como borrador y la revisión aceptada no cambia. Desde el mismo día el editor las bloquea antes de aplicarlas (guardián semántico en cada commit) y explica qué grupo rompería; mover formas entre grupos sigue permitido. Las booleanas ahora dejan el resultado en el ancestro común de los operandos, como pedía el spec, en vez de la raíz. Detalle en [ESTRUCTURAR.md](ESTRUCTURAR.md#edición-posterior-en-el-editor).

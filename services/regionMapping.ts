@@ -10,9 +10,10 @@
  * contract: an answer is never read under the legacy `restructure_svg` rules.
  *
  * Conversion to the assembler's StructuringMapping keeps every doubt visible:
- * split-requested and unresolved regions are left unassigned (their geometry
- * survives in the unclassified draft group), and protected regions are never
- * discarded. Discard proposals still pass the assembler's local micro-blob
+ * a split-requested region goes to the deepest common ancestor of its nodes
+ * (or stays unassigned when they have none), unresolved regions are left out
+ * of the groups (absorbUnassigned may then attach them to the region that
+ * contains them), and protected regions are never discarded. Discard proposals still pass the assembler's local micro-blob
  * gate. Region refs are expanded to all their paths; validateStructuringMapping
  * then checks ids, nodes and double claims.
  *
@@ -119,18 +120,22 @@ export function regionAnswerToMapping(
     const unresolved = Array.isArray(a.unresolved) ? a.unresolved.filter((r): r is string => typeof r === 'string') : [];
     const protectedRegions = Array.isArray(a.protected) ? a.protected.filter((r): r is string => typeof r === 'string') : [];
 
-    // A split between a node and its own descendants is not ambiguous: the
-    // whole region lies within that node, so it goes to it. The finer split
-    // stays recorded as a diagnostic.
-    const ancestors = (id: string) => {
-        const out: string[] = [];
+    // A region holding several nodes lies within their deepest common
+    // ancestor (a node and its own descendants: that node; two siblings:
+    // their parent), so it goes there. Only nodes with no common ancestor
+    // (two top-level figures) leave it doubtful. The finer split stays
+    // recorded as a diagnostic.
+    const lineage = (id: string) => {
+        const out = [id];
         for (let p = parentOf.get(id); p; p = parentOf.get(p)) out.push(p);
         return out;
     };
     const owners = new Map<string, string>();
     for (const sp of splitRequests) {
-        const entities = Array.isArray(sp.entities) ? sp.entities : [];
-        const owner = entities.find(e => entities.every(o => o === e || ancestors(o).includes(e)));
+        const entities = (Array.isArray(sp.entities) ? sp.entities : []).filter(e => nodeIds.has(e));
+        if (!entities.length) continue;
+        const others = entities.slice(1).map(lineage);
+        const owner = lineage(entities[0]).find(a => others.every(l => l.includes(a)));
         if (owner) owners.set(sp.region, owner);
     }
 
@@ -170,26 +175,32 @@ export interface RegionBox { regionId: number; bbox: [number, number, number, nu
 
 /**
  * In a mosaic partition nothing lies under a region: deleting one punches a
- * hole in the drawing. So a region proposed as noise is never removed; it is
- * absorbed by the smallest assigned region whose box contains its centre (it
- * follows that group, like a sliver), or left unassigned when none does.
+ * hole in the drawing. So no region is removed, and every path left outside
+ * the groups (proposed as noise, unresolved, a split with no common
+ * ancestor, or simply forgotten) is absorbed by the smallest assigned region
+ * whose box contains its centre and is larger than its own (it follows that
+ * group, like a sliver: an eye inside a head), or left unassigned when none
+ * does.
  * ponytail: containment by bbox centre, not adjacency (same as slivers).
  */
-export function absorbDiscards(mapping: StructuringMapping, regionOf: (pathId: string) => RegionBox | undefined): { mapping: StructuringMapping; absorbed: number } {
+export function absorbUnassigned(mapping: StructuringMapping, pathIds: string[], regionOf: (pathId: string) => RegionBox | undefined): { mapping: StructuringMapping; absorbed: number; unassigned: number } {
     const owners = mapping.groups.flatMap(g => g.keep.map(id => ({ group: g, box: regionOf(id) })))
         .filter((o): o is { group: StructuringMapping['groups'][number]; box: RegionBox } => !!o.box);
-    let absorbed = 0;
-    for (const id of mapping.discard) {
+    const claimed = new Set(mapping.groups.flatMap(g => g.keep));
+    let absorbed = 0, unassigned = 0;
+    for (const id of pathIds) {
+        if (claimed.has(id)) continue;
         const r = regionOf(id);
-        if (!r) continue;
-        const cx = r.bbox[0] + r.bbox[2] / 2, cy = r.bbox[1] + r.bbox[3] / 2;
         let best: (typeof owners)[number] | null = null;
-        for (const o of owners) {
-            const [x, y, w, h] = o.box.bbox;
-            if (o.box.regionId === r.regionId || cx < x || cx > x + w || cy < y || cy > y + h) continue;
-            if (!best || w * h < best.box.bbox[2] * best.box.bbox[3]) best = o;
+        if (r) {
+            const cx = r.bbox[0] + r.bbox[2] / 2, cy = r.bbox[1] + r.bbox[3] / 2, own = r.bbox[2] * r.bbox[3];
+            for (const o of owners) {
+                const [x, y, w, h] = o.box.bbox;
+                if (o.box.regionId === r.regionId || w * h <= own || cx < x || cx > x + w || cy < y || cy > y + h) continue;
+                if (!best || w * h < best.box.bbox[2] * best.box.bbox[3]) best = o;
+            }
         }
-        if (best) { best.group.keep.push(id); absorbed++; }
+        if (best) { best.group.keep.push(id); absorbed++; } else unassigned++;
     }
-    return { mapping: { ...mapping, discard: [] }, absorbed };
+    return { mapping: { ...mapping, discard: [] }, absorbed, unassigned };
 }

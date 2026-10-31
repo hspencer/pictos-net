@@ -11,6 +11,22 @@ const OVERRIDE_SELECTOR_RE = /^#([^\s.#{},]+)\.([\w-]+)$/;
 
 const generateId = () => Math.random().toString(36).slice(2, 9);
 
+// ── Class usage ────────────────────────────────────────────────────────────
+
+/** Class tokens cited by the elements of an SVG string. */
+export function citedClassNames(svg: string): Set<string> {
+    const out = new Set<string>();
+    for (const m of svg.matchAll(/\sclass\s*=\s*(?:"([^"]*)"|'([^']*)')/g)) {
+        (m[1] ?? m[2]).split(/\s+/).filter(Boolean).forEach(c => out.add(c));
+    }
+    return out;
+}
+
+/** A definition is in use when any of its class selectors is cited. */
+export function styleIsCited(style: StyleDefinition, classes: Set<string>): boolean {
+    return style.selectors.some(s => s.startsWith('.') && classes.has(s.slice(1)));
+}
+
 // ── Presentation attribute helpers ─────────────────────────────────────────
 
 const PRESENTATION_ATTRS = ['fill', 'stroke', 'stroke-width', 'opacity', 'style'] as const;

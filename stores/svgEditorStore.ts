@@ -16,6 +16,8 @@ import {
     extractLibraryRules,
     setOverrideRule,
     removeOverrideRule,
+    citedClassNames,
+    styleIsCited,
     type OverrideMap,
 } from '../utils/styleUtils';
 import { flattenGroupTransforms } from '../utils/svgNormalizer';
@@ -27,6 +29,13 @@ import {
     checkBooleanEligibility,
     sortByDocumentOrder,
 } from '../utils/svgBooleanHelpers';
+
+export interface LibraryPalette {
+    save: (style: StyleDefinition) => void;
+    remove: (styleId: string) => void;
+    /** Cited by another pictogram of the library or by this document. */
+    isInUse: (style: StyleDefinition) => boolean;
+}
 
 export interface SVGElement {
     id: string;
@@ -118,6 +127,9 @@ export interface EditorState {
 
     // Callback for real-time sync with parent component
     onSvgChange?: (svg: string) => void;
+    // The open library's palette: classes saved or removed in the editor land
+    // there. Set by the host; null when the editor has no library to write.
+    libraryPalette: LibraryPalette | null;
 
     // Actions
     setSvgSource: (source: 'raw' | 'structured' | null) => void;
@@ -153,6 +165,7 @@ export interface EditorState {
     addClassToElement: (elementId: string, className: string) => void;
     stripInlineStyles: (elementId: string) => void;
     setStyles: (styles: StyleDefinition[]) => void;
+    setLibraryPalette: (palette: LibraryPalette | null) => void;
     setKeyframes: (keyframes: KeyframeDefinition[]) => void;
     setElementClasses: (id: string, classes: string[]) => void;
     addElementClasses: (id: string, classes: string[]) => void;
@@ -164,7 +177,8 @@ export interface EditorState {
     unciteClass: (elementId: string, className: string) => void;
     setLocalOverride: (elementId: string, className: string, declarations: Record<string, string>) => void;
     restoreClassToLibrary: (elementId: string, className: string) => void;
-    defineLocalStyle: (className: string, declarations: Record<string, string>) => void;
+    saveStyleDefinition: (style: StyleDefinition) => void;
+    removeStyleDefinition: (styleId: string) => void;
     getResolvedClassValues: (elementId: string, className: string) => Record<string, string>;
     cleanupInlineAttrs: (elementId: string) => void;
 
@@ -333,32 +347,6 @@ export const useSVGEditorStore = create<EditorState>((set, get) => {
         });
     };
 
-    const getUsedClassNamesFromSvg = (svg: string): Set<string> => {
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(svg, 'image/svg+xml');
-        const elementsWithClass = doc.querySelectorAll('[class]');
-        const classes = new Set<string>();
-        elementsWithClass.forEach((el) => {
-            const classAttr = el.getAttribute('class') || '';
-            classAttr
-                .split(' ')
-                .map((c) => c.trim())
-                .filter(Boolean)
-                .forEach((cls) => classes.add(cls));
-        });
-        return classes;
-    };
-
-    const getUsedStyles = (styles: StyleDefinition[], usedClasses: Set<string>) => {
-        return styles.filter((style) =>
-            style.selectors.some((selector) => {
-                if (!selector.startsWith('.')) return false;
-                const className = selector.replace('.', '');
-                return usedClasses.has(className);
-            })
-        );
-    };
-
     /**
      * Regenerates library rules from used classes, then re-appends any existing
      * local override rules so they are not lost during <style> reconstruction.
@@ -378,8 +366,8 @@ export const useSVGEditorStore = create<EditorState>((set, get) => {
         // overrides: keep them, or every edit recolours a structured SVG.
         const preservedCss = extractPreservedRules(currentCss).trim();
 
-        const usedClasses = getUsedClassNamesFromSvg(svg);
-        const usedStyles = getUsedStyles(styles, usedClasses);
+        const usedClasses = citedClassNames(svg);
+        const usedStyles = styles.filter(style => styleIsCited(style, usedClasses));
         const libraryCss = generateCssString(usedStyles, keyframes).trim();
 
         // If there are no library styles, preserved rules or overrides, remove the <style> element
@@ -425,6 +413,7 @@ export const useSVGEditorStore = create<EditorState>((set, get) => {
         history: [],
         historyIndex: -1,
         onSvgChange: undefined,
+        libraryPalette: null,
 
         setSvgSource: (source) => set({ svgSource: source }),
 
@@ -631,6 +620,8 @@ export const useSVGEditorStore = create<EditorState>((set, get) => {
                 : applyUsedStylesToSvg(serialized, get().styleDefinitions, get().keyframes);
             if (commitSvg(nextSvg)) applySelection([]);
         },
+
+        setLibraryPalette: (palette) => set({ libraryPalette: palette }),
 
         setStyles: (styles: StyleDefinition[]) => {
             set({ styleDefinitions: styles });
@@ -1097,32 +1088,33 @@ export const useSVGEditorStore = create<EditorState>((set, get) => {
         },
 
         /**
-         * Defines a new class locally (in-memory, for this session).
-         * The CSS rule is written to the SVG <style> block the first time
-         * the class gets cited on any element via citeClass().
-         * @see CSS_STYLING_ARCHITECTURE.md
+         * Creates or replaces a class definition (matched by id, then by its
+         * first selector). If the document cites it, its <style> is rebuilt so
+         * the change shows at once, and it lands in the library palette.
+         * @see CSS_STYLING_ARCHITECTURE.md — Library styles from the editor
          */
-        defineLocalStyle: (className: string, declarations: Record<string, string>) => {
-            const newStyle: StyleDefinition = {
-                id: 'local-' + Math.random().toString(36).slice(2, 7),
-                selectors: [`.${className}`],
-                rules: Object.entries(declarations)
-                    .filter(([, v]) => v.trim() !== '')
-                    .map(([property, value]) => ({
-                        id: Math.random().toString(36).slice(2, 9),
-                        property,
-                        value,
-                    })),
-            };
+        saveStyleDefinition: (style: StyleDefinition) => {
+            const rules = style.rules.filter(r => r.property.trim() && r.value.trim());
+            const saved = { ...style, rules };
             const current = get().styleDefinitions;
-            const merged = [
-                ...current.filter(s => !s.selectors.includes(`.${className}`)),
-                newStyle,
-            ];
-            set({
-                styleDefinitions: merged,
-                libraryValues: buildLibraryValuesMap(merged),
-            });
+            const same = (s: StyleDefinition) => s.id === saved.id || s.selectors[0] === saved.selectors[0];
+            const merged = current.some(same) ? current.map(s => (same(s) ? saved : s)) : [...current, saved];
+            set({ styleDefinitions: merged, libraryValues: buildLibraryValuesMap(merged) });
+            get().libraryPalette?.save(saved);
+            const svgDocument = get().svgDocument;
+            if (svgDocument && styleIsCited(saved, citedClassNames(svgDocument))) {
+                commitSvg(applyUsedStylesToSvg(svgDocument, merged, get().keyframes));
+            }
+        },
+
+        /** Drops a definition nothing cites from the editor and the library. */
+        removeStyleDefinition: (styleId: string) => {
+            const { styleDefinitions, svgDocument, libraryPalette } = get();
+            const style = styleDefinitions.find(s => s.id === styleId);
+            if (style && (libraryPalette?.isInUse(style) || (svgDocument && styleIsCited(style, citedClassNames(svgDocument))))) return;
+            const remaining = styleDefinitions.filter(s => s.id !== styleId);
+            set({ styleDefinitions: remaining, libraryValues: buildLibraryValuesMap(remaining) });
+            libraryPalette?.remove(styleId);
         },
 
         /**

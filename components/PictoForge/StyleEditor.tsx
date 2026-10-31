@@ -6,13 +6,16 @@ import { INITIAL_KEYFRAMES } from '../../lib/style-editor/lib/keyframeConstants'
 import { GlobalConfig } from '../../types';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useDialogA11y } from '../../hooks/useDialogA11y';
-import { X, Download, RotateCcw, Square, Circle, Triangle, Slash, Activity, Heart } from 'lucide-react';
+import { X, Download, RotateCcw, Square, Circle, Triangle, Slash, Activity, Heart, Eraser } from 'lucide-react';
 import { generateCssString } from '../../lib/style-editor/lib/utils/cssGenerator';
+import { styleIsCited } from '../../utils/styleUtils';
 
 interface StyleEditorProps {
     config: GlobalConfig;
     onUpdateConfig: (newConfig: GlobalConfig) => void;
     onClose: () => void;
+    /** Classes the library's pictograms cite: those styles cannot be removed. */
+    classesInUse?: Set<string>;
 }
 
 const ALL_SHAPES: ShapeType[] = ['square', 'circle', 'triangle', 'line', 'path', 'heart'];
@@ -21,8 +24,15 @@ const shapeIcons: Record<ShapeType, React.ComponentType<{ size?: number }>> = {
     line: Slash, path: Activity, heart: Heart,
 };
 
-export const StyleEditor: React.FC<StyleEditorProps> = ({ config, onUpdateConfig, onClose }) => {
+export const StyleEditor: React.FC<StyleEditorProps> = ({ config, onUpdateConfig, onClose, classesInUse }) => {
     const { t } = useTranslation();
+    // Remounts the inner editor after a change made from outside it (its
+    // style list is initialised once from props).
+    const [revision, setRevision] = useState(0);
+    const styles = config.svgStyleDefs ?? INITIAL_STYLES;
+    const unused = classesInUse ? styles.filter(s => !styleIsCited(s, classesInUse)) : [];
+    const deleteBlockedReason = (style: StyleDefinition) =>
+        classesInUse && styleIsCited(style, classesInUse) ? t('styleEditor.styleInUse') : null;
     const { dialogProps } = useDialogA11y({ isOpen: true, onClose, label: t('styleEditor.title') });
     const [previewShape, setPreviewShape] = useState<ShapeType>('square');
 
@@ -44,7 +54,16 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({ config, onUpdateConfig
     const handleRestoreDefaults = () => {
         if (confirm(t('styleEditor.restoreConfirm'))) {
             onUpdateConfig({ ...config, svgStyleDefs: INITIAL_STYLES, svgKeyframes: INITIAL_KEYFRAMES });
+            setRevision(r => r + 1);
         }
+    };
+
+    // Each library may keep a smaller stock; base styles return with
+    // "restore defaults" and every new library starts from them.
+    const handleRemoveUnused = () => {
+        if (!unused.length || !confirm(t('styleEditor.removeUnusedConfirm', { count: unused.length }))) return;
+        onUpdateConfig({ ...config, svgStyleDefs: styles.filter(s => !unused.includes(s)) });
+        setRevision(r => r + 1);
     };
 
     const handleExportCss = () => {
@@ -104,6 +123,16 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({ config, onUpdateConfig
                         </div>
 
                         <div className="flex items-center gap-2">
+                            {classesInUse && (
+                                <button
+                                    onClick={handleRemoveUnused}
+                                    disabled={!unused.length}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-500 hover:bg-gray-100 rounded border border-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    title={t('styleEditor.removeUnusedTitle')}
+                                >
+                                    <Eraser size={13} /> {t('styleEditor.removeUnused', { count: unused.length })}
+                                </button>
+                            )}
                             <button
                                 onClick={handleRestoreDefaults}
                                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-500 hover:bg-gray-100 rounded border border-gray-200 transition-colors"
@@ -131,7 +160,9 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({ config, onUpdateConfig
                     {/* Style editor content — lib header hidden, we provide our own */}
                     <div className="flex-1 overflow-hidden relative">
                         <NewStyleEditor
-                            initialStyles={config.svgStyleDefs ?? INITIAL_STYLES}
+                            key={revision}
+                            initialStyles={styles}
+                            deleteBlockedReason={deleteBlockedReason}
                             initialKeyframes={effectiveKeyframes}
                             onStylesChange={handleStylesChange}
                             onKeyframesChange={handleKeyframesChange}

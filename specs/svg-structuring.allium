@@ -170,14 +170,20 @@ contract JointVectorizeStructure {
         -- under the path contract. Its answer may assign, protect, propose a
         -- discard, request a split or leave a region unresolved. In a mosaic
         -- partition nothing lies under a region, so no proposal deletes
-        -- geometry: proposed noise is absorbed by the assigned region that
-        -- contains it, or stays unassigned. A split between a node and its
-        -- own ancestor assigns the region to the ancestor.
+        -- geometry. A region holding several nodes lies within their deepest
+        -- common ancestor and is assigned to it (a node and its own
+        -- descendant: that node; two siblings: their parent). Every path
+        -- left outside the groups (proposed noise, unresolved, a split with
+        -- no common ancestor, or simply not mentioned) is absorbed by the
+        -- smallest assigned region larger than it whose box contains its
+        -- centre, or stays unassigned. The request is made at temperature 0
+        -- so repeated runs on the same input agree.
 
     @invariant DoubtStaysVisible
-        -- A split-requested or unresolved region is assigned to no node: its
-        -- geometry survives as unassigned in a draft with the localized
-        -- ambiguity. No split is performed by renaming; resolving a split
+        -- A region no assigned region contains, and a split between nodes
+        -- with no common ancestor, is assigned to no node: its geometry
+        -- survives as unassigned in a draft with the localized ambiguity. No
+        -- split is performed by renaming; resolving a split into its nodes
         -- needs a mask (a later stage) or the editor.
 
     @invariant SameAssemblyAndVerification

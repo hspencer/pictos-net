@@ -26,6 +26,7 @@ import * as Batch from './services/batchService';
 import { ExternalProviderQuotaError, ProviderRequestError, QuotaExceededError, callCheck } from './services/aiClient';
 import { GenerationModel, OpenAIImageQuality, DEFAULT_GENERATION_MODEL, GENERATION_MODEL_LABELS, Phase3Result, getModelFamily, configuredModel } from './types';
 import { structureSVG } from './services/svgStructureService';
+import { citedClassNames } from './utils/styleUtils';
 import { applySvgSafeUpdate, captureSvgSource, prepareSvgPromotion, prepareSvgDraft, observedSvgProvenance, svgForEditing, prepareSvgEditorUpdate } from './services/svgCanonical';
 import { verifySvgReference } from './schemas/pictos-svg-schema/index.js';
 import * as Recording from './services/interventionRecording';
@@ -269,6 +270,18 @@ function getDefaultStylePrompt(lang: string): string {
  * happened to be open before. New libraries silently adopted the previous
  * library's palette. Merging over this constant keeps libraries self-contained.
  */
+/** Class names cited by the library's visible SVG artifacts (one row excluded). */
+function classesCitedByRows(rows: RowData[], excludeRowId: string | null): Set<string> {
+  const out = new Set<string>();
+  for (const r of rows) {
+    if (r.id === excludeRowId) continue;
+    for (const svg of [r.structuredSvgDiscarded ? undefined : r.structuredSvg, r.structuredSvgDraft, r.rawSvgDiscarded ? undefined : r.rawSvg]) {
+      if (svg) citedClassNames(svg).forEach(c => out.add(c));
+    }
+  }
+  return out;
+}
+
 const DEFAULT_APP_CONFIG: GlobalConfig = {
   lang: 'es-419',
   generationModel: DEFAULT_GENERATION_MODEL,
@@ -418,6 +431,14 @@ const App: React.FC<AppProps> = ({ authUser }) => {
     svg: null,
     svgSource: null,
   });
+
+  // Classes the library's pictograms cite: their styles cannot leave the
+  // palette. The row open in the SVG editor counts with its live document.
+  const styleEditorOpen = showStyleEditor || svgEditorState.isOpen;
+  const classesInUse = useMemo(
+    () => (styleEditorOpen ? classesCitedByRows(rows, svgEditorState.rowId) : undefined),
+    [styleEditorOpen, rows, svgEditorState.rowId],
+  );
 
   const [vectorizerState, setVectorizerState] = useState<{ isOpen: boolean; rowId: string | null }>({ isOpen: false, rowId: null });
 
@@ -3794,6 +3815,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
           config={config}
           onUpdateConfig={setConfig}
           onClose={() => setShowStyleEditor(false)}
+          classesInUse={classesInUse}
         />
       )}
 
@@ -3814,6 +3836,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
           svgSource={svgEditorState.svgSource}
           config={config}
           onUpdateConfig={setConfig}
+          classesInUse={classesInUse}
         />
       )}
 

@@ -4,7 +4,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { extractPreservedRules, parseOverrideRules } from './styleUtils.ts';
+import { extractPreservedRules, parseOverrideRules, citedClassNames, styleIsCited } from './styleUtils.ts';
 
 const CSS = `
 svg .main, svg .primary { fill: #1a1a1a; stroke: #fff; }
@@ -29,4 +29,12 @@ test('per-shape colours and the focus style are preserved; library rules and ove
 test('overrides on ids with accents are recognised', () => {
     const overrides = parseOverrideRules(CSS);
     assert.deepEqual(overrides.get('mamá-2')?.get('main'), { fill: '#ff0000' });
+});
+
+test('citedClassNames reads class attributes, not style rules; styleIsCited matches any class selector', () => {
+    const svg = `<svg><style>.k{fill:#000}.unused{fill:red}</style><g class="k main"><path class='f'/></g></svg>`;
+    const cited = citedClassNames(svg);
+    assert.deepEqual([...cited].sort(), ['f', 'k', 'main']);
+    assert.equal(styleIsCited({ id: '1', selectors: ['.k', '.x'], rules: [] }, cited), true);
+    assert.equal(styleIsCited({ id: '2', selectors: ['.unused'], rules: [] }, cited), false);
 });

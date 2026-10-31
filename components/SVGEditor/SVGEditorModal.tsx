@@ -10,7 +10,7 @@ import { SelectionToolbar } from './SelectionToolbar';
 import type { StyleDefinition } from '../../lib/style-editor/lib/types';
 import type { GlobalConfig } from '../../types';
 import { StyleEditor } from '../PictoForge/StyleEditor';
-import { convertInlineAttrsToCssRules } from '../../utils/styleUtils';
+import { convertInlineAttrsToCssRules, citedClassNames, styleIsCited } from '../../utils/styleUtils';
 import { bakeDocumentTransforms } from './editor/geometry';
 import { handleToolbarKeyDown } from './editor/toolbarKeydown';
 
@@ -89,6 +89,8 @@ interface SVGEditorModalProps {
     svgSource?: 'raw' | 'structured' | 'draft' | null;
     config?: GlobalConfig;
     onUpdateConfig?: (config: GlobalConfig) => void;
+    /** Classes the library's other pictograms cite (this row excluded). */
+    classesInUse?: Set<string>;
 }
 
 export const SVGEditorModal: React.FC<SVGEditorModalProps> = ({
@@ -101,6 +103,7 @@ export const SVGEditorModal: React.FC<SVGEditorModalProps> = ({
     svgSource = null,
     config,
     onUpdateConfig,
+    classesInUse,
 }) => {
     const { t } = useTranslation();
     const { dialogProps } = useDialogA11y({ isOpen, onClose, label: t('svg.editor') });
@@ -126,6 +129,32 @@ export const SVGEditorModal: React.FC<SVGEditorModalProps> = ({
     const semanticRefusal = useSVGEditorStore(state => state.semanticRefusal);
     const dismissSemanticRefusal = useSVGEditorStore(state => state.dismissSemanticRefusal);
     const toggleOutlineMode = useSVGEditorStore(state => state.toggleOutlineMode);
+
+    // Classes created, edited or removed in the editor are library classes:
+    // they land in this library's palette (config.svgStyleDefs). In use =
+    // cited by another pictogram of the library or by this document.
+    const libraryStyles = config?.svgStyleDefs ?? styleDefs;
+    const setLibraryPalette = useSVGEditorStore(state => state.setLibraryPalette);
+    const classesInUseHere = React.useMemo(() => {
+        if (!classesInUse) return undefined;
+        const out = new Set(classesInUse);
+        citedClassNames(svgDocument ?? '').forEach(c => out.add(c));
+        return out;
+    }, [classesInUse, svgDocument]);
+    useEffect(() => {
+        if (!config || !onUpdateConfig) { setLibraryPalette(null); return; }
+        const styles = config.svgStyleDefs ?? styleDefs;
+        const inUse = classesInUseHere ?? citedClassNames(svgDocument ?? '');
+        setLibraryPalette({
+            save: (style) => {
+                const same = (s: StyleDefinition) => s.id === style.id || s.selectors[0] === style.selectors[0];
+                onUpdateConfig({ ...config, svgStyleDefs: styles.some(same) ? styles.map(s => (same(s) ? style : s)) : [...styles, style] });
+            },
+            remove: (styleId) => onUpdateConfig({ ...config, svgStyleDefs: styles.filter(s => s.id !== styleId) }),
+            isInUse: (style) => styleIsCited(style, inUse),
+        });
+        return () => setLibraryPalette(null);
+    }, [config, onUpdateConfig, styleDefs, classesInUseHere, svgDocument, setLibraryPalette]);
 
     // Track which toolbar item is active for roving tabindex
     const toolbarRef = useRef<HTMLDivElement>(null);
@@ -298,7 +327,7 @@ export const SVGEditorModal: React.FC<SVGEditorModalProps> = ({
                             <PanelRightClose size={16} aria-hidden="true" />
                         </button>
                     </div>
-                    <StylePanel styleDefs={styleDefs} svgSource={svgSource === 'draft' ? 'raw' : svgSource} />
+                    <StylePanel styleDefs={libraryStyles} svgSource={svgSource === 'draft' ? 'raw' : svgSource} />
                 </aside>
             ) : (
                 <button
@@ -467,6 +496,7 @@ export const SVGEditorModal: React.FC<SVGEditorModalProps> = ({
             {showStyleEditor && config && onUpdateConfig && (
                 <StyleEditor
                     config={config}
+                    classesInUse={classesInUseHere}
                     onUpdateConfig={(newConfig) => {
                         onUpdateConfig(newConfig);
                         // Refresh styles in the SVG editor store

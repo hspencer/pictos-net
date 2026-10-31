@@ -34,7 +34,7 @@ import { findUnreachableNodeIds } from './svgTreeUtils';
 import { isMicroBlob } from './svgGeometryUtils';
 import { detectMergeCandidates } from './svgMergeCandidates';
 import { validateStructuringMapping } from './svgMappingValidation';
-import { REGION_TOOL, absorbDiscards, buildRegionToolSchema, regionAnswerToMapping, type RegionDiagnostics } from './regionMapping';
+import { REGION_TOOL, absorbUnassigned, buildRegionToolSchema, regionAnswerToMapping, type RegionDiagnostics } from './regionMapping';
 import { openTraceSession, VTRACER_WEB_ENGINE, type TraceOptions, type TraceRegion, type TracedRegionPath } from './vtracerWebService';
 import { shouldSimplify, roundPathD } from './svgPathPolish';
 import { canStructureSVG, svgForStructuring } from './svgCanonical';
@@ -825,6 +825,7 @@ async function callVisionStructuring(
     const response: ClaudeResponse = await callStructuringModel({
         model,
         max_tokens: 8192,
+        temperature: 0,
         system: systemPrompt,
         tools: [tool],
         tool_choice: { type: 'tool', name: 'restructure_svg' },
@@ -2158,6 +2159,7 @@ ${regionLines}`;
         const response: ClaudeResponse = await callStructuringModel({
             model,
             max_tokens: 8192,
+            temperature: 0,
             system: buildRegionSystemPrompt(),
             tools: [buildRegionToolSchema(nodeList.map(n => n.id))],
             tool_choice: { type: 'tool', name: REGION_TOOL },
@@ -2176,11 +2178,11 @@ ${regionLines}`;
             new Set(nodeList.map(n => n.id)),
             new Map(nodeList.map(n => [n.id, n.parentId])),
         );
-        // Never delete from a partition: proposed noise joins its container.
-        const proposed = mapping.discard.length;
-        const absorbedResult = absorbDiscards(mapping, trace.regionOf);
+        // Never delete from a partition: proposed noise, unresolved and
+        // forgotten regions join the assigned region that contains them.
+        const absorbedResult = absorbUnassigned(mapping, inventory.paths.map(p => p.id), trace.regionOf);
         mapping = absorbedResult.mapping;
-        if (proposed) input.onProgress?.(`[ESTRUCTURAR desde bitmap] ${proposed} path(s) propuesto(s) como ruido: ${absorbedResult.absorbed} absorbido(s) por la región que los contiene, el resto queda sin asignar (nada se borra de la partición)`);
+        if (absorbedResult.absorbed || absorbedResult.unassigned) input.onProgress?.(`[ESTRUCTURAR desde bitmap] ${absorbedResult.absorbed} path(s) fuera de los grupos absorbido(s) por la región que los contiene; ${absorbedResult.unassigned} sin asignar (nada se borra de la partición)`);
         if (diagnostics.splitRequests.length || diagnostics.unresolved.length) {
             input.onProgress?.(`[ESTRUCTURAR desde bitmap] ambigüedades: ${diagnostics.splitRequests.map(s => `${s.region} → ${s.entities.join('+')}`).join(', ') || 'ninguna separación'}; sin resolver: ${diagnostics.unresolved.join(', ') || 'ninguna'}`);
         }

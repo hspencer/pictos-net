@@ -298,6 +298,14 @@ contract TwoLevelStyleModel {
         -- After undo/redo, style definitions and overrides are re-derived from
         -- the restored snapshot's <style> block, keeping the registry in step
         -- with the live tree.
+
+    @invariant EditorClassesAreLibraryClasses
+        -- A class created or edited in the editor is written to the open
+        -- library's palette as well as to the document; editing keeps its
+        -- selectors, so the elements citing it stay styled. A class nothing
+        -- in the library cites (the open document included) may be removed
+        -- from the palette, base classes too; a cited class may not. New
+        -- libraries still start from the full base palette.
 }
 
 contract EditEventsOnSave {

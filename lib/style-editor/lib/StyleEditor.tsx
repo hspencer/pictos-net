@@ -39,6 +39,8 @@ export interface StyleEditorProps {
   externalShape?: ShapeType;
   /** Callback when the internal shape selector changes */
   onShapeChange?: (shape: ShapeType) => void;
+  /** Why a style may not be deleted (e.g. it is in use), or null when it may. */
+  deleteBlockedReason?: (style: StyleDefinition) => string | null;
 }
 
 export const StyleEditor: React.FC<StyleEditorProps> = ({
@@ -57,6 +59,7 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
   className = '',
   externalShape,
   onShapeChange,
+  deleteBlockedReason,
 }) => {
   const [styles, setStyles] = useState<StyleDefinition[]>(initialStyles);
   const [keyframes, setKeyframes] = useState<KeyframeDefinition[]>(initialKeyframes);
@@ -322,6 +325,7 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
         styleDef={currentEditingStyle}
         onSave={handleSaveStyle}
         onDelete={handleDeleteStyle}
+        canDelete={(currentEditingStyle && deleteBlockedReason?.(currentEditingStyle)) || true}
         currentShape={effectiveShape}
         keyframes={keyframes}
       />

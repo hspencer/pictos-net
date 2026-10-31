@@ -145,6 +145,8 @@ interface CitedClassEditorProps {
     onUncite: () => void;
     onRestore: () => void;
     onOverrideChange: (property: string, value: string) => void;
+    /** Opens the class definition itself (library level) for editing. */
+    onEditDefinition?: () => void;
 }
 
 const CitedClassEditor: React.FC<CitedClassEditorProps> = ({
@@ -154,6 +156,7 @@ const CitedClassEditor: React.FC<CitedClassEditorProps> = ({
     onUncite,
     onRestore,
     onOverrideChange,
+    onEditDefinition,
 }) => {
     const { t } = useTranslation();
     const hasOverrides = Object.entries(resolvedValues).some(
@@ -169,6 +172,16 @@ const CitedClassEditor: React.FC<CitedClassEditorProps> = ({
             <div className="flex items-center justify-between px-2.5 py-1.5 bg-slate-50 border-b border-slate-100">
                 <span className="text-xs font-mono text-violet-700 font-bold">.{className}</span>
                 <div className="flex items-center gap-1">
+                    {onEditDefinition && (
+                        <button
+                            onClick={onEditDefinition}
+                            className="flex items-center gap-0.5 text-xs text-slate-500 hover:text-violet-600 hover:bg-violet-50 px-1.5 py-0.5 rounded transition-colors"
+                            title={t('svgEditor.editStyleDefinitionTitle')}
+                        >
+                            <Pencil size={9} aria-hidden="true" />
+                            {t('svgEditor.editStyleDefinition')}
+                        </button>
+                    )}
                     {hasOverrides && (
                         <button
                             onClick={onRestore}
@@ -542,13 +555,15 @@ export const StylePanel: React.FC<StylePanelProps> = ({ styleDefs = [], svgSourc
         setLocalOverride,
         restoreClassToLibrary,
         getResolvedClassValues,
-        defineLocalStyle,
+        saveStyleDefinition,
+        styleDefinitions,
     } = useSVGEditorStore();
 
     const [currentClasses, setCurrentClasses] = useState<string[]>([]);
     const [isPickerOpen, setIsPickerOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-    const [editModalPreset, setEditModalPreset] = useState<Record<string, string> | null>(null);
+    const [editModalPreset, setEditModalPreset] = useState<StyleDefinition | null>(null);
+    const [editingStyle, setEditingStyle] = useState<StyleDefinition | null>(null);
     const isRaw = svgSource === 'raw';
 
     // Sync currentClasses from svgDocument whenever element or document changes
@@ -566,6 +581,7 @@ export const StylePanel: React.FC<StylePanelProps> = ({ styleDefs = [], svgSourc
         setIsPickerOpen(false);
         setIsEditModalOpen(false);
         setEditModalPreset(null);
+        setEditingStyle(null);
     }, [selectedElementId]);
 
     if (!selectedElementId) {
@@ -582,19 +598,32 @@ export const StylePanel: React.FC<StylePanelProps> = ({ styleDefs = [], svgSourc
         setLocalOverride(selectedElementId, cls, { [property]: value });
     };
 
-    const handleSaveNewClass = (styleDef: StyleDefinition) => {
+    const handleSaveClass = (styleDef: StyleDefinition) => {
         const className = styleDef.selectors[0]?.replace(/^\./, '') ?? '';
         if (!className) return;
-        defineLocalStyle(className, Object.fromEntries(styleDef.rules.map(r => [r.property, r.value])));
-        if (selectedElementId) {
-            citeClass(selectedElementId, className);
-        }
-        setIsEditModalOpen(false);
-        setEditModalPreset(null);
+        // A class saved here is a library class (saveStyleDefinition writes the
+        // palette). Renaming a cited class would orphan the elements citing it.
+        saveStyleDefinition(editingStyle ? { ...styleDef, selectors: editingStyle.selectors } : styleDef);
+        if (!editingStyle && selectedElementId) citeClass(selectedElementId, className);
+        closeEditModal();
     };
 
+    const closeEditModal = () => {
+        setIsEditModalOpen(false);
+        setEditModalPreset(null);
+        setEditingStyle(null);
+    };
+
+    const definitionOf = (cls: string) =>
+        styleDefinitions.find(s => s.selectors.includes(`.${cls}`)) ?? styleDefs.find(s => s.selectors.includes(`.${cls}`));
+
     const handleConvertToClass = (declarations: Record<string, string>) => {
-        setEditModalPreset(declarations);
+        const id = () => Math.random().toString(36).slice(2, 9);
+        setEditModalPreset({
+            id: id(),
+            selectors: ['.nueva-clase'],
+            rules: Object.entries(declarations).map(([property, value]) => ({ id: id(), property, value })),
+        });
         setIsEditModalOpen(true);
     };
 
@@ -673,6 +702,7 @@ export const StylePanel: React.FC<StylePanelProps> = ({ styleDefs = [], svgSourc
                                     onUncite={() => handleUncite(cls)}
                                     onRestore={() => handleRestore(cls)}
                                     onOverrideChange={(prop, val) => handleOverrideChange(cls, prop, val)}
+                                    onEditDefinition={definitionOf(cls) ? () => { setEditingStyle(definitionOf(cls)!); setIsEditModalOpen(true); } : undefined}
                                 />
                             );
                         })
@@ -724,18 +754,11 @@ export const StylePanel: React.FC<StylePanelProps> = ({ styleDefs = [], svgSourc
             {/* EditModal for defining new classes (from "Define" button or "Convert inline to class") */}
             <EditModal
                 isOpen={isEditModalOpen}
-                onClose={() => { setIsEditModalOpen(false); setEditModalPreset(null); }}
-                styleDef={editModalPreset ? {
-                    id: '',
-                    selectors: ['.nueva-clase'],
-                    rules: Object.entries(editModalPreset).map(([property, value]) => ({
-                        id: Math.random().toString(36).slice(2, 9),
-                        property,
-                        value,
-                    })),
-                } : null}
-                onSave={handleSaveNewClass}
+                onClose={closeEditModal}
+                styleDef={editingStyle ?? editModalPreset}
+                onSave={handleSaveClass}
                 onDelete={() => {}}
+                canDelete={false}
                 keyframes={INITIAL_KEYFRAMES}
             />
         </div>

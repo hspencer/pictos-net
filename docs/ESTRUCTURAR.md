@@ -70,9 +70,11 @@ La respuesta de `restructure_regions` puede:
 |---|---|
 | `groups[].regions` | Asigna regiones (o números de marca) a un nodo existente |
 | `protected` | Regiones con significado que no deben eliminarse, aunque sean pequeñas |
-| `discardProposals` | Ruido propuesto: se absorbe en la región asignada que lo contiene; nada se borra |
-| `splitRequests` | Una región que contiene varios nodos; queda sin asignar. Si los nodos son un nodo y su propio ancestro, la región va al ancestro |
-| `unresolved` | Regiones de pertenencia dudosa; quedan sin asignar |
+| `discardProposals` | Ruido propuesto: nada se borra; se absorbe como todo lo que queda fuera de los grupos (abajo) |
+| `splitRequests` | Una región que contiene varios nodos va a su ancestro común más profundo: un nodo y su descendiente, al nodo; dos hermanos, a su padre. Solo si no tienen ancestro común (dos figuras de nivel superior) queda sin asignar |
+| `unresolved` | Regiones de pertenencia dudosa; se absorben como todo lo que queda fuera de los grupos |
+
+Todo path que queda fuera de los grupos (ruido propuesto, sin resolver, separación sin ancestro común o simplemente no mencionado) se absorbe en la región asignada más pequeña que sea mayor que él y cuya caja contenga su centro (un ojo dentro de una cabeza). Si ninguna lo contiene, queda sin asignar y el resultado es un borrador. La petición se hace con temperatura 0, para que corridas repetidas sobre la misma entrada coincidan.
 
 La petición no incluye el NLU completo, el enunciado ni el prompt de composición: bastan el bitmap, las regiones, el árbol y la paleta. Con regiones en vez de código SVG, la entrada usa aproximadamente la mitad de tokens que la ruta de trazado.
 

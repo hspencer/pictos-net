@@ -92,9 +92,17 @@ Ocurre automáticamente dentro de `applyUsedStylesToSvg()`. Si la clase ya exist
 
 Se ejecuta automáticamente en cada llamada a `applyUsedStylesToSvg()`:
 
-1. `getUsedClassNamesFromSvg()` — escanea todos los atributos `class` del documento
-2. `getUsedStyles()` — filtra `styleDefinitions` a solo las clases en uso
+1. `citedClassNames()` (`utils/styleUtils.ts`) — escanea todos los atributos `class` del documento
+2. `styleIsCited()` — filtra `styleDefinitions` a solo las clases en uso
 3. Solo las clases en uso se regeneran en el bloque `<style>` nivel 1
+
+## Estilos de la biblioteca desde el editor
+
+Una clase creada en el editor ("Definir", "Convertir en clase" o "Definir nueva clase" en la paleta) es una clase de la biblioteca: `saveStyleDefinition()` la aplica al documento y la escribe en la paleta de la biblioteca abierta (`config.svgStyleDefs`). Cada clase citada tiene "Editar", que abre su definición para cambiar o agregar propiedades; el cambio se ve de inmediato en el documento y queda en la biblioteca. Al editar se conservan los selectores, porque renombrar una clase citada dejaría huérfanos a los elementos que la citan.
+
+Una clase que ningún pictograma de la biblioteca cita (ni el documento abierto) puede quitarse de la paleta: con la papelera en la paleta del editor, con "Eliminar" en el editor de estilos, o con "Quitar sin uso" para todas a la vez. Una clase en uso no se puede eliminar, y el editor lo explica. Esto vale también para las clases base: cada biblioteca puede quedarse con un stock menor, toda biblioteca nueva parte del conjunto base completo, y "Restaurar defaults" lo devuelve.
+
+El anfitrión (`SVGEditorModal`) instala en el store la paleta de la biblioteca (`setLibraryPalette`: guardar, quitar y saber si una clase está en uso). App calcula las clases en uso a partir de los SVG visibles de las filas (estructurado, borrador y trazado), excluida la fila abierta, cuyo documento vivo cuenta en su lugar.
 
 ## Pipeline Cleanup (on load)
 

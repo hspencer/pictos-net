@@ -79,9 +79,9 @@ async function handleRequest(event, context) {
     return { statusCode: 500, headers, body: JSON.stringify({ error: 'Server configuration error' }) };
   }
 
-  let model, max_tokens, system, tools, tool_choice, messages, _requestId;
+  let model, max_tokens, temperature, system, tools, tool_choice, messages, _requestId;
   try {
-    ({ model, max_tokens, system, tools, tool_choice, messages, _requestId } = JSON.parse(event.body));
+    ({ model, max_tokens, temperature, system, tools, tool_choice, messages, _requestId } = JSON.parse(event.body));
   } catch {
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid JSON body' }) };
   }
@@ -147,6 +147,7 @@ async function handleRequest(event, context) {
       max_tokens: Math.min(max_tokens || 4096, 8192),
       messages,
     };
+    if (typeof temperature === 'number' && temperature >= 0 && temperature <= 1) params.temperature = temperature;
     if (system) params.system = system;
     if (tools) params.tools = tools;
     if (tool_choice) params.tool_choice = tool_choice;

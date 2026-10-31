@@ -5,7 +5,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { absorbDiscards, buildRegionToolSchema, regionAnswerToMapping } from './regionMapping.ts';
+import { absorbUnassigned, buildRegionToolSchema, regionAnswerToMapping } from './regionMapping.ts';
 
 const PATHS = ['r1', 'r2', 'r2_1', 'r2_a7', 'r3', 'r4'];
 const NODES = new Set(['persona', 'mano', 'vaso']);
@@ -21,7 +21,7 @@ test('a region ref expands to its islands and attached slivers', () => {
     assert.deepEqual(mapping.groups[0].keep, ['r1', 'r2', 'r2_1', 'r2_a7']);
 });
 
-test('split-requested and unresolved regions are left unassigned', () => {
+test('a split with no common ancestor and unresolved regions are left unassigned', () => {
     const { mapping, diagnostics } = regionAnswerToMapping(answer({
         groups: [{ nodeId: 'mano', label: 'm', cssClass: 'k', regions: ['r1', 'r2', 'r3'] }],
         splitRequests: [{ region: 'r2', entities: ['mano', 'vaso'], hint: 'el vaso está en la mano' }],
@@ -60,26 +60,34 @@ test('the schema only offers existing nodes', () => {
     assert.deepEqual(schema.input_schema.properties.groups.items.properties.nodeId.enum, ['persona', 'vaso']);
 });
 
-test('a split between a node and its descendant goes to the ancestor', () => {
-    const parents = new Map<string, string | null>([['persona', null], ['mano', 'persona'], ['vaso', null]]);
+test('a split goes to the deepest common ancestor of its nodes', () => {
+    const parents = new Map<string, string | null>([['persona', null], ['mano', 'persona'], ['vaso', 'persona']]);
     const { mapping, diagnostics } = regionAnswerToMapping(answer({
         groups: [{ nodeId: 'mano', label: 'm', cssClass: 'k', regions: ['r3'] }],
         splitRequests: [{ region: 'r2', entities: ['mano', 'persona'] }, { region: 'r4', entities: ['mano', 'vaso'] }],
     }), PATHS, NODES, parents);
-    assert.deepEqual(mapping.groups.find(g => g.nodeId === 'persona')?.keep, ['r2', 'r2_1', 'r2_a7']);
-    assert.ok(!mapping.groups.some(g => g.keep.includes('r4')), 'siblings stay unresolved');
+    assert.deepEqual(mapping.groups.find(g => g.nodeId === 'persona')?.keep, ['r4', 'r2', 'r2_1', 'r2_a7'], 'a node and its descendant: the node; two siblings: their parent');
     assert.equal(diagnostics.splitRequests.length, 2, 'both splits stay recorded');
 });
 
-test('a proposed discard is absorbed by the region containing it, never removed', () => {
-    const boxes: Record<string, [number, number, number, number]> = { r1: [0, 0, 100, 100], r2: [10, 10, 20, 20], r3: [40, 40, 5, 5], r4: [500, 500, 5, 5] };
+test('a split between top-level nodes stays unassigned', () => {
+    const parents = new Map<string, string | null>([['persona', null], ['mano', 'persona'], ['vaso', null]]);
+    const { mapping } = regionAnswerToMapping(answer({
+        splitRequests: [{ region: 'r4', entities: ['mano', 'vaso'] }],
+    }), PATHS, NODES, parents);
+    assert.ok(!mapping.groups.some(g => g.keep.includes('r4')));
+});
+
+test('paths outside the groups are absorbed by the larger region containing them, never removed', () => {
+    const boxes: Record<string, [number, number, number, number]> = { r1: [0, 0, 100, 100], r2: [10, 10, 20, 20], r3: [40, 40, 5, 5], r4: [500, 500, 5, 5], r5: [-10, -10, 200, 200] };
     const regionOf = (id: string) => boxes[id.replace(/_.*$/, '')] && { regionId: Number(id.replace(/_.*$/, '').slice(1)), bbox: boxes[id.replace(/_.*$/, '')] };
-    const mapping = { description: '', discard: ['r3', 'r4'], groups: [
+    const mapping = { description: '', discard: ['r3'], groups: [
         { nodeId: 'persona', label: 'p', cssClass: 'k', keep: ['r1'], selected: true, merge: null, parentId: null },
         { nodeId: 'mano', label: 'm', cssClass: 'k', keep: ['r2'], selected: true, merge: null, parentId: 'persona' },
     ] };
-    const { mapping: out, absorbed } = absorbDiscards(mapping, regionOf);
+    const { mapping: out, absorbed, unassigned } = absorbUnassigned(mapping, ['r1', 'r2', 'r3', 'r4', 'r5'], regionOf);
     assert.deepEqual(out.discard, []);
     assert.deepEqual(out.groups[0].keep, ['r1', 'r3'], 'r3 lies inside r1 only');
-    assert.equal(absorbed, 1, 'r4 is contained by no assigned region: left unassigned');
+    assert.equal(absorbed, 1);
+    assert.equal(unassigned, 2, 'r4 is contained by nothing; r5 is larger than every assigned region');
 });
