@@ -3471,7 +3471,6 @@ const App: React.FC<AppProps> = ({ authUser }) => {
                       setRows(prev => prev.map(r => r.id !== row.id ? r : { ...r, [flagKey]: true }));
                     }}
                     phase5Model={config.phase5Model ?? DEFAULT_PHASE5_MODEL}
-                    onPhase5ModelChange={setPhase5Model}
                   />
                 );
               }}
@@ -3639,7 +3638,6 @@ const App: React.FC<AppProps> = ({ authUser }) => {
                   }}
                   onBuildRowClipboard={buildRowClipboardJson}
                   phase5Model={config.phase5Model ?? DEFAULT_PHASE5_MODEL}
-                  onPhase5ModelChange={setPhase5Model}
                 />
               );
             })}
@@ -3762,7 +3760,6 @@ const App: React.FC<AppProps> = ({ authUser }) => {
             }));
           }}
           phase5Model={config.phase5Model ?? DEFAULT_PHASE5_MODEL}
-          onPhase5ModelChange={setPhase5Model}
         />
       )}
 
@@ -4151,12 +4148,11 @@ const RowComponent: React.FC<{
   onDiscardSvg?: (phase: 'svg_raw' | 'svg_structured', previousSvg: string) => void;
   onBuildRowClipboard?: (row: RowData) => string;
   phase5Model?: string;
-  onPhase5ModelChange?: (model: string) => void;
   /** Sequence context: step number shown in left strip. */
   stepNumber?: number;
   /** Sequence context: drag handle element rendered in left strip. */
   dragHandle?: React.ReactNode;
-}> = ({ row, isOpen, setIsOpen, onUpdate, onProcess, onRegeneratePrompt, onStop, onCascade, onDelete, onFocus, onLog, config, onConfigChange, onOpenEditor, onOpenVectorizer, onSettleField, onRecordElementOp, onUpdateInterventionLog, onDiscardSvg, onBuildRowClipboard, phase5Model, onPhase5ModelChange, stepNumber, dragHandle }) => {
+}> = ({ row, isOpen, setIsOpen, onUpdate, onProcess, onRegeneratePrompt, onStop, onCascade, onDelete, onFocus, onLog, config, onConfigChange, onOpenEditor, onOpenVectorizer, onSettleField, onRecordElementOp, onUpdateInterventionLog, onDiscardSvg, onBuildRowClipboard, phase5Model, stepNumber, dragHandle }) => {
   const { t } = useTranslation();
   const [elementsManuallyEdited, setElementsManuallyEdited] = React.useState(false);
   const [promptManuallyEdited, setPromptManuallyEdited] = React.useState(false);
@@ -4376,7 +4372,6 @@ const RowComponent: React.FC<{
                       onOpenVectorizer={onOpenVectorizer}
                       onDiscardSvg={onDiscardSvg}
                       phase5Model={phase5Model}
-                      onPhase5ModelChange={onPhase5ModelChange}
                     />
                   </div>
                 ) : (
@@ -5222,8 +5217,7 @@ const FocusViewModal: React.FC<{
   onDiscardSvg?: (phase: 'svg_raw' | 'svg_structured', previousSvg: string) => void;
   onOpenVectorizer?: () => void;
   phase5Model?: string;
-  onPhase5ModelChange?: (model: string) => void;
-}> = ({ mode, row, onClose, onUpdate, onRegeneratePrompt, config, onConfigChange, onLog, onOpenEditor, onModeChange, onRecordElementOp, onSettleField, onProcess, onStop, onDiscardSvg, onOpenVectorizer, phase5Model, onPhase5ModelChange }) => {
+}> = ({ mode, row, onClose, onUpdate, onRegeneratePrompt, config, onConfigChange, onLog, onOpenEditor, onModeChange, onRecordElementOp, onSettleField, onProcess, onStop, onDiscardSvg, onOpenVectorizer, phase5Model }) => {
   const { t } = useTranslation();
   const { dialogProps: focusDialogProps } = useDialogA11y({ isOpen: true, onClose, label: `${row.UTTERANCE} — ${mode}` });
   const [copyStatus, setCopyStatus] = useState(t('actions.copy'));
@@ -5378,16 +5372,14 @@ const FocusViewModal: React.FC<{
                   alt={row.UTTERANCE}
                   className="flex-1 min-h-0 w-full object-contain shadow-2xl bg-white"
                 />
-                {onOpenVectorizer && (
-                  <button
-                    type="button"
-                    onClick={onOpenVectorizer}
-                    className="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white px-8 py-3 font-bold uppercase text-xs tracking-widest transition-all shadow-lg hover:shadow-xl"
-                    aria-label={t('svg.traceSvg')}
-                  >
-                    <Scan size={15} aria-hidden="true" /> {t('svg.traceSvg')}
-                  </button>
-                )}
+                {/* Structuring actions live in the next step, as in the row list. */}
+                <button
+                  type="button"
+                  onClick={() => onModeChange('format')}
+                  className="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white px-8 py-3 font-bold uppercase text-xs tracking-widest transition-all shadow-lg hover:shadow-xl"
+                >
+                  <Layers size={15} aria-hidden="true" /> {t('svg.structure')}
+                </button>
               </div>
             ) : (
               <p className="text-slate-500 font-mono">{t('editor.noSvgRender')}</p>
@@ -5399,39 +5391,20 @@ const FocusViewModal: React.FC<{
         const hasRaw = !!validRawSvg(row);
         const hasStructured = !!validStructuredSvg(row);
 
-        // Nothing yet: check for bitmap first (can vectorize), otherwise prompt to produce.
-        if (!hasRaw && !hasStructured && !row.structuredSvgDraft) {
-          const bmp = validBitmap(row);
+        // Nothing to show or structure yet: prompt to produce. A bitmap gets
+        // the same actions as in the row list (Estructurar, Solo trazar).
+        if (!hasRaw && !hasStructured && !row.structuredSvgDraft && !validBitmap(row)) {
           return (
             <div className="flex items-center justify-center h-full bg-slate-50 p-6">
-              {bmp && onOpenVectorizer ? (
-                <div className="flex flex-col items-center gap-6 max-w-xs w-full">
-                  <img
-                    src={bmp}
-                    alt={row.UTTERANCE}
-                    className="max-h-[240px] w-auto object-contain border border-slate-200 bg-white shadow"
-                  />
-                  <button
-                    type="button"
-                    onClick={onOpenVectorizer}
-                    className="w-full flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 text-white px-8 py-4 font-bold uppercase text-xs tracking-widest transition-all shadow-lg hover:shadow-xl"
-                    aria-label={t('svg.traceSvg')}
-                  >
-                    <Scan size={16} aria-hidden="true" /> {t('svg.traceSvg')}
-                  </button>
-                  <p className="text-xs text-slate-400 text-center">{t('svg.traceConverts')}</p>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center gap-4 bg-white border border-slate-200 p-8 max-w-xs text-center">
-                  <FileCode size={40} className="text-slate-300" aria-hidden="true" />
-                  <p className="text-sm text-slate-500">{t('library.structureRequiresRaw')}</p>
-                </div>
-              )}
+              <div className="flex flex-col items-center justify-center gap-4 bg-white border border-slate-200 p-8 max-w-xs text-center">
+                <FileCode size={40} className="text-slate-300" aria-hidden="true" />
+                <p className="text-sm text-slate-500">{t('library.structureRequiresRaw')}</p>
+              </div>
             </div>
           );
         }
 
-        // Has SVG(s): two-column layout (raw left, structured right)
+        // Two-column layout (source left, result right)
         // See specs/library-views.allium § FocusModalFormatStep
         return (
           <div className="flex flex-col h-full bg-slate-50 p-6">
@@ -5439,7 +5412,7 @@ const FocusViewModal: React.FC<{
               <h3 className="text-xs font-bold uppercase text-slate-500 tracking-widest">{t('svg.outputSsot')}</h3>
             </div>
             <div className="flex-1 overflow-hidden">
-              <SVGGenerator row={row} config={config} onLog={onLog} onUpdate={onUpdate} onOpenEditor={onOpenEditor} onOpenVectorizer={onOpenVectorizer} layout="columns" onDiscardSvg={onDiscardSvg} phase5Model={phase5Model} onPhase5ModelChange={onPhase5ModelChange} />
+              <SVGGenerator row={row} config={config} onLog={onLog} onUpdate={onUpdate} onOpenEditor={onOpenEditor} onOpenVectorizer={onOpenVectorizer} layout="columns" onDiscardSvg={onDiscardSvg} phase5Model={phase5Model} />
             </div>
           </div>
         );

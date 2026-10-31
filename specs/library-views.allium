@@ -406,6 +406,9 @@ rule ProducirStepContent {
 
   ensures: a regenerate button is available to re-run Phase 3
 
+  ensures: a bitmap row shows "Estructurar", which opens the format step
+    -- Structuring actions live in the format step, as in the row list.
+
   ensures: Phase 4 trazado is never shown in this step
     -- rawSvg from VTracer belongs in the format step (step 4), not here
 }
@@ -415,24 +418,41 @@ rule ProducirStepContent {
 rule FormatStepRendering {
   when: FocusViewModal.step = format
 
-  ensures: two-column layout:
-    left  column: trazado (rawSvg) area
-    right column: estructurado (structuredSvg) area
-    both columns visible at the same time; they do not toggle
+  ensures: the same SVGGenerator view as the row list, laid out in columns
+    -- One view, two layouts (stacked in the row list, columns here): the
+    -- same tiles, the same action row, the same notice. See
+    -- StructuringViewIsTheSameEverywhere.
 
-  ensures: left column actions when rawSvg exists:
-    edit button — opens SVGEditorModal on rawSvg
-    retrace button — re-triggers Phase 4 (Vectorizar) on row.bitmap
-      only when row.bitmap exists (bitmap rows only; not shown for vector rows)
-    copy, download
+  ensures: tiles, left to right:
+    trazado (rawSvg) when it exists, else the bitmap as source (no actions)
+    estructurado (structuredSvg) when it exists
+    borrador (structuredSvgDraft) when it exists
+    an empty slot beside a lone trazado, so the pair keeps its shape
 
-  ensures: right column actions when structuredSvg exists:
-    edit button — opens SVGEditorModal on structuredSvg
-    restructure button — re-triggers Phase 5 (Estructurar) on rawSvg
-    copy, download
+  ensures: each artifact tile carries edit, download and delete
+    -- Edit opens SVGEditorModal on that artifact. Delete asks for
+    -- confirmation; trazado and estructurado are discarded (flag kept for
+    -- telemetry), the borrador is cleared.
+
+  ensures: one action row below the tiles:
+    with structuredSvg: restructure (when rawSvg exists) + retrace
+    with rawSvg only: Estructurar trazado (primary) + Estructurar desde el
+      bitmap + retrace
+    with a bitmap only: Estructurar (primary) + Solo trazar
+    retrace only when row.bitmap exists
 
   ensures: "Limpiar estilos en línea" is NOT present in this view
     -- That action is accessible only from within SVGEditorModal itself.
+}
+
+invariant StructuringViewIsTheSameEverywhere {
+  -- Row list and focus view render artifacts, actions and notices from one
+  -- component; only the layout differs. While structuring runs, a progress
+  -- panel takes the result slot. Below the action row there is at most one
+  -- short line: the reason a borrador is not certified, or why structuring
+  -- is pending. Schema field pointers are research detail and stay in the
+  -- line's tooltip. The Phase 5 model is chosen in Ajustes, not per row.
+  for each SVG artifact on the row: the row list and the focus view offer the same actions
 }
 
 rule LeftColumnEmptyState {
@@ -543,8 +563,8 @@ surface ProducirFocusStep {
 
 surface FocusModalFormatStep {
   @guidance "two-column rule"
-    -- Left = trazado, right = estructurado. Both visible at all times;
-    -- no toggling.
+    -- Source left (trazado, or the bitmap), results right (estructurado,
+    -- borrador). All visible at the same time; no toggling.
 
   @guidance "column sizing"
     -- 50/50 split on wide viewports. Stack left-then-right on narrow ones.
@@ -560,13 +580,12 @@ surface FocusModalFormatStep {
     -- only from within SVGEditorModal.
 
   exposes:
-    Row.rawSvg, Row.structuredSvg
-    edit per column (trazado → SVGEditorModal on rawSvg;
-                     estructurado → SVGEditorModal on structuredSvg)
-    retrace action (left column, only when row.bitmap exists)
-    restructure action (right column, only when structuredSvg exists)
-    Estructurar action (right column primary CTA, when rawSvg exists and structuredSvg absent)
-    copy + download per column
+    Row.rawSvg, Row.structuredSvg, Row.structuredSvgDraft
+    edit, download and delete per artifact tile
+    retrace action (only when row.bitmap exists)
+    restructure action (when structuredSvg exists)
+    Estructurar trazado (primary, when rawSvg exists and structuredSvg absent)
+    Estructurar / Solo trazar (bitmap only)
 }
 
 ------------------------------------------------------------
