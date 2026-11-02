@@ -12,15 +12,19 @@ export async function generateImage(
 ): Promise<Phase3Result> {
     const model = configuredModel(config, 3);
     assertModelAvailable(model, [3]);
-    if (getModelProvider(model) === 'openai') {
+    // Every branch receives the resolved model: a library that pins none
+    // follows the catalog default, which the raw field does not carry.
+    const resolved = { ...config, generationModel: model as GlobalConfig['generationModel'] };
+    const provider = getModelProvider(model);
+    if (provider === 'openai') {
         const response = await callOpenAI({
-            model: config.generationModel,
-            prompt: Gemini.composeGeminiPrompt(elements, prompt, row, config),
+            model,
+            prompt: Gemini.composeGeminiPrompt(elements, prompt, row, resolved),
             quality: config.openaiImageQuality ?? 'low',
         }, msg => onLog?.('info', msg));
-        return { ...response, generationModel: config.generationModel };
+        return { ...response, generationModel: resolved.generationModel };
     }
-    return config.generationModel?.startsWith('recraft')
-        ? Recraft.generateImage(elements, prompt, row, config, onLog)
-        : Gemini.generateImage(elements, prompt, row, config, onLog);
+    return provider === 'recraft'
+        ? Recraft.generateImage(elements, prompt, row, resolved, onLog)
+        : Gemini.generateImage(elements, prompt, row, resolved, onLog);
 }

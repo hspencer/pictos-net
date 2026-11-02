@@ -1,4 +1,4 @@
-import { MODEL_CATALOG, modelIdsForPhase } from './netlify/functions/_shared/modelCatalog.js';
+import { MODEL_CATALOG, modelIdsForPhase, DEFAULT_MODELS } from './netlify/functions/_shared/modelCatalog.js';
 import { generationSchema as NLU_GENERATION_SCHEMA } from './schemas/pictos-nlu-schema/index.js';
 
 
@@ -70,6 +70,8 @@ export type StepStatus = 'idle' | 'processing' | 'completed' | 'error' | 'outdat
 // ── NLU Model (Phases 1+2: COMPRENDER + COMPONER) ────────────────────────────
 
 export type NluModel =
+  | 'claude-haiku-5-5'
+  | 'gpt-6-luna'
   | 'claude-haiku-4-5-20251001'
   | 'claude-sonnet-4-6'
   | 'gemini-2.5-flash'
@@ -81,7 +83,7 @@ export type NluModel =
 export const NLU_MODELS: { id: NluModel; label: string; status: string }[] = modelIdsForPhase(1)
   .map(id => ({ id: id as NluModel, label: MODEL_CATALOG[id].label, status: MODEL_CATALOG[id].status }));
 
-export const DEFAULT_NLU_MODEL: NluModel = 'claude-haiku-4-5-20251001';
+export const DEFAULT_NLU_MODEL = DEFAULT_MODELS[1] as NluModel;
 
 // ── Phase 5: ESTRUCTURAR ─────────────────────────────────────────────────────
 
@@ -101,7 +103,7 @@ export const PHASE5_MODELS: { id: Phase5StructuringModel; label: string; status:
 
 // Structuring is the finest visual-judgment task in the pipeline and runs
 // manually at low volume — default to the most capable model, not the fastest.
-export const DEFAULT_PHASE5_MODEL: Phase5StructuringModel = 'claude-sonnet-4-6';
+export const DEFAULT_PHASE5_MODEL = DEFAULT_MODELS[5] as Phase5StructuringModel;
 
 export interface MergedPath {
   // Computed locally (exact geometric union via svgBooleanOps) — the model
@@ -347,6 +349,7 @@ import type { StyleDefinition, KeyframeDefinition } from './lib/style-editor/lib
 
 /** The Phase 3 generation models, by stable API identifier. */
 export type GenerationModel =
+  | 'gpt-image-2.5-flare'
   | 'gpt-image-2'
   | 'gemini-2.5-flash-image'
   | 'gemini-3.1-flash-image'
@@ -372,7 +375,7 @@ export function getModelFamily(model: GenerationModel): ModelFamily {
   return model.endsWith('_vector') ? 'vector' : 'bitmap';
 }
 
-export const DEFAULT_GENERATION_MODEL: GenerationModel = 'gemini-2.5-flash-image';
+export const DEFAULT_GENERATION_MODEL = DEFAULT_MODELS[3] as GenerationModel;
 
 /** Model configured for a phase, with the same fallbacks the settings selectors show. */
 export function configuredModel(config: GlobalConfig, phase: 1 | 2 | 3 | 5): string {

@@ -10,10 +10,10 @@ const BASE = [
 const rule = (defs, selector, property) => defs.find(d => d.selectors.includes(selector))?.rules.find(r => r.property === property)?.value;
 
 test('a retired model is removed so the phase follows the default', () => {
-  const { config, changes } = migrateLibraryConfig({ comprenderModel: 'gemini-2.5-flash', componerModel: 'claude-haiku-4-5-20251001', phase5Model: 'claude-opus-4-6' });
+  const { config, changes } = migrateLibraryConfig({ comprenderModel: 'claude-haiku-4-5-20251001', componerModel: 'gpt-6-luna', phase5Model: 'claude-opus-4-6' });
   assert.equal(config.comprenderModel, undefined);
-  assert.equal(config.componerModel, 'claude-haiku-4-5-20251001');
-  assert.equal(config.phase5Model, 'claude-opus-4-6', 'a valid user choice is kept');
+  assert.equal(config.componerModel, 'gpt-6-luna', 'a valid user choice is kept');
+  assert.equal(config.phase5Model, undefined, 'Opus 4.6 was retired on 2026-11-01');
   assert.ok(changes.some(c => c.includes('comprenderModel')));
 });
 
@@ -23,14 +23,17 @@ test('unknown models and models used outside their phase are removed', () => {
   assert.equal(config.phase5Model, undefined);
 });
 
-test('renamed preview ids map to stable ids', () => {
-  assert.equal(migrateLibraryConfig({ generationModel: 'gemini-3-pro-image-preview' }).config.generationModel, 'gemini-3-pro-image');
+test('renamed preview ids map to stable ids, then follow the catalog lifecycle', () => {
+  const { config, changes } = migrateLibraryConfig({ generationModel: 'gemini-3-pro-image-preview' });
+  assert.equal(config.generationModel, undefined, 'gemini-3-pro-image is retired');
+  assert.ok(changes.some(c => c.includes('gemini-3-pro-image')));
 });
 
 test('legacy imageModel maps only when no generationModel is set, then is removed', () => {
-  assert.equal(migrateLibraryConfig({ imageModel: 'pro' }).config.generationModel, 'gemini-3-pro-image');
-  const both = migrateLibraryConfig({ imageModel: 'pro', generationModel: 'gpt-image-2', aspectRatio: '1:1' }).config;
-  assert.equal(both.generationModel, 'gpt-image-2');
+  assert.equal(migrateLibraryConfig({ imageModel: 'pro' }).config.generationModel, undefined, 'maps to a retired model, so the default applies');
+  assert.equal(migrateLibraryConfig({ imageModel: 'recraftv4_1_vector' }).config.generationModel, 'recraftv4_1_vector');
+  const both = migrateLibraryConfig({ imageModel: 'pro', generationModel: 'gpt-image-2.5-flare', aspectRatio: '1:1' }).config;
+  assert.equal(both.generationModel, 'gpt-image-2.5-flare');
   assert.equal(both.imageModel, undefined);
   assert.equal(both.aspectRatio, undefined);
 });

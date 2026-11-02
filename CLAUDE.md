@@ -3,7 +3,8 @@
 ## Quick Reference
 
 Generative pictogram system for AAC (Augmentative and Alternative Communication).
-React 19 + TypeScript 5.8 + Vite 6 + Tailwind 3.4 + Claude AI + Google Gemini image generation.
+React 19 + TypeScript 5.8 + Vite 6 + Tailwind 3.4 + Claude AI + OpenAI/Gemini/Recraft image generation.
+Model lineup and defaults: `DEFAULT_MODELS` in `netlify/functions/_shared/modelCatalog.js`; evidence in docs/BENCHMARK_MODELOS_2026-11.md.
 
 ## Commands
 
@@ -35,28 +36,29 @@ call); TRAZAR (legacy VTracer 0.6 modal) remains a manual trace-only action. Ref
 
 - **Services**: `services/claudeService.ts` (phases 1-2), `services/geminiService.ts` (phase 3, default), `services/recraftService.ts` (phase 3, Recraft fallback), `services/svgStructureService.ts` (phase 4)
 - **API**: `services/aiClient.ts` — always-proxy client. All calls go through Netlify Functions (`callClaude`, `callRecraft`). No API key ever reaches the browser.
-- **Functions**: `netlify/functions/api-claude.js` (phases 1,2,4), `netlify/functions/api-gemini-worker-background.js` + `api-gemini-poll.js` (phase 3, default), `netlify/functions/api-recraft.js` (phase 3, Recraft fallback)
+- **Functions**: `netlify/functions/api-claude.js` (phases 1,2,4), `api-openai-text*` (phases 1,2 with GPT-6 Luna), `api-openai-worker-background.js` + `api-openai-poll.js` (phase 3, default), `api-gemini-worker-background.js` + `api-gemini-poll.js` (phase 3, Google alternative), `api-recraft*` (phase 3, native SVG)
 - **Machine API v1**: `netlify/functions/api-v1-comprender.js`, `api-v1-componer.js` (routes `/api/v1/*`) — thin shells over `_shared/apiV1.js` → `runPhase1`/`runPhase2`; revocable service credentials (`_shared/serviceCredentials.js`, CLI `scripts/service-credentials.mjs`), idempotency, contracts in `schemas/pictos-api-schema/`. Producir/Estructurar are draft contracts only. Reference: docs/API_V1.md
 - **State**: Zustand for SVG editor, localStorage for metadata, IndexedDB for binary (SVGs)
 - **Main orchestrator**: `App.tsx` — processCascade, processStep, row management
 
 ## Pipeline
 
-### Phase 1: COMPRENDER (Claude Haiku)
+### Phase 1: COMPRENDER (Claude Haiku 5.5; alternative GPT-6 Luna)
 - Input: utterance + GlobalConfig (lang, geoContext, domainContext)
 - Method: forced tool use (`analyze_utterance`) — guaranteed JSON
 - Output: `NLUData` (domain, frames, nsm_explications, visual_guidelines, pragmatics)
 
-### Phase 2: COMPONER (Claude Haiku)
+### Phase 2: COMPONER (Claude Haiku 5.5; alternative GPT-6 Luna)
 - Input: NLUData + GlobalConfig
 - Method: forced tool use (`compose_pictogram`) — guaranteed JSON
 - Output: `{ elements: VisualElement[], prompt: string }`
 - Each element carries `concept` (Root/Agent/Action/Object/Context/Element) derived from NLU frame roles — flows to `data-concept` in the structured SVG; legacy rows fall back to `guessConceptFromId`
 - `generateSpatialPrompt()` regenerates only the prompt when user edits elements
 
-### Phase 3: PRODUCIR (Gemini image — default: gemini-2.5-flash-image)
+### Phase 3: PRODUCIR (default: gpt-image-2.5-flare)
 - Input: elements + prompt + visualStylePrompt + NLU context + utterance
-- Model: `gemini-2.5-flash-image` (default), `gemini-3.1-flash-image`, `gemini-3-pro-image` via `api-gemini-worker-background` + `api-gemini-poll`; Recraft variants available as non-default via `api-recraft`
+- Model: `gpt-image-2.5-flare` (default, `api-openai-worker-background` + `api-openai-poll`), `gemini-2.5-flash-image` (Google alternative, Vertex batch), `recraftv4_1_vector` (native SVG, `api-recraft`). Every other image model is retired (2026-11-01)
+- Prompt: one builder for browser and server, `netlify/functions/_shared/imagePrompts.js`; quoted snake_case element ids reach the image model as plain words (models drew them as captions)
 - Output: raw SVG string (`rawSvg`) for vector models; bitmap PNG (`bitmap`) for raster models
 
 ### Phase 4: ESTRUCTURAR (Claude Sonnet, optional, user-initiated)
@@ -68,7 +70,7 @@ call); TRAZAR (legacy VTracer 0.6 modal) remains a manual trace-only action. Ref
 - Geometry never leaves the browser and is never model-authored
 - Output: pictos-svg-schema compliant SVG with semantic groups, `data-concept` congruent with NLU, and accessibility metadata
 - Full reference: docs/ESTRUCTURAR.md
-- Model selectable via `GlobalConfig.phase5Model`: `claude-sonnet-4-6` (default since 2026-07-18 — finest visual judgment in the pipeline, low volume), `claude-opus-4-6`, and the experimental OpenAI GPT-5.6 models. Gemini 2.5 text models are retired (2026-10-20); the `api-gemini-structure` route stays for the next Gemini text model. Claude models route to `api-claude`, `gemini-*` to `api-gemini-structure`.
+- Model: `claude-sonnet-4-6`, the only one offered (2026-11-01 benchmark: 98% node coverage; Opus 4.6 leaves ~10 unresolved regions per case, GPT-5.6 and Haiku 5.5 cover 60-75% of nodes). The OpenAI (`api-openai-text*`) and Gemini (`api-gemini-structure`) vision routes stay dormant for a future model. Claude models route to `api-claude`.
 
 ## GlobalConfig Parameters
 
@@ -81,8 +83,8 @@ call); TRAZAR (legacy VTracer 0.6 modal) remains a manual trace-only action. Ref
 | `visualStylePrompt` | 3 | Active | Text added to the image generation prompt |
 | `svgStyleDefs` | 2, 4 | Active | CSS definitions for SVG editor + structuring |
 | `svgKeyframes` | 4 | Active | Animation keyframes for structured SVG |
-| `generationModel` | 3 | Active | Phase 3 model: `gemini-2.5-flash-image` (default), `gemini-3.1-flash-image`, `gemini-3-pro-image`, `recraftv4_1`, `recraftv4_1_vector`, `recraftv4_1_utility_vector`, `recraftv4_1_pro_vector` |
-| `phase5Model` | 4 | Active | Phase 4 structuring model: `claude-sonnet-4-6` (default), `claude-opus-4-6`; options come from the model catalog |
+| `generationModel` | 3 | Active | Phase 3 model: `gpt-image-2.5-flare` (default), `gemini-2.5-flash-image`, `recraftv4_1_vector` |
+| `phase5Model` | 4 | Active | Phase 4 structuring model: `claude-sonnet-4-6` (only option); options come from the model catalog |
 | `aspectRatio` | — | Inactive | Was Gemini Image aspect ratio; no longer used |
 | `imageModel` | — | Inactive | Legacy; migrated to `generationModel` on first load |
 
@@ -97,13 +99,16 @@ call); TRAZAR (legacy VTracer 0.6 modal) remains a manual trace-only action. Ref
 
 ## Key Patterns
 
-- Tool use in Claude: always `tool_choice: { type: 'tool', name: '...' }` — hard failure if model doesn't invoke
+- Tool use in Claude: always `tool_choice: { type: 'tool', name: '...' }` — hard failure if model doesn't invoke. Sonnet 5.5, Opus 5.5 and Fable 5.1 reject forced tool_choice (400), so they cannot enter the catalog without a different client strategy
+- Sampling: models flagged `fixedSampling` in the catalog (Haiku 5.5) reject non-default `temperature`; `api-claude` forwards it only when `acceptsSampling(model)`
+- Prompt cache: Haiku 4.5 needs 4096 tokens to cache (the phase 1 prefix is ~2900, so it never cached); Haiku 5.5 caches from 512 (90%+ cache reads measured)
 - Recraft API (non-default, via `api-recraft`): prompt only (no style/substyle), returns URL → fetched to SVG string; only invoked when `generationModel` starts with `recraft`
 - Phase 4 set-of-marks: paths get numeric IDs in a rasterized PNG → Claude assigns each ID to a semantic element
 - Local SVG assembly: Claude returns only `{ path_id → element_id }` map; geometry manipulation is all local
 - Quota: phase 3 image generation = 1 unit/call (Recraft + Gemini workers; batch = 1 unit/row, refunded via `refundUnits` if the batch never starts); ALL Claude calls = 0 units. Limit from `DAILY_LIMIT_PER_USER` env (code default 50; prod = 50, preview = 100; env changes reach functions only on the next deploy). Role `superuser` bypasses the limit; roles are read LIVE from GoTrue at quota-decision points (`fetchFreshRoles` in `_shared/identity.js`), so a role assigned in the Identity panel applies without re-login
 - Gemini auth: Vertex AI with service-account OAuth (`_shared/vertex.js`), no static API key. Env: `GOOGLE_SERVICE_ACCOUNT_JSON` (single line), optional `VERTEX_PROJECT_ID`/`VERTEX_LOCATION`. Vertex projects are PER SITE (verified 2026-07-13 via Netlify env): prod pictos.net → `pictos-vertex` (NOT visible to herbert.spencer@gmail.com — owned by another Google identity, likely hspencer@ead.cl); preview next.pictos.net → `pictos-vertex-gmail` (gmail-owned); local `.env` → `pictos-vertex`. Image-gen quota is 2 req/min per base model by default; an increase to 20 req/min for `gemini-3-pro-image` was requested on `pictos-vertex-gmail` (2026-07-13, Cloud Quotas API). The old `gen-lang-client-0167983259` was `CONSUMER_SUSPENDED`; if "servicio bloqueado" reappears it is a stale Netlify env var, not the local `.env`
 - Model catalog (`netlify/functions/_shared/modelCatalog.js`) is the single source of what each phase offers and admits. Every entry has a lifecycle `status`: `workshop`, `active`, `experimental` (offered with a warning) or `retired` (never offered, admitted by no endpoint, kept only for labels of saved configs). `modelIdsForPhase`, `modelSupportsPhase`, `modelAllowed` (endpoints), `batchModelIds` (Vertex batch: `vertexBatch` capability + workshop/active) and `assertModelAvailable` (client guard in every phase service) all derive from it; never add a model list elsewhere (`modelAdmission.test.mjs` fails if an endpoint declares one). Retiring a model is a one-line status change.
+- Model benchmark: `scripts/benchmark-models.mjs` (phases 1-2, `--repairs 2` mirrors production), `scripts/eval/benchmark-images.mjs` (phase 3), `scripts/eval/summarize-benchmark.mjs`; synthetic corpus in `scripts/eval/cases/`; cadence and results in docs/BENCHMARK_MODELOS_2026-11.md
 - Google model availability (re-verified live 2026-07-12 against `pictos-vertex`, location `global`; Gemini 2.5 text retired by Google 2026-10-20, Pro already 404s); image gen = `gemini-2.5-flash-image`, `gemini-3.1-flash-image`, `gemini-3-pro-image` — all three respond 200; no newer Gemini image models exist (3.5/4 probes 404). `gemini-3-pro-image` has a low per-project daily quota; its intermittent 429 is handled at runtime (worker surfaces a clear Spanish message); a model that is truly broken or retired gets `status: 'retired'` in the catalog. Recraft API also accepts `recraftv4_1_pro[_vector]` and `recraftv4_1_utility[_vector]`; the utility-vector and pro-vector variants are exposed in the selector (Utility = flat, front-facing, predictable — good pictogram fit)
 - Sequence PDF reuses the library export engine: `exportSequenceToPdf` (`sequencePdfService`) delegates to `exportLibraryToPdf` (`pdfExportService`) with `titleOverride` = sequence name and a per-cell step-number badge (top-left). Caption comes from `row.UTTERANCE`. The sequence grid view (`SequenceEditor`) mirrors `PictogramGridCell`
 - Library config migration (`netlify/functions/_shared/libraryConfigMigration.js`): every config that enters the app (load, open, template import, backup restore) drops retired/unknown models (phase follows the default, logged), legacy `imageModel`/`aspectRatio`/`author`, and converts legacy `svgStyles` by colour role. Templates drop all declared models (`pins: 'drop'`); `saveLibraryConfig` never stores a model equal to its default. Rewrite shipped templates with `node scripts/migrate-library-templates.mjs --write`.

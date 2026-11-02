@@ -7,13 +7,13 @@ const nlu = { utterance: 'Beber agua', lang: 'es-419', metadata: { speech_act: '
   pragmatics: { politeness: 'neutral', formality: 'neutral', expected_response: 'compliance' },
   visual_guidelines: { focus_actor: 'persona', action_core: 'beber', object_core: 'agua', context: '', temporal: 'immediate' } };
 const cases = { synthetic: true, cases: [{ id: 'beber', utterance: 'Beber agua', nlu }] };
-const options = { cases, phase: 1, models: ['gpt-5.6-luna'], budgetUsd: 10, maxCalls: 5 };
+const options = { cases, phase: 1, models: ['gpt-6-luna'], budgetUsd: 10, maxCalls: 5 };
 afterEach(() => mock.restoreAll());
 
 test('planning is deterministic, uses frozen canonical inputs and never contacts providers', () => {
   const network = mock.method(globalThis, 'fetch', () => { throw new Error('Planning must not use the network'); });
-  const plan = prepareBenchmark({ ...options, phase: 2, models: ['gpt-5.6-luna', 'claude-sonnet-4-6', 'claude-haiku-4-5-20251001'] });
-  assert.equal(plan.plannedCalls, 3);
+  const plan = prepareBenchmark({ ...options, phase: 2, models: ['gpt-6-luna', 'claude-haiku-5-5'] });
+  assert.equal(plan.plannedCalls, 2);
   assert.equal(new Set(plan.attempts.map(a => a.promptHash)).size, 1);
   assert.ok(plan.attempts.every(a => a.request.messages[0].content.includes('Ingestion')));
   assert.deepEqual(prepareBenchmark(options), prepareBenchmark(options));
@@ -62,19 +62,43 @@ test('unknown usage retains the reservation and stops before another dispatch', 
 
 test('successful canonical output preserves all evidence and uses frozen reference rates', async () => {
   const run = await executeBenchmark(prepareBenchmark(options), { authorized: true, callModel: async () => ({
-    model: 'gpt-5.6-luna', usage: { input_tokens: 100, output_tokens: 50 }, content: [{ type: 'tool_use', name: 'analyze_utterance', input: nlu }],
+    model: 'gpt-6-luna', usage: { input_tokens: 100, output_tokens: 50 }, content: [{ type: 'tool_use', name: 'analyze_utterance', input: nlu }],
   }) });
   assert.equal(run.state, 'completed'); assert.equal(run.attempts[0].canonicalValid, true);
   assert.match(run.attempts[0].outputHash, /^[a-f0-9]{64}$/);
-  assert.equal(run.attempts[0].estimatedCostUsd, 0.00008);
+  assert.equal(run.attempts[0].estimatedCostUsd, (100 * 0.1 + 50 * 0.5) / 1e6);
 });
 
 test('known cached-input rates are applied; unknown cache pricing stops rather than fabricating comparable cost', async () => {
-  const cachedResponse = { model: 'gpt-5.6-luna', usage: { input_tokens: 100, output_tokens: 50, input_tokens_details: { cached_tokens: 80 } }, content: [{ type: 'tool_use', name: 'analyze_utterance', input: nlu }] };
+  const cachedResponse = { model: 'gpt-6-luna', usage: { input_tokens: 100, output_tokens: 50, input_tokens_details: { cached_tokens: 80 } }, content: [{ type: 'tool_use', name: 'analyze_utterance', input: nlu }] };
   const known = await executeBenchmark(prepareBenchmark(options), { authorized: true, callModel: async () => cachedResponse });
-  assert.equal(known.attempts[0].estimatedCostUsd, (20 * 0.2 + 80 * 0.02 + 50 * 1.2) / 1e6);
+  assert.equal(known.attempts[0].estimatedCostUsd, (20 * 0.1 + 80 * 0.01 + 50 * 0.5) / 1e6);
   for (const usage of [{ input_tokens: 100, output_tokens: 50, cache_creation_input_tokens: 10 }, { input_tokens: 100, output_tokens: 50, input_tokens_details: { cached_tokens: -1 } }]) {
     const unknown = await executeBenchmark(prepareBenchmark(options), { authorized: true, callModel: async () => ({ ...cachedResponse, usage }) });
     assert.equal(unknown.stopReason, 'usage_uncertain'); assert.equal(unknown.attempts[0].estimatedCostUsd, null);
   }
+});
+
+test('Claude cache writes and reads are priced from the catalog instead of stopping', async () => {
+  const run = await executeBenchmark(prepareBenchmark({ ...options, models: ['claude-haiku-5-5'] }), { authorized: true, callModel: async () => ({
+    model: 'claude-haiku-5-5', usage: { input_tokens: 100, output_tokens: 50, cache_creation_input_tokens: 1000, cache_read_input_tokens: 2000 },
+    content: [{ type: 'tool_use', name: 'analyze_utterance', input: nlu }] }) });
+  assert.equal(run.state, 'completed');
+  assert.equal(run.attempts[0].inputTokens, 3100);
+  assert.ok(Math.abs(run.attempts[0].estimatedCostUsd - (100 * 0.1 + 1000 * 0.125 + 2000 * 0.01 + 50 * 0.5) / 1e6) < 1e-12);
+});
+
+test('the repair loop mirrors production: first-call validity, call count and summed cost', async () => {
+  let calls = 0;
+  const run = await executeBenchmark(prepareBenchmark({ ...options, repairs: 2 }), { authorized: true, callModel: async (request) => {
+    calls++;
+    const repaired = request.messages[0].content.includes('NO cumplió el contrato');
+    return { model: 'gpt-6-luna', usage: { input_tokens: 100, output_tokens: 50 }, content: [{ type: 'tool_use', name: 'analyze_utterance', input: repaired ? nlu : {} }] };
+  } });
+  assert.equal(calls, 2);
+  assert.equal(run.attempts[0].canonicalValid, true);
+  assert.equal(run.attempts[0].firstCallValid, false);
+  assert.equal(run.attempts[0].providerCalls, 2);
+  assert.equal(run.attempts[0].estimatedCostUsd, 2 * (100 * 0.1 + 50 * 0.5) / 1e6);
+  assert.throws(() => prepareBenchmark({ ...options, repairs: 3 }), /repair/);
 });

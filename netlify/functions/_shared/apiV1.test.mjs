@@ -88,11 +88,10 @@ test('every published API schema compiles strictly and declares a versioned pict
 test('request schemas offer exactly the catalog text models for their phase', () => {
   for (const [name, phase] of [['comprender', 1], ['componer', 2]]) {
     const schema = API_SCHEMAS.find(s => s.$id === PROCESSES[name].requestSchema);
-    const catalog = Object.keys(MODEL_CATALOG)
-      .filter(id => MODEL_CATALOG[id].phases.includes(phase) && MODEL_CATALOG[id].output === 'text');
-    // Models added to the catalog after API v1 1.0.0 need a new API version.
-    const addedAfter100 = ['gemini-3.8-flash', 'gpt-6-luna'];
-    assert.deepEqual([...schema.properties.model.enum].sort(), catalog.filter(id => !addedAfter100.includes(id)).sort());
+    // Frozen at 1.0.0: every listed id keeps a catalog entry (and so a label).
+    assert.ok(schema.properties.model.enum.every(id => Object.hasOwn(MODEL_CATALOG, id) && MODEL_CATALOG[id].output === 'text'));
+    // Models added after 1.0.0 run only as the default; naming them needs a new API version.
+    const addedAfter100 = ['gemini-3.8-flash', 'gpt-6-luna', 'claude-haiku-5-5'];
     assert.ok(modelIdsForPhase(phase).every(id => schema.properties.model.enum.includes(id) || addedAfter100.includes(id)));
     assert.ok(!modelIdsForPhase(phase).includes('gemini-2.5-pro'));
   }
@@ -204,22 +203,24 @@ test('comprender sends the shared NLU request and returns a validated, attribute
   assert.equal(result.request_id, response.headers['X-Request-Id']);
   assert.deepEqual(result.process, { name: 'comprender', version: 'nlu-1.1.0' });
   assert.deepEqual(result.schema, { id: 'https://pictos.net/schemas/pictonet-nlu-generation-1.1.0.schema.json', version: '1.1.0' });
-  assert.deepEqual(result.model, { requested: 'claude-haiku-4-5-20251001', actual: 'claude-haiku-4-5-20251001', provider: 'anthropic' });
+  assert.deepEqual(result.model, { requested: 'claude-haiku-5-5', actual: 'claude-haiku-5-5', provider: 'anthropic' });
   assert.deepEqual(result.output, fixture);
   assert.equal(result.replayed, false);
   assert.equal(response.headers['Access-Control-Allow-Origin'], undefined, 'machine API is not exposed to browsers');
 });
 
-test('comprender honours an explicit model and rejects models outside the phase', async () => {
+test('comprender rejects retired and out-of-phase models before any provider call', async () => {
   withAnthropicKey();
   const { token, handlers } = await setup();
   const { sent } = mockProvider([structuredClone(fixture)]);
-  const ok = await handlers.comprender(post(token, { utterance: fixture.utterance, model: 'claude-sonnet-4-6' }));
-  assert.equal(ok.statusCode, 200, ok.body);
-  assert.equal(sent[0].model, 'claude-sonnet-4-6');
+  // Listed in the frozen 1.0.0 enum, retired on 2026-11-01: a clear 400, not an internal error.
+  const retired = await handlers.comprender(post(token, { utterance: fixture.utterance, model: 'claude-haiku-4-5-20251001' }));
+  assert.equal(retired.statusCode, 400, retired.body);
+  assert.match(JSON.parse(retired.body).error.message, /retired; omit model/);
   const rejected = await handlers.comprender(post(token, { utterance: fixture.utterance, model: 'gemini-3-pro-image' }));
   assert.equal(rejected.statusCode, 400);
   assert.equal(JSON.parse(rejected.body).error.code, 'invalid_request');
+  assert.equal(sent.length, 0);
 });
 
 test('componer returns the accepted composition with the deterministic root, never the provider shape', async () => {

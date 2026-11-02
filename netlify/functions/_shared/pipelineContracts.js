@@ -1,4 +1,4 @@
-import { getModelProvider } from './modelCatalog.js';
+import { getModelProvider, configuredModelId } from './modelCatalog.js';
 /** Canonical Phase 1/2 boundaries shared by browser and full pipeline batch. */
 import { documentSchema as nluDocumentSchema, generationSchema, validateDocument as validateNluDocument, validateGeneration, VERSION as NLU_VERSION } from '../../../schemas/pictos-nlu-schema/index.js';
 import { providerSchema as compositionSchema, documentSchema as compositionDocumentSchema, validateProvider, validateDocument as validateComposition, validateElementTree, VERSION as COMPOSITION_VERSION } from '../../../schemas/pictos-composition-schema/index.js';
@@ -234,10 +234,11 @@ Reglas:
 2. Analiza semántica y pragmática profunda${domainCtx ? ' dentro del dominio indicado' : ''}, no solo la superficie.
 3. Todos los campos requeridos deben estar presentes.
 4. Conserva utterance exactamente. Usa IDs únicos cuando un frame sea referenciado; ref_frame apunta a un ID existente, nunca a frame_name.
-5. No inventes identidad del hablante ni timestamp de captura; esos datos no forman parte de la salida generada.`;
+5. No inventes identidad del hablante ni timestamp de captura; esos datos no forman parte de la salida generada.
+6. visual_guidelines.temporal admite solo: immediate, near_future, future, past, habitual, unspecified. No existe "present": un estado o acción presente o en curso es immediate.`;
 
 
-    const model = config?.comprenderModel ?? config?.nluModel ?? 'claude-haiku-4-5-20251001';
+    const model = configuredModelId(config, 1);
     return {
       model, max_tokens: 4096,
       system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
@@ -280,7 +281,7 @@ Prompt rules:
 ${config.domainContext?.trim() ? `Domain context: "${config.domainContext.trim()}" — all element IDs and visual choices must be grounded in this domain.\n` : ''}You MUST invoke the compose_pictogram tool with both \`elements\` and \`prompt\`.`;
 
 
-    const model = config?.componerModel ?? config?.nluModel ?? 'claude-haiku-4-5-20251001';
+    const model = configuredModelId(config, 2);
     return {
       model, max_tokens: 4096,
       system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
@@ -293,7 +294,7 @@ ${config.domainContext?.trim() ? `Domain context: "${config.domainContext.trim()
 export function buildSpatialPromptRequest(nlu, elements, config = {}) {
   if (!validateNluDocument(nlu)) throw storedInputError(validateNluDocument.errors, nlu);
   if (!validateElementTree(elements)) throw storedInputError(validateElementTree.errors, elements);
-  const model = config?.componerModel ?? config?.nluModel ?? 'claude-haiku-4-5-20251001';
+  const model = configuredModelId(config, 2);
   return {
     model, max_tokens: 1024,
     system: `You are the Spatial Articulation Node in PictoNet. Regenerate only the spatial composition prompt for the supplied complete NLU and unchanged element tree. Write in ${nlu.lang}. Reference every semantic child ID in single quotes. You may reference the synthetic root but do not invent IDs. Describe topology and composition, not style. Use 3–6 sentences. Invoke ${SPATIAL_TOOL} with the prompt.`,

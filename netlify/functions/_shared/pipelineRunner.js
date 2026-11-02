@@ -18,15 +18,6 @@ import { buildGeminiRequest, geminiResponseToClaude } from './geminiTranslate.js
 import { getVertexAccessToken, vertexModelUrl } from './vertex.js';
 import { buildNluRequest, buildCompositionRequest, acceptNlu, acceptComposition, createPhaseExecution, runWithContractRepair } from './pipelineContracts.js';
 
-function formatElements(els, depth = 0) {
-  if (!Array.isArray(els)) return '';
-  return els.map(el => {
-    const indent = '  '.repeat(depth);
-    const kids = el.children?.length ? '\n' + formatElements(el.children, depth + 1) : '';
-    return `${indent}- ${el.id}${kids}`;
-  }).join('\n');
-}
-
 function extractToolUse(content, toolName) {
   const block = (content ?? []).find(b => b.type === 'tool_use' && b.name === toolName);
   if (!block) throw new Error(`Model did not invoke tool '${toolName}'`);
@@ -139,42 +130,5 @@ export async function runPhase2(nluData, config, onExecution, callOptions) {
   return result;
 }
 
-/**
- * Build the Recraft Phase 3 prompt (mirrors recraftService.ts).
- * Preserved up to the V4.1/V4 Styles 10000-character contract; never truncated.
- */
-export function composeRecraftPrompt(elements, prompt, utterance, nluData, config) {
-  const nluContext = nluData?.visual_guidelines
-    ? `\nNLU context: ${nluData.visual_guidelines.focus_actor || ''} — ${nluData.visual_guidelines.action_core || ''} — ${nluData.visual_guidelines.object_core || ''}`
-    : '';
-  const style = config?.visualStylePrompt || 'Estilo pictograma plano, sin texto, diseño vectorial simple, fondo blanco.';
-  const suffix = `\n\n${style}\nSin texto. Sin etiquetas. Sin marcas de agua. Fondo blanco. Diseño plano.`;
-  const prefix = `Pictograma AAC: "${utterance}"${nluContext}\n\nElementos (jerarquía visual):\n${formatElements(elements)}\n\nComposición espacial:\n${prompt}`;
-
-  const full = `${prefix}${suffix}`;
-  if (full.length > 10000) throw new Error('Recraft prompt exceeds 10000 characters; shorten the composition explicitly.');
-  return full;
-}
-
-/**
- * Build the Gemini image Phase 3 prompt (mirrors geminiService.ts).
- */
-export function composeGeminiImagePrompt(elements, prompt, utterance, nluData, config) {
-  const nluContext = nluData?.visual_guidelines
-    ? `\nSemantic context: ${nluData.visual_guidelines.focus_actor || ''} — ${nluData.visual_guidelines.action_core || ''} — ${nluData.visual_guidelines.object_core || ''}`
-    : '';
-  return [
-    `AAC pictogram: "${utterance}"`,
-    nluContext,
-    '',
-    'Visual elements (hierarchy):',
-    formatElements(elements),
-    '',
-    'Spatial composition:',
-    prompt,
-    '',
-    config?.visualStylePrompt || 'Flat pictogram style, no text, simple vector design, white background.',
-    '',
-    'No text. No labels. No watermarks. White background. Flat design. Square format.',
-  ].join('\n');
-}
+// Phase 3 prompt builders live in imagePrompts.js (shared with the browser).
+export { composeRecraftPrompt, composeGeminiImagePrompt } from './imagePrompts.js';

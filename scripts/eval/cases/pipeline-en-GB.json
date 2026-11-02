@@ -1,0 +1,29 @@
+{
+  "synthetic": true,
+  "note": "Synthetic pipeline benchmark corpus (2026-11-01). Hand-written to cover AAC intents; not a human-reviewed semantic gold standard.",
+  "config": {
+    "lang": "en-GB"
+  },
+  "cases": [
+    {
+      "id": "go-outside",
+      "utterance": "I want to go outside",
+      "covers": "request"
+    },
+    {
+      "id": "tummy",
+      "utterance": "My tummy hurts",
+      "covers": "body"
+    },
+    {
+      "id": "whos-coming",
+      "utterance": "Who is coming to pick me up?",
+      "covers": "question, agent"
+    },
+    {
+      "id": "dont-like-noise",
+      "utterance": "I don't like loud noises",
+      "covers": "negation, sensory"
+    }
+  ]
+}

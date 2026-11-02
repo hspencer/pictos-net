@@ -215,16 +215,16 @@ test('normalizeElements + injectRoot round-trip: old-style wrapped response stil
 
 // ── NLUModel catalog (spec: value NLUModel) ───────────────────────────────────
 
-test('NLU_MODELS preserves existing choices and adds the three OpenAI candidates', () => {
+test('NLU_MODELS offers exactly the benchmarked pair: Claude Haiku 5.5 and GPT-6 Luna', () => {
     const ids = NLU_MODELS.map(m => m.id);
-    assert.equal(new Set(ids).size, ids.length);
-    for (const id of ['gpt-5.6-luna', 'gpt-5.6-terra', 'gpt-5.6-sol']) assert.ok(ids.includes(id as any));
+    assert.deepEqual([...ids].sort(), ['claude-haiku-5-5', 'gpt-6-luna']);
 });
 
-test('NLU_MODELS includes both Claude models', () => {
+test('NLU_MODELS no longer offers models retired on cost or quality (2026-11-01)', () => {
     const ids = NLU_MODELS.map(m => m.id);
-    assert.ok(ids.includes('claude-haiku-4-5-20251001'));
-    assert.ok(ids.includes('claude-sonnet-4-6'));
+    for (const id of ['claude-haiku-4-5-20251001', 'claude-sonnet-4-6', 'gpt-5.6-luna', 'gpt-5.6-terra', 'gpt-5.6-sol', 'gemini-3.8-flash']) {
+        assert.ok(!ids.includes(id as any), id);
+    }
 });
 
 test('NLU_MODELS no longer offers the retired Gemini 2.5 text models', () => {
@@ -233,8 +233,8 @@ test('NLU_MODELS no longer offers the retired Gemini 2.5 text models', () => {
     assert.ok(!ids.includes('gemini-2.5-pro'));
 });
 
-test('DEFAULT_NLU_MODEL is claude-haiku-4-5', () => {
-    assert.equal(DEFAULT_NLU_MODEL, 'claude-haiku-4-5-20251001');
+test('DEFAULT_NLU_MODEL is claude-haiku-5-5', () => {
+    assert.equal(DEFAULT_NLU_MODEL, 'claude-haiku-5-5');
 });
 
 test('every NLU_MODELS entry has a non-empty label', () => {

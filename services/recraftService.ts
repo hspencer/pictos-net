@@ -9,6 +9,7 @@
 import { GlobalConfig, VisualElement, Phase3Result, GenerationModel, getModelFamily } from "../types";
 import { callRecraft } from "./aiClient";
 import { MODEL_CATALOG } from "../netlify/functions/_shared/modelCatalog.js";
+import { composeRecraftPrompt } from "../netlify/functions/_shared/imagePrompts.js";
 
 /**
  * Normalize SVG dimensions so it scales to its container.
@@ -34,14 +35,6 @@ function normalizeSvgDimensions(svg: string): string {
 
 type LogFn = (type: 'info' | 'error' | 'success', msg: string) => void;
 
-const formatElements = (els: VisualElement[], depth = 0): string => {
-    if (!Array.isArray(els)) return '';
-    return els.map(el => {
-        const indent = '  '.repeat(depth);
-        const children = el.children?.length ? '\n' + formatElements(el.children, depth + 1) : '';
-        return `${indent}- ${el.id}${children}`;
-    }).join('\n');
-};
 
 /**
  * Phase 3 (PRODUCIR): Generate a pictogram using Recraft V4.1.
@@ -70,38 +63,7 @@ export const generateImage = async (
     onLog?.('info', `[PRODUCIR] Iniciando generación con Recraft (${model})…`);
     onLog?.('info', `[PRODUCIR] Elementos: ${elements.length}`);
 
-    const lang = (row.NLU as any)?.lang || config.lang || 'es-419';
-    const isEs = lang.startsWith('es');
-
-    const nluContext = row.NLU && typeof row.NLU === 'object'
-        ? `\n${isEs ? 'Contexto semántico' : 'Semantic context'}: ${row.NLU.visual_guidelines?.focus_actor || ''} — ${row.NLU.visual_guidelines?.action_core || ''} — ${row.NLU.visual_guidelines?.object_core || ''}`
-        : '';
-
-    const defaultStyle = isEs
-        ? 'Estilo pictograma plano, sin texto, diseño vectorial simple, fondo blanco.'
-        : 'Flat pictogram style, no text, simple vector design, white background.';
-    const noTextLine = isEs
-        ? 'Sin texto. Sin etiquetas. Sin marcas de agua. Fondo blanco. Diseño plano.'
-        : 'No text. No labels. No watermarks. White background. Flat design.';
-
-    let fullPrompt = [
-        isEs ? `Pictograma AAC: "${row.UTTERANCE}"` : `AAC Pictogram: "${row.UTTERANCE}"`,
-        nluContext,
-        '',
-        isEs ? 'Elementos (jerarquía visual):' : 'Elements (visual hierarchy):',
-        formatElements(elements),
-        '',
-        isEs ? 'Composición espacial:' : 'Spatial composition:',
-        prompt,
-        '',
-        config.visualStylePrompt || defaultStyle,
-        '',
-        noTextLine,
-    ].filter(s => s !== undefined).join('\n');
-
-    if (fullPrompt.length > 10000) {
-        throw new Error('Recraft prompt exceeds 10000 characters; shorten the composition explicitly.');
-    }
+    const fullPrompt = composeRecraftPrompt(elements, prompt, row.UTTERANCE, row.NLU, config);
     const styleId = config.recraftStyleId?.trim();
     if (MODEL_CATALOG[model].requiresStyle && !styleId) {
         throw new Error('Recraft V4 Styles requires an existing style ID.');

@@ -16,9 +16,9 @@
 
 import { checkAndCharge, refundUnits, logCall } from './_shared/usage.js';
 import { getBlobStore as getStore, connectBlobs } from './_shared/blobs.js';
-import { OPENAI_IMAGE_MODEL, OPENAI_IMAGE_QUALITIES, openaiApiKey } from './_shared/openaiImage.js';
+import { OPENAI_IMAGE_QUALITIES, openaiApiKey } from './_shared/openaiImage.js';
 import { fetchFreshRoles } from './_shared/identity.js';
-import { MODEL_CATALOG, modelSupportsPhase, getModelProvider } from './_shared/modelCatalog.js';
+import { MODEL_CATALOG, modelSupportsPhase, getModelProvider, configuredModelId } from './_shared/modelCatalog.js';
 
 const MAX_ROWS = 25;
 const GRANT_TTL_MS = 120_000; // 2 min — sufficient for background cold start
@@ -83,9 +83,9 @@ export const handler = async (event, context) => {
   }
 
   const selectedModels = [
-    [1, config?.comprenderModel ?? config?.nluModel ?? 'claude-haiku-4-5-20251001'],
-    [2, config?.componerModel ?? config?.nluModel ?? 'claude-haiku-4-5-20251001'],
-    [3, config?.generationModel ?? 'gemini-2.5-flash-image'],
+    [1, configuredModelId(config, 1)],
+    [2, configuredModelId(config, 2)],
+    [3, configuredModelId(config, 3)],
   ];
   if (selectedModels.some(([phase, model]) => !modelSupportsPhase(model, phase))) {
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'Model is not supported for the selected phase' }) };
@@ -101,13 +101,8 @@ export const handler = async (event, context) => {
       return { statusCode: 503, headers, body: JSON.stringify({ error: 'OPENAI_API_KEY not configured' }) };
     }
   }
-  if (config?.generationModel === OPENAI_IMAGE_MODEL) {
-    if (!OPENAI_IMAGE_QUALITIES.includes(config.openaiImageQuality ?? 'low')) {
-      return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid OpenAI image quality' }) };
-    }
-    try { openaiApiKey(); } catch {
-      return { statusCode: 503, headers, body: JSON.stringify({ error: 'OPENAI_API_KEY not configured' }) };
-    }
+  if (getModelProvider(configuredModelId(config, 3)) === 'openai' && !OPENAI_IMAGE_QUALITIES.includes(config?.openaiImageQuality ?? 'low')) {
+    return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid OpenAI image quality' }) };
   }
 
   const quota = await checkAndCharge(email, rows.length, roles);

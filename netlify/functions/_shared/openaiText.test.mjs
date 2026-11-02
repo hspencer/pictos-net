@@ -20,12 +20,14 @@ import { MODEL_CATALOG } from './modelCatalog.js';
 // The Gemini text route is dormant since Google retired Gemini 2.5 text
 // (2026-10-20), but its ownership, limit and retry guarantees must still hold
 // for the next Gemini text model, so these tests admit 2.5 Flash locally.
-before(() => { MODEL_CATALOG['gemini-2.5-flash'].status = 'active'; });
-after(() => { MODEL_CATALOG['gemini-2.5-flash'].status = 'retired'; });
+// Same for the OpenAI vision route: no OpenAI model is offered for ESTRUCTURAR
+// since 2026-11-01 (benchmark: 75% node coverage), so GPT-5.6 Luna is admitted locally.
+before(() => { MODEL_CATALOG['gemini-2.5-flash'].status = 'active'; MODEL_CATALOG['gpt-5.6-luna'].status = 'active'; });
+after(() => { MODEL_CATALOG['gemini-2.5-flash'].status = 'retired'; MODEL_CATALOG['gpt-5.6-luna'].status = 'retired'; });
 
 const nlu = { utterance: 'Beber agua', lang: 'es-419', metadata: { speech_act: 'directive', intent: 'request' }, frames: [{ id: 'f1', frame_name: 'Ingestion', lexical_unit: 'beber', roles: { Agent: { type: 'Agent', surface: 'persona' } } }], nsm_explications: { beber: 'ALGUIEN QUIERE HACER ALGO' }, logical_form: { event: 'beber(persona, agua)', modality: 'want' }, pragmatics: { politeness: 'neutral', formality: 'neutral', expected_response: 'compliance' }, visual_guidelines: { focus_actor: 'persona', action_core: 'beber', object_core: 'agua', context: '', temporal: 'immediate' } };
 const composition = { elements: [{ id: 'persona', concept: 'Agent' }], prompt: "'persona' bebe agua" };
-const params = buildNluRequest(nlu.utterance, { comprenderModel: 'gpt-5.6-luna' });
+const params = buildNluRequest(nlu.utterance, { comprenderModel: 'gpt-6-luna' });
 const reply = (name, args, extra = {}) => ({ status: 'completed', model: 'gpt-5.6-luna-observed',
   output: [{ type: 'function_call', name, arguments: JSON.stringify(args), status: 'completed' }],
   usage: { input_tokens: 100, output_tokens: 50, output_tokens_details: { reasoning_tokens: 10 } }, ...extra });
@@ -67,7 +69,7 @@ test('Responses preserves full schema and text, forces one function, fixes low e
 });
 
 test('Phase 5 translates supported base64 vision and rejects unsupported blocks instead of dropping them', () => {
-  const p5 = { ...params, tool_choice: { type: 'tool', name: 'redraw_svg' }, tools: [{ name: 'redraw_svg', input_schema: { type: 'object' } }], messages: [{ role: 'user', content: [{ type: 'image', source: { type: 'base64', media_type: 'image/png', data: 'QUJD' } }, { type: 'text', text: 'semantics' }] }] };
+  const p5 = { ...params, model: 'gpt-5.6-luna', tool_choice: { type: 'tool', name: 'redraw_svg' }, tools: [{ name: 'redraw_svg', input_schema: { type: 'object' } }], messages: [{ role: 'user', content: [{ type: 'image', source: { type: 'base64', media_type: 'image/png', data: 'QUJD' } }, { type: 'text', text: 'semantics' }] }] };
   assert.equal(buildOpenAITextRequest(p5).input[0].content[0].image_url, 'data:image/png;base64,QUJD');
   assert.throws(() => buildOpenAITextRequest({ ...p5, messages: [{ role: 'user', content: [{ type: 'audio' }] }] }));
 });
@@ -87,7 +89,7 @@ test('all three OpenAI candidates run the canonical phase 1/2 orchestration with
     return Response.json(reply(body.tool_choice.name, body.tool_choice.name === 'analyze_utterance' ? nlu : composition,
       { model: `${body.model}-observed` }), { headers: { 'x-request-id': 'text-observed' } });
   });
-  for (const model of ['gpt-5.6-luna', 'gpt-5.6-terra', 'gpt-5.6-sol']) {
+  for (const model of ['gpt-6-luna']) {
     const executions = [];
     const config = { comprenderModel: model, componerModel: model };
     const understanding = await runPhase1(nlu.utterance, config, value => executions.push(value));
@@ -124,7 +126,7 @@ test('proxy and background enforce authentication, phase capability, and owner-s
   });
   assert.equal((await proxy(event({ ...params, model: 'gpt-image-2' }), {})).statusCode, 400);
   assert.equal(fetchMock.mock.callCount(), 0);
-  const p5 = { ...params, tool_choice: { type: 'tool', name: 'redraw_svg' }, tools: [{ name: 'redraw_svg', input_schema: { type: 'object' } }] };
+  const p5 = { ...params, model: 'gpt-5.6-luna', tool_choice: { type: 'tool', name: 'redraw_svg' }, tools: [{ name: 'redraw_svg', input_schema: { type: 'object' } }] };
   await getBlobStore('openai-text-jobs').setJSON('openai-struct-owned', { owner: 'other@example.test', response: { marker: 'preserve' } });
   await worker(event({ ...p5, jobId: 'openai-struct-owned' }));
   assert.equal(fetchMock.mock.callCount(), 0);
@@ -253,18 +255,18 @@ test('Gemini image checks count tokens on the selected model, never a retired te
     calls.push({ url: String(url), body: JSON.parse(options.body) });
     return Response.json({ totalTokens: 1 });
   });
-  const result = JSON.parse((await check(event({ service: 'gemini', model: 'gemini-3-pro-image' }), {})).body);
+  const result = JSON.parse((await check(event({ service: 'gemini', model: 'gemini-2.5-flash-image' }), {})).body);
   assert.equal(result.ok, true);
-  assert.equal(result.checkedModel, 'gemini-3-pro-image');
+  assert.equal(result.checkedModel, 'gemini-2.5-flash-image');
   assert.equal(result.checkScope, 'model_count_tokens');
   assert.equal(calls.length, 1);
-  assert.match(calls[0].url, /\/models\/gemini-3-pro-image:countTokens$/);
+  assert.match(calls[0].url, /\/models\/gemini-2.5-flash-image:countTokens$/);
   assert.equal(calls[0].body.generationConfig, undefined);
 });
 
 test('failed connection checks never forward provider profile/credential echoes', async () => {
   mock.method(globalThis, 'fetch', async () => Response.json({ error: 'private@example.test test-recraft-not-real' }, { status: 401 }));
-  const result = await check(event({ service: 'recraft', model: 'recraftv4_1' }), {});
+  const result = await check(event({ service: 'recraft', model: 'recraftv4_1_vector' }), {});
   assert.equal(JSON.parse(result.body).ok, false);
   assert.doesNotMatch(result.body, /private@example|test-recraft-not-real/);
   assert.match(result.body, /HTTP 401/);

@@ -19,6 +19,7 @@ import { logCall } from './usage.js';
 import { providerErrorDetails } from './providerError.js';
 import { PipelineContractError } from './pipelineContracts.js';
 import { runPhase1, runPhase2 } from './pipelineRunner.js';
+import { modelSupportsPhase } from './modelCatalog.js';
 import { verifyServiceCredential, chargeServiceCall } from './serviceCredentials.js';
 import {
   IDEMPOTENCY_KEY_PATTERN, requestFingerprint, beginIdempotent, completeIdempotent, abandonIdempotent,
@@ -213,6 +214,11 @@ export function createV1Handler(processName, spec, deps = {}) {
       return fail(inputOnly
         ? new ApiError('input_contract_invalid', `The ${spec.inputPath.slice(1)} input does not satisfy its contract.`, { issues })
         : new ApiError('invalid_request', `The request does not match ${definition.requestSchema}.`, { issues }));
+    }
+    // The frozen 1.0.0 enum still lists retired models; admission follows the catalog.
+    if (body.model !== undefined && !modelSupportsPhase(body.model, definition.phase)) {
+      return fail(new ApiError('invalid_request', `Model ${body.model} is retired; omit model to use the current default.`,
+        { issues: [{ path: '/model', message: 'retired model' }] }));
     }
 
     const idempotencyKey = headerValue(event.headers, 'idempotency-key') ?? null;

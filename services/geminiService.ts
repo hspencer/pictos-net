@@ -7,49 +7,21 @@
 
 import { GlobalConfig, VisualElement, Phase3Result, GenerationModel } from "../types";
 import { callGemini } from "./aiClient";
+import { composeGeminiImagePrompt } from "../netlify/functions/_shared/imagePrompts.js";
 
 type LogFn = (type: 'info' | 'error' | 'success', msg: string) => void;
 
-const formatElements = (els: VisualElement[], depth = 0): string => {
-    if (!Array.isArray(els)) return '';
-    return els.map(el => {
-        const indent = '  '.repeat(depth);
-        const children = el.children?.length ? '\n' + formatElements(el.children, depth + 1) : '';
-        return `${indent}- ${el.id}${children}`;
-    }).join('\n');
-};
-
 /**
- * Compose the full Phase 3 prompt for a Gemini image model.
- * Single source of truth for prompt composition: used by generateImage
- * (online path, below) and by batchService.submitLibraryBatch (batch path),
- * so a batched pictogram and an online pictogram receive IDENTICAL text.
+ * Compose the full Phase 3 prompt for a Gemini (or OpenAI) image model.
+ * Delegates to the shared builder, so online, Vertex batch and the
+ * server-side pipeline batch send IDENTICAL text.
  */
 export const composeGeminiPrompt = (
     elements: VisualElement[],
     prompt: string,
     row: { UTTERANCE: string; NLU?: any },
     config: GlobalConfig,
-): string => {
-    const nluContext = row.NLU && typeof row.NLU === 'object'
-        ? `\nSemantic context: ${row.NLU.visual_guidelines?.focus_actor || ''} — ${row.NLU.visual_guidelines?.action_core || ''} — ${row.NLU.visual_guidelines?.object_core || ''}`
-        : '';
-
-    return [
-        `AAC pictogram: "${row.UTTERANCE}"`,
-        nluContext,
-        '',
-        'Visual elements (hierarchy):',
-        formatElements(elements),
-        '',
-        'Spatial composition:',
-        prompt,
-        '',
-        config.visualStylePrompt || 'Flat pictogram style, no text, simple vector design, white background.',
-        '',
-        'No text. No labels. No watermarks. White background. Flat design. Square format.',
-    ].filter(s => s !== undefined).join('\n');
-};
+): string => composeGeminiImagePrompt(elements, prompt, row.UTTERANCE, row.NLU, config);
 
 /**
  * Phase 3 (PRODUCIR): Generate a pictogram image using a Gemini model.

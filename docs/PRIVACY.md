@@ -26,7 +26,7 @@ El sistema no almacena perfiles, no rastrea sesiones entre visitas, y no constru
 
 Exactamente dos flujos cruzan el límite de tu dispositivo, ambos visibles en el código fuente.
 
-Primero, las solicitudes de generación. Cuando pides al sistema que produzca un pictograma, el texto que escribiste se envía a las APIs de modelos externos (Anthropic para el análisis lingüístico y la composición; Google Gemini u OpenAI para la generación de imágenes, según el modelo elegido en la herramienta) y el resultado se devuelve a tu navegador. Este es un procesamiento transitorio; el proyecto no retiene nada. No escribas información personal sobre otras personas.
+Primero, las solicitudes de generación. Cuando pides al sistema que produzca un pictograma, el texto que escribiste se envía a las APIs de modelos externos (Anthropic u OpenAI para el análisis lingüístico y la composición; OpenAI, Google Gemini o Recraft para la generación de imágenes, según el modelo elegido en la herramienta) y el resultado se devuelve a tu navegador. Este es un procesamiento transitorio; el proyecto no retiene nada. No escribas información personal sobre otras personas.
 
 Segundo, el intercambio que tú inicias. Puedes elegir publicar una librería de pictogramas usando un token que tú mismo configuras. Nada se comparte por defecto y nada se comparte en silencio. Las librerías compartidas registran la autoría, el nombre de la librería y la procedencia, de modo que la atribución se preserve y el contenido pueda revisarse o retirarse.
 

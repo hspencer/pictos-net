@@ -2,7 +2,7 @@
 import { modelAllowed } from './modelCatalog.js';
 
 /** Default for connection checks; admission comes from the model catalog. */
-export const OPENAI_IMAGE_MODEL = 'gpt-image-2';
+export const OPENAI_IMAGE_MODEL = 'gpt-image-2.5-flare';
 export const OPENAI_IMAGE_QUALITIES = ['low', 'medium', 'high'];
 export const OPENAI_IMAGE_TIMEOUT_MS = 180_000;
 

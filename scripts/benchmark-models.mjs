@@ -6,7 +6,7 @@ import { pathToFileURL } from 'node:url';
 import { createHash } from 'node:crypto';
 import { parseArgs } from 'node:util';
 import { MODEL_CATALOG, getModelProvider, modelSupportsPhase } from '../netlify/functions/_shared/modelCatalog.js';
-import { buildNluRequest, buildCompositionRequest, acceptNlu, acceptComposition, canonicalJson, NLU_VERSION, COMPOSITION_VERSION } from '../netlify/functions/_shared/pipelineContracts.js';
+import { buildNluRequest, buildCompositionRequest, acceptNlu, acceptComposition, canonicalJson, runWithContractRepair, MAX_CONTRACT_REPAIRS, NLU_VERSION, COMPOSITION_VERSION } from '../netlify/functions/_shared/pipelineContracts.js';
 import { callTextModel } from '../netlify/functions/_shared/pipelineRunner.js';
 import { buildOpenAITextRequest } from '../netlify/functions/_shared/openaiText.js';
 import { buildGeminiRequest } from '../netlify/functions/_shared/geminiTranslate.js';
@@ -31,7 +31,8 @@ function ratesFor(price, inputTokens) {
   return rates;
 }
 
-export function prepareBenchmark({ cases, phase, models, repetitions = 1, maxOutputTokens = 4096, budgetUsd = null, maxCalls = null, seed = 'pictonet-benchmark-1' }) {
+export function prepareBenchmark({ cases, phase, models, repetitions = 1, maxOutputTokens = 4096, budgetUsd = null, maxCalls = null, repairs = 0, seed = 'pictonet-benchmark-1' }) {
+  if (!Number.isInteger(repairs) || repairs < 0 || repairs > MAX_CONTRACT_REPAIRS) throw new Error('Invalid repair count');
   if (cases?.synthetic !== true || !Array.isArray(cases.cases) || !cases.cases.length) throw new Error('Explicit synthetic case file required');
   if (![1, 2].includes(phase) || !integer(repetitions) || !integer(maxOutputTokens) || maxOutputTokens > 32768) throw new Error('Invalid phase, repetitions or output cap');
   if (!Array.isArray(models) || !models.length || new Set(models).size !== models.length || models.some(model => !modelSupportsPhase(model, phase))) throw new Error('Select distinct supported text models');
@@ -55,7 +56,8 @@ export function prepareBenchmark({ cases, phase, models, repetitions = 1, maxOut
       const inputBound = Buffer.byteLength(canonicalJson(wire), 'utf8') * 2 + 8192;
       const outputBound = maxOutputTokens + (wire.generationConfig?.thinkingConfig?.thinkingBudget || 0);
       const rates = ratesFor(MODEL_CATALOG[model].pricing, inputBound);
-      const reservedUsd = (inputBound * rates.inputUsdPerMillion + outputBound * rates.outputUsdPerMillion) / 1e6;
+      // Each repair re-sends the request; reserve for every call it may make.
+      const reservedUsd = (repairs + 1) * (inputBound * Math.max(rates.inputUsdPerMillion, MODEL_CATALOG[model].pricing.cacheWriteUsdPerMillion ?? 0) + outputBound * rates.outputUsdPerMillion) / 1e6;
       attempts.push({ caseId: item.id, utterance: item.utterance, lang: nlu?.lang || config.lang || 'es-419', model, repetition, request, requestHash: sha(request), wireHash: sha(wire),
         inputBound, outputBound, reservedUsd, pricing: structuredClone(MODEL_CATALOG[model].pricing), pricingCheckedAt: MODEL_CATALOG[model].pricingCheckedAt,
         pricingSource: MODEL_CATALOG[model].pricingSource, contractHash: sha(request.tools[0].input_schema),
@@ -65,25 +67,36 @@ export function prepareBenchmark({ cases, phase, models, repetitions = 1, maxOut
   }
   attempts.sort((a, b) => a.orderKey.localeCompare(b.orderKey));
   const plan = { version: 1, phase, seed, caseHash: sha(cases), configHash: sha(cases.config || {}), contractVersion: phase === 1 ? NLU_VERSION : COMPOSITION_VERSION,
-    promptVersion: phase === 1 ? 'nlu-1.1.0' : 'composition-0.1.0', limits: { maxOutputTokens, budgetUsd, maxCalls },
+    promptVersion: phase === 1 ? 'nlu-1.1.0' : 'composition-0.1.0', limits: { maxOutputTokens, budgetUsd, maxCalls, repairs },
     plannedCalls: attempts.length, totalReservedEstimateUsd: attempts.reduce((n, a) => n + a.reservedUsd, 0), warning, attempts };
   return { ...plan, planHash: sha(plan) };
 }
 
-function usageCost(price, usage) {
+export function usageCost(price, usage) {
   if (!usage || !tokenCount(usage.input_tokens) || !tokenCount(usage.output_tokens)) return null;
   const cacheWrite = usage.cache_creation_input_tokens ?? 0;
   const cacheRead = usage.cache_read_input_tokens ?? 0;
   const cached = usage.input_tokens_details?.cached_tokens ?? 0;
   if (![cacheWrite, cacheRead, cached].every(tokenCount)) return null;
-  // Claude cache-write duration and Vertex cached tariffs are not in this
-  // catalog. Unknown cache prices must stop, not distort the comparison.
-  if (cacheWrite > 0 || cacheRead > 0) return null;
   const input = usage.input_tokens;
   const output = usage.output_tokens;
-  const rates = ratesFor(price, input);
+  // Claude reports cache tokens apart from input_tokens; the long-context card
+  // is chosen by the whole prompt. OpenAI counts cached tokens inside input.
+  const rates = ratesFor(price, input + cacheWrite + cacheRead);
+  // Unknown cache tariffs must stop, not distort the comparison.
+  if ((cacheWrite > 0 && !positive(price.cacheWriteUsdPerMillion)) || (cacheRead > 0 && !positive(price.cacheReadUsdPerMillion))) return null;
   if (cached > input || (cached > 0 && (!positive(rates.cachedInputUsdPerMillion)))) return null;
-  return { inputTokens: input, outputTokens: output, estimatedCostUsd: ((input - cached) * rates.inputUsdPerMillion + cached * (rates.cachedInputUsdPerMillion ?? 0) + output * rates.outputUsdPerMillion) / 1e6 };
+  return { inputTokens: input + cacheWrite + cacheRead, outputTokens: output, cacheWriteTokens: cacheWrite, cacheReadTokens: cacheRead + cached,
+    estimatedCostUsd: ((input - cached) * rates.inputUsdPerMillion + cached * (rates.cachedInputUsdPerMillion ?? 0)
+      + cacheWrite * (price.cacheWriteUsdPerMillion ?? 0) + cacheRead * (price.cacheReadUsdPerMillion ?? 0) + output * rates.outputUsdPerMillion) / 1e6 };
+}
+
+/** Sum the priced usage of every provider call one attempt made (repairs included). */
+function sumCosts(costs) {
+  if (!costs.length || costs.some(cost => !cost)) return null;
+  return costs.reduce((total, cost) => ({ inputTokens: total.inputTokens + cost.inputTokens, outputTokens: total.outputTokens + cost.outputTokens,
+    cacheWriteTokens: total.cacheWriteTokens + cost.cacheWriteTokens, cacheReadTokens: total.cacheReadTokens + cost.cacheReadTokens,
+    estimatedCostUsd: total.estimatedCostUsd + cost.estimatedCostUsd }));
 }
 
 export async function executeBenchmark(plan, { authorized = false, callModel = callTextModel, record = () => {} } = {}) {
@@ -99,25 +112,40 @@ export async function executeBenchmark(plan, { authorized = false, callModel = c
     let response, output, error;
     // Record reservation before dispatch; a crash leaves the pending cost visible.
     await record({ state: 'reserved', requestHash: attempt.requestHash, reservedUsd: attempt.reservedUsd, model: attempt.model });
+    // Production's contract-repair loop (plan.limits.repairs = 0 measures the first call only).
+    const calls = [];
+    let firstCallValid = null;
+    const toolName = attempt.request.tool_choice.name;
     try {
-      response = await callModel(attempt.request, { retries: 0, maxTotalMs: 75000 });
-      const block = response.content?.find(b => b.type === 'tool_use' && b.name === attempt.request.tool_choice.name);
-      if (!block) throw new Error('Requested semantic tool was not returned');
-      output = plan.phase === 1 ? acceptNlu(block.input, attempt.utterance) : acceptComposition(block.input, attempt.lang);
+      ({ result: output, response } = await runWithContractRepair({
+        request: attempt.request, toolName, maxRepairs: plan.limits.repairs ?? 0,
+        callModel: async (_model, request) => {
+          try { const res = await callModel(request, { retries: 0, maxTotalMs: 75000 }); calls.push(res.usage ?? null); return (response = res); }
+          catch (caught) { calls.push(caught.usage ?? null); throw caught; }
+        },
+        extractTool: res => {
+          const block = res.content?.find(b => b.type === 'tool_use' && b.name === toolName);
+          if (!block) throw new Error('Requested semantic tool was not returned');
+          return block.input;
+        },
+        accept: raw => plan.phase === 1 ? acceptNlu(raw, attempt.utterance) : acceptComposition(raw, attempt.lang),
+        onRepair: attemptNumber => { if (attemptNumber === 1) firstCallValid = false; },
+      }));
     } catch (caught) { error = caught; }
+    if (firstCallValid === null) firstCallValid = !error;
     const usage = response?.usage ?? error?.usage ?? null;
-    const cost = usageCost(attempt.pricing, usage);
+    const cost = sumCosts(calls.map(callUsage => usageCost(attempt.pricing, callUsage)));
     const result = { state: 'recorded', caseId: attempt.caseId, requestedModel: attempt.model, returnedModel: response?.model ?? error?.actualModel ?? null,
       phase: plan.phase, repetition: attempt.repetition, requestHash: attempt.requestHash, milliseconds: Date.now() - startedAt,
       usage, inputTokens: cost?.inputTokens ?? null, outputTokens: cost?.outputTokens ?? null,
       estimatedCostUsd: cost?.estimatedCostUsd ?? null, reservedUsd: attempt.reservedUsd,
-      canonicalValid: !error, failure: error?.message || null, diagnostics: error?.issues || error?.errors || null,
+      canonicalValid: !error, firstCallValid, providerCalls: calls.length, cacheWriteTokens: cost?.cacheWriteTokens ?? null, cacheReadTokens: cost?.cacheReadTokens ?? null, failure: error?.message || null, diagnostics: error?.issues || error?.errors || null,
       output: output ?? null, rawResponse: response ?? error?.rawResponse ?? null, rawOutput: error?.rawOutput ?? null, outputHash: output ? sha(output) : null };
     run.attempts.push(result);
     await record(result);
     if (!cost) { run.state = 'stopped'; run.stopReason = 'usage_uncertain'; break; }
     run.estimatedExposureUsd += cost.estimatedCostUsd - attempt.reservedUsd;
-    if (cost.inputTokens > attempt.inputBound || cost.outputTokens > attempt.outputBound) { run.state = 'stopped'; run.stopReason = 'reservation_bound_exceeded'; break; }
+    if (cost.inputTokens > attempt.inputBound * calls.length || cost.outputTokens > attempt.outputBound * calls.length) { run.state = 'stopped'; run.stopReason = 'reservation_bound_exceeded'; break; }
     if (error?.status === 401 || error?.status === 403 || error?.status === 429) { run.state = 'stopped'; run.stopReason = 'provider_rejected'; break; }
     if (run.estimatedExposureUsd >= plan.limits.budgetUsd) { run.state = 'stopped'; run.stopReason = 'estimated_budget'; break; }
   }
@@ -129,14 +157,14 @@ async function main() {
   const { values } = parseArgs({ options: {
     cases: { type: 'string' }, phase: { type: 'string' }, models: { type: 'string' }, repetitions: { type: 'string' },
     'max-output-tokens': { type: 'string' }, 'max-calls': { type: 'string' }, 'budget-usd': { type: 'string' },
-    seed: { type: 'string' }, run: { type: 'boolean', default: false }, out: { type: 'string' }, help: { type: 'boolean' },
+    seed: { type: 'string' }, repairs: { type: 'string' }, run: { type: 'boolean', default: false }, out: { type: 'string' }, help: { type: 'boolean' },
   } });
-  if (values.help) { console.log('node scripts/benchmark-models.mjs --cases research/cases.json --phase 1|2 --models model-a,model-b [--repetitions 3] [--max-output-tokens 4096]\nDefault: plan only, no network. Paid execution additionally requires --run --max-calls N --budget-usd N --max-output-tokens N. Results stay in research/.'); return; }
+  if (values.help) { console.log('node scripts/benchmark-models.mjs --cases research/cases.json --phase 1|2 --models model-a,model-b [--repetitions 3] [--max-output-tokens 4096] [--repairs 0-2: production contract-repair loop]\nDefault: plan only, no network. Paid execution additionally requires --run --max-calls N --budget-usd N --max-output-tokens N. Results stay in research/.'); return; }
   if (!values.cases || !values.phase || !values.models) throw new Error('Specify --cases, --phase and --models; use --help');
   if (values.run && (!values['max-output-tokens'] || !values['budget-usd'] || !values['max-calls'])) throw new Error('Paid execution needs explicit --max-output-tokens, --max-calls and --budget-usd');
   const plan = prepareBenchmark({ cases: JSON.parse(fs.readFileSync(values.cases, 'utf8')), phase: Number(values.phase), models: values.models.split(','),
     repetitions: values.repetitions ? Number(values.repetitions) : 1, maxOutputTokens: values['max-output-tokens'] ? Number(values['max-output-tokens']) : 4096,
-    budgetUsd: values['budget-usd'] ? Number(values['budget-usd']) : null, maxCalls: values['max-calls'] ? Number(values['max-calls']) : null, seed: values.seed });
+    budgetUsd: values['budget-usd'] ? Number(values['budget-usd']) : null, maxCalls: values['max-calls'] ? Number(values['max-calls']) : null, repairs: values.repairs ? Number(values.repairs) : 0, seed: values.seed });
   if (!values.run) { console.log(JSON.stringify({ state: 'planned', ...plan }, null, 2)); return; }
   const research = fs.realpathSync(path.resolve('research'));
   const directory = path.resolve(values.out || path.join(research, `benchmark-${Date.now()}`));

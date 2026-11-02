@@ -22,20 +22,18 @@ import { logCall, refundUnitsOnce } from './_shared/usage.js';
 import { runPhase1, runPhase2, composeRecraftPrompt, composeGeminiImagePrompt } from './_shared/pipelineRunner.js';
 import { getVertexAccessToken, vertexModelUrl } from './_shared/vertex.js';
 import { fetchWithRetry } from './_shared/httpRetry.js';
-import { generateOpenAIImage, OPENAI_IMAGE_MODEL } from './_shared/openaiImage.js';
+import { generateOpenAIImage } from './_shared/openaiImage.js';
 import { openProviderQuotaCircuit } from './_shared/pipelineQuotaCircuit.js';
-import { MODEL_CATALOG, getModelProvider } from './_shared/modelCatalog.js';
+import { MODEL_CATALOG, getModelProvider, configuredModelId, modelSupportsPhase } from './_shared/modelCatalog.js';
 import { providerHttpError, providerFailure } from './_shared/providerError.js';
 import { generateRecraftImage } from './_shared/recraftImage.js';
 
-const RECRAFT_MODELS = new Set(Object.keys(MODEL_CATALOG).filter(id => MODEL_CATALOG[id].provider === 'recraft'));
-const GEMINI_IMAGE_MODELS = new Set(Object.keys(MODEL_CATALOG).filter(id => MODEL_CATALOG[id].provider === 'gemini' && MODEL_CATALOG[id].phases.includes(3)));
 
 // ── Phase 3 runners ───────────────────────────────────────────────────────────
 
 async function phase3Recraft(elements, prompt, utterance, nluData, config, email) {
   const startMs = Date.now();
-  const model = config.generationModel || 'recraftv4_1_vector';
+  const model = config.generationModel;
   const result = await generateRecraftImage({
     model, prompt: composeRecraftPrompt(elements, prompt, utterance, nluData, config),
     colors: config.paletteColors, style_id: config.recraftStyleId,
@@ -126,13 +124,14 @@ export const handler = async (event, context) => {
   }
 
   const email = user.email ?? 'dev';
-  const genModel = config?.generationModel || 'recraftv4_1_vector';
-  const isRecraft = RECRAFT_MODELS.has(genModel);
-  const isGeminiImage = GEMINI_IMAGE_MODELS.has(genModel);
+  // Same resolution as create and the app: unset fields follow the catalog default.
+  const genModel = configuredModelId(config, 3);
+  const imageProvider = modelSupportsPhase(genModel, 3) ? getModelProvider(genModel) : null;
+  const isRecraft = imageProvider === 'recraft';
+  const isOpenAI = imageProvider === 'openai';
+  const runConfig = { ...config, generationModel: genModel };
 
-  const isOpenAI = genModel === OPENAI_IMAGE_MODEL;
-
-  if (!isRecraft && !isGeminiImage && !isOpenAI) {
+  if (!imageProvider) {
     console.error(`[pipeline-batch] Unsupported generation model: ${genModel}`);
     await jobs.setJSON(`${libraryId}/state`, {
       id: jobId, libraryId, state: 'failed',
@@ -180,17 +179,16 @@ export const handler = async (event, context) => {
       // Phase 3: Image generation
       activePhase = 3;
       const imageResult = isRecraft
-        ? await phase3Recraft(elements, prompt, utterance, nluData, config, email)
+        ? await phase3Recraft(elements, prompt, utterance, nluData, runConfig, email)
         : isOpenAI
-          ? await phase3OpenAI(elements, prompt, utterance, nluData, config, email)
-          : await phase3Gemini(elements, prompt, utterance, nluData, config, email);
+          ? await phase3OpenAI(elements, prompt, utterance, nluData, runConfig, email)
+          : await phase3Gemini(elements, prompt, utterance, nluData, runConfig, email);
 
       await jobs.setJSON(rowKey, { nluData, elements, prompt, phaseExecutions, ...imageResult });
       jobState.succeededCount++;
       console.log(`[pipeline-batch] job=${jobId} row=${rowId} ok`);
     } catch (err) {
-      const failedModel = activePhase === 1 ? config.comprenderModel || config.nluModel || 'claude-haiku-4-5-20251001'
-        : activePhase === 2 ? config.componerModel || config.nluModel || 'claude-haiku-4-5-20251001' : genModel;
+      const failedModel = activePhase <= 2 ? configuredModelId(config, activePhase) : genModel;
       const provider = err.provider || (Object.hasOwn(MODEL_CATALOG, failedModel) ? getModelProvider(failedModel) : 'unknown');
       const failure = providerFailure(err, { provider, requestId: jobId });
       const partial = { nluData, elements, prompt, phaseExecutions, ...failure,

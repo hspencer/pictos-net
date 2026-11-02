@@ -10,17 +10,18 @@ const t = (key: string, vars: Record<string, string | number> = {}) =>
   key.split('.').reduce((value, part) => value[part], en).replace(/\{(\w+)\}/g, (_, name) => vars[name] ?? `{${name}}`);
 
 test('selectors and preserved model migration use the shared capability catalog', () => {
-  assert.equal(DEFAULT_GENERATION_MODEL, 'gemini-2.5-flash-image');
-  assert.equal(DEFAULT_NLU_MODEL, 'claude-haiku-4-5-20251001');
+  assert.equal(DEFAULT_GENERATION_MODEL, 'gpt-image-2.5-flare');
+  assert.equal(DEFAULT_NLU_MODEL, 'claude-haiku-5-5');
   assert.equal(DEFAULT_PHASE5_MODEL, 'claude-sonnet-4-6');
   assert.deepEqual(modelIdsForPhase(1), modelIdsForPhase(2));
   for (const model of modelIdsForPhase(3)) {
     assert.equal(migrateGenerationModel(model), model);
     assert.equal(getModelFamily(model as any), MODEL_CATALOG[model].output);
   }
-  assert.equal(modelIdsForPhase(3).filter(id => getModelProvider(id) === 'recraft').length, 12);
+  assert.deepEqual(modelIdsForPhase(3).filter(id => getModelProvider(id) === 'recraft'), ['recraftv4_1_vector']);
   assert.equal(modelSupportsPhase('gpt-image-2', 2), false);
-  assert.equal(modelSupportsPhase('gpt-5.6-luna', 5), true);
+  assert.equal(modelSupportsPhase('gpt-5.6-luna', 5), false); // retired 2026-11-01
+  assert.deepEqual(modelIdsForPhase(5), ['claude-sonnet-4-6']);
   assert.equal(modelSupportsPhase('constructor', 1), false);
   assert.throws(() => getModelProvider('unknown-model'), /Unsupported/);
 });
@@ -35,9 +36,10 @@ test('prices distinguish token rates from images and retain conditional bounds',
   assert.match(modelPriceNotes('gpt-5.6-terra', t).join(' '), /272000.*US\$4.00.*US\$18.00/);
   assert.match(modelPriceNotes('recraftv4_styles', t).join(' '), /existing Recraft style ID/);
   assert.match(modelPriceNotes('gemini-3.8-flash', t).join(' '), /From 2027-01-01: US\$1.50 input \/ US\$7.50 output/);
-  const addedInF6 = ['gemini-3.8-flash', 'gpt-6-luna', 'gpt-image-2.5-flare', 'gemini-nano-banana-2.1'];
+  const addedInF6 = ['gemini-3.8-flash', 'gpt-image-2.5-flare', 'gemini-nano-banana-2.1'];
+  const checked20261101 = ['claude-haiku-5-5', 'gpt-6-luna'];
   for (const [id, value] of Object.entries(MODEL_CATALOG)) {
     assert.match(value.pricingSource, /^https:\/\//);
-    assert.equal(value.pricingCheckedAt, addedInF6.includes(id) ? '2026-10-22' : '2026-08-27', id);
+    assert.equal(value.pricingCheckedAt, checked20261101.includes(id) ? '2026-11-01' : addedInF6.includes(id) ? '2026-10-22' : '2026-08-27', id);
   }
 });

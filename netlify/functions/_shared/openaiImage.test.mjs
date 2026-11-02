@@ -15,7 +15,7 @@ const originalCwd = process.cwd();
 const envKeys = ['NETLIFY_DEV', 'NETLIFY_BLOBS_CONTEXT', 'OPENAI_API_KEY', 'PICTOS_OPENAI_KEY', 'PICTOS_ANTHROPIC_KEY'];
 const originalEnv = Object.fromEntries(envKeys.map(key => [key, process.env[key]]));
 let testDir;
-const params = { model: 'gpt-image-2', prompt: 'AAC pictogram: "Beber agua"\n- persona\n  - vaso\nNo text.' };
+const params = { model: 'gpt-image-2.5-flare', prompt: 'AAC pictogram: "Beber agua"\n- persona\n  - vaso\nNo text.' };
 const png = 'iVBORw0KGgo=';
 const event = (body) => ({ httpMethod: 'POST', body: JSON.stringify(body) });
 const readResult = async jobId => JSON.parse((await poll({ httpMethod: 'GET', queryStringParameters: { jobId } }, {})).body);
@@ -169,7 +169,9 @@ test('full pipeline preserves semantic artifacts and quality; stops on OpenAI qu
     assert.equal(url, 'https://api.openai.com/v1/images/generations');
     const body = JSON.parse(options.body);
     assert.match(body.prompt, /Semantic context: persona — beber — agua/);
-    assert.match(body.prompt, /'persona' bebe agua/);
+    // Quoted element ids reach image models as plain words (they were drawn as captions).
+    assert.match(body.prompt, /persona bebe agua/);
+    assert.doesNotMatch(body.prompt, /'persona'/);
     assert.equal(body.quality, 'medium');
     imageCalls++;
     return imageCalls === 1
@@ -179,7 +181,7 @@ test('full pipeline preserves semantic artifacts and quality; stops on OpenAI qu
   await pipeline(event({
     libraryId: 'test-library', jobId: 'test-pipeline',
     rows: [{ rowId: 'done', utterance: 'Beber agua' }, { rowId: 'quota', utterance: 'Beber agua' }, { rowId: 'later', utterance: 'Beber agua' }],
-    config: { generationModel: 'gpt-image-2', openaiImageQuality: 'medium' },
+    config: { generationModel: 'gpt-image-2.5-flare', openaiImageQuality: 'medium' },
   }), {});
   const store = getBlobStore('pipeline-jobs');
   const completed = await store.get('test-pipeline/done', { type: 'json' });
@@ -216,7 +218,7 @@ test('a composition contract failure retains accepted NLU provenance without inv
   await pipeline(event({
     libraryId: 'partial-library', jobId: 'partial-pipeline',
     rows: [{ rowId: 'partial', utterance: 'Beber agua' }],
-    config: { generationModel: 'gpt-image-2' },
+    config: { generationModel: 'gpt-image-2.5-flare' },
   }), {});
   const result = await getBlobStore('pipeline-jobs').get('partial-pipeline/partial', { type: 'json' });
   assert.deepEqual(result.nluData, validNlu);
@@ -242,9 +244,9 @@ test('poll rejects path traversal, anonymous access, and another owner without c
 
 test('connection check only reads the model, never creates an image', async () => {
   const fetchMock = mock.method(globalThis, 'fetch', async (url, options) => {
-    assert.equal(url, 'https://api.openai.com/v1/models/gpt-image-2');
+    assert.equal(url, 'https://api.openai.com/v1/models/gpt-image-2.5-flare');
     assert.equal(options.method, undefined);
-    return Response.json({ id: 'gpt-image-2' });
+    return Response.json({ id: 'gpt-image-2.5-flare' });
   });
   const result = await check(event({ service: 'openai' }), {});
   assert.equal(JSON.parse(result.body).ok, true);

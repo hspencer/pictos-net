@@ -1,0 +1,129 @@
+{
+  "synthetic": true,
+  "note": "Synthetic pipeline benchmark corpus (2026-11-01). Hand-written to cover AAC intents; not a human-reviewed semantic gold standard.",
+  "config": {
+    "lang": "es-419"
+  },
+  "cases": [
+    {
+      "id": "peticion-agua",
+      "utterance": "Quiero un vaso de agua",
+      "covers": "necesidad básica"
+    },
+    {
+      "id": "bano",
+      "utterance": "Necesito ir al baño",
+      "covers": "necesidad urgente"
+    },
+    {
+      "id": "dolor-cabeza",
+      "utterance": "Me duele la cabeza",
+      "covers": "cuerpo / dolor"
+    },
+    {
+      "id": "cansado",
+      "utterance": "Estoy muy cansado",
+      "covers": "estado"
+    },
+    {
+      "id": "miedo-tormenta",
+      "utterance": "Tengo miedo de la tormenta",
+      "covers": "emoción + causa"
+    },
+    {
+      "id": "donde-mama",
+      "utterance": "¿Dónde está mamá?",
+      "covers": "pregunta de lugar"
+    },
+    {
+      "id": "hora-colegio",
+      "utterance": "¿A qué hora vamos al colegio?",
+      "covers": "pregunta temporal"
+    },
+    {
+      "id": "no-verduras",
+      "utterance": "No quiero comer verduras",
+      "covers": "negación / rechazo"
+    },
+    {
+      "id": "gracias",
+      "utterance": "Gracias por ayudarme",
+      "covers": "social"
+    },
+    {
+      "id": "saludo",
+      "utterance": "Hola, ¿cómo estás?",
+      "covers": "saludo + pregunta"
+    },
+    {
+      "id": "manana-playa",
+      "utterance": "Mañana vamos a la playa",
+      "covers": "futuro"
+    },
+    {
+      "id": "ayer-hermano",
+      "utterance": "Ayer jugué con mi hermano",
+      "covers": "pasado + coagente"
+    },
+    {
+      "id": "profe-cuento",
+      "utterance": "La profesora les lee un cuento a los niños",
+      "covers": "tres actores, dativo"
+    },
+    {
+      "id": "orgullo",
+      "utterance": "Me siento orgulloso de mí mismo",
+      "covers": "emoción abstracta reflexiva"
+    },
+    {
+      "id": "turno",
+      "utterance": "Es mi turno",
+      "covers": "abstracto social"
+    },
+    {
+      "id": "sangre",
+      "utterance": "Me van a sacar sangre del brazo",
+      "covers": "dominio hospital"
+    },
+    {
+      "id": "revolver-sopa",
+      "utterance": "Revuelve la sopa despacio",
+      "covers": "dominio cocina, modo"
+    },
+    {
+      "id": "once",
+      "utterance": "Quiero tomar once con pan amasado",
+      "covers": "regionalismo chileno"
+    },
+    {
+      "id": "micro",
+      "utterance": "Vamos a tomar la micro",
+      "covers": "regionalismo chileno, transporte"
+    },
+    {
+      "id": "para-auto",
+      "utterance": "¡Para! Viene un auto",
+      "covers": "advertencia de seguridad"
+    },
+    {
+      "id": "tarea-dibujos",
+      "utterance": "Cuando termine la tarea, ¿puedo ver dibujos animados?",
+      "covers": "condición + permiso"
+    },
+    {
+      "id": "agua-1",
+      "utterance": "Agua",
+      "covers": "una sola palabra"
+    },
+    {
+      "id": "ayuda-1",
+      "utterance": "Ayuda",
+      "covers": "una sola palabra, urgencia"
+    },
+    {
+      "id": "silla-ruedas",
+      "utterance": "Ayúdame a subir la rampa con la silla de ruedas",
+      "covers": "discapacidad, instrumento"
+    }
+  ]
+}

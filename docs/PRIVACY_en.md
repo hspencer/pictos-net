@@ -26,7 +26,7 @@ The system does not store profiles, does not track sessions across visits, and d
 
 Exactly two flows cross the boundary of your device, both visible in the source code.
 
-First, generation requests. When you ask the system to produce a pictogram, the text you typed is sent to external model APIs (Anthropic for linguistic analysis and composition; Google Gemini or OpenAI for image generation, depending on the model selected in the tool) and the result is returned to your browser. This is transient processing; the project retains nothing. Do not type personal information about other people.
+First, generation requests. When you ask the system to produce a pictogram, the text you typed is sent to external model APIs (Anthropic or OpenAI for linguistic analysis and composition; OpenAI, Google Gemini or Recraft for image generation, depending on the model selected in the tool) and the result is returned to your browser. This is transient processing; the project retains nothing. Do not type personal information about other people.
 
 Second, sharing you initiate. You may choose to publish a pictogram library using a token that you configure yourself. Nothing is shared by default and nothing is shared silently. Shared libraries record authorship, library name, and provenance, so that attribution is preserved and content can be reviewed or withdrawn.
 

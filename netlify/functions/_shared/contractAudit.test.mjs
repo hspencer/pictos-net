@@ -48,13 +48,13 @@ after(() => {
 });
 
 test('the usage report counts a provider answer that breaks the contract as an error', async () => {
-  mock.method(globalThis, 'fetch', async () => Response.json({ model: 'claude-haiku-4-5-20251001', stop_reason: 'tool_use',
+  mock.method(globalThis, 'fetch', async () => Response.json({ model: 'claude-haiku-5-5', stop_reason: 'tool_use',
     usage: { input_tokens: 10, output_tokens: 5 }, ...toolUse('analyze_utterance', broken) }));
-  const result = await claude({ httpMethod: 'POST', body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', messages: [{ role: 'user', content: 'x' }] }) }, {});
+  const result = await claude({ httpMethod: 'POST', body: JSON.stringify({ model: 'claude-haiku-5-5', messages: [{ role: 'user', content: 'x' }] }) }, {});
   assert.equal(result.statusCode, 200);                       // the response itself is unchanged
   const today = new Date().toISOString().slice(0, 10);
   const report = await getRangeSummary({ from: today, to: today });
-  const haiku = report.models['claude-haiku-4-5-20251001'];
+  const haiku = report.models['claude-haiku-5-5'];
   assert.equal(haiku.calls, 1);
   assert.equal(haiku.errors, 1);
   assert.equal(haiku.contract_errors, 1);

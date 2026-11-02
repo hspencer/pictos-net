@@ -15,7 +15,7 @@ import { checkAndCharge, logCall } from './_shared/usage.js';
 import { connectBlobs } from './_shared/blobs.js';
 import { fetchWithRetry } from './_shared/httpRetry.js';
 import { providerFailure } from './_shared/providerError.js';
-import { modelAllowed } from './_shared/modelCatalog.js';
+import { modelAllowed, acceptsSampling } from './_shared/modelCatalog.js';
 import { contractAudit } from './_shared/pipelineContracts.js';
 
 const PHASE5_TOOLS = new Set(['restructure_svg', 'restructure_regions', 'redraw_svg']);
@@ -29,12 +29,9 @@ const ALLOWED_ORIGINS = [
 // Admission comes from the model catalog (lifecycle status per phase).
 const isAllowedModel = model => modelAllowed(model, 'claude', [1, 2, 5]);
 
-// All Claude calls are free-tier in the quota — only Recraft (phase 3) counts.
-const UNITS_BY_MODEL = {
-  'claude-haiku-4-5-20251001': 0,
-  'claude-sonnet-4-6': 0,
-  'claude-opus-4-6': 0,
-};
+// Every Claude call is free in the internal quota; only phase 3 images count.
+// No per-model table: a model added to the catalog must never start charging.
+const CLAUDE_UNITS = 0;
 
 function corsHeaders(origin) {
   const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
@@ -94,8 +91,7 @@ async function handleRequest(event, context) {
     return { statusCode: 400, headers, body: JSON.stringify({ error: `Model not allowed: ${model}` }) };
   }
 
-  // Quota check (Sonnet = 1 unit; Haiku = 0 units, always allowed)
-  const units = UNITS_BY_MODEL[model] ?? 1;
+  const units = CLAUDE_UNITS;
   const quota = await checkAndCharge(email, units, roles);
   if (!quota.allowed) {
     console.warn(`[api-claude] quota exceeded for ${email} (${quota.units_used}/${quota.limit})`);
@@ -147,7 +143,7 @@ async function handleRequest(event, context) {
       max_tokens: Math.min(max_tokens || 4096, 8192),
       messages,
     };
-    if (typeof temperature === 'number' && temperature >= 0 && temperature <= 1) params.temperature = temperature;
+    if (typeof temperature === 'number' && temperature >= 0 && temperature <= 1 && acceptsSampling(model)) params.temperature = temperature;
     if (system) params.system = system;
     if (tools) params.tools = tools;
     if (tool_choice) params.tool_choice = tool_choice;

@@ -87,7 +87,7 @@ test('image terminal 429 and Recraft failed generation refund internal reservati
   assert.doesNotMatch(result.error, /diaria|daily/i);
   mock.restoreAll();
   mock.method(globalThis, 'fetch', async () => Response.json({ error: { code: 'invalid_key' } }, { status: 401 }));
-  await recraft(event({ jobId: 'recraft-401', model: 'recraftv4_1', prompt: 'synthetic' }));
+  await recraft(event({ jobId: 'recraft-401', model: 'recraftv4_1_vector', prompt: 'synthetic' }));
   const failed = await getBlobStore('recraft-jobs').get('recraft-401', { type: 'json' });
   assert.equal(failed.refundedUnits, 1); assert.equal(failed.providerStatus, 401); assert.equal(failed.retryable, false);
 });
@@ -97,7 +97,7 @@ test('terminal quota in Phase 1 stops the batch before any later row or image', 
     assert.match(String(url), /api\.anthropic\.com/);
     return Response.json({ type: 'error', error: { type: 'rate_limit_error', message: 'busy' } }, { status: 429, headers: { 'retry-after': '120' } });
   });
-  await pipeline(event({ libraryId: 'quota-library', jobId: 'quota-pipeline', rows: [{ rowId: 'first', utterance: 'Beber' }, { rowId: 'later', utterance: 'Comer' }], config: { generationModel: 'recraftv4_1' } }), {});
+  await pipeline(event({ libraryId: 'quota-library', jobId: 'quota-pipeline', rows: [{ rowId: 'first', utterance: 'Beber' }, { rowId: 'later', utterance: 'Comer' }], config: { generationModel: 'recraftv4_1_vector' } }), {});
   assert.equal(upstream.mock.callCount(), 1);
   const store = getBlobStore('pipeline-jobs');
   const failed = await store.get('quota-pipeline/first', { type: 'json' });
@@ -125,7 +125,7 @@ test('quota in composition or Recraft generation preserves accepted phases and d
         input: name === 'analyze_utterance' ? validNlu : { elements: [{ id: 'persona', concept: 'Agent' }], prompt: "'persona' bebe agua" } }] });
     });
     const jobId = `quota-phase-${failurePhase}`;
-    await pipeline(event({ libraryId: jobId, jobId, rows: [{ rowId: 'first', utterance: 'Beber agua' }, { rowId: 'later', utterance: 'Beber agua' }], config: { generationModel: 'recraftv4_1' } }), {});
+    await pipeline(event({ libraryId: jobId, jobId, rows: [{ rowId: 'first', utterance: 'Beber agua' }, { rowId: 'later', utterance: 'Beber agua' }], config: { generationModel: 'recraftv4_1_vector' } }), {});
     assert.equal(calls, failurePhase);
     const store = getBlobStore('pipeline-jobs');
     const failed = await store.get(`${jobId}/first`, { type: 'json' });
@@ -156,12 +156,12 @@ test('Recraft jobs reject traversal and another owner, and unauthorized workers 
   await store.setJSON('job-private', { owner: 'owner@example.test', svg: '<svg/>' });
   const fetchMock = mock.method(globalThis, 'fetch', () => { throw new Error('must not call provider'); });
   // In dev, the worker identity is dev and cannot replace an existing owner.
-  await recraft(event({ jobId: 'job-private', prompt: 'synthetic', model: 'recraftv4_1' }));
+  await recraft(event({ jobId: 'job-private', prompt: 'synthetic', model: 'recraftv4_1_vector' }));
   assert.equal((await store.get('job-private', { type: 'json' })).owner, 'owner@example.test');
   assert.equal((await poll({ httpMethod: 'GET', queryStringParameters: { jobId: '../escape' } }, {})).statusCode, 400);
   process.env.NETLIFY_DEV = 'false';
   try {
-    await recraft(event({ jobId: 'job-private', prompt: 'synthetic', model: 'recraftv4_1' }));
+    await recraft(event({ jobId: 'job-private', prompt: 'synthetic', model: 'recraftv4_1_vector' }));
     const query = { httpMethod: 'GET', queryStringParameters: { jobId: 'job-private' } };
     assert.equal((await poll(query, {})).statusCode, 401);
     assert.equal((await poll(query, { clientContext: { user: { email: 'other@example.test' } } })).statusCode, 403);
@@ -173,7 +173,7 @@ test('Recraft jobs reject traversal and another owner, and unauthorized workers 
 
 test('Claude proxy keeps hard-billing failures terminal and returns the actual model on success', async () => {
   const { handler } = await import('../api-claude.js');
-  const request = event({ model: 'claude-haiku-4-5-20251001', messages: [{ role: 'user', content: 'synthetic' }] });
+  const request = event({ model: 'claude-haiku-5-5', messages: [{ role: 'user', content: 'synthetic' }] });
   const failing = mock.method(globalThis, 'fetch', async () => Response.json({ error: { type: 'insufficient_quota', code: 'credit_balance_exhausted' } }, { status: 429 }));
   const result = await handler(request, {});
   const failure = JSON.parse(result.body);
