@@ -6,8 +6,8 @@
   "config": {
     "lang": "es",
     "name": "Q • Blake",
-    "credits": "Pictos / MediaFranca",
-    "license": "cc-by",
+    "credits": "MediaFranca",
+    "license": "cc-by-sa",
     "visualStylePrompt": "Pictograma en estilo de ilustración clásica de libro infantil, espontáneo y lleno de movimiento. Trazo de línea de tinta negra fina, rápida, deliberadamente imperfecta, nerviosa y con apariencia de boceto hecho a mano alzada con pluma estilográfica. El color se aplica mediante manchas sueltas y aguadas de acuarela translúcida que no se alinean con los contornos (desborde intencionado del color fuera de las líneas). Textura de papel de acuarela granulado de tono crema suave de fondo, con sutiles transparencias y degradados de agua. Figuras humanas muy expresivas con extremidades delgadas y cabello alborotado y puntiagudo.\n\nComposición bidimensional (2D) plana, centrada sobre fondo blanco puro y con amplio espacio negativo. Diseño optimizado para accesibilidad cognitiva. NUNCA incluir texto, letras, números, símbolos tipográficos, globos de diálogo ni firmas. Evitar sombreado realista, perspectiva 3D compleja, líneas de suelo pesadas, horizontes o elementos decorativos de fondo que distraigan del sujeto principal. Un único concepto visual, directo y legible al instante.",
     "geoContext": {
       "lat": "-33.0244535",

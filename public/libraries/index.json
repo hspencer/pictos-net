@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-30T15:47:36.557Z",
+  "generated": "2026-11-05T22:09:32.189Z",
   "count": 21,
   "libraries": [
     {
@@ -8,9 +8,9 @@
       "location": "Quilpué, Región de Valparaíso, Chile",
       "language": "es",
       "items": 6,
-      "credits": "Pictos / MediaFranca",
+      "credits": "MediaFranca",
       "description": "pictonet_graph_dump",
-      "filesize": 2131837
+      "filesize": 2131828
     },
     {
       "filename": "concreta_graph_2026-10-22.json",
@@ -18,9 +18,9 @@
       "location": "Viña del Mar, CL",
       "language": "es-419",
       "items": 3,
-      "credits": "Pictos / MediaFranca",
+      "credits": "MediaFranca",
       "description": "pictonet_graph_dump",
-      "filesize": 473515
+      "filesize": 473509
     },
     {
       "filename": "escena_descriptiva_graph_2026-08-26.json",
@@ -28,9 +28,9 @@
       "location": "Viña del Mar, Valparaiso Region, Chile",
       "language": "es",
       "items": 15,
-      "credits": "Pictos / MediaFranca",
+      "credits": "MediaFranca",
       "description": "pictonet_graph_dump",
-      "filesize": 1518156
+      "filesize": 1518147
     },
     {
       "filename": "expresiones-cotidianas.json",
@@ -38,9 +38,9 @@
       "location": "Viña del Mar, Región de Valparaíso, Chile",
       "language": "es-419",
       "items": 200,
-      "credits": "Pictos / MediaFranca",
+      "credits": "MediaFranca",
       "description": "pictonet_graph_dump",
-      "filesize": 54373461
+      "filesize": 54373454
     },
     {
       "filename": "icap.json",
@@ -48,9 +48,9 @@
       "location": "Viña del Mar, Valparaiso Region, Chile",
       "language": "es",
       "items": 50,
-      "credits": "Pictos / MediaFranca",
+      "credits": "MediaFranca",
       "description": "pictonet_graph_dump",
-      "filesize": 24318185
+      "filesize": 24318178
     },
     {
       "filename": "idiomatic.json",
@@ -58,9 +58,9 @@
       "location": "Auckland, Auckland, Nueva Zelanda",
       "language": "en-GB",
       "items": 278,
-      "credits": "Pictos / MediaFranca",
+      "credits": "MediaFranca",
       "description": "pictonet_graph_dump",
-      "filesize": 75255687
+      "filesize": 75255678
     },
     {
       "filename": "ilustracion-moderna.json",
@@ -68,9 +68,9 @@
       "location": "Viña del Mar, Valparaiso Region, Chile",
       "language": "es",
       "items": 6,
-      "credits": "Pictos / MediaFranca",
+      "credits": "MediaFranca",
       "description": "pictonet_graph_dump",
-      "filesize": 2884782
+      "filesize": 2884773
     },
     {
       "filename": "inclusion-laboral.json",
@@ -78,9 +78,9 @@
       "location": "Quilpué, Región de Valparaíso, Chile",
       "language": "es",
       "items": 20,
-      "credits": "Pictos / MediaFranca",
+      "credits": "MediaFranca",
       "description": "pictonet_graph_dump",
-      "filesize": 17602233
+      "filesize": 17602224
     },
     {
       "filename": "kitchen.json",
@@ -88,9 +88,9 @@
       "location": "Dunedin, Otago, Nueva Zelanda",
       "language": "en",
       "items": 6,
-      "credits": "Pictos / MediaFranca",
+      "credits": "MediaFranca",
       "description": "pictonet_graph_dump",
-      "filesize": 374697
+      "filesize": 374687
     },
     {
       "filename": "mordillo.json",
@@ -98,9 +98,9 @@
       "location": "Quilpué, Región de Valparaíso, Chile",
       "language": "es-419",
       "items": 10,
-      "credits": "Pictos / MediaFranca",
+      "credits": "MediaFranca",
       "description": "pictonet_graph_dump",
-      "filesize": 1322097
+      "filesize": 1322087
     },
     {
       "filename": "picmil.json",
@@ -108,9 +108,9 @@
       "location": "Viña del Mar, Región de Valparaíso, Chile",
       "language": "es",
       "items": 22,
-      "credits": "Pictos / MediaFranca",
+      "credits": "MediaFranca",
       "description": "pictonet_graph_dump",
-      "filesize": 6016530
+      "filesize": 6016524
     },
     {
       "filename": "pictos-color.json",
@@ -118,9 +118,9 @@
       "location": "Viña del Mar, Región de Valparaíso, Chile",
       "language": "es",
       "items": 22,
-      "credits": "Pictos / MediaFranca",
+      "credits": "MediaFranca",
       "description": "pictonet_graph_dump",
-      "filesize": 7154935
+      "filesize": 7154929
     },
     {
       "filename": "pictos-iso.json",
@@ -128,9 +128,9 @@
       "location": "Viña del Mar, Región de Valparaíso, Chile",
       "language": "es",
       "items": 22,
-      "credits": "Pictos / MediaFranca",
+      "credits": "MediaFranca",
       "description": "pictonet_graph_dump",
-      "filesize": 34524128
+      "filesize": 34524122
     },
     {
       "filename": "pictos-tramites.json",
@@ -138,9 +138,9 @@
       "location": "Santiago, Región Metropolitana de Santiago, Chile",
       "language": "es-419",
       "items": 10,
-      "credits": "Pictos / MediaFranca",
+      "credits": "MediaFranca",
       "description": "pictonet_graph_dump",
-      "filesize": 3102748
+      "filesize": 3102738
     },
     {
       "filename": "pictos.json",
@@ -148,9 +148,9 @@
       "location": "Viña del Mar, Región de Valparaíso, Chile",
       "language": "es",
       "items": 29,
-      "credits": "Pictos / MediaFranca",
+      "credits": "MediaFranca",
       "description": "pictonet_graph_dump",
-      "filesize": 2262704
+      "filesize": 2262698
     },
     {
       "filename": "q___blake_graph_2026-08-11.json",
@@ -158,9 +158,9 @@
       "location": "Viña del Mar, Región de Valparaíso, Chile",
       "language": "es",
       "items": 22,
-      "credits": "Pictos / MediaFranca",
+      "credits": "MediaFranca",
       "description": "pictonet_graph_dump",
-      "filesize": 34798847
+      "filesize": 34798841
     },
     {
       "filename": "senaletica-color.json",
@@ -168,9 +168,9 @@
       "location": "Viña del Mar, Valparaiso Region, Chile",
       "language": "es",
       "items": 6,
-      "credits": "Pictos / MediaFranca",
+      "credits": "MediaFranca",
       "description": "pictonet_graph_dump",
-      "filesize": 2586634
+      "filesize": 2586625
     },
     {
       "filename": "simplex.json",
@@ -178,9 +178,9 @@
       "location": "Quilpué, Región de Valparaíso, Chile",
       "language": "es",
       "items": 6,
-      "credits": "Pictos / MediaFranca",
+      "credits": "MediaFranca",
       "description": "pictonet_graph_dump",
-      "filesize": 350105
+      "filesize": 350096
     },
     {
       "filename": "tablero_graph_2026-08-13.json",
@@ -188,9 +188,9 @@
       "location": "Viña del Mar, Región de Valparaíso, Chile",
       "language": "es",
       "items": 36,
-      "credits": "Pictos / MediaFranca",
+      "credits": "MediaFranca",
       "description": "pictonet_graph_dump",
-      "filesize": 3877774
+      "filesize": 3877768
     },
     {
       "filename": "tramites-mineduc.json",
@@ -198,9 +198,9 @@
       "location": "Región de Valparaíso, Chile",
       "language": "es-419",
       "items": 38,
-      "credits": "Pictos / MediaFranca. Corpus original: Ana María Torres, Coordinación Institucional Ley Autismo y Sordera, Secretaría Ministerial de Educación Región de Valparaíso, Ministerio de Educación de Chile.",
+      "credits": "MediaFranca. Corpus original: Ana María Torres, Coordinación Institucional Ley Autismo y Sordera, Secretaría Ministerial de Educación Región de Valparaíso, Ministerio de Educación de Chile.",
       "description": "pictonet_graph_dump",
-      "filesize": 4276664
+      "filesize": 4276651
     },
     {
       "filename": "transporte.json",
@@ -208,9 +208,9 @@
       "location": "Viña del Mar, Región de Valparaíso, Chile",
       "language": "es",
       "items": 22,
-      "credits": "Pictos / MediaFranca",
+      "credits": "MediaFranca",
       "description": "pictonet_graph_dump",
-      "filesize": 6521527
+      "filesize": 6521521
     }
   ]
 }

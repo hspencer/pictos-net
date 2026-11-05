@@ -6,8 +6,8 @@
   "config": {
     "lang": "es",
     "name": "Tablero",
-    "credits": "Pictos / MediaFranca",
-    "license": "cc-by",
+    "credits": "MediaFranca",
+    "license": "cc-by-sa",
     "visualStylePrompt": "Pictograma para sistemas de comunicación aumentativa. \nSin marcos y con fondo blanco.\n\nTrazo de línea negra uniforme, limpia, de grosor medio-grueso, con terminaciones y esquinas ligeramente redondeadas de apariencia amigable. \n\nlos conceptos abstractos se representan de manera esquemática y clara con una clave de color:\n- el objeto foco o referencia es azul #1A4CFF\n- lo bueno, positivo o afirmación es verde #6EE000\n- lo malo, negativo o negación es rojo #EA0A0A\n\nLa figura humana se representa de forma simple, contornos negros relleno blanco: las expresiones justas para dar cuenta de la frase.\n\nCRÍTICO: Evitar textos y marcos\n",
     "geoContext": {
       "lat": "-33.0244535",

@@ -3668,7 +3668,11 @@ const App: React.FC<AppProps> = ({ authUser }) => {
                 {t('footer.author')}
               </a>
             </h4>
-            <p className="leading-relaxed">{t('footer.affiliation2')}</p>
+            <p className="leading-relaxed">
+              <a href="https://mediafranca.net" target="_blank" rel="noopener noreferrer" className="hover:text-violet-600 transition-colors">
+                {t('footer.affiliation2')}
+              </a>
+            </p>
             <div className="flex items-center gap-4 mt-3">
               <a
                 href="https://github.com/hspencer/pictos-net"

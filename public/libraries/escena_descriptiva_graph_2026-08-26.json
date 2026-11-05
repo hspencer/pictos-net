@@ -6,7 +6,7 @@
   "config": {
     "lang": "es",
     "name": "Escena descriptiva",
-    "credits": "Pictos / MediaFranca",
+    "credits": "MediaFranca",
     "license": "cc-by-sa",
     "visualStylePrompt": "Pictograma en el estilo clásico de ARASAAC para sistemas de comunicación aumentativa. Trazo de línea negra uniforme, limpia, de grosor medio-grueso, con terminaciones y esquinas ligeramente redondeadas de apariencia amigable. La figura humana se representa como un muñeco de palo estilizado (stickman): cabeza circular negra separada del torso por un espacio negativo, tronco y extremidades lineales de grosor medio. Paleta de colores muy vivos, planos y saturados (máximo 4 colores), con la piel en un tono amarillo plano icónico. Sin volumen, con un nivel de abstracción funcional y directo que une la esquematización con detalles descriptivos sencillos para los objetos cotidianos.",
     "geoContext": {
