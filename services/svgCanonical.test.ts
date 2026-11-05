@@ -12,7 +12,9 @@ const row = (): RowData => ({ id: 'r', UTTERANCE: metadata.nlu.utterance, NLU: s
 
 test('historical delivery NLU allows draft structuring while explaining blocked certification without changing trace or semantic evidence', () => {
   const library = JSON.parse(fs.readFileSync(new URL('../public/libraries/escena_descriptiva_graph_2026-08-26.json', import.meta.url), 'utf8'));
-  const historical = { ...library.rows.find((r: RowData) => r.UTTERANCE === 'Abro la app de delivery en mi teléfono'), rawSvg: '<svg/>' };
+  // The shipped row now carries regenerated NLU; its pre-1.1.0 NLU is kept in nluLegacy.
+  const shipped = library.rows.find((r: RowData) => r.UTTERANCE === 'Abro la app de delivery en mi teléfono');
+  const historical = { ...shipped, NLU: shipped.nluLegacy.NLU, rawSvg: '<svg/>' };
   const before = JSON.stringify(historical);
   assert.deepEqual(canStructureSVG(historical), { eligible: true });
   assert.deepEqual(canCertifySVG(historical), { eligible: false, reasonKey: 'nluNeedsReview', fields: [

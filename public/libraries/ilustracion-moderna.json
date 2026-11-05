@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "appVersion": "2.3.11",
   "type": "pictonet_graph_dump",
   "timestamp": "2026-07-14T02:00:58.669Z",
@@ -1748,73 +1748,79 @@
       "UTTERANCE": "Quiero ir al baño",
       "NLU": {
         "utterance": "Quiero ir al baño",
-        "lang": "es",
-        "domain": "vida_cotidiana",
+        "lang": "es-419",
         "metadata": {
-          "speech_act": "request",
-          "intent": "expresar deseo de ir al baño"
+          "intent": "request",
+          "speech_act": "directive"
         },
+        "domain": "salud",
         "frames": [
           {
             "frame_name": "Desiring",
-            "frame_label": "Deseo",
-            "lexical_unit": "quiero",
+            "lexical_unit": "querer",
+            "id": "f_desire",
             "roles": {
               "Experiencer": {
-                "type": "Speaker",
-                "surface": "yo (implícito)",
-                "lemma": "YO",
-                "ref": "NSM prime: YO"
+                "type": "Experiencer",
+                "lemma": "yo",
+                "surface": "Quiero"
               },
               "Event": {
                 "type": "Event",
-                "surface": "ir al baño",
-                "lemma": "ir",
-                "ref_frame": "Motion"
+                "ref_frame": "f_motion",
+                "surface": "ir al baño"
               }
             }
           },
           {
-            "frame_name": "Motion",
-            "frame_label": "Movimiento",
+            "frame_name": "Self_motion",
             "lexical_unit": "ir",
+            "id": "f_motion",
             "roles": {
-              "Agent": {
-                "type": "Speaker",
-                "surface": "yo (implícito)",
-                "lemma": "YO",
-                "ref": "NSM prime: YO"
+              "Theme": {
+                "type": "Agent",
+                "lemma": "yo",
+                "surface": "ir"
               },
               "Goal": {
                 "type": "Location",
-                "surface": "baño",
                 "lemma": "baño",
-                "ref": "lugar específico para necesidades fisiológicas"
+                "surface": "al baño",
+                "definiteness": "definite"
               }
             }
           }
         ],
         "nsm_explications": {
-          "Deseo": "YO quiere HACER algo = YO siente algo BUENO si ESTO ocurre",
-          "Movimiento": "YO HACE algo, se MUEVE hacia ESTE lugar (baño), AHORA",
-          "Necesidad": "ALGO ocurre en el CUERPO de YO, YO debe HACER esto"
+          "querer ir al baño": "ALGUIEN (YO) piensa: QUIERO IR a ALGÚN LUGAR. ESTE LUGAR es DENTRO de ALGO. ESTO es ALGO QUE TENGO QUE HACER AHORA. ALGUIEN (YO) quiere que ALGUIEN (TÚ) PUEDA HACER ALGO para ESTE ALGUIEN ahora."
         },
         "logical_form": {
-          "event": "QUERER(YO, IR(YO, baño))",
-          "modality": "desiderativo"
+          "event": "ir al baño",
+          "modality": "querer (deseo/necesidad)",
+          "tense": "present",
+          "aspect": "progressive",
+          "negation": false
         },
         "pragmatics": {
-          "politeness": "mediana",
-          "formality": "informal",
-          "expected_response": "otorgamiento de permiso o indicaciones sobre dónde ubicar el baño"
+          "politeness": "neutral",
+          "formality": "neutral",
+          "expected_response": "compliance",
+          "urgency": "medium",
+          "speaker_stance": "Necesidad fisiológica expresada como deseo de ir al baño; solicita permiso o asistencia para desplazarse al baño."
         },
         "visual_guidelines": {
-          "focus_actor": "persona usuaria (primera persona singular)",
-          "action_core": "desplazarse, moverse hacia un lugar",
-          "object_core": "baño (lugar de servicios higiénicos)",
-          "context": "oficina o institución pública (Ayuda Mineduc, Superintendencia de Educación)",
-          "temporal": "ahora, en el presente inmediato"
-        }
+          "focus_actor": "figura humana estilizada",
+          "action_core": "caminar hacia una puerta de baño",
+          "object_core": "marco de puerta de baño (sugerido)",
+          "context": "espacio negativo amplio, sin entorno completo; gesto de mano indicando la dirección y postura de urgencia contenida",
+          "temporal": "immediate",
+          "salience": {
+            "figura humana": 0.9,
+            "puerta de baño": 0.7,
+            "gesto de mano": 0.6
+          }
+        },
+        "schemaVersion": "1.1.0"
       },
       "elements": [
         {
@@ -1846,107 +1852,595 @@
       "nluStatus": "completed",
       "visualStatus": "completed",
       "bitmapStatus": "completed",
-      "nluDuration": 14.357,
+      "nluDuration": 4082,
       "visualDuration": 4.549,
-      "bitmapDuration": 15.73
+      "bitmapDuration": 15.73,
+      "nluLegacy": {
+        "replacedAt": "2026-11-05T22:41:57.372Z",
+        "reason": "failed NLU 1.1.0 contract",
+        "NLU": {
+          "utterance": "Quiero ir al baño",
+          "lang": "es",
+          "domain": "vida_cotidiana",
+          "metadata": {
+            "speech_act": "directive",
+            "intent": "expresar deseo de ir al baño"
+          },
+          "frames": [
+            {
+              "frame_name": "Desiring",
+              "frame_label": "Deseo",
+              "lexical_unit": "quiero",
+              "roles": {
+                "Experiencer": {
+                  "type": "Speaker",
+                  "surface": "yo (implícito)",
+                  "lemma": "YO",
+                  "ref": "NSM prime: YO"
+                },
+                "Event": {
+                  "type": "Event",
+                  "surface": "ir al baño",
+                  "lemma": "ir",
+                  "ref_frame": "Motion"
+                }
+              }
+            },
+            {
+              "frame_name": "Motion",
+              "frame_label": "Movimiento",
+              "lexical_unit": "ir",
+              "roles": {
+                "Agent": {
+                  "type": "Speaker",
+                  "surface": "yo (implícito)",
+                  "lemma": "YO",
+                  "ref": "NSM prime: YO"
+                },
+                "Goal": {
+                  "type": "Location",
+                  "surface": "baño",
+                  "lemma": "baño",
+                  "ref": "lugar específico para necesidades fisiológicas"
+                }
+              }
+            }
+          ],
+          "nsm_explications": {
+            "Deseo": "YO quiere HACER algo = YO siente algo BUENO si ESTO ocurre",
+            "Movimiento": "YO HACE algo, se MUEVE hacia ESTE lugar (baño), AHORA",
+            "Necesidad": "ALGO ocurre en el CUERPO de YO, YO debe HACER esto"
+          },
+          "logical_form": {
+            "event": "QUERER(YO, IR(YO, baño))",
+            "modality": "desiderativo"
+          },
+          "pragmatics": {
+            "politeness": "mediana",
+            "formality": "informal",
+            "expected_response": "otorgamiento de permiso o indicaciones sobre dónde ubicar el baño"
+          },
+          "visual_guidelines": {
+            "focus_actor": "persona usuaria (primera persona singular)",
+            "action_core": "desplazarse, moverse hacia un lugar",
+            "object_core": "baño (lugar de servicios higiénicos)",
+            "context": "oficina o institución pública (Ayuda Mineduc, Superintendencia de Educación)",
+            "temporal": "ahora, en el presente inmediato"
+          }
+        },
+        "nluMigration": {
+          "contract": "1.1.0",
+          "at": "2026-11-05T22:41:53.290Z",
+          "changes": [
+            {
+              "path": "/metadata/speech_act",
+              "from": "request",
+              "to": "directive",
+              "rule": "approved"
+            }
+          ]
+        }
+      },
+      "phaseExecutions": [
+        {
+          "id": "aecc16d5-1834-4bb0-b431-7686ca876002",
+          "phase": 1,
+          "createdAt": "2026-11-05T22:41:57.372Z",
+          "model": "claude-haiku-5-5",
+          "provider": "anthropic",
+          "actualModel": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 224,
+            "cache_creation_input_tokens": 2119,
+            "cache_read_input_tokens": 2342,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 2119,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 974,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "service_tier": "standard",
+            "inference_geo": "global",
+            "speed": "standard"
+          },
+          "contractId": "https://pictos.net/schemas/pictonet-nlu-generation-1.1.0.schema.json",
+          "contractHash": "3709b2d5d375ab75a5885bdad9dd3c9a57820461fb72f86f5b2cb6f448aac695",
+          "contractVersion": "1.1.0",
+          "promptVersion": "nlu-1.1.0",
+          "promptHash": "4ec9ebf406108dcb222e2d2cabd3b1675464d1b15f0b08091e0420cb7ae3930b",
+          "inputSnapshot": {
+            "model": "claude-haiku-5-5",
+            "max_tokens": 4096,
+            "system": [
+              {
+                "type": "text",
+                "text": "Operas como el nodo \"NLU Schema Engine\" en la arquitectura PictoNet.\nTu tarea es analizar la intención comunicativa y devolver el resultado JSON vía la herramienta disponible.\n\nContexto de uso:\n- Región geográfica: Viña del Mar, Valparaiso Region, Chile\n- Idioma del vocabulario: es-419\n- Contexto visual: \"Pictograma de estilo ilustración editorial contemporánea. Estética cálida, sofisticada y adecuada para un público adulto. Nivel de abstracción medio: reconocible pero estilizado, nunca fotorrealista. Formas orgánicas con contornos seguros pero ligeramente irregulares (se debe percibir el trazo manual del ilustrador con sutiles imperfecciones que aporten personalidad, sin verse desaliñado). Curvas suaves, sin bordes geométricos afilados. Trabajo de línea de grosor variable para enfatizar contornos clave, con líneas secundarias finas para detalles internos; omitir el trazo en áreas rellenas si el contraste de color es suficiente. Paleta de colores planos de 4 a 6 tonos apagados, desaturados y terrosos (terracota, ocre, oliva, azul pizarra, gris cálido, blanco roto), utilizando un único color de acento (ej. coral o verde azulado) de forma muy medida para el énfasis semántico. Figura humana de proporciones estilizadas (extremidades ligeramente alargadas, manos simplificadas). Rasgos faciales mínimos (ojos de punto, ángulo simple para la nariz, sin boca a menos que la emoción sea el mensaje principal). Ropa sugerida mediante bloques de color plano, sin texturas detalladas.\n\nComposición de figura centrada con amplio espacio negativo (\"aire\" alrededor). Se permiten elementos contextuales mínimos solo si aclaran la escena (ej. una línea para la mesa o el marco de una puerta), pero nunca un entorno o fondo completo; priorizar la sugerencia sobre la descripción. Toda la intención comunicativa debe expresarse mediante la postura corporal, los gestos de las manos, la relación espacial y la metáfora visual. CRÍTICO: NUNCA incluir texto, letras, números, palabras, etiquetas, rótulos, globos de diálogo ni símbolos escritos de ningún tipo. Evitar estrictamente: expresiones de dibujo animado, rasgos exagerados, proporciones infantiles, degradados, texturas fotográficas, sombras proyectadas, efectos 3D o bordes decorativos.\"\n\nOntología NSM (Goddard & Wierzbicka v19, 2017):\n*   **Substantives:** YO, TÚ~USTED, ALGUIEN, ALGO~COSA, GENTE~PERSONAS, CUERPO\n*   **Relational Substantives:** TIPO~CLASE, PARTE\n*   **Determiners:** ESTE~ESTO, EL MISMO, OTRO\n*   **Quantifiers:** UNO, DOS, ALGUNOS, TODO~TODOS, MUCHO~MUCHOS, POCO~POCOS\n*   **Evaluators:** BUENO, MALO\n*   **Descriptors:** GRANDE, PEQUEÑO\n*   **Mental Predicates:** PENSAR, SABER, QUERER, NO QUERER, SENTIR, VER, OÍR\n*   **Speech:** DECIR, PALABRAS, VERDAD\n*   **Actions Events Movement:** HACER, PASAR~OCURRIR, MOVER~MOVERSE\n*   **Existence Possession:** HAY~ESTAR, TENER\n*   **Life Death:** VIVIR, MORIR\n*   **Time:** CUÁNDO~TIEMPO, AHORA, ANTES, DESPUÉS, MUCHO TIEMPO, POCO TIEMPO, POR UN TIEMPO, MOMENTO\n*   **Space:** DÓNDE~LUGAR, AQUÍ, ARRIBA~ENCIMA, ABAJO~DEBAJO, LEJOS, CERCA, LADO, DENTRO, TOCAR\n*   **Logical Concepts:** NO, QUIZÁS~TAL VEZ, PODER, PORQUE, SI\n*   **Intensifier Augmentor:** MUY, MÁS\n*   **Similarity:** COMO~ASÍ\n\nLas explicaciones NSM (nsm_explications) deben estar escritas usando los primos en ESPAÑOL.\nFormato: clave = lema del concepto (p.ej. \"ayudar\"), valor = fórmula NSM usando SÓLO los primos en MAYÚSCULAS.\nEjemplo correcto — clave \"ayudar\": \"ALGUIEN (YO) piensa: ALGO MALO está pasando para MÍ. ESTE ALGUIEN quiere que ALGUIEN (TÚ) HAGA ALGO bueno para ESTE ALGUIEN ahora.\"\nGenera frame_label como traducción al español del frame_name.\n\nDominio — infiere uno de: transporte, salud, alimentación, educación, vida_cotidiana, trabajo, emociones, tiempo_libre, dinero, seguridad, comunicación, lugar, trámites\n\nReglas:\n1. Invoca SIEMPRE la herramienta analyze_utterance con el JSON completo.\n2. Analiza semántica y pragmática profunda, no solo la superficie.\n3. Todos los campos requeridos deben estar presentes.\n4. Conserva utterance exactamente. Usa IDs únicos cuando un frame sea referenciado; ref_frame apunta a un ID existente, nunca a frame_name.\n5. No inventes identidad del hablante ni timestamp de captura; esos datos no forman parte de la salida generada.\n6. visual_guidelines.temporal admite solo: immediate, near_future, future, past, habitual, unspecified. No existe \"present\": un estado o acción presente o en curso es immediate.",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ],
+            "tools": [
+              {
+                "name": "analyze_utterance",
+                "description": "Return the NLU semantic analysis of the communicative intention.",
+                "input_schema": {
+                  "description": "Strict profile for fresh Phase 1 output; historical imports use the document validator, not this profile.",
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "utterance",
+                    "lang",
+                    "metadata",
+                    "frames",
+                    "nsm_explications",
+                    "logical_form",
+                    "pragmatics",
+                    "visual_guidelines"
+                  ],
+                  "properties": {
+                    "utterance": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Surface string as received.",
+                      "pattern": "\\S"
+                    },
+                    "lang": {
+                      "type": "string",
+                      "description": "IETF BCP-47 language tag (e.g., en-GB, es-419).",
+                      "pattern": "^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$"
+                    },
+                    "domain": {
+                      "type": "string",
+                      "description": "Thematic domain inferred from the utterance.",
+                      "enum": [
+                        "transporte",
+                        "salud",
+                        "alimentación",
+                        "educación",
+                        "vida_cotidiana",
+                        "trabajo",
+                        "emociones",
+                        "tiempo_libre",
+                        "dinero",
+                        "seguridad",
+                        "comunicación",
+                        "lugar",
+                        "trámites"
+                      ]
+                    },
+                    "metadata": {
+                      "type": "object",
+                      "description": "Lightweight communicative metadata.",
+                      "additionalProperties": false,
+                      "required": [
+                        "speech_act",
+                        "intent"
+                      ],
+                      "properties": {
+                        "speech_act": {
+                          "type": "string",
+                          "description": "Dialogue-act class.",
+                          "enum": [
+                            "assertive",
+                            "directive",
+                            "commissive",
+                            "expressive",
+                            "declarative",
+                            "interrogative"
+                          ]
+                        },
+                        "intent": {
+                          "type": "string",
+                          "description": "Sub-type of communicative intention.",
+                          "enum": [
+                            "request",
+                            "command",
+                            "suggestion",
+                            "reminder",
+                            "warning",
+                            "inform",
+                            "ask_info",
+                            "confirm",
+                            "deny",
+                            "greet",
+                            "other"
+                          ]
+                        }
+                      }
+                    },
+                    "frames": {
+                      "type": "array",
+                      "description": "Frame-semantic analysis units.",
+                      "minItems": 1,
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "frame_name",
+                          "lexical_unit",
+                          "roles"
+                        ],
+                        "properties": {
+                          "frame_name": {
+                            "type": "string",
+                            "minLength": 1,
+                            "description": "Canonical FrameNet-like label in English (e.g., Directed_action, Desire).",
+                            "pattern": "\\S"
+                          },
+                          "frame_label": {
+                            "type": "string",
+                            "description": "Translated label for UI display in the utterance language (e.g., 'Costo' for 'Expensiveness')."
+                          },
+                          "lexical_unit": {
+                            "type": "string",
+                            "minLength": 1,
+                            "description": "Triggering lemma or expression.",
+                            "pattern": "\\S"
+                          },
+                          "roles": {
+                            "type": "object",
+                            "description": "Map of frame elements to role fillers.",
+                            "minProperties": 1,
+                            "additionalProperties": {
+                              "type": "object",
+                              "description": "Participant, object, or event filling a frame role.",
+                              "additionalProperties": false,
+                              "required": [
+                                "type"
+                              ],
+                              "anyOf": [
+                                {
+                                  "required": [
+                                    "ref"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "surface"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "lemma"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "ref_frame"
+                                  ]
+                                }
+                              ],
+                              "properties": {
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "Agent",
+                                    "Addressee",
+                                    "Speaker",
+                                    "Experiencer",
+                                    "Patient",
+                                    "Theme",
+                                    "Beneficiary",
+                                    "Instrument",
+                                    "Object",
+                                    "Event",
+                                    "Location",
+                                    "Time",
+                                    "Other"
+                                  ]
+                                },
+                                "ref": {
+                                  "type": "string",
+                                  "description": "External or discourse reference ID.",
+                                  "pattern": "\\S"
+                                },
+                                "surface": {
+                                  "type": "string",
+                                  "description": "Surface string span.",
+                                  "pattern": "\\S"
+                                },
+                                "lemma": {
+                                  "type": "string",
+                                  "description": "Canonical lemma.",
+                                  "pattern": "\\S"
+                                },
+                                "definiteness": {
+                                  "type": "string",
+                                  "enum": [
+                                    "definite",
+                                    "indefinite",
+                                    "unspecified"
+                                  ]
+                                },
+                                "ref_frame": {
+                                  "type": "string",
+                                  "description": "ID of another FrameObject this filler points to.",
+                                  "pattern": "\\S"
+                                }
+                              }
+                            }
+                          },
+                          "id": {
+                            "type": "string",
+                            "description": "Optional local ID for cross-referencing between frames.",
+                            "pattern": "^[A-Za-z0-9_-]{1,64}$"
+                          }
+                        }
+                      }
+                    },
+                    "nsm_explications": {
+                      "type": "object",
+                      "description": "NSM primes or paraphrases keyed by concept label (preferred key).",
+                      "additionalProperties": {
+                        "type": "string",
+                        "pattern": "\\S"
+                      },
+                      "minProperties": 1
+                    },
+                    "logical_form": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "event",
+                        "modality"
+                      ],
+                      "properties": {
+                        "event": {
+                          "type": "string",
+                          "pattern": "\\S"
+                        },
+                        "modality": {
+                          "type": "string"
+                        },
+                        "negation": {
+                          "type": "boolean"
+                        },
+                        "aspect": {
+                          "type": "string",
+                          "enum": [
+                            "none",
+                            "progressive",
+                            "perfective",
+                            "habitual",
+                            "inceptive",
+                            "custom"
+                          ]
+                        },
+                        "tense": {
+                          "type": "string",
+                          "enum": [
+                            "past",
+                            "present",
+                            "future",
+                            "unspecified"
+                          ]
+                        }
+                      }
+                    },
+                    "pragmatics": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "politeness": {
+                          "type": "string",
+                          "enum": [
+                            "polite",
+                            "neutral",
+                            "impolite"
+                          ]
+                        },
+                        "formality": {
+                          "type": "string",
+                          "enum": [
+                            "informal",
+                            "neutral",
+                            "formal"
+                          ]
+                        },
+                        "expected_response": {
+                          "type": "string",
+                          "enum": [
+                            "compliance",
+                            "refusal",
+                            "acknowledgment",
+                            "question",
+                            "silence",
+                            "other"
+                          ]
+                        },
+                        "urgency": {
+                          "type": "string",
+                          "enum": [
+                            "low",
+                            "medium",
+                            "high"
+                          ]
+                        },
+                        "speaker_stance": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "politeness",
+                        "formality",
+                        "expected_response"
+                      ]
+                    },
+                    "visual_guidelines": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "focus_actor": {
+                          "type": "string"
+                        },
+                        "secondary_actor": {
+                          "type": "string"
+                        },
+                        "action_core": {
+                          "type": "string"
+                        },
+                        "object_core": {
+                          "type": "string"
+                        },
+                        "context": {
+                          "type": "string"
+                        },
+                        "temporal": {
+                          "type": "string",
+                          "enum": [
+                            "immediate",
+                            "near_future",
+                            "future",
+                            "past",
+                            "habitual",
+                            "unspecified"
+                          ]
+                        },
+                        "salience": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1
+                          }
+                        }
+                      },
+                      "required": [
+                        "focus_actor",
+                        "action_core",
+                        "object_core",
+                        "context",
+                        "temporal"
+                      ]
+                    },
+                    "schemaVersion": {
+                      "const": "1.1.0",
+                      "description": "Optional explicit document version; never retroactively inferred."
+                    }
+                  }
+                },
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ],
+            "tool_choice": {
+              "type": "tool",
+              "name": "analyze_utterance"
+            },
+            "messages": [
+              {
+                "role": "user",
+                "content": "UTTERANCE: \"Quiero ir al baño\""
+              }
+            ]
+          },
+          "inputHash": "82c0948d1443a0191fcde08060e2df653cd1d558ac0bed40081f2256fd4a5b9f",
+          "outputHash": "2235e598d505118f32cb8a681361c4e45308ac79face2c4c9ee0167a2bea412b",
+          "validated": true
+        }
+      ]
     },
     {
       "id": "R_PHRASE_1772676868375_1",
       "UTTERANCE": "Estoy enojado, quiero estar solo",
       "NLU": {
         "utterance": "Estoy enojado, quiero estar solo",
-        "lang": "es",
-        "domain": "emociones",
+        "lang": "es-419",
         "metadata": {
-          "speech_act": "expresión de estado emocional y solicitud de límite personal",
-          "intent": "comunicar enfado e indicar necesidad de soledad/privacidad"
+          "speech_act": "expressive",
+          "intent": "inform"
         },
         "frames": [
           {
+            "id": "f_emocion",
             "frame_name": "Emotion_directed",
-            "frame_label": "Emoción dirigida",
             "lexical_unit": "enojado",
             "roles": {
               "Experiencer": {
-                "type": "Speaker",
-                "surface": "Estoy",
-                "lemma": "estar",
-                "ref": "YO",
-                "definiteness": "definite"
+                "type": "Experiencer",
+                "lemma": "YO",
+                "surface": "Estoy"
               },
-              "Emotion": {
+              "Content": {
                 "type": "Theme",
-                "surface": "enojado",
-                "lemma": "enojado",
-                "ref": "SENTIR + MALO",
-                "definiteness": "unspecified"
+                "lemma": "ENOJO",
+                "surface": "enojado"
               }
             }
           },
           {
+            "id": "f_deseo",
             "frame_name": "Desiring",
-            "frame_label": "Desear",
             "lexical_unit": "quiero",
             "roles": {
               "Experiencer": {
-                "type": "Speaker",
-                "surface": "quiero",
-                "lemma": "querer",
-                "ref": "YO",
-                "definiteness": "definite"
+                "type": "Experiencer",
+                "lemma": "YO",
+                "surface": "quiero"
               },
-              "Desired_event": {
+              "Event": {
                 "type": "Event",
-                "surface": "estar solo",
-                "lemma": "estar",
-                "ref": "ESTAR + LUGAR (solo)",
-                "definiteness": "unspecified"
-              }
-            }
-          },
-          {
-            "frame_name": "Locative_relation",
-            "frame_label": "Relación locativa",
-            "lexical_unit": "solo",
-            "roles": {
-              "Figure": {
-                "type": "Theme",
-                "surface": "yo",
-                "lemma": "yo",
-                "ref": "YO",
-                "definiteness": "definite"
-              },
-              "Ground": {
-                "type": "Location",
-                "surface": "solo",
-                "lemma": "solo",
-                "ref": "LUGAR (ausencia de OTRO)",
-                "definiteness": "unspecified"
+                "lemma": "ESTAR_SOLO",
+                "surface": "estar solo"
               }
             }
           }
         ],
         "nsm_explications": {
-          "enojado": "YO SIENTE ALGO MALO AHORA",
-          "quiero_estar_solo": "YO QUIERE ESTAR EN UN LUGAR DONDE NO HAY OTRO CERCA DE YO AHORA",
-          "expresion_general": "YO SIENTE ALGO MALO AHORA, PORQUE DE ESTO YO QUIERE ESTAR LEJOS DE OTRO GENTE POR UN TIEMPO"
-        },
-        "logical_form": {
-          "event": "SENTIR(YO, MALO) ∧ QUERER(YO, ESTAR(YO, SOLO))",
-          "modality": "indicativo presente + desiderativo"
-        },
-        "pragmatics": {
-          "politeness": "baja (expresión emocional directa, sin marcadores de cortesía)",
-          "formality": "baja (lenguaje coloquial, contexto íntimo emocional)",
-          "expected_response": "respeto del espacio solicitado; validación emocional; no presionar interacción; esperar a que la persona se recupere emocionalmente"
+          "enojarse": "ALGUIEN (YO) SIENTE algo MALO ahora. Por esto ALGUIEN (YO) no QUIERE estar con OTRA GENTE ahora.",
+          "estar solo": "ALGUIEN (YO) quiere estar AQUÍ sin GENTE. NO quiere que OTRA GENTE HAGA ALGO AHORA."
         },
         "visual_guidelines": {
-          "focus_actor": "la persona usuaria (primera persona)",
-          "action_core": "estado emocional de enojo + deseo de aislamiento",
-          "object_core": "emoción negativa (enojo) + espacio/privacidad (soledad)",
-          "context": "situación de regulación emocional en contexto escolar o de trámite; la persona necesita espacio para procesaremoción",
-          "temporal": "presente inmediato; necesidad actual de no interacción"
-        }
+          "focus_actor": "figura humana estilizada sola, de espaldas o girada levemente hacia un lado",
+          "action_core": "brazos cruzados o mano levantada en gesto de alto suave, postura cerrada",
+          "object_core": "ninguno",
+          "context": "amplio espacio negativo alrededor de la figura, sin entorno; acento coral sutil en el torso o en las manos para tensión emocional",
+          "temporal": "immediate",
+          "salience": {
+            "figura": 1,
+            "gesto_de_alto": 0.8,
+            "espacio_negativo": 0.6
+          }
+        },
+        "pragmatics": {
+          "politeness": "neutral",
+          "formality": "neutral",
+          "expected_response": "acknowledgment",
+          "urgency": "low",
+          "speaker_stance": "Hablante declara su estado de enojo y pide distancia social y privacidad."
+        },
+        "logical_form": {
+          "event": "ESTAR_SOLO (YO) tras ENOJO",
+          "modality": "querer",
+          "tense": "present",
+          "aspect": "progressive",
+          "negation": false
+        },
+        "domain": "emociones"
       },
       "elements": [
         {
@@ -1978,71 +2472,596 @@
       "nluStatus": "completed",
       "visualStatus": "completed",
       "bitmapStatus": "completed",
-      "nluDuration": 9.947,
+      "nluDuration": 4243,
       "visualDuration": 9.267,
       "bitmapDuration": 17.709,
       "generationModel": "gemini-3.1-flash-image",
       "structuredSvgDiscarded": false,
-      "structuredSvgStatus": "idle"
+      "structuredSvgStatus": "idle",
+      "nluLegacy": {
+        "replacedAt": "2026-11-05T22:41:57.533Z",
+        "reason": "failed NLU 1.1.0 contract",
+        "NLU": {
+          "utterance": "Estoy enojado, quiero estar solo",
+          "lang": "es",
+          "domain": "emociones",
+          "metadata": {
+            "speech_act": "expresión de estado emocional y solicitud de límite personal",
+            "intent": "comunicar enfado e indicar necesidad de soledad/privacidad"
+          },
+          "frames": [
+            {
+              "frame_name": "Emotion_directed",
+              "frame_label": "Emoción dirigida",
+              "lexical_unit": "enojado",
+              "roles": {
+                "Experiencer": {
+                  "type": "Speaker",
+                  "surface": "Estoy",
+                  "lemma": "estar",
+                  "ref": "YO",
+                  "definiteness": "definite"
+                },
+                "Emotion": {
+                  "type": "Theme",
+                  "surface": "enojado",
+                  "lemma": "enojado",
+                  "ref": "SENTIR + MALO",
+                  "definiteness": "unspecified"
+                }
+              }
+            },
+            {
+              "frame_name": "Desiring",
+              "frame_label": "Desear",
+              "lexical_unit": "quiero",
+              "roles": {
+                "Experiencer": {
+                  "type": "Speaker",
+                  "surface": "quiero",
+                  "lemma": "querer",
+                  "ref": "YO",
+                  "definiteness": "definite"
+                },
+                "Desired_event": {
+                  "type": "Event",
+                  "surface": "estar solo",
+                  "lemma": "estar",
+                  "ref": "ESTAR + LUGAR (solo)",
+                  "definiteness": "unspecified"
+                }
+              }
+            },
+            {
+              "frame_name": "Locative_relation",
+              "frame_label": "Relación locativa",
+              "lexical_unit": "solo",
+              "roles": {
+                "Figure": {
+                  "type": "Theme",
+                  "surface": "yo",
+                  "lemma": "yo",
+                  "ref": "YO",
+                  "definiteness": "definite"
+                },
+                "Ground": {
+                  "type": "Location",
+                  "surface": "solo",
+                  "lemma": "solo",
+                  "ref": "LUGAR (ausencia de OTRO)",
+                  "definiteness": "unspecified"
+                }
+              }
+            }
+          ],
+          "nsm_explications": {
+            "enojado": "YO SIENTE ALGO MALO AHORA",
+            "quiero_estar_solo": "YO QUIERE ESTAR EN UN LUGAR DONDE NO HAY OTRO CERCA DE YO AHORA",
+            "expresion_general": "YO SIENTE ALGO MALO AHORA, PORQUE DE ESTO YO QUIERE ESTAR LEJOS DE OTRO GENTE POR UN TIEMPO"
+          },
+          "logical_form": {
+            "event": "SENTIR(YO, MALO) ∧ QUERER(YO, ESTAR(YO, SOLO))",
+            "modality": "indicativo presente + desiderativo"
+          },
+          "pragmatics": {
+            "politeness": "baja (expresión emocional directa, sin marcadores de cortesía)",
+            "formality": "baja (lenguaje coloquial, contexto íntimo emocional)",
+            "expected_response": "respeto del espacio solicitado; validación emocional; no presionar interacción; esperar a que la persona se recupere emocionalmente"
+          },
+          "visual_guidelines": {
+            "focus_actor": "la persona usuaria (primera persona)",
+            "action_core": "estado emocional de enojo + deseo de aislamiento",
+            "object_core": "emoción negativa (enojo) + espacio/privacidad (soledad)",
+            "context": "situación de regulación emocional en contexto escolar o de trámite; la persona necesita espacio para procesaremoción",
+            "temporal": "presente inmediato; necesidad actual de no interacción"
+          }
+        }
+      },
+      "phaseExecutions": [
+        {
+          "id": "af3dedd1-104a-4abb-8252-ae6e9fb8247c",
+          "phase": 1,
+          "createdAt": "2026-11-05T22:41:57.533Z",
+          "model": "claude-haiku-5-5",
+          "provider": "anthropic",
+          "actualModel": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 230,
+            "cache_creation_input_tokens": 2119,
+            "cache_read_input_tokens": 2342,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 2119,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 963,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "service_tier": "standard",
+            "inference_geo": "global",
+            "speed": "standard"
+          },
+          "contractId": "https://pictos.net/schemas/pictonet-nlu-generation-1.1.0.schema.json",
+          "contractHash": "3709b2d5d375ab75a5885bdad9dd3c9a57820461fb72f86f5b2cb6f448aac695",
+          "contractVersion": "1.1.0",
+          "promptVersion": "nlu-1.1.0",
+          "promptHash": "4ec9ebf406108dcb222e2d2cabd3b1675464d1b15f0b08091e0420cb7ae3930b",
+          "inputSnapshot": {
+            "model": "claude-haiku-5-5",
+            "max_tokens": 4096,
+            "system": [
+              {
+                "type": "text",
+                "text": "Operas como el nodo \"NLU Schema Engine\" en la arquitectura PictoNet.\nTu tarea es analizar la intención comunicativa y devolver el resultado JSON vía la herramienta disponible.\n\nContexto de uso:\n- Región geográfica: Viña del Mar, Valparaiso Region, Chile\n- Idioma del vocabulario: es-419\n- Contexto visual: \"Pictograma de estilo ilustración editorial contemporánea. Estética cálida, sofisticada y adecuada para un público adulto. Nivel de abstracción medio: reconocible pero estilizado, nunca fotorrealista. Formas orgánicas con contornos seguros pero ligeramente irregulares (se debe percibir el trazo manual del ilustrador con sutiles imperfecciones que aporten personalidad, sin verse desaliñado). Curvas suaves, sin bordes geométricos afilados. Trabajo de línea de grosor variable para enfatizar contornos clave, con líneas secundarias finas para detalles internos; omitir el trazo en áreas rellenas si el contraste de color es suficiente. Paleta de colores planos de 4 a 6 tonos apagados, desaturados y terrosos (terracota, ocre, oliva, azul pizarra, gris cálido, blanco roto), utilizando un único color de acento (ej. coral o verde azulado) de forma muy medida para el énfasis semántico. Figura humana de proporciones estilizadas (extremidades ligeramente alargadas, manos simplificadas). Rasgos faciales mínimos (ojos de punto, ángulo simple para la nariz, sin boca a menos que la emoción sea el mensaje principal). Ropa sugerida mediante bloques de color plano, sin texturas detalladas.\n\nComposición de figura centrada con amplio espacio negativo (\"aire\" alrededor). Se permiten elementos contextuales mínimos solo si aclaran la escena (ej. una línea para la mesa o el marco de una puerta), pero nunca un entorno o fondo completo; priorizar la sugerencia sobre la descripción. Toda la intención comunicativa debe expresarse mediante la postura corporal, los gestos de las manos, la relación espacial y la metáfora visual. CRÍTICO: NUNCA incluir texto, letras, números, palabras, etiquetas, rótulos, globos de diálogo ni símbolos escritos de ningún tipo. Evitar estrictamente: expresiones de dibujo animado, rasgos exagerados, proporciones infantiles, degradados, texturas fotográficas, sombras proyectadas, efectos 3D o bordes decorativos.\"\n\nOntología NSM (Goddard & Wierzbicka v19, 2017):\n*   **Substantives:** YO, TÚ~USTED, ALGUIEN, ALGO~COSA, GENTE~PERSONAS, CUERPO\n*   **Relational Substantives:** TIPO~CLASE, PARTE\n*   **Determiners:** ESTE~ESTO, EL MISMO, OTRO\n*   **Quantifiers:** UNO, DOS, ALGUNOS, TODO~TODOS, MUCHO~MUCHOS, POCO~POCOS\n*   **Evaluators:** BUENO, MALO\n*   **Descriptors:** GRANDE, PEQUEÑO\n*   **Mental Predicates:** PENSAR, SABER, QUERER, NO QUERER, SENTIR, VER, OÍR\n*   **Speech:** DECIR, PALABRAS, VERDAD\n*   **Actions Events Movement:** HACER, PASAR~OCURRIR, MOVER~MOVERSE\n*   **Existence Possession:** HAY~ESTAR, TENER\n*   **Life Death:** VIVIR, MORIR\n*   **Time:** CUÁNDO~TIEMPO, AHORA, ANTES, DESPUÉS, MUCHO TIEMPO, POCO TIEMPO, POR UN TIEMPO, MOMENTO\n*   **Space:** DÓNDE~LUGAR, AQUÍ, ARRIBA~ENCIMA, ABAJO~DEBAJO, LEJOS, CERCA, LADO, DENTRO, TOCAR\n*   **Logical Concepts:** NO, QUIZÁS~TAL VEZ, PODER, PORQUE, SI\n*   **Intensifier Augmentor:** MUY, MÁS\n*   **Similarity:** COMO~ASÍ\n\nLas explicaciones NSM (nsm_explications) deben estar escritas usando los primos en ESPAÑOL.\nFormato: clave = lema del concepto (p.ej. \"ayudar\"), valor = fórmula NSM usando SÓLO los primos en MAYÚSCULAS.\nEjemplo correcto — clave \"ayudar\": \"ALGUIEN (YO) piensa: ALGO MALO está pasando para MÍ. ESTE ALGUIEN quiere que ALGUIEN (TÚ) HAGA ALGO bueno para ESTE ALGUIEN ahora.\"\nGenera frame_label como traducción al español del frame_name.\n\nDominio — infiere uno de: transporte, salud, alimentación, educación, vida_cotidiana, trabajo, emociones, tiempo_libre, dinero, seguridad, comunicación, lugar, trámites\n\nReglas:\n1. Invoca SIEMPRE la herramienta analyze_utterance con el JSON completo.\n2. Analiza semántica y pragmática profunda, no solo la superficie.\n3. Todos los campos requeridos deben estar presentes.\n4. Conserva utterance exactamente. Usa IDs únicos cuando un frame sea referenciado; ref_frame apunta a un ID existente, nunca a frame_name.\n5. No inventes identidad del hablante ni timestamp de captura; esos datos no forman parte de la salida generada.\n6. visual_guidelines.temporal admite solo: immediate, near_future, future, past, habitual, unspecified. No existe \"present\": un estado o acción presente o en curso es immediate.",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ],
+            "tools": [
+              {
+                "name": "analyze_utterance",
+                "description": "Return the NLU semantic analysis of the communicative intention.",
+                "input_schema": {
+                  "description": "Strict profile for fresh Phase 1 output; historical imports use the document validator, not this profile.",
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "utterance",
+                    "lang",
+                    "metadata",
+                    "frames",
+                    "nsm_explications",
+                    "logical_form",
+                    "pragmatics",
+                    "visual_guidelines"
+                  ],
+                  "properties": {
+                    "utterance": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Surface string as received.",
+                      "pattern": "\\S"
+                    },
+                    "lang": {
+                      "type": "string",
+                      "description": "IETF BCP-47 language tag (e.g., en-GB, es-419).",
+                      "pattern": "^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$"
+                    },
+                    "domain": {
+                      "type": "string",
+                      "description": "Thematic domain inferred from the utterance.",
+                      "enum": [
+                        "transporte",
+                        "salud",
+                        "alimentación",
+                        "educación",
+                        "vida_cotidiana",
+                        "trabajo",
+                        "emociones",
+                        "tiempo_libre",
+                        "dinero",
+                        "seguridad",
+                        "comunicación",
+                        "lugar",
+                        "trámites"
+                      ]
+                    },
+                    "metadata": {
+                      "type": "object",
+                      "description": "Lightweight communicative metadata.",
+                      "additionalProperties": false,
+                      "required": [
+                        "speech_act",
+                        "intent"
+                      ],
+                      "properties": {
+                        "speech_act": {
+                          "type": "string",
+                          "description": "Dialogue-act class.",
+                          "enum": [
+                            "assertive",
+                            "directive",
+                            "commissive",
+                            "expressive",
+                            "declarative",
+                            "interrogative"
+                          ]
+                        },
+                        "intent": {
+                          "type": "string",
+                          "description": "Sub-type of communicative intention.",
+                          "enum": [
+                            "request",
+                            "command",
+                            "suggestion",
+                            "reminder",
+                            "warning",
+                            "inform",
+                            "ask_info",
+                            "confirm",
+                            "deny",
+                            "greet",
+                            "other"
+                          ]
+                        }
+                      }
+                    },
+                    "frames": {
+                      "type": "array",
+                      "description": "Frame-semantic analysis units.",
+                      "minItems": 1,
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "frame_name",
+                          "lexical_unit",
+                          "roles"
+                        ],
+                        "properties": {
+                          "frame_name": {
+                            "type": "string",
+                            "minLength": 1,
+                            "description": "Canonical FrameNet-like label in English (e.g., Directed_action, Desire).",
+                            "pattern": "\\S"
+                          },
+                          "frame_label": {
+                            "type": "string",
+                            "description": "Translated label for UI display in the utterance language (e.g., 'Costo' for 'Expensiveness')."
+                          },
+                          "lexical_unit": {
+                            "type": "string",
+                            "minLength": 1,
+                            "description": "Triggering lemma or expression.",
+                            "pattern": "\\S"
+                          },
+                          "roles": {
+                            "type": "object",
+                            "description": "Map of frame elements to role fillers.",
+                            "minProperties": 1,
+                            "additionalProperties": {
+                              "type": "object",
+                              "description": "Participant, object, or event filling a frame role.",
+                              "additionalProperties": false,
+                              "required": [
+                                "type"
+                              ],
+                              "anyOf": [
+                                {
+                                  "required": [
+                                    "ref"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "surface"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "lemma"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "ref_frame"
+                                  ]
+                                }
+                              ],
+                              "properties": {
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "Agent",
+                                    "Addressee",
+                                    "Speaker",
+                                    "Experiencer",
+                                    "Patient",
+                                    "Theme",
+                                    "Beneficiary",
+                                    "Instrument",
+                                    "Object",
+                                    "Event",
+                                    "Location",
+                                    "Time",
+                                    "Other"
+                                  ]
+                                },
+                                "ref": {
+                                  "type": "string",
+                                  "description": "External or discourse reference ID.",
+                                  "pattern": "\\S"
+                                },
+                                "surface": {
+                                  "type": "string",
+                                  "description": "Surface string span.",
+                                  "pattern": "\\S"
+                                },
+                                "lemma": {
+                                  "type": "string",
+                                  "description": "Canonical lemma.",
+                                  "pattern": "\\S"
+                                },
+                                "definiteness": {
+                                  "type": "string",
+                                  "enum": [
+                                    "definite",
+                                    "indefinite",
+                                    "unspecified"
+                                  ]
+                                },
+                                "ref_frame": {
+                                  "type": "string",
+                                  "description": "ID of another FrameObject this filler points to.",
+                                  "pattern": "\\S"
+                                }
+                              }
+                            }
+                          },
+                          "id": {
+                            "type": "string",
+                            "description": "Optional local ID for cross-referencing between frames.",
+                            "pattern": "^[A-Za-z0-9_-]{1,64}$"
+                          }
+                        }
+                      }
+                    },
+                    "nsm_explications": {
+                      "type": "object",
+                      "description": "NSM primes or paraphrases keyed by concept label (preferred key).",
+                      "additionalProperties": {
+                        "type": "string",
+                        "pattern": "\\S"
+                      },
+                      "minProperties": 1
+                    },
+                    "logical_form": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "event",
+                        "modality"
+                      ],
+                      "properties": {
+                        "event": {
+                          "type": "string",
+                          "pattern": "\\S"
+                        },
+                        "modality": {
+                          "type": "string"
+                        },
+                        "negation": {
+                          "type": "boolean"
+                        },
+                        "aspect": {
+                          "type": "string",
+                          "enum": [
+                            "none",
+                            "progressive",
+                            "perfective",
+                            "habitual",
+                            "inceptive",
+                            "custom"
+                          ]
+                        },
+                        "tense": {
+                          "type": "string",
+                          "enum": [
+                            "past",
+                            "present",
+                            "future",
+                            "unspecified"
+                          ]
+                        }
+                      }
+                    },
+                    "pragmatics": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "politeness": {
+                          "type": "string",
+                          "enum": [
+                            "polite",
+                            "neutral",
+                            "impolite"
+                          ]
+                        },
+                        "formality": {
+                          "type": "string",
+                          "enum": [
+                            "informal",
+                            "neutral",
+                            "formal"
+                          ]
+                        },
+                        "expected_response": {
+                          "type": "string",
+                          "enum": [
+                            "compliance",
+                            "refusal",
+                            "acknowledgment",
+                            "question",
+                            "silence",
+                            "other"
+                          ]
+                        },
+                        "urgency": {
+                          "type": "string",
+                          "enum": [
+                            "low",
+                            "medium",
+                            "high"
+                          ]
+                        },
+                        "speaker_stance": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "politeness",
+                        "formality",
+                        "expected_response"
+                      ]
+                    },
+                    "visual_guidelines": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "focus_actor": {
+                          "type": "string"
+                        },
+                        "secondary_actor": {
+                          "type": "string"
+                        },
+                        "action_core": {
+                          "type": "string"
+                        },
+                        "object_core": {
+                          "type": "string"
+                        },
+                        "context": {
+                          "type": "string"
+                        },
+                        "temporal": {
+                          "type": "string",
+                          "enum": [
+                            "immediate",
+                            "near_future",
+                            "future",
+                            "past",
+                            "habitual",
+                            "unspecified"
+                          ]
+                        },
+                        "salience": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1
+                          }
+                        }
+                      },
+                      "required": [
+                        "focus_actor",
+                        "action_core",
+                        "object_core",
+                        "context",
+                        "temporal"
+                      ]
+                    },
+                    "schemaVersion": {
+                      "const": "1.1.0",
+                      "description": "Optional explicit document version; never retroactively inferred."
+                    }
+                  }
+                },
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ],
+            "tool_choice": {
+              "type": "tool",
+              "name": "analyze_utterance"
+            },
+            "messages": [
+              {
+                "role": "user",
+                "content": "UTTERANCE: \"Estoy enojado, quiero estar solo\""
+              }
+            ]
+          },
+          "inputHash": "fda5032c7f43c99118165081513c4c11715001988e5d7ad40095b49a612f494e",
+          "outputHash": "1a40cb94614f5b7c4ba022006115dac067a260da0a2f04a5ff1084a69c2c2c01",
+          "validated": true
+        }
+      ]
     },
     {
       "id": "R_PHRASE_1772676868375_2",
       "UTTERANCE": "Me duele la cabeza",
       "NLU": {
         "utterance": "Me duele la cabeza",
-        "lang": "es",
-        "domain": "salud",
+        "lang": "es-419",
+        "schemaVersion": "1.1.0",
         "metadata": {
-          "speech_act": "información",
-          "intent": "expresar malestar físico / reportar síntoma de dolor"
+          "speech_act": "expressive",
+          "intent": "inform"
         },
+        "domain": "salud",
         "frames": [
           {
-            "frame_name": "Experience_Bodily_Sensation",
-            "frame_label": "Experiencia de Sensación Corporal",
+            "id": "f1",
+            "frame_name": "Experiencing_pain",
             "lexical_unit": "doler",
             "roles": {
               "Experiencer": {
                 "type": "Experiencer",
-                "surface": "me",
-                "lemma": "yo",
+                "surface": "Me",
+                "lemma": "YO",
                 "definiteness": "definite"
               },
-              "Body_part": {
-                "type": "Theme",
+              "Patient": {
+                "type": "Patient",
                 "surface": "la cabeza",
-                "lemma": "cabeza",
+                "lemma": "CUERPO",
                 "definiteness": "definite"
-              },
-              "Pain_type": {
-                "type": "Other",
-                "surface": "duele",
-                "lemma": "dolor",
-                "ref": "SENTIR"
               }
             }
           }
         ],
         "nsm_explications": {
-          "experiencia_dolor": "YO SIENTE ALGO MALO EN ESTE MOMENTO EN PARTE DE CUERPO (CABEZA)",
-          "sensacion_corporal": "HAY ALGO MALO EN PARTE DE MI CUERPO, PUEDO SENTIR ESTO AHORA",
-          "tipo_de_evento": "SENTIR - EXPERIENCIA NEGATIVA EN CUERPO"
+          "doler": "ALGO MALO está pasando en mi CUERPO. YO siento ALGO MALO en esta PARTE del CUERPO. YO no quiero sentir esto.",
+          "dolor de cabeza": "YO siento ALGO MALO en mi CABEZA. ESTO pasa ahora. YO no quiero que ESTO pase."
         },
         "logical_form": {
-          "event": "SENTIR(yo, dolor, cabeza, AHORA)",
-          "modality": "indicativo - reporte directo de estado actual"
+          "event": "doler(cabeza, YO)",
+          "modality": "none",
+          "aspect": "progressive",
+          "tense": "present",
+          "negation": false
         },
         "pragmatics": {
           "politeness": "neutral",
-          "formality": "coloquial-natural",
-          "expected_response": "expresión de empatía / preguntas de diagnóstico / sugerencia de remedios o atención médica"
+          "formality": "neutral",
+          "expected_response": "acknowledgment",
+          "urgency": "medium",
+          "speaker_stance": "El hablante comunica una molestia física presente y busca atención o alivio."
         },
         "visual_guidelines": {
-          "focus_actor": "persona usuaria (yo)",
-          "action_core": "sentir/experimentar dolor",
-          "object_core": "cabeza (parte del cuerpo afectada)",
-          "context": "contexto de salud, malestar físico",
-          "temporal": "presente (AHORA), estado actual"
+          "focus_actor": "figura humana estilizada con la mano tocando la sien o la cabeza",
+          "action_core": "llevarse la mano a la cabeza con gesto de molestia",
+          "object_core": "cabeza",
+          "context": "figura centrada, amplio espacio negativo, sin texto, expresión corporal contenida",
+          "temporal": "immediate",
+          "salience": {
+            "cabeza": 0.9,
+            "mano": 0.7,
+            "gesto_molestia": 0.6
+          }
         }
       },
       "elements": [
@@ -2071,96 +3090,584 @@
       "nluStatus": "completed",
       "visualStatus": "completed",
       "bitmapStatus": "completed",
-      "nluDuration": 13.464,
+      "nluDuration": 3423,
       "visualDuration": 5.571,
       "bitmapDuration": 49.399,
       "generationModel": "gemini-3.1-flash-image",
       "structuredSvgDiscarded": false,
-      "structuredSvgStatus": "idle"
+      "structuredSvgStatus": "idle",
+      "nluLegacy": {
+        "replacedAt": "2026-11-05T22:41:56.713Z",
+        "reason": "failed NLU 1.1.0 contract",
+        "NLU": {
+          "utterance": "Me duele la cabeza",
+          "lang": "es",
+          "domain": "salud",
+          "metadata": {
+            "speech_act": "información",
+            "intent": "expresar malestar físico / reportar síntoma de dolor"
+          },
+          "frames": [
+            {
+              "frame_name": "Experience_Bodily_Sensation",
+              "frame_label": "Experiencia de Sensación Corporal",
+              "lexical_unit": "doler",
+              "roles": {
+                "Experiencer": {
+                  "type": "Experiencer",
+                  "surface": "me",
+                  "lemma": "yo",
+                  "definiteness": "definite"
+                },
+                "Body_part": {
+                  "type": "Theme",
+                  "surface": "la cabeza",
+                  "lemma": "cabeza",
+                  "definiteness": "definite"
+                },
+                "Pain_type": {
+                  "type": "Other",
+                  "surface": "duele",
+                  "lemma": "dolor",
+                  "ref": "SENTIR"
+                }
+              }
+            }
+          ],
+          "nsm_explications": {
+            "experiencia_dolor": "YO SIENTE ALGO MALO EN ESTE MOMENTO EN PARTE DE CUERPO (CABEZA)",
+            "sensacion_corporal": "HAY ALGO MALO EN PARTE DE MI CUERPO, PUEDO SENTIR ESTO AHORA",
+            "tipo_de_evento": "SENTIR - EXPERIENCIA NEGATIVA EN CUERPO"
+          },
+          "logical_form": {
+            "event": "SENTIR(yo, dolor, cabeza, AHORA)",
+            "modality": "indicativo - reporte directo de estado actual"
+          },
+          "pragmatics": {
+            "politeness": "neutral",
+            "formality": "coloquial-natural",
+            "expected_response": "expresión de empatía / preguntas de diagnóstico / sugerencia de remedios o atención médica"
+          },
+          "visual_guidelines": {
+            "focus_actor": "persona usuaria (yo)",
+            "action_core": "sentir/experimentar dolor",
+            "object_core": "cabeza (parte del cuerpo afectada)",
+            "context": "contexto de salud, malestar físico",
+            "temporal": "presente (AHORA), estado actual"
+          }
+        }
+      },
+      "phaseExecutions": [
+        {
+          "id": "7031f389-6fef-40df-b4a7-9456d34104c4",
+          "phase": 1,
+          "createdAt": "2026-11-05T22:41:56.706Z",
+          "model": "claude-haiku-5-5",
+          "provider": "anthropic",
+          "actualModel": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 224,
+            "cache_creation_input_tokens": 2119,
+            "cache_read_input_tokens": 2342,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 2119,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 824,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "service_tier": "standard",
+            "inference_geo": "global",
+            "speed": "standard"
+          },
+          "contractId": "https://pictos.net/schemas/pictonet-nlu-generation-1.1.0.schema.json",
+          "contractHash": "3709b2d5d375ab75a5885bdad9dd3c9a57820461fb72f86f5b2cb6f448aac695",
+          "contractVersion": "1.1.0",
+          "promptVersion": "nlu-1.1.0",
+          "promptHash": "4ec9ebf406108dcb222e2d2cabd3b1675464d1b15f0b08091e0420cb7ae3930b",
+          "inputSnapshot": {
+            "model": "claude-haiku-5-5",
+            "max_tokens": 4096,
+            "system": [
+              {
+                "type": "text",
+                "text": "Operas como el nodo \"NLU Schema Engine\" en la arquitectura PictoNet.\nTu tarea es analizar la intención comunicativa y devolver el resultado JSON vía la herramienta disponible.\n\nContexto de uso:\n- Región geográfica: Viña del Mar, Valparaiso Region, Chile\n- Idioma del vocabulario: es-419\n- Contexto visual: \"Pictograma de estilo ilustración editorial contemporánea. Estética cálida, sofisticada y adecuada para un público adulto. Nivel de abstracción medio: reconocible pero estilizado, nunca fotorrealista. Formas orgánicas con contornos seguros pero ligeramente irregulares (se debe percibir el trazo manual del ilustrador con sutiles imperfecciones que aporten personalidad, sin verse desaliñado). Curvas suaves, sin bordes geométricos afilados. Trabajo de línea de grosor variable para enfatizar contornos clave, con líneas secundarias finas para detalles internos; omitir el trazo en áreas rellenas si el contraste de color es suficiente. Paleta de colores planos de 4 a 6 tonos apagados, desaturados y terrosos (terracota, ocre, oliva, azul pizarra, gris cálido, blanco roto), utilizando un único color de acento (ej. coral o verde azulado) de forma muy medida para el énfasis semántico. Figura humana de proporciones estilizadas (extremidades ligeramente alargadas, manos simplificadas). Rasgos faciales mínimos (ojos de punto, ángulo simple para la nariz, sin boca a menos que la emoción sea el mensaje principal). Ropa sugerida mediante bloques de color plano, sin texturas detalladas.\n\nComposición de figura centrada con amplio espacio negativo (\"aire\" alrededor). Se permiten elementos contextuales mínimos solo si aclaran la escena (ej. una línea para la mesa o el marco de una puerta), pero nunca un entorno o fondo completo; priorizar la sugerencia sobre la descripción. Toda la intención comunicativa debe expresarse mediante la postura corporal, los gestos de las manos, la relación espacial y la metáfora visual. CRÍTICO: NUNCA incluir texto, letras, números, palabras, etiquetas, rótulos, globos de diálogo ni símbolos escritos de ningún tipo. Evitar estrictamente: expresiones de dibujo animado, rasgos exagerados, proporciones infantiles, degradados, texturas fotográficas, sombras proyectadas, efectos 3D o bordes decorativos.\"\n\nOntología NSM (Goddard & Wierzbicka v19, 2017):\n*   **Substantives:** YO, TÚ~USTED, ALGUIEN, ALGO~COSA, GENTE~PERSONAS, CUERPO\n*   **Relational Substantives:** TIPO~CLASE, PARTE\n*   **Determiners:** ESTE~ESTO, EL MISMO, OTRO\n*   **Quantifiers:** UNO, DOS, ALGUNOS, TODO~TODOS, MUCHO~MUCHOS, POCO~POCOS\n*   **Evaluators:** BUENO, MALO\n*   **Descriptors:** GRANDE, PEQUEÑO\n*   **Mental Predicates:** PENSAR, SABER, QUERER, NO QUERER, SENTIR, VER, OÍR\n*   **Speech:** DECIR, PALABRAS, VERDAD\n*   **Actions Events Movement:** HACER, PASAR~OCURRIR, MOVER~MOVERSE\n*   **Existence Possession:** HAY~ESTAR, TENER\n*   **Life Death:** VIVIR, MORIR\n*   **Time:** CUÁNDO~TIEMPO, AHORA, ANTES, DESPUÉS, MUCHO TIEMPO, POCO TIEMPO, POR UN TIEMPO, MOMENTO\n*   **Space:** DÓNDE~LUGAR, AQUÍ, ARRIBA~ENCIMA, ABAJO~DEBAJO, LEJOS, CERCA, LADO, DENTRO, TOCAR\n*   **Logical Concepts:** NO, QUIZÁS~TAL VEZ, PODER, PORQUE, SI\n*   **Intensifier Augmentor:** MUY, MÁS\n*   **Similarity:** COMO~ASÍ\n\nLas explicaciones NSM (nsm_explications) deben estar escritas usando los primos en ESPAÑOL.\nFormato: clave = lema del concepto (p.ej. \"ayudar\"), valor = fórmula NSM usando SÓLO los primos en MAYÚSCULAS.\nEjemplo correcto — clave \"ayudar\": \"ALGUIEN (YO) piensa: ALGO MALO está pasando para MÍ. ESTE ALGUIEN quiere que ALGUIEN (TÚ) HAGA ALGO bueno para ESTE ALGUIEN ahora.\"\nGenera frame_label como traducción al español del frame_name.\n\nDominio — infiere uno de: transporte, salud, alimentación, educación, vida_cotidiana, trabajo, emociones, tiempo_libre, dinero, seguridad, comunicación, lugar, trámites\n\nReglas:\n1. Invoca SIEMPRE la herramienta analyze_utterance con el JSON completo.\n2. Analiza semántica y pragmática profunda, no solo la superficie.\n3. Todos los campos requeridos deben estar presentes.\n4. Conserva utterance exactamente. Usa IDs únicos cuando un frame sea referenciado; ref_frame apunta a un ID existente, nunca a frame_name.\n5. No inventes identidad del hablante ni timestamp de captura; esos datos no forman parte de la salida generada.\n6. visual_guidelines.temporal admite solo: immediate, near_future, future, past, habitual, unspecified. No existe \"present\": un estado o acción presente o en curso es immediate.",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ],
+            "tools": [
+              {
+                "name": "analyze_utterance",
+                "description": "Return the NLU semantic analysis of the communicative intention.",
+                "input_schema": {
+                  "description": "Strict profile for fresh Phase 1 output; historical imports use the document validator, not this profile.",
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "utterance",
+                    "lang",
+                    "metadata",
+                    "frames",
+                    "nsm_explications",
+                    "logical_form",
+                    "pragmatics",
+                    "visual_guidelines"
+                  ],
+                  "properties": {
+                    "utterance": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Surface string as received.",
+                      "pattern": "\\S"
+                    },
+                    "lang": {
+                      "type": "string",
+                      "description": "IETF BCP-47 language tag (e.g., en-GB, es-419).",
+                      "pattern": "^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$"
+                    },
+                    "domain": {
+                      "type": "string",
+                      "description": "Thematic domain inferred from the utterance.",
+                      "enum": [
+                        "transporte",
+                        "salud",
+                        "alimentación",
+                        "educación",
+                        "vida_cotidiana",
+                        "trabajo",
+                        "emociones",
+                        "tiempo_libre",
+                        "dinero",
+                        "seguridad",
+                        "comunicación",
+                        "lugar",
+                        "trámites"
+                      ]
+                    },
+                    "metadata": {
+                      "type": "object",
+                      "description": "Lightweight communicative metadata.",
+                      "additionalProperties": false,
+                      "required": [
+                        "speech_act",
+                        "intent"
+                      ],
+                      "properties": {
+                        "speech_act": {
+                          "type": "string",
+                          "description": "Dialogue-act class.",
+                          "enum": [
+                            "assertive",
+                            "directive",
+                            "commissive",
+                            "expressive",
+                            "declarative",
+                            "interrogative"
+                          ]
+                        },
+                        "intent": {
+                          "type": "string",
+                          "description": "Sub-type of communicative intention.",
+                          "enum": [
+                            "request",
+                            "command",
+                            "suggestion",
+                            "reminder",
+                            "warning",
+                            "inform",
+                            "ask_info",
+                            "confirm",
+                            "deny",
+                            "greet",
+                            "other"
+                          ]
+                        }
+                      }
+                    },
+                    "frames": {
+                      "type": "array",
+                      "description": "Frame-semantic analysis units.",
+                      "minItems": 1,
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "frame_name",
+                          "lexical_unit",
+                          "roles"
+                        ],
+                        "properties": {
+                          "frame_name": {
+                            "type": "string",
+                            "minLength": 1,
+                            "description": "Canonical FrameNet-like label in English (e.g., Directed_action, Desire).",
+                            "pattern": "\\S"
+                          },
+                          "frame_label": {
+                            "type": "string",
+                            "description": "Translated label for UI display in the utterance language (e.g., 'Costo' for 'Expensiveness')."
+                          },
+                          "lexical_unit": {
+                            "type": "string",
+                            "minLength": 1,
+                            "description": "Triggering lemma or expression.",
+                            "pattern": "\\S"
+                          },
+                          "roles": {
+                            "type": "object",
+                            "description": "Map of frame elements to role fillers.",
+                            "minProperties": 1,
+                            "additionalProperties": {
+                              "type": "object",
+                              "description": "Participant, object, or event filling a frame role.",
+                              "additionalProperties": false,
+                              "required": [
+                                "type"
+                              ],
+                              "anyOf": [
+                                {
+                                  "required": [
+                                    "ref"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "surface"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "lemma"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "ref_frame"
+                                  ]
+                                }
+                              ],
+                              "properties": {
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "Agent",
+                                    "Addressee",
+                                    "Speaker",
+                                    "Experiencer",
+                                    "Patient",
+                                    "Theme",
+                                    "Beneficiary",
+                                    "Instrument",
+                                    "Object",
+                                    "Event",
+                                    "Location",
+                                    "Time",
+                                    "Other"
+                                  ]
+                                },
+                                "ref": {
+                                  "type": "string",
+                                  "description": "External or discourse reference ID.",
+                                  "pattern": "\\S"
+                                },
+                                "surface": {
+                                  "type": "string",
+                                  "description": "Surface string span.",
+                                  "pattern": "\\S"
+                                },
+                                "lemma": {
+                                  "type": "string",
+                                  "description": "Canonical lemma.",
+                                  "pattern": "\\S"
+                                },
+                                "definiteness": {
+                                  "type": "string",
+                                  "enum": [
+                                    "definite",
+                                    "indefinite",
+                                    "unspecified"
+                                  ]
+                                },
+                                "ref_frame": {
+                                  "type": "string",
+                                  "description": "ID of another FrameObject this filler points to.",
+                                  "pattern": "\\S"
+                                }
+                              }
+                            }
+                          },
+                          "id": {
+                            "type": "string",
+                            "description": "Optional local ID for cross-referencing between frames.",
+                            "pattern": "^[A-Za-z0-9_-]{1,64}$"
+                          }
+                        }
+                      }
+                    },
+                    "nsm_explications": {
+                      "type": "object",
+                      "description": "NSM primes or paraphrases keyed by concept label (preferred key).",
+                      "additionalProperties": {
+                        "type": "string",
+                        "pattern": "\\S"
+                      },
+                      "minProperties": 1
+                    },
+                    "logical_form": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "event",
+                        "modality"
+                      ],
+                      "properties": {
+                        "event": {
+                          "type": "string",
+                          "pattern": "\\S"
+                        },
+                        "modality": {
+                          "type": "string"
+                        },
+                        "negation": {
+                          "type": "boolean"
+                        },
+                        "aspect": {
+                          "type": "string",
+                          "enum": [
+                            "none",
+                            "progressive",
+                            "perfective",
+                            "habitual",
+                            "inceptive",
+                            "custom"
+                          ]
+                        },
+                        "tense": {
+                          "type": "string",
+                          "enum": [
+                            "past",
+                            "present",
+                            "future",
+                            "unspecified"
+                          ]
+                        }
+                      }
+                    },
+                    "pragmatics": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "politeness": {
+                          "type": "string",
+                          "enum": [
+                            "polite",
+                            "neutral",
+                            "impolite"
+                          ]
+                        },
+                        "formality": {
+                          "type": "string",
+                          "enum": [
+                            "informal",
+                            "neutral",
+                            "formal"
+                          ]
+                        },
+                        "expected_response": {
+                          "type": "string",
+                          "enum": [
+                            "compliance",
+                            "refusal",
+                            "acknowledgment",
+                            "question",
+                            "silence",
+                            "other"
+                          ]
+                        },
+                        "urgency": {
+                          "type": "string",
+                          "enum": [
+                            "low",
+                            "medium",
+                            "high"
+                          ]
+                        },
+                        "speaker_stance": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "politeness",
+                        "formality",
+                        "expected_response"
+                      ]
+                    },
+                    "visual_guidelines": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "focus_actor": {
+                          "type": "string"
+                        },
+                        "secondary_actor": {
+                          "type": "string"
+                        },
+                        "action_core": {
+                          "type": "string"
+                        },
+                        "object_core": {
+                          "type": "string"
+                        },
+                        "context": {
+                          "type": "string"
+                        },
+                        "temporal": {
+                          "type": "string",
+                          "enum": [
+                            "immediate",
+                            "near_future",
+                            "future",
+                            "past",
+                            "habitual",
+                            "unspecified"
+                          ]
+                        },
+                        "salience": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1
+                          }
+                        }
+                      },
+                      "required": [
+                        "focus_actor",
+                        "action_core",
+                        "object_core",
+                        "context",
+                        "temporal"
+                      ]
+                    },
+                    "schemaVersion": {
+                      "const": "1.1.0",
+                      "description": "Optional explicit document version; never retroactively inferred."
+                    }
+                  }
+                },
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ],
+            "tool_choice": {
+              "type": "tool",
+              "name": "analyze_utterance"
+            },
+            "messages": [
+              {
+                "role": "user",
+                "content": "UTTERANCE: \"Me duele la cabeza\""
+              }
+            ]
+          },
+          "inputHash": "3a8f145eaffd08d3d5bc228c7a9d527d59ec805aa532c27ea86215651d7c2e19",
+          "outputHash": "b311ee5149291d7e2343000b7cd3ad3aa68a96bdfda3040bfd47d5c8a528772f",
+          "validated": true
+        }
+      ]
     },
     {
       "id": "R_PHRASE_1772676868375_3",
       "UTTERANCE": "Vamos a comer al parque",
       "NLU": {
         "utterance": "Vamos a comer al parque",
-        "lang": "es",
-        "domain": "tiempo_libre",
+        "lang": "es-419",
         "metadata": {
-          "speech_act": "propuesta",
-          "intent": "invitar a realizar una actividad conjunta de alimentación en un espacio público"
+          "speech_act": "directive",
+          "intent": "suggestion"
         },
         "frames": [
           {
-            "frame_name": "Motion",
-            "frame_label": "Movimiento",
+            "frame_name": "Self_motion",
             "lexical_unit": "vamos",
+            "id": "f_motion",
             "roles": {
               "Agent": {
                 "type": "Agent",
-                "surface": "Vamos",
-                "lemma": "ir",
-                "ref": "YO, ALGUIEN",
-                "definiteness": "unspecified"
+                "lemma": "YO-NOSOTROS",
+                "surface": "Vamos"
               },
               "Goal": {
                 "type": "Location",
-                "surface": "al parque",
                 "lemma": "parque",
-                "ref": "LUGAR",
+                "surface": "al parque",
                 "definiteness": "definite"
               }
             }
           },
           {
             "frame_name": "Ingestion",
-            "frame_label": "Ingestión",
             "lexical_unit": "comer",
+            "id": "f_ingest",
             "roles": {
               "Ingestor": {
                 "type": "Agent",
-                "surface": "vamos",
-                "lemma": "ir",
-                "ref": "YO, ALGUIEN",
-                "definiteness": "unspecified"
+                "lemma": "YO-NOSOTROS",
+                "surface": "Vamos a comer"
               },
               "Ingestibles": {
-                "type": "Patient",
-                "surface": "<implícito>",
-                "lemma": "comida",
-                "ref": "ALGO",
-                "definiteness": "indefinite"
+                "type": "Theme",
+                "lemma": "ALGO~COSA",
+                "surface": "comer",
+                "definiteness": "unspecified"
               },
               "Place": {
                 "type": "Location",
-                "surface": "al parque",
-                "lemma": "parque",
-                "ref": "LUGAR",
-                "definiteness": "definite"
+                "ref_frame": "f_motion",
+                "surface": "al parque"
               }
             }
           }
         ],
         "nsm_explications": {
-          "movimiento": "YO y ALGUIEN quieren HACER algo: MOVERSE a un LUGAR (el parque)",
-          "ingestión": "YO y ALGUIEN van a HACER algo: COMER ALGO en un LUGAR (el parque)",
-          "proposición": "YO quiero que TÚ hagas algo CONMIGO en este MOMENTO o DESPUÉS"
+          "ir": "ALGUIEN (YO) quiere HACER ALGO con ALGUIEN (TÚ) en un LUGAR. ALGUIEN (YO) piensa: ESTO puede ser BUENO para ALGUIEN (TÚ) y para ALGUIEN (YO). ALGUIEN (YO) quiere MOVER~MOVERSE a un LUGAR y COMER ALGO allí, AHORA.",
+          "comer": "ALGUIEN HACE ALGO: ALGO entra DENTRO del CUERPO. ALGUIEN hace esto para VIVIR.",
+          "parque": "ALGO~COSA donde MUCHAS PERSONAS pueden ESTAR AQUÍ, con ARRIBA~ENCIMA de ALGO grande, en un LUGAR abierto.",
+          "sugerencia": "ALGUIEN (YO) piensa: ESTO puede ser BUENO para ALGUIEN (TÚ). ALGUIEN (YO) dice: HAGAMOS ESTO JUNTOS."
         },
         "logical_form": {
-          "event": "HACER(comer) ∧ LUGAR(parque) ∧ AGENTE(nosotros)",
-          "modality": "intención futura próxima"
+          "event": "ir al parque para comer (propuesta conjunta)",
+          "modality": "poder/querer en forma propositiva",
+          "tense": "future",
+          "aspect": "custom",
+          "negation": false
         },
         "pragmatics": {
-          "politeness": "informal",
-          "formality": "baja",
-          "expected_response": "aceptación o rechazo de la propuesta; confirmación de disponibilidad temporal o espacial"
+          "politeness": "polite",
+          "formality": "neutral",
+          "expected_response": "compliance",
+          "speaker_stance": "Propone una salida conjunta e informal al parque para almorzar o comer al aire libre.",
+          "urgency": "low"
         },
         "visual_guidelines": {
-          "focus_actor": "grupo de personas (nosotros/as)",
-          "action_core": "desplazarse + alimentarse",
-          "object_core": "comida/alimento (no especificado) + parque como destino",
-          "context": "ambiente público al aire libre, actividad recreativa y social",
-          "temporal": "futuro próximo, inmediato"
-        }
+          "focus_actor": "grupo de dos o más personas (nosotros)",
+          "action_core": "caminar hacia un parque y compartir comida",
+          "object_core": "parque con árboles y comida",
+          "context": "exterior, parque al aire libre, ambiente relajado",
+          "temporal": "near_future",
+          "secondary_actor": "ninguno",
+          "salience": {
+            "caminar": 0.8,
+            "comer": 0.7,
+            "parque": 0.6
+          }
+        },
+        "domain": "alimentación",
+        "schemaVersion": "1.1.0"
       },
       "elements": [
         {
@@ -2196,60 +3703,625 @@
       "nluStatus": "completed",
       "visualStatus": "completed",
       "bitmapStatus": "completed",
-      "nluDuration": 12.976,
+      "nluDuration": 5824,
       "visualDuration": 5.058,
-      "bitmapDuration": 14.914
+      "bitmapDuration": 14.914,
+      "nluLegacy": {
+        "replacedAt": "2026-11-05T22:41:59.114Z",
+        "reason": "failed NLU 1.1.0 contract",
+        "NLU": {
+          "utterance": "Vamos a comer al parque",
+          "lang": "es",
+          "domain": "tiempo_libre",
+          "metadata": {
+            "speech_act": "propuesta",
+            "intent": "invitar a realizar una actividad conjunta de alimentación en un espacio público"
+          },
+          "frames": [
+            {
+              "frame_name": "Motion",
+              "frame_label": "Movimiento",
+              "lexical_unit": "vamos",
+              "roles": {
+                "Agent": {
+                  "type": "Agent",
+                  "surface": "Vamos",
+                  "lemma": "ir",
+                  "ref": "YO, ALGUIEN",
+                  "definiteness": "unspecified"
+                },
+                "Goal": {
+                  "type": "Location",
+                  "surface": "al parque",
+                  "lemma": "parque",
+                  "ref": "LUGAR",
+                  "definiteness": "definite"
+                }
+              }
+            },
+            {
+              "frame_name": "Ingestion",
+              "frame_label": "Ingestión",
+              "lexical_unit": "comer",
+              "roles": {
+                "Ingestor": {
+                  "type": "Agent",
+                  "surface": "vamos",
+                  "lemma": "ir",
+                  "ref": "YO, ALGUIEN",
+                  "definiteness": "unspecified"
+                },
+                "Ingestibles": {
+                  "type": "Patient",
+                  "surface": "<implícito>",
+                  "lemma": "comida",
+                  "ref": "ALGO",
+                  "definiteness": "indefinite"
+                },
+                "Place": {
+                  "type": "Location",
+                  "surface": "al parque",
+                  "lemma": "parque",
+                  "ref": "LUGAR",
+                  "definiteness": "definite"
+                }
+              }
+            }
+          ],
+          "nsm_explications": {
+            "movimiento": "YO y ALGUIEN quieren HACER algo: MOVERSE a un LUGAR (el parque)",
+            "ingestión": "YO y ALGUIEN van a HACER algo: COMER ALGO en un LUGAR (el parque)",
+            "proposición": "YO quiero que TÚ hagas algo CONMIGO en este MOMENTO o DESPUÉS"
+          },
+          "logical_form": {
+            "event": "HACER(comer) ∧ LUGAR(parque) ∧ AGENTE(nosotros)",
+            "modality": "intención futura próxima"
+          },
+          "pragmatics": {
+            "politeness": "informal",
+            "formality": "informal",
+            "expected_response": "aceptación o rechazo de la propuesta; confirmación de disponibilidad temporal o espacial"
+          },
+          "visual_guidelines": {
+            "focus_actor": "grupo de personas (nosotros/as)",
+            "action_core": "desplazarse + alimentarse",
+            "object_core": "comida/alimento (no especificado) + parque como destino",
+            "context": "ambiente público al aire libre, actividad recreativa y social",
+            "temporal": "futuro próximo, inmediato"
+          }
+        },
+        "nluMigration": {
+          "contract": "1.1.0",
+          "at": "2026-11-05T22:41:53.290Z",
+          "changes": [
+            {
+              "path": "/pragmatics/formality",
+              "from": "baja",
+              "to": "informal",
+              "rule": "approved"
+            }
+          ]
+        }
+      },
+      "phaseExecutions": [
+        {
+          "id": "239cdb84-e387-4a60-a690-f3c6909b45f4",
+          "phase": 1,
+          "createdAt": "2026-11-05T22:41:59.113Z",
+          "model": "claude-haiku-5-5",
+          "provider": "anthropic",
+          "actualModel": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 225,
+            "cache_creation_input_tokens": 2119,
+            "cache_read_input_tokens": 2342,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 2119,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 1284,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "service_tier": "standard",
+            "inference_geo": "global",
+            "speed": "standard"
+          },
+          "contractId": "https://pictos.net/schemas/pictonet-nlu-generation-1.1.0.schema.json",
+          "contractHash": "3709b2d5d375ab75a5885bdad9dd3c9a57820461fb72f86f5b2cb6f448aac695",
+          "contractVersion": "1.1.0",
+          "promptVersion": "nlu-1.1.0",
+          "promptHash": "4ec9ebf406108dcb222e2d2cabd3b1675464d1b15f0b08091e0420cb7ae3930b",
+          "inputSnapshot": {
+            "model": "claude-haiku-5-5",
+            "max_tokens": 4096,
+            "system": [
+              {
+                "type": "text",
+                "text": "Operas como el nodo \"NLU Schema Engine\" en la arquitectura PictoNet.\nTu tarea es analizar la intención comunicativa y devolver el resultado JSON vía la herramienta disponible.\n\nContexto de uso:\n- Región geográfica: Viña del Mar, Valparaiso Region, Chile\n- Idioma del vocabulario: es-419\n- Contexto visual: \"Pictograma de estilo ilustración editorial contemporánea. Estética cálida, sofisticada y adecuada para un público adulto. Nivel de abstracción medio: reconocible pero estilizado, nunca fotorrealista. Formas orgánicas con contornos seguros pero ligeramente irregulares (se debe percibir el trazo manual del ilustrador con sutiles imperfecciones que aporten personalidad, sin verse desaliñado). Curvas suaves, sin bordes geométricos afilados. Trabajo de línea de grosor variable para enfatizar contornos clave, con líneas secundarias finas para detalles internos; omitir el trazo en áreas rellenas si el contraste de color es suficiente. Paleta de colores planos de 4 a 6 tonos apagados, desaturados y terrosos (terracota, ocre, oliva, azul pizarra, gris cálido, blanco roto), utilizando un único color de acento (ej. coral o verde azulado) de forma muy medida para el énfasis semántico. Figura humana de proporciones estilizadas (extremidades ligeramente alargadas, manos simplificadas). Rasgos faciales mínimos (ojos de punto, ángulo simple para la nariz, sin boca a menos que la emoción sea el mensaje principal). Ropa sugerida mediante bloques de color plano, sin texturas detalladas.\n\nComposición de figura centrada con amplio espacio negativo (\"aire\" alrededor). Se permiten elementos contextuales mínimos solo si aclaran la escena (ej. una línea para la mesa o el marco de una puerta), pero nunca un entorno o fondo completo; priorizar la sugerencia sobre la descripción. Toda la intención comunicativa debe expresarse mediante la postura corporal, los gestos de las manos, la relación espacial y la metáfora visual. CRÍTICO: NUNCA incluir texto, letras, números, palabras, etiquetas, rótulos, globos de diálogo ni símbolos escritos de ningún tipo. Evitar estrictamente: expresiones de dibujo animado, rasgos exagerados, proporciones infantiles, degradados, texturas fotográficas, sombras proyectadas, efectos 3D o bordes decorativos.\"\n\nOntología NSM (Goddard & Wierzbicka v19, 2017):\n*   **Substantives:** YO, TÚ~USTED, ALGUIEN, ALGO~COSA, GENTE~PERSONAS, CUERPO\n*   **Relational Substantives:** TIPO~CLASE, PARTE\n*   **Determiners:** ESTE~ESTO, EL MISMO, OTRO\n*   **Quantifiers:** UNO, DOS, ALGUNOS, TODO~TODOS, MUCHO~MUCHOS, POCO~POCOS\n*   **Evaluators:** BUENO, MALO\n*   **Descriptors:** GRANDE, PEQUEÑO\n*   **Mental Predicates:** PENSAR, SABER, QUERER, NO QUERER, SENTIR, VER, OÍR\n*   **Speech:** DECIR, PALABRAS, VERDAD\n*   **Actions Events Movement:** HACER, PASAR~OCURRIR, MOVER~MOVERSE\n*   **Existence Possession:** HAY~ESTAR, TENER\n*   **Life Death:** VIVIR, MORIR\n*   **Time:** CUÁNDO~TIEMPO, AHORA, ANTES, DESPUÉS, MUCHO TIEMPO, POCO TIEMPO, POR UN TIEMPO, MOMENTO\n*   **Space:** DÓNDE~LUGAR, AQUÍ, ARRIBA~ENCIMA, ABAJO~DEBAJO, LEJOS, CERCA, LADO, DENTRO, TOCAR\n*   **Logical Concepts:** NO, QUIZÁS~TAL VEZ, PODER, PORQUE, SI\n*   **Intensifier Augmentor:** MUY, MÁS\n*   **Similarity:** COMO~ASÍ\n\nLas explicaciones NSM (nsm_explications) deben estar escritas usando los primos en ESPAÑOL.\nFormato: clave = lema del concepto (p.ej. \"ayudar\"), valor = fórmula NSM usando SÓLO los primos en MAYÚSCULAS.\nEjemplo correcto — clave \"ayudar\": \"ALGUIEN (YO) piensa: ALGO MALO está pasando para MÍ. ESTE ALGUIEN quiere que ALGUIEN (TÚ) HAGA ALGO bueno para ESTE ALGUIEN ahora.\"\nGenera frame_label como traducción al español del frame_name.\n\nDominio — infiere uno de: transporte, salud, alimentación, educación, vida_cotidiana, trabajo, emociones, tiempo_libre, dinero, seguridad, comunicación, lugar, trámites\n\nReglas:\n1. Invoca SIEMPRE la herramienta analyze_utterance con el JSON completo.\n2. Analiza semántica y pragmática profunda, no solo la superficie.\n3. Todos los campos requeridos deben estar presentes.\n4. Conserva utterance exactamente. Usa IDs únicos cuando un frame sea referenciado; ref_frame apunta a un ID existente, nunca a frame_name.\n5. No inventes identidad del hablante ni timestamp de captura; esos datos no forman parte de la salida generada.\n6. visual_guidelines.temporal admite solo: immediate, near_future, future, past, habitual, unspecified. No existe \"present\": un estado o acción presente o en curso es immediate.",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ],
+            "tools": [
+              {
+                "name": "analyze_utterance",
+                "description": "Return the NLU semantic analysis of the communicative intention.",
+                "input_schema": {
+                  "description": "Strict profile for fresh Phase 1 output; historical imports use the document validator, not this profile.",
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "utterance",
+                    "lang",
+                    "metadata",
+                    "frames",
+                    "nsm_explications",
+                    "logical_form",
+                    "pragmatics",
+                    "visual_guidelines"
+                  ],
+                  "properties": {
+                    "utterance": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Surface string as received.",
+                      "pattern": "\\S"
+                    },
+                    "lang": {
+                      "type": "string",
+                      "description": "IETF BCP-47 language tag (e.g., en-GB, es-419).",
+                      "pattern": "^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$"
+                    },
+                    "domain": {
+                      "type": "string",
+                      "description": "Thematic domain inferred from the utterance.",
+                      "enum": [
+                        "transporte",
+                        "salud",
+                        "alimentación",
+                        "educación",
+                        "vida_cotidiana",
+                        "trabajo",
+                        "emociones",
+                        "tiempo_libre",
+                        "dinero",
+                        "seguridad",
+                        "comunicación",
+                        "lugar",
+                        "trámites"
+                      ]
+                    },
+                    "metadata": {
+                      "type": "object",
+                      "description": "Lightweight communicative metadata.",
+                      "additionalProperties": false,
+                      "required": [
+                        "speech_act",
+                        "intent"
+                      ],
+                      "properties": {
+                        "speech_act": {
+                          "type": "string",
+                          "description": "Dialogue-act class.",
+                          "enum": [
+                            "assertive",
+                            "directive",
+                            "commissive",
+                            "expressive",
+                            "declarative",
+                            "interrogative"
+                          ]
+                        },
+                        "intent": {
+                          "type": "string",
+                          "description": "Sub-type of communicative intention.",
+                          "enum": [
+                            "request",
+                            "command",
+                            "suggestion",
+                            "reminder",
+                            "warning",
+                            "inform",
+                            "ask_info",
+                            "confirm",
+                            "deny",
+                            "greet",
+                            "other"
+                          ]
+                        }
+                      }
+                    },
+                    "frames": {
+                      "type": "array",
+                      "description": "Frame-semantic analysis units.",
+                      "minItems": 1,
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "frame_name",
+                          "lexical_unit",
+                          "roles"
+                        ],
+                        "properties": {
+                          "frame_name": {
+                            "type": "string",
+                            "minLength": 1,
+                            "description": "Canonical FrameNet-like label in English (e.g., Directed_action, Desire).",
+                            "pattern": "\\S"
+                          },
+                          "frame_label": {
+                            "type": "string",
+                            "description": "Translated label for UI display in the utterance language (e.g., 'Costo' for 'Expensiveness')."
+                          },
+                          "lexical_unit": {
+                            "type": "string",
+                            "minLength": 1,
+                            "description": "Triggering lemma or expression.",
+                            "pattern": "\\S"
+                          },
+                          "roles": {
+                            "type": "object",
+                            "description": "Map of frame elements to role fillers.",
+                            "minProperties": 1,
+                            "additionalProperties": {
+                              "type": "object",
+                              "description": "Participant, object, or event filling a frame role.",
+                              "additionalProperties": false,
+                              "required": [
+                                "type"
+                              ],
+                              "anyOf": [
+                                {
+                                  "required": [
+                                    "ref"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "surface"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "lemma"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "ref_frame"
+                                  ]
+                                }
+                              ],
+                              "properties": {
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "Agent",
+                                    "Addressee",
+                                    "Speaker",
+                                    "Experiencer",
+                                    "Patient",
+                                    "Theme",
+                                    "Beneficiary",
+                                    "Instrument",
+                                    "Object",
+                                    "Event",
+                                    "Location",
+                                    "Time",
+                                    "Other"
+                                  ]
+                                },
+                                "ref": {
+                                  "type": "string",
+                                  "description": "External or discourse reference ID.",
+                                  "pattern": "\\S"
+                                },
+                                "surface": {
+                                  "type": "string",
+                                  "description": "Surface string span.",
+                                  "pattern": "\\S"
+                                },
+                                "lemma": {
+                                  "type": "string",
+                                  "description": "Canonical lemma.",
+                                  "pattern": "\\S"
+                                },
+                                "definiteness": {
+                                  "type": "string",
+                                  "enum": [
+                                    "definite",
+                                    "indefinite",
+                                    "unspecified"
+                                  ]
+                                },
+                                "ref_frame": {
+                                  "type": "string",
+                                  "description": "ID of another FrameObject this filler points to.",
+                                  "pattern": "\\S"
+                                }
+                              }
+                            }
+                          },
+                          "id": {
+                            "type": "string",
+                            "description": "Optional local ID for cross-referencing between frames.",
+                            "pattern": "^[A-Za-z0-9_-]{1,64}$"
+                          }
+                        }
+                      }
+                    },
+                    "nsm_explications": {
+                      "type": "object",
+                      "description": "NSM primes or paraphrases keyed by concept label (preferred key).",
+                      "additionalProperties": {
+                        "type": "string",
+                        "pattern": "\\S"
+                      },
+                      "minProperties": 1
+                    },
+                    "logical_form": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "event",
+                        "modality"
+                      ],
+                      "properties": {
+                        "event": {
+                          "type": "string",
+                          "pattern": "\\S"
+                        },
+                        "modality": {
+                          "type": "string"
+                        },
+                        "negation": {
+                          "type": "boolean"
+                        },
+                        "aspect": {
+                          "type": "string",
+                          "enum": [
+                            "none",
+                            "progressive",
+                            "perfective",
+                            "habitual",
+                            "inceptive",
+                            "custom"
+                          ]
+                        },
+                        "tense": {
+                          "type": "string",
+                          "enum": [
+                            "past",
+                            "present",
+                            "future",
+                            "unspecified"
+                          ]
+                        }
+                      }
+                    },
+                    "pragmatics": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "politeness": {
+                          "type": "string",
+                          "enum": [
+                            "polite",
+                            "neutral",
+                            "impolite"
+                          ]
+                        },
+                        "formality": {
+                          "type": "string",
+                          "enum": [
+                            "informal",
+                            "neutral",
+                            "formal"
+                          ]
+                        },
+                        "expected_response": {
+                          "type": "string",
+                          "enum": [
+                            "compliance",
+                            "refusal",
+                            "acknowledgment",
+                            "question",
+                            "silence",
+                            "other"
+                          ]
+                        },
+                        "urgency": {
+                          "type": "string",
+                          "enum": [
+                            "low",
+                            "medium",
+                            "high"
+                          ]
+                        },
+                        "speaker_stance": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "politeness",
+                        "formality",
+                        "expected_response"
+                      ]
+                    },
+                    "visual_guidelines": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "focus_actor": {
+                          "type": "string"
+                        },
+                        "secondary_actor": {
+                          "type": "string"
+                        },
+                        "action_core": {
+                          "type": "string"
+                        },
+                        "object_core": {
+                          "type": "string"
+                        },
+                        "context": {
+                          "type": "string"
+                        },
+                        "temporal": {
+                          "type": "string",
+                          "enum": [
+                            "immediate",
+                            "near_future",
+                            "future",
+                            "past",
+                            "habitual",
+                            "unspecified"
+                          ]
+                        },
+                        "salience": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1
+                          }
+                        }
+                      },
+                      "required": [
+                        "focus_actor",
+                        "action_core",
+                        "object_core",
+                        "context",
+                        "temporal"
+                      ]
+                    },
+                    "schemaVersion": {
+                      "const": "1.1.0",
+                      "description": "Optional explicit document version; never retroactively inferred."
+                    }
+                  }
+                },
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ],
+            "tool_choice": {
+              "type": "tool",
+              "name": "analyze_utterance"
+            },
+            "messages": [
+              {
+                "role": "user",
+                "content": "UTTERANCE: \"Vamos a comer al parque\""
+              }
+            ]
+          },
+          "inputHash": "78e1a159d63018af7844ddd9a1926387694ebe5c37458995b3ddd257119171b1",
+          "outputHash": "62bde4725fbe2a43a0234edb2451413f7864772d32d1babeef06dd7dbe516197",
+          "validated": true
+        }
+      ]
     },
     {
       "id": "R_PHRASE_1772676868375_4",
       "UTTERANCE": "Necesito ayuda",
       "NLU": {
         "utterance": "Necesito ayuda",
-        "lang": "es",
-        "domain": "trámites",
+        "lang": "es-419",
         "metadata": {
-          "speech_act": "petición",
-          "intent": "solicitar asistencia para resolver un trámite o problema"
+          "speech_act": "directive",
+          "intent": "request"
         },
+        "domain": "vida_cotidiana",
         "frames": [
           {
-            "frame_name": "Needing",
-            "frame_label": "Necesidad",
+            "frame_name": "Required_event",
             "lexical_unit": "necesitar",
+            "id": "F1",
             "roles": {
               "Experiencer": {
-                "type": "Speaker",
-                "surface": "Necesito",
-                "lemma": "yo",
-                "definiteness": "definite"
+                "type": "Experiencer",
+                "lemma": "YO",
+                "surface": "Necesito"
               },
-              "Needed": {
+              "Theme": {
                 "type": "Theme",
-                "surface": "ayuda",
                 "lemma": "ayuda",
+                "surface": "ayuda",
                 "definiteness": "indefinite"
+              }
+            }
+          },
+          {
+            "frame_name": "Desiring",
+            "lexical_unit": "necesitar",
+            "id": "F2",
+            "roles": {
+              "Experiencer": {
+                "type": "Experiencer",
+                "lemma": "YO",
+                "surface": "Necesito"
+              },
+              "Event": {
+                "type": "Event",
+                "lemma": "ayudar",
+                "surface": "ayuda",
+                "ref_frame": "F3"
+              }
+            }
+          },
+          {
+            "frame_name": "Assistance",
+            "lexical_unit": "ayuda",
+            "id": "F3",
+            "roles": {
+              "Helper": {
+                "type": "Other",
+                "lemma": "ALGUIEN",
+                "definiteness": "unspecified"
+              },
+              "Benefited_party": {
+                "type": "Beneficiary",
+                "lemma": "YO",
+                "surface": "Necesito"
               }
             }
           }
         ],
         "nsm_explications": {
-          "NECESITO AYUDA": "YO QUIERO QUE ALGUIEN HAGA ALGO PARA MÍ PORQUE NO PUEDO HACERLO SOLO"
+          "necesitar": "ALGUIEN (YO) piensa: ALGO MALO está pasando. ESTE ALGUIEN quiere que ALGUIEN (OTRO) HAGA ALGO para ESTE ALGUIEN ahora.",
+          "ayuda": "ALGUIEN (OTRO) PUEDE HACER ALGO BUENO para ALGUIEN (YO) porque ALGUIEN (YO) no PUEDE HACER ESTO solo."
         },
         "logical_form": {
-          "event": "QUERER(yo, HACER(alguien, algo, para mí))",
-          "modality": "deseo / necesidad pragmática"
+          "event": "necesitar ayuda",
+          "modality": "necesidad (deseo urgente de asistencia)",
+          "tense": "present",
+          "aspect": "none",
+          "negation": false
         },
         "pragmatics": {
-          "politeness": "cortés",
+          "politeness": "neutral",
           "formality": "neutral",
-          "expected_response": "Respuesta afirmativa de oferta de asistencia; pregunta de especificación del tipo de ayuda requerida"
+          "expected_response": "compliance",
+          "speaker_stance": "El hablante se encuentra en una situación en la que requiere asistencia de otra persona y la expresa de forma directa.",
+          "urgency": "medium"
         },
         "visual_guidelines": {
-          "focus_actor": "persona usuaria (yo)",
-          "action_core": "solicitar asistencia",
-          "object_core": "ayuda genérica para completar un trámite",
-          "context": "oficina de Ayuda Mineduc o Superintendencia de Educación",
-          "temporal": "presente inmediato"
+          "focus_actor": "figura humana estilizada con postura abierta, brazo extendido o mano levantada pidiendo apoyo",
+          "action_core": "pedir ayuda: gesto de brazo extendido hacia otra figura, postura ligeramente inclinada y buscando contacto",
+          "object_core": "otra figura humana estilizada como posible ayudante, sin detalles de entorno",
+          "context": "Composición centrada con amplio espacio negativo; sin texto ni símbolos; sugerencia mínima de la relación espacial entre ambas figuras",
+          "temporal": "immediate",
+          "secondary_actor": "figura que ofrece ayuda",
+          "salience": {
+            "focus_actor": 0.9,
+            "secondary_actor": 0.6,
+            "action_core": 0.8
+          }
         }
       },
       "elements": [
@@ -2282,78 +4354,573 @@
       "nluStatus": "completed",
       "visualStatus": "completed",
       "bitmapStatus": "completed",
-      "nluDuration": 12.644,
+      "nluDuration": 4793,
       "visualDuration": 4.487,
-      "bitmapDuration": 18.904
+      "bitmapDuration": 18.904,
+      "nluLegacy": {
+        "replacedAt": "2026-11-05T22:42:01.506Z",
+        "reason": "failed NLU 1.1.0 contract",
+        "NLU": {
+          "utterance": "Necesito ayuda",
+          "lang": "es",
+          "domain": "trámites",
+          "metadata": {
+            "speech_act": "petición",
+            "intent": "solicitar asistencia para resolver un trámite o problema"
+          },
+          "frames": [
+            {
+              "frame_name": "Needing",
+              "frame_label": "Necesidad",
+              "lexical_unit": "necesitar",
+              "roles": {
+                "Experiencer": {
+                  "type": "Speaker",
+                  "surface": "Necesito",
+                  "lemma": "yo",
+                  "definiteness": "definite"
+                },
+                "Needed": {
+                  "type": "Theme",
+                  "surface": "ayuda",
+                  "lemma": "ayuda",
+                  "definiteness": "indefinite"
+                }
+              }
+            }
+          ],
+          "nsm_explications": {
+            "NECESITO AYUDA": "YO QUIERO QUE ALGUIEN HAGA ALGO PARA MÍ PORQUE NO PUEDO HACERLO SOLO"
+          },
+          "logical_form": {
+            "event": "QUERER(yo, HACER(alguien, algo, para mí))",
+            "modality": "deseo / necesidad pragmática"
+          },
+          "pragmatics": {
+            "politeness": "polite",
+            "formality": "neutral",
+            "expected_response": "Respuesta afirmativa de oferta de asistencia; pregunta de especificación del tipo de ayuda requerida"
+          },
+          "visual_guidelines": {
+            "focus_actor": "persona usuaria (yo)",
+            "action_core": "solicitar asistencia",
+            "object_core": "ayuda genérica para completar un trámite",
+            "context": "oficina de Ayuda Mineduc o Superintendencia de Educación",
+            "temporal": "presente inmediato"
+          }
+        },
+        "nluMigration": {
+          "contract": "1.1.0",
+          "at": "2026-11-05T22:41:53.290Z",
+          "changes": [
+            {
+              "path": "/pragmatics/politeness",
+              "from": "cortés",
+              "to": "polite",
+              "rule": "approved"
+            }
+          ]
+        }
+      },
+      "phaseExecutions": [
+        {
+          "id": "1cb398ac-2ca4-4b33-b4d9-dec7b0af705f",
+          "phase": 1,
+          "createdAt": "2026-11-05T22:42:01.503Z",
+          "model": "claude-haiku-5-5",
+          "provider": "anthropic",
+          "actualModel": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 223,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 4461,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 1206,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "service_tier": "standard",
+            "inference_geo": "global",
+            "speed": "standard"
+          },
+          "contractId": "https://pictos.net/schemas/pictonet-nlu-generation-1.1.0.schema.json",
+          "contractHash": "3709b2d5d375ab75a5885bdad9dd3c9a57820461fb72f86f5b2cb6f448aac695",
+          "contractVersion": "1.1.0",
+          "promptVersion": "nlu-1.1.0",
+          "promptHash": "4ec9ebf406108dcb222e2d2cabd3b1675464d1b15f0b08091e0420cb7ae3930b",
+          "inputSnapshot": {
+            "model": "claude-haiku-5-5",
+            "max_tokens": 4096,
+            "system": [
+              {
+                "type": "text",
+                "text": "Operas como el nodo \"NLU Schema Engine\" en la arquitectura PictoNet.\nTu tarea es analizar la intención comunicativa y devolver el resultado JSON vía la herramienta disponible.\n\nContexto de uso:\n- Región geográfica: Viña del Mar, Valparaiso Region, Chile\n- Idioma del vocabulario: es-419\n- Contexto visual: \"Pictograma de estilo ilustración editorial contemporánea. Estética cálida, sofisticada y adecuada para un público adulto. Nivel de abstracción medio: reconocible pero estilizado, nunca fotorrealista. Formas orgánicas con contornos seguros pero ligeramente irregulares (se debe percibir el trazo manual del ilustrador con sutiles imperfecciones que aporten personalidad, sin verse desaliñado). Curvas suaves, sin bordes geométricos afilados. Trabajo de línea de grosor variable para enfatizar contornos clave, con líneas secundarias finas para detalles internos; omitir el trazo en áreas rellenas si el contraste de color es suficiente. Paleta de colores planos de 4 a 6 tonos apagados, desaturados y terrosos (terracota, ocre, oliva, azul pizarra, gris cálido, blanco roto), utilizando un único color de acento (ej. coral o verde azulado) de forma muy medida para el énfasis semántico. Figura humana de proporciones estilizadas (extremidades ligeramente alargadas, manos simplificadas). Rasgos faciales mínimos (ojos de punto, ángulo simple para la nariz, sin boca a menos que la emoción sea el mensaje principal). Ropa sugerida mediante bloques de color plano, sin texturas detalladas.\n\nComposición de figura centrada con amplio espacio negativo (\"aire\" alrededor). Se permiten elementos contextuales mínimos solo si aclaran la escena (ej. una línea para la mesa o el marco de una puerta), pero nunca un entorno o fondo completo; priorizar la sugerencia sobre la descripción. Toda la intención comunicativa debe expresarse mediante la postura corporal, los gestos de las manos, la relación espacial y la metáfora visual. CRÍTICO: NUNCA incluir texto, letras, números, palabras, etiquetas, rótulos, globos de diálogo ni símbolos escritos de ningún tipo. Evitar estrictamente: expresiones de dibujo animado, rasgos exagerados, proporciones infantiles, degradados, texturas fotográficas, sombras proyectadas, efectos 3D o bordes decorativos.\"\n\nOntología NSM (Goddard & Wierzbicka v19, 2017):\n*   **Substantives:** YO, TÚ~USTED, ALGUIEN, ALGO~COSA, GENTE~PERSONAS, CUERPO\n*   **Relational Substantives:** TIPO~CLASE, PARTE\n*   **Determiners:** ESTE~ESTO, EL MISMO, OTRO\n*   **Quantifiers:** UNO, DOS, ALGUNOS, TODO~TODOS, MUCHO~MUCHOS, POCO~POCOS\n*   **Evaluators:** BUENO, MALO\n*   **Descriptors:** GRANDE, PEQUEÑO\n*   **Mental Predicates:** PENSAR, SABER, QUERER, NO QUERER, SENTIR, VER, OÍR\n*   **Speech:** DECIR, PALABRAS, VERDAD\n*   **Actions Events Movement:** HACER, PASAR~OCURRIR, MOVER~MOVERSE\n*   **Existence Possession:** HAY~ESTAR, TENER\n*   **Life Death:** VIVIR, MORIR\n*   **Time:** CUÁNDO~TIEMPO, AHORA, ANTES, DESPUÉS, MUCHO TIEMPO, POCO TIEMPO, POR UN TIEMPO, MOMENTO\n*   **Space:** DÓNDE~LUGAR, AQUÍ, ARRIBA~ENCIMA, ABAJO~DEBAJO, LEJOS, CERCA, LADO, DENTRO, TOCAR\n*   **Logical Concepts:** NO, QUIZÁS~TAL VEZ, PODER, PORQUE, SI\n*   **Intensifier Augmentor:** MUY, MÁS\n*   **Similarity:** COMO~ASÍ\n\nLas explicaciones NSM (nsm_explications) deben estar escritas usando los primos en ESPAÑOL.\nFormato: clave = lema del concepto (p.ej. \"ayudar\"), valor = fórmula NSM usando SÓLO los primos en MAYÚSCULAS.\nEjemplo correcto — clave \"ayudar\": \"ALGUIEN (YO) piensa: ALGO MALO está pasando para MÍ. ESTE ALGUIEN quiere que ALGUIEN (TÚ) HAGA ALGO bueno para ESTE ALGUIEN ahora.\"\nGenera frame_label como traducción al español del frame_name.\n\nDominio — infiere uno de: transporte, salud, alimentación, educación, vida_cotidiana, trabajo, emociones, tiempo_libre, dinero, seguridad, comunicación, lugar, trámites\n\nReglas:\n1. Invoca SIEMPRE la herramienta analyze_utterance con el JSON completo.\n2. Analiza semántica y pragmática profunda, no solo la superficie.\n3. Todos los campos requeridos deben estar presentes.\n4. Conserva utterance exactamente. Usa IDs únicos cuando un frame sea referenciado; ref_frame apunta a un ID existente, nunca a frame_name.\n5. No inventes identidad del hablante ni timestamp de captura; esos datos no forman parte de la salida generada.\n6. visual_guidelines.temporal admite solo: immediate, near_future, future, past, habitual, unspecified. No existe \"present\": un estado o acción presente o en curso es immediate.",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ],
+            "tools": [
+              {
+                "name": "analyze_utterance",
+                "description": "Return the NLU semantic analysis of the communicative intention.",
+                "input_schema": {
+                  "description": "Strict profile for fresh Phase 1 output; historical imports use the document validator, not this profile.",
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "utterance",
+                    "lang",
+                    "metadata",
+                    "frames",
+                    "nsm_explications",
+                    "logical_form",
+                    "pragmatics",
+                    "visual_guidelines"
+                  ],
+                  "properties": {
+                    "utterance": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Surface string as received.",
+                      "pattern": "\\S"
+                    },
+                    "lang": {
+                      "type": "string",
+                      "description": "IETF BCP-47 language tag (e.g., en-GB, es-419).",
+                      "pattern": "^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$"
+                    },
+                    "domain": {
+                      "type": "string",
+                      "description": "Thematic domain inferred from the utterance.",
+                      "enum": [
+                        "transporte",
+                        "salud",
+                        "alimentación",
+                        "educación",
+                        "vida_cotidiana",
+                        "trabajo",
+                        "emociones",
+                        "tiempo_libre",
+                        "dinero",
+                        "seguridad",
+                        "comunicación",
+                        "lugar",
+                        "trámites"
+                      ]
+                    },
+                    "metadata": {
+                      "type": "object",
+                      "description": "Lightweight communicative metadata.",
+                      "additionalProperties": false,
+                      "required": [
+                        "speech_act",
+                        "intent"
+                      ],
+                      "properties": {
+                        "speech_act": {
+                          "type": "string",
+                          "description": "Dialogue-act class.",
+                          "enum": [
+                            "assertive",
+                            "directive",
+                            "commissive",
+                            "expressive",
+                            "declarative",
+                            "interrogative"
+                          ]
+                        },
+                        "intent": {
+                          "type": "string",
+                          "description": "Sub-type of communicative intention.",
+                          "enum": [
+                            "request",
+                            "command",
+                            "suggestion",
+                            "reminder",
+                            "warning",
+                            "inform",
+                            "ask_info",
+                            "confirm",
+                            "deny",
+                            "greet",
+                            "other"
+                          ]
+                        }
+                      }
+                    },
+                    "frames": {
+                      "type": "array",
+                      "description": "Frame-semantic analysis units.",
+                      "minItems": 1,
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "frame_name",
+                          "lexical_unit",
+                          "roles"
+                        ],
+                        "properties": {
+                          "frame_name": {
+                            "type": "string",
+                            "minLength": 1,
+                            "description": "Canonical FrameNet-like label in English (e.g., Directed_action, Desire).",
+                            "pattern": "\\S"
+                          },
+                          "frame_label": {
+                            "type": "string",
+                            "description": "Translated label for UI display in the utterance language (e.g., 'Costo' for 'Expensiveness')."
+                          },
+                          "lexical_unit": {
+                            "type": "string",
+                            "minLength": 1,
+                            "description": "Triggering lemma or expression.",
+                            "pattern": "\\S"
+                          },
+                          "roles": {
+                            "type": "object",
+                            "description": "Map of frame elements to role fillers.",
+                            "minProperties": 1,
+                            "additionalProperties": {
+                              "type": "object",
+                              "description": "Participant, object, or event filling a frame role.",
+                              "additionalProperties": false,
+                              "required": [
+                                "type"
+                              ],
+                              "anyOf": [
+                                {
+                                  "required": [
+                                    "ref"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "surface"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "lemma"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "ref_frame"
+                                  ]
+                                }
+                              ],
+                              "properties": {
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "Agent",
+                                    "Addressee",
+                                    "Speaker",
+                                    "Experiencer",
+                                    "Patient",
+                                    "Theme",
+                                    "Beneficiary",
+                                    "Instrument",
+                                    "Object",
+                                    "Event",
+                                    "Location",
+                                    "Time",
+                                    "Other"
+                                  ]
+                                },
+                                "ref": {
+                                  "type": "string",
+                                  "description": "External or discourse reference ID.",
+                                  "pattern": "\\S"
+                                },
+                                "surface": {
+                                  "type": "string",
+                                  "description": "Surface string span.",
+                                  "pattern": "\\S"
+                                },
+                                "lemma": {
+                                  "type": "string",
+                                  "description": "Canonical lemma.",
+                                  "pattern": "\\S"
+                                },
+                                "definiteness": {
+                                  "type": "string",
+                                  "enum": [
+                                    "definite",
+                                    "indefinite",
+                                    "unspecified"
+                                  ]
+                                },
+                                "ref_frame": {
+                                  "type": "string",
+                                  "description": "ID of another FrameObject this filler points to.",
+                                  "pattern": "\\S"
+                                }
+                              }
+                            }
+                          },
+                          "id": {
+                            "type": "string",
+                            "description": "Optional local ID for cross-referencing between frames.",
+                            "pattern": "^[A-Za-z0-9_-]{1,64}$"
+                          }
+                        }
+                      }
+                    },
+                    "nsm_explications": {
+                      "type": "object",
+                      "description": "NSM primes or paraphrases keyed by concept label (preferred key).",
+                      "additionalProperties": {
+                        "type": "string",
+                        "pattern": "\\S"
+                      },
+                      "minProperties": 1
+                    },
+                    "logical_form": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "event",
+                        "modality"
+                      ],
+                      "properties": {
+                        "event": {
+                          "type": "string",
+                          "pattern": "\\S"
+                        },
+                        "modality": {
+                          "type": "string"
+                        },
+                        "negation": {
+                          "type": "boolean"
+                        },
+                        "aspect": {
+                          "type": "string",
+                          "enum": [
+                            "none",
+                            "progressive",
+                            "perfective",
+                            "habitual",
+                            "inceptive",
+                            "custom"
+                          ]
+                        },
+                        "tense": {
+                          "type": "string",
+                          "enum": [
+                            "past",
+                            "present",
+                            "future",
+                            "unspecified"
+                          ]
+                        }
+                      }
+                    },
+                    "pragmatics": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "politeness": {
+                          "type": "string",
+                          "enum": [
+                            "polite",
+                            "neutral",
+                            "impolite"
+                          ]
+                        },
+                        "formality": {
+                          "type": "string",
+                          "enum": [
+                            "informal",
+                            "neutral",
+                            "formal"
+                          ]
+                        },
+                        "expected_response": {
+                          "type": "string",
+                          "enum": [
+                            "compliance",
+                            "refusal",
+                            "acknowledgment",
+                            "question",
+                            "silence",
+                            "other"
+                          ]
+                        },
+                        "urgency": {
+                          "type": "string",
+                          "enum": [
+                            "low",
+                            "medium",
+                            "high"
+                          ]
+                        },
+                        "speaker_stance": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "politeness",
+                        "formality",
+                        "expected_response"
+                      ]
+                    },
+                    "visual_guidelines": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "focus_actor": {
+                          "type": "string"
+                        },
+                        "secondary_actor": {
+                          "type": "string"
+                        },
+                        "action_core": {
+                          "type": "string"
+                        },
+                        "object_core": {
+                          "type": "string"
+                        },
+                        "context": {
+                          "type": "string"
+                        },
+                        "temporal": {
+                          "type": "string",
+                          "enum": [
+                            "immediate",
+                            "near_future",
+                            "future",
+                            "past",
+                            "habitual",
+                            "unspecified"
+                          ]
+                        },
+                        "salience": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1
+                          }
+                        }
+                      },
+                      "required": [
+                        "focus_actor",
+                        "action_core",
+                        "object_core",
+                        "context",
+                        "temporal"
+                      ]
+                    },
+                    "schemaVersion": {
+                      "const": "1.1.0",
+                      "description": "Optional explicit document version; never retroactively inferred."
+                    }
+                  }
+                },
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ],
+            "tool_choice": {
+              "type": "tool",
+              "name": "analyze_utterance"
+            },
+            "messages": [
+              {
+                "role": "user",
+                "content": "UTTERANCE: \"Necesito ayuda\""
+              }
+            ]
+          },
+          "inputHash": "1d8fc0d5d77ca2c9dc3526e6a1e2271cd5885766e8bc7926c4dc30de5d9659bd",
+          "outputHash": "6e0bf576a524296600f2f8c2a7bb824b8d1d128ba9b8abe14b878b242988b4b2",
+          "validated": true
+        }
+      ]
     },
     {
       "id": "R_PHRASE_1772676868375_5",
       "UTTERANCE": "Hoy es mi cumpleaños",
       "NLU": {
         "utterance": "Hoy es mi cumpleaños",
-        "lang": "es",
-        "domain": "vida_cotidiana",
+        "lang": "es-419",
         "metadata": {
-          "speech_act": "información",
-          "intent": "informar_sobre_evento_personal"
+          "speech_act": "assertive",
+          "intent": "inform"
         },
+        "domain": "vida_cotidiana",
         "frames": [
           {
-            "frame_name": "Being_born",
-            "frame_label": "Nacimiento",
+            "id": "F1",
+            "frame_name": "Identicality",
+            "lexical_unit": "es",
+            "roles": {
+              "Theme": {
+                "type": "Theme",
+                "surface": "mi cumpleaños",
+                "lemma": "cumpleaños"
+              },
+              "Time": {
+                "type": "Time",
+                "surface": "Hoy",
+                "lemma": "hoy"
+              }
+            }
+          },
+          {
+            "id": "F2",
+            "frame_name": "Event_anniversary",
             "lexical_unit": "cumpleaños",
             "roles": {
               "Experiencer": {
                 "type": "Experiencer",
                 "surface": "mi",
                 "lemma": "yo",
-                "ref": "YO",
-                "definiteness": "definite"
-              }
-            }
-          },
-          {
-            "frame_name": "Temporal_colocation",
-            "frame_label": "Colocación temporal",
-            "lexical_unit": "hoy",
-            "roles": {
-              "Landmark_period": {
-                "type": "Time",
-                "surface": "hoy",
-                "lemma": "hoy",
-                "ref": "AHORA",
-                "definiteness": "definite"
+                "ref": "speaker"
               },
-              "Trajector_event": {
-                "type": "Event",
-                "ref_frame": "Being_born",
-                "surface": "cumpleaños",
-                "lemma": "cumpleaños",
-                "definiteness": "definite"
+              "Time": {
+                "type": "Time",
+                "surface": "Hoy",
+                "lemma": "hoy"
               }
             }
           }
         ],
         "nsm_explications": {
-          "cumpleaños": "AHORA es el MOMENTO cuando YO nací hace MUCHO TIEMPO",
-          "hoy": "AHORA, en este MOMENTO del TIEMPO",
-          "estructura_temporal": "en AHORA ocurre este MOMENTO del año cuando YO pasé a VIVIR"
+          "cumpleaños": "AHORA es un DÍA en que ALGUIEN (YO) VIVIR un año más. ESTE DÍA pasa una vez cada año. ALGUIEN (YO) piensa en ESTE DÍA como un DÍA BUENO."
         },
         "logical_form": {
-          "event": "cumpleaños(YO, AHORA)",
-          "modality": "indicativo"
+          "event": "ser cumpleaños de YO hoy",
+          "modality": "indicativo, afirmación factual",
+          "tense": "present",
+          "aspect": "none",
+          "negation": false
         },
         "pragmatics": {
-          "politeness": "neutra",
-          "formality": "informal",
-          "expected_response": "expresión de felicitaciones, deseos de buen día, o reconocimiento del evento personal"
+          "politeness": "neutral",
+          "formality": "neutral",
+          "expected_response": "acknowledgment",
+          "speaker_stance": "El hablante comparte un hecho personal y positivo, con tono celebratorio.",
+          "urgency": "low"
         },
         "visual_guidelines": {
-          "focus_actor": "la persona usuaria (YO)",
-          "action_core": "celebración/conmemoración de aniversario de nacimiento",
-          "object_core": "el día especial (cumpleaños)",
-          "context": "contexto personal/vida cotidiana, no directamente relacionado con trámites educativos",
-          "temporal": "hoy (presente/ahora)"
+          "focus_actor": "figura humana estilizada sonriente con gesto de celebración sutil",
+          "action_core": "gesto de celebrar, brazos abiertos o mano en el pecho",
+          "object_core": "globo o marco de calendario sugerido sin texto ni números",
+          "context": "composición centrada con amplio espacio negativo, acento en coral",
+          "temporal": "immediate",
+          "salience": {
+            "focus_actor": 0.9,
+            "action_core": 0.7,
+            "object_core": 0.4
+          }
         }
       },
       "elements": [
@@ -2386,13 +4953,519 @@
       "nluStatus": "completed",
       "visualStatus": "completed",
       "bitmapStatus": "completed",
-      "nluDuration": 13.501,
+      "nluDuration": 3783,
       "visualDuration": 5.032,
       "bitmapDuration": 14.897,
       "generationModel": "gemini-3.1-flash-image",
       "structuredSvgDiscarded": false,
-      "structuredSvgStatus": "idle"
+      "structuredSvgStatus": "idle",
+      "nluLegacy": {
+        "replacedAt": "2026-11-05T22:42:01.155Z",
+        "reason": "failed NLU 1.1.0 contract",
+        "NLU": {
+          "utterance": "Hoy es mi cumpleaños",
+          "lang": "es",
+          "domain": "vida_cotidiana",
+          "metadata": {
+            "speech_act": "información",
+            "intent": "informar_sobre_evento_personal"
+          },
+          "frames": [
+            {
+              "frame_name": "Being_born",
+              "frame_label": "Nacimiento",
+              "lexical_unit": "cumpleaños",
+              "roles": {
+                "Experiencer": {
+                  "type": "Experiencer",
+                  "surface": "mi",
+                  "lemma": "yo",
+                  "ref": "YO",
+                  "definiteness": "definite"
+                }
+              }
+            },
+            {
+              "frame_name": "Temporal_colocation",
+              "frame_label": "Colocación temporal",
+              "lexical_unit": "hoy",
+              "roles": {
+                "Landmark_period": {
+                  "type": "Time",
+                  "surface": "hoy",
+                  "lemma": "hoy",
+                  "ref": "AHORA",
+                  "definiteness": "definite"
+                },
+                "Trajector_event": {
+                  "type": "Event",
+                  "ref_frame": "Being_born",
+                  "surface": "cumpleaños",
+                  "lemma": "cumpleaños",
+                  "definiteness": "definite"
+                }
+              }
+            }
+          ],
+          "nsm_explications": {
+            "cumpleaños": "AHORA es el MOMENTO cuando YO nací hace MUCHO TIEMPO",
+            "hoy": "AHORA, en este MOMENTO del TIEMPO",
+            "estructura_temporal": "en AHORA ocurre este MOMENTO del año cuando YO pasé a VIVIR"
+          },
+          "logical_form": {
+            "event": "cumpleaños(YO, AHORA)",
+            "modality": "indicativo"
+          },
+          "pragmatics": {
+            "politeness": "neutral",
+            "formality": "informal",
+            "expected_response": "expresión de felicitaciones, deseos de buen día, o reconocimiento del evento personal"
+          },
+          "visual_guidelines": {
+            "focus_actor": "la persona usuaria (YO)",
+            "action_core": "celebración/conmemoración de aniversario de nacimiento",
+            "object_core": "el día especial (cumpleaños)",
+            "context": "contexto personal/vida cotidiana, no directamente relacionado con trámites educativos",
+            "temporal": "hoy (presente/ahora)"
+          }
+        },
+        "nluMigration": {
+          "contract": "1.1.0",
+          "at": "2026-11-05T22:41:53.290Z",
+          "changes": [
+            {
+              "path": "/pragmatics/politeness",
+              "from": "neutra",
+              "to": "neutral",
+              "rule": "approved"
+            }
+          ]
+        }
+      },
+      "phaseExecutions": [
+        {
+          "id": "efd6a627-574a-482f-a6ef-fd83647a90cb",
+          "phase": 1,
+          "createdAt": "2026-11-05T22:42:01.154Z",
+          "model": "claude-haiku-5-5",
+          "provider": "anthropic",
+          "actualModel": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 228,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 4461,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 901,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "service_tier": "standard",
+            "inference_geo": "global",
+            "speed": "standard"
+          },
+          "contractId": "https://pictos.net/schemas/pictonet-nlu-generation-1.1.0.schema.json",
+          "contractHash": "3709b2d5d375ab75a5885bdad9dd3c9a57820461fb72f86f5b2cb6f448aac695",
+          "contractVersion": "1.1.0",
+          "promptVersion": "nlu-1.1.0",
+          "promptHash": "4ec9ebf406108dcb222e2d2cabd3b1675464d1b15f0b08091e0420cb7ae3930b",
+          "inputSnapshot": {
+            "model": "claude-haiku-5-5",
+            "max_tokens": 4096,
+            "system": [
+              {
+                "type": "text",
+                "text": "Operas como el nodo \"NLU Schema Engine\" en la arquitectura PictoNet.\nTu tarea es analizar la intención comunicativa y devolver el resultado JSON vía la herramienta disponible.\n\nContexto de uso:\n- Región geográfica: Viña del Mar, Valparaiso Region, Chile\n- Idioma del vocabulario: es-419\n- Contexto visual: \"Pictograma de estilo ilustración editorial contemporánea. Estética cálida, sofisticada y adecuada para un público adulto. Nivel de abstracción medio: reconocible pero estilizado, nunca fotorrealista. Formas orgánicas con contornos seguros pero ligeramente irregulares (se debe percibir el trazo manual del ilustrador con sutiles imperfecciones que aporten personalidad, sin verse desaliñado). Curvas suaves, sin bordes geométricos afilados. Trabajo de línea de grosor variable para enfatizar contornos clave, con líneas secundarias finas para detalles internos; omitir el trazo en áreas rellenas si el contraste de color es suficiente. Paleta de colores planos de 4 a 6 tonos apagados, desaturados y terrosos (terracota, ocre, oliva, azul pizarra, gris cálido, blanco roto), utilizando un único color de acento (ej. coral o verde azulado) de forma muy medida para el énfasis semántico. Figura humana de proporciones estilizadas (extremidades ligeramente alargadas, manos simplificadas). Rasgos faciales mínimos (ojos de punto, ángulo simple para la nariz, sin boca a menos que la emoción sea el mensaje principal). Ropa sugerida mediante bloques de color plano, sin texturas detalladas.\n\nComposición de figura centrada con amplio espacio negativo (\"aire\" alrededor). Se permiten elementos contextuales mínimos solo si aclaran la escena (ej. una línea para la mesa o el marco de una puerta), pero nunca un entorno o fondo completo; priorizar la sugerencia sobre la descripción. Toda la intención comunicativa debe expresarse mediante la postura corporal, los gestos de las manos, la relación espacial y la metáfora visual. CRÍTICO: NUNCA incluir texto, letras, números, palabras, etiquetas, rótulos, globos de diálogo ni símbolos escritos de ningún tipo. Evitar estrictamente: expresiones de dibujo animado, rasgos exagerados, proporciones infantiles, degradados, texturas fotográficas, sombras proyectadas, efectos 3D o bordes decorativos.\"\n\nOntología NSM (Goddard & Wierzbicka v19, 2017):\n*   **Substantives:** YO, TÚ~USTED, ALGUIEN, ALGO~COSA, GENTE~PERSONAS, CUERPO\n*   **Relational Substantives:** TIPO~CLASE, PARTE\n*   **Determiners:** ESTE~ESTO, EL MISMO, OTRO\n*   **Quantifiers:** UNO, DOS, ALGUNOS, TODO~TODOS, MUCHO~MUCHOS, POCO~POCOS\n*   **Evaluators:** BUENO, MALO\n*   **Descriptors:** GRANDE, PEQUEÑO\n*   **Mental Predicates:** PENSAR, SABER, QUERER, NO QUERER, SENTIR, VER, OÍR\n*   **Speech:** DECIR, PALABRAS, VERDAD\n*   **Actions Events Movement:** HACER, PASAR~OCURRIR, MOVER~MOVERSE\n*   **Existence Possession:** HAY~ESTAR, TENER\n*   **Life Death:** VIVIR, MORIR\n*   **Time:** CUÁNDO~TIEMPO, AHORA, ANTES, DESPUÉS, MUCHO TIEMPO, POCO TIEMPO, POR UN TIEMPO, MOMENTO\n*   **Space:** DÓNDE~LUGAR, AQUÍ, ARRIBA~ENCIMA, ABAJO~DEBAJO, LEJOS, CERCA, LADO, DENTRO, TOCAR\n*   **Logical Concepts:** NO, QUIZÁS~TAL VEZ, PODER, PORQUE, SI\n*   **Intensifier Augmentor:** MUY, MÁS\n*   **Similarity:** COMO~ASÍ\n\nLas explicaciones NSM (nsm_explications) deben estar escritas usando los primos en ESPAÑOL.\nFormato: clave = lema del concepto (p.ej. \"ayudar\"), valor = fórmula NSM usando SÓLO los primos en MAYÚSCULAS.\nEjemplo correcto — clave \"ayudar\": \"ALGUIEN (YO) piensa: ALGO MALO está pasando para MÍ. ESTE ALGUIEN quiere que ALGUIEN (TÚ) HAGA ALGO bueno para ESTE ALGUIEN ahora.\"\nGenera frame_label como traducción al español del frame_name.\n\nDominio — infiere uno de: transporte, salud, alimentación, educación, vida_cotidiana, trabajo, emociones, tiempo_libre, dinero, seguridad, comunicación, lugar, trámites\n\nReglas:\n1. Invoca SIEMPRE la herramienta analyze_utterance con el JSON completo.\n2. Analiza semántica y pragmática profunda, no solo la superficie.\n3. Todos los campos requeridos deben estar presentes.\n4. Conserva utterance exactamente. Usa IDs únicos cuando un frame sea referenciado; ref_frame apunta a un ID existente, nunca a frame_name.\n5. No inventes identidad del hablante ni timestamp de captura; esos datos no forman parte de la salida generada.\n6. visual_guidelines.temporal admite solo: immediate, near_future, future, past, habitual, unspecified. No existe \"present\": un estado o acción presente o en curso es immediate.",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ],
+            "tools": [
+              {
+                "name": "analyze_utterance",
+                "description": "Return the NLU semantic analysis of the communicative intention.",
+                "input_schema": {
+                  "description": "Strict profile for fresh Phase 1 output; historical imports use the document validator, not this profile.",
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "utterance",
+                    "lang",
+                    "metadata",
+                    "frames",
+                    "nsm_explications",
+                    "logical_form",
+                    "pragmatics",
+                    "visual_guidelines"
+                  ],
+                  "properties": {
+                    "utterance": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Surface string as received.",
+                      "pattern": "\\S"
+                    },
+                    "lang": {
+                      "type": "string",
+                      "description": "IETF BCP-47 language tag (e.g., en-GB, es-419).",
+                      "pattern": "^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$"
+                    },
+                    "domain": {
+                      "type": "string",
+                      "description": "Thematic domain inferred from the utterance.",
+                      "enum": [
+                        "transporte",
+                        "salud",
+                        "alimentación",
+                        "educación",
+                        "vida_cotidiana",
+                        "trabajo",
+                        "emociones",
+                        "tiempo_libre",
+                        "dinero",
+                        "seguridad",
+                        "comunicación",
+                        "lugar",
+                        "trámites"
+                      ]
+                    },
+                    "metadata": {
+                      "type": "object",
+                      "description": "Lightweight communicative metadata.",
+                      "additionalProperties": false,
+                      "required": [
+                        "speech_act",
+                        "intent"
+                      ],
+                      "properties": {
+                        "speech_act": {
+                          "type": "string",
+                          "description": "Dialogue-act class.",
+                          "enum": [
+                            "assertive",
+                            "directive",
+                            "commissive",
+                            "expressive",
+                            "declarative",
+                            "interrogative"
+                          ]
+                        },
+                        "intent": {
+                          "type": "string",
+                          "description": "Sub-type of communicative intention.",
+                          "enum": [
+                            "request",
+                            "command",
+                            "suggestion",
+                            "reminder",
+                            "warning",
+                            "inform",
+                            "ask_info",
+                            "confirm",
+                            "deny",
+                            "greet",
+                            "other"
+                          ]
+                        }
+                      }
+                    },
+                    "frames": {
+                      "type": "array",
+                      "description": "Frame-semantic analysis units.",
+                      "minItems": 1,
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "frame_name",
+                          "lexical_unit",
+                          "roles"
+                        ],
+                        "properties": {
+                          "frame_name": {
+                            "type": "string",
+                            "minLength": 1,
+                            "description": "Canonical FrameNet-like label in English (e.g., Directed_action, Desire).",
+                            "pattern": "\\S"
+                          },
+                          "frame_label": {
+                            "type": "string",
+                            "description": "Translated label for UI display in the utterance language (e.g., 'Costo' for 'Expensiveness')."
+                          },
+                          "lexical_unit": {
+                            "type": "string",
+                            "minLength": 1,
+                            "description": "Triggering lemma or expression.",
+                            "pattern": "\\S"
+                          },
+                          "roles": {
+                            "type": "object",
+                            "description": "Map of frame elements to role fillers.",
+                            "minProperties": 1,
+                            "additionalProperties": {
+                              "type": "object",
+                              "description": "Participant, object, or event filling a frame role.",
+                              "additionalProperties": false,
+                              "required": [
+                                "type"
+                              ],
+                              "anyOf": [
+                                {
+                                  "required": [
+                                    "ref"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "surface"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "lemma"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "ref_frame"
+                                  ]
+                                }
+                              ],
+                              "properties": {
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "Agent",
+                                    "Addressee",
+                                    "Speaker",
+                                    "Experiencer",
+                                    "Patient",
+                                    "Theme",
+                                    "Beneficiary",
+                                    "Instrument",
+                                    "Object",
+                                    "Event",
+                                    "Location",
+                                    "Time",
+                                    "Other"
+                                  ]
+                                },
+                                "ref": {
+                                  "type": "string",
+                                  "description": "External or discourse reference ID.",
+                                  "pattern": "\\S"
+                                },
+                                "surface": {
+                                  "type": "string",
+                                  "description": "Surface string span.",
+                                  "pattern": "\\S"
+                                },
+                                "lemma": {
+                                  "type": "string",
+                                  "description": "Canonical lemma.",
+                                  "pattern": "\\S"
+                                },
+                                "definiteness": {
+                                  "type": "string",
+                                  "enum": [
+                                    "definite",
+                                    "indefinite",
+                                    "unspecified"
+                                  ]
+                                },
+                                "ref_frame": {
+                                  "type": "string",
+                                  "description": "ID of another FrameObject this filler points to.",
+                                  "pattern": "\\S"
+                                }
+                              }
+                            }
+                          },
+                          "id": {
+                            "type": "string",
+                            "description": "Optional local ID for cross-referencing between frames.",
+                            "pattern": "^[A-Za-z0-9_-]{1,64}$"
+                          }
+                        }
+                      }
+                    },
+                    "nsm_explications": {
+                      "type": "object",
+                      "description": "NSM primes or paraphrases keyed by concept label (preferred key).",
+                      "additionalProperties": {
+                        "type": "string",
+                        "pattern": "\\S"
+                      },
+                      "minProperties": 1
+                    },
+                    "logical_form": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "event",
+                        "modality"
+                      ],
+                      "properties": {
+                        "event": {
+                          "type": "string",
+                          "pattern": "\\S"
+                        },
+                        "modality": {
+                          "type": "string"
+                        },
+                        "negation": {
+                          "type": "boolean"
+                        },
+                        "aspect": {
+                          "type": "string",
+                          "enum": [
+                            "none",
+                            "progressive",
+                            "perfective",
+                            "habitual",
+                            "inceptive",
+                            "custom"
+                          ]
+                        },
+                        "tense": {
+                          "type": "string",
+                          "enum": [
+                            "past",
+                            "present",
+                            "future",
+                            "unspecified"
+                          ]
+                        }
+                      }
+                    },
+                    "pragmatics": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "politeness": {
+                          "type": "string",
+                          "enum": [
+                            "polite",
+                            "neutral",
+                            "impolite"
+                          ]
+                        },
+                        "formality": {
+                          "type": "string",
+                          "enum": [
+                            "informal",
+                            "neutral",
+                            "formal"
+                          ]
+                        },
+                        "expected_response": {
+                          "type": "string",
+                          "enum": [
+                            "compliance",
+                            "refusal",
+                            "acknowledgment",
+                            "question",
+                            "silence",
+                            "other"
+                          ]
+                        },
+                        "urgency": {
+                          "type": "string",
+                          "enum": [
+                            "low",
+                            "medium",
+                            "high"
+                          ]
+                        },
+                        "speaker_stance": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "politeness",
+                        "formality",
+                        "expected_response"
+                      ]
+                    },
+                    "visual_guidelines": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "focus_actor": {
+                          "type": "string"
+                        },
+                        "secondary_actor": {
+                          "type": "string"
+                        },
+                        "action_core": {
+                          "type": "string"
+                        },
+                        "object_core": {
+                          "type": "string"
+                        },
+                        "context": {
+                          "type": "string"
+                        },
+                        "temporal": {
+                          "type": "string",
+                          "enum": [
+                            "immediate",
+                            "near_future",
+                            "future",
+                            "past",
+                            "habitual",
+                            "unspecified"
+                          ]
+                        },
+                        "salience": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1
+                          }
+                        }
+                      },
+                      "required": [
+                        "focus_actor",
+                        "action_core",
+                        "object_core",
+                        "context",
+                        "temporal"
+                      ]
+                    },
+                    "schemaVersion": {
+                      "const": "1.1.0",
+                      "description": "Optional explicit document version; never retroactively inferred."
+                    }
+                  }
+                },
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ],
+            "tool_choice": {
+              "type": "tool",
+              "name": "analyze_utterance"
+            },
+            "messages": [
+              {
+                "role": "user",
+                "content": "UTTERANCE: \"Hoy es mi cumpleaños\""
+              }
+            ]
+          },
+          "inputHash": "d2643f071801ac5859666011020817f8dfdcc826f5bf30e29c71ea1c643d5c6a",
+          "outputHash": "c0394a392b4dd5b458b5106ac69474626041c1bc9ab5881f6de21b09989a4b5c",
+          "validated": true
+        }
+      ]
     }
   ],
-  "svgs": []
+  "svgs": [],
+  "boards": []
 }

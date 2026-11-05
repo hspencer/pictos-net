@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-05T22:09:32.189Z",
+  "generated": "2026-11-05T22:14:32.390Z",
   "count": 21,
   "libraries": [
     {
@@ -10,7 +10,7 @@
       "items": 6,
       "credits": "MediaFranca",
       "description": "pictonet_graph_dump",
-      "filesize": 2131828
+      "filesize": 2283408
     },
     {
       "filename": "concreta_graph_2026-10-22.json",
@@ -30,7 +30,7 @@
       "items": 15,
       "credits": "MediaFranca",
       "description": "pictonet_graph_dump",
-      "filesize": 1518147
+      "filesize": 1863758
     },
     {
       "filename": "expresiones-cotidianas.json",
@@ -40,7 +40,7 @@
       "items": 200,
       "credits": "MediaFranca",
       "description": "pictonet_graph_dump",
-      "filesize": 54373454
+      "filesize": 57027294
     },
     {
       "filename": "icap.json",
@@ -50,7 +50,7 @@
       "items": 50,
       "credits": "MediaFranca",
       "description": "pictonet_graph_dump",
-      "filesize": 24318178
+      "filesize": 25083129
     },
     {
       "filename": "idiomatic.json",
@@ -60,7 +60,7 @@
       "items": 278,
       "credits": "MediaFranca",
       "description": "pictonet_graph_dump",
-      "filesize": 75255678
+      "filesize": 82164329
     },
     {
       "filename": "ilustracion-moderna.json",
@@ -70,7 +70,7 @@
       "items": 6,
       "credits": "MediaFranca",
       "description": "pictonet_graph_dump",
-      "filesize": 2884773
+      "filesize": 3033525
     },
     {
       "filename": "inclusion-laboral.json",
@@ -80,7 +80,7 @@
       "items": 20,
       "credits": "MediaFranca",
       "description": "pictonet_graph_dump",
-      "filesize": 17602224
+      "filesize": 18130397
     },
     {
       "filename": "kitchen.json",
@@ -90,7 +90,7 @@
       "items": 6,
       "credits": "MediaFranca",
       "description": "pictonet_graph_dump",
-      "filesize": 374687
+      "filesize": 509787
     },
     {
       "filename": "mordillo.json",
@@ -100,7 +100,7 @@
       "items": 10,
       "credits": "MediaFranca",
       "description": "pictonet_graph_dump",
-      "filesize": 1322087
+      "filesize": 1555696
     },
     {
       "filename": "picmil.json",
@@ -110,7 +110,7 @@
       "items": 22,
       "credits": "MediaFranca",
       "description": "pictonet_graph_dump",
-      "filesize": 6016524
+      "filesize": 6551118
     },
     {
       "filename": "pictos-color.json",
@@ -120,7 +120,7 @@
       "items": 22,
       "credits": "MediaFranca",
       "description": "pictonet_graph_dump",
-      "filesize": 7154929
+      "filesize": 7707212
     },
     {
       "filename": "pictos-iso.json",
@@ -130,7 +130,7 @@
       "items": 22,
       "credits": "MediaFranca",
       "description": "pictonet_graph_dump",
-      "filesize": 34524122
+      "filesize": 35064822
     },
     {
       "filename": "pictos-tramites.json",
@@ -140,7 +140,7 @@
       "items": 10,
       "credits": "MediaFranca",
       "description": "pictonet_graph_dump",
-      "filesize": 3102738
+      "filesize": 3335440
     },
     {
       "filename": "pictos.json",
@@ -150,7 +150,7 @@
       "items": 29,
       "credits": "MediaFranca",
       "description": "pictonet_graph_dump",
-      "filesize": 2262698
+      "filesize": 2988589
     },
     {
       "filename": "q___blake_graph_2026-08-11.json",
@@ -160,7 +160,7 @@
       "items": 22,
       "credits": "MediaFranca",
       "description": "pictonet_graph_dump",
-      "filesize": 34798841
+      "filesize": 35332465
     },
     {
       "filename": "senaletica-color.json",
@@ -170,7 +170,7 @@
       "items": 6,
       "credits": "MediaFranca",
       "description": "pictonet_graph_dump",
-      "filesize": 2586625
+      "filesize": 2729931
     },
     {
       "filename": "simplex.json",
@@ -180,7 +180,7 @@
       "items": 6,
       "credits": "MediaFranca",
       "description": "pictonet_graph_dump",
-      "filesize": 350096
+      "filesize": 503050
     },
     {
       "filename": "tablero_graph_2026-08-13.json",
@@ -190,7 +190,7 @@
       "items": 36,
       "credits": "MediaFranca",
       "description": "pictonet_graph_dump",
-      "filesize": 3877768
+      "filesize": 4679186
     },
     {
       "filename": "tramites-mineduc.json",
@@ -200,7 +200,7 @@
       "items": 38,
       "credits": "MediaFranca. Corpus original: Ana María Torres, Coordinación Institucional Ley Autismo y Sordera, Secretaría Ministerial de Educación Región de Valparaíso, Ministerio de Educación de Chile.",
       "description": "pictonet_graph_dump",
-      "filesize": 4276651
+      "filesize": 5171841
     },
     {
       "filename": "transporte.json",
@@ -210,7 +210,7 @@
       "items": 22,
       "credits": "MediaFranca",
       "description": "pictonet_graph_dump",
-      "filesize": 6521521
+      "filesize": 7071912
     }
   ]
 }
