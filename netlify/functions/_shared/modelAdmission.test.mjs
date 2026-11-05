@@ -52,7 +52,9 @@ test('catalog: retired models are offered by no phase and admitted by no endpoin
 });
 
 test('catalog: batch admits only batch-capable workshop or active models', () => {
-  assert.deepEqual(batchModelIds(), ['gemini-2.5-flash-image']);
+  // Vertex batch is dormant: its only capable model was retired on 2026-11-05.
+  assert.deepEqual(batchModelIds(), []);
+  assert.ok(!batchModelIds().includes('gemini-2.5-flash-image'));
   assert.ok(!batchModelIds().includes('gemini-3.1-flash-image'));
 });
 

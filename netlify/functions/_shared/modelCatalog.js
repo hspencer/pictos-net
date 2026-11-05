@@ -54,9 +54,10 @@ export const MODEL_CATALOG = {
   'gpt-image-2.5-flare': { ...image('OpenAI GPT Image 2.5 Flare', 'openai', 'bitmap', 0.006,
     'https://developers.openai.com/api/docs/models/gpt-image-2.5-flare',
     { promptCostsExtra: true, size: '1024×1024' }, 'workshop'), pricingCheckedAt: '2026-10-22' },
-  // Google alternative and the only Vertex batch model; Google retires it 2027-03-15.
+  // Retired 2026-11-05: 429 RESOURCE_EXHAUSTED under concurrency (Vertex image quota
+  // 2 req/min), 6.5x Flare's price; Google retires it 2027-03-15. Vertex batch stays dormant.
   'gemini-2.5-flash-image': { ...image('Gemini 2.5 Flash Image', 'gemini', 'bitmap', 0.039, vertexSource,
-    { promptCostsExtra: true, size: '1024×1024' }, 'active'), vertexBatch: true },
+    { promptCostsExtra: true, size: '1024×1024' }, 'retired'), vertexBatch: true },
   // The only native-SVG route; its output enters ESTRUCTURAR once the C2PA manifest is set aside.
   'recraftv4_1_vector': image('Recraft V4.1 (vector)', 'recraft', 'vector', 0.08, recraftSource, {}, 'active'),
 

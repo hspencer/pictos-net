@@ -1,4 +1,4 @@
-import { test, beforeEach, afterEach, mock } from 'node:test';
+import { test, before, after, beforeEach, afterEach, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import { GoogleAuth } from 'google-auth-library';
 import { setEnvironmentContext } from '@netlify/blobs';
@@ -6,6 +6,12 @@ import { connectBlobs, getBlobStore } from './blobs.js';
 import { consumeAuthGrant } from './identity.js';
 import { handler as authorize } from '../api-authorize.js';
 import { handler as generate } from '../api-gemini-worker-background.js';
+import { MODEL_CATALOG } from './modelCatalog.js';
+
+// The Gemini image route is dormant (2.5 Flash Image retired 2026-11-05); its grant
+// guarantees must still hold for the next Gemini image model, so admit it locally.
+before(() => { MODEL_CATALOG['gemini-2.5-flash-image'].status = 'active'; });
+after(() => { MODEL_CATALOG['gemini-2.5-flash-image'].status = 'retired'; });
 
 const encode = value => Buffer.from(JSON.stringify(value)).toString('base64');
 const user = { email: 'owner@example.test', app_metadata: { roles: [] } };

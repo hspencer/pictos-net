@@ -15,8 +15,10 @@ import { MODEL_CATALOG } from './modelCatalog.js';
 // The Gemini text route is dormant since Google retired Gemini 2.5 text
 // (2026-10-20), but its ownership, limit and retry guarantees must still hold
 // for the next Gemini text model, so these tests admit 2.5 Flash locally.
-before(() => { MODEL_CATALOG['gemini-2.5-flash'].status = 'active'; });
-after(() => { MODEL_CATALOG['gemini-2.5-flash'].status = 'retired'; });
+// Same for the Gemini image route, dormant since 2.5 Flash Image was retired (2026-11-05).
+const DORMANT = ['gemini-2.5-flash', 'gemini-2.5-flash-image'];
+before(() => { for (const id of DORMANT) MODEL_CATALOG[id].status = 'active'; });
+after(() => { for (const id of DORMANT) MODEL_CATALOG[id].status = 'retired'; });
 const previousCwd = process.cwd();
 const keys = ['NETLIFY_DEV', 'NETLIFY_BLOBS_CONTEXT', 'GOOGLE_SERVICE_ACCOUNT_JSON', 'PICTOS_ANTHROPIC_KEY', 'RECRAFT_API_KEY'];
 const previous = Object.fromEntries(keys.map(k => [k, process.env[k]]));

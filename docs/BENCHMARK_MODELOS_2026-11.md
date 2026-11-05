@@ -143,7 +143,7 @@ Estado en `MODEL_CATALOG` desde esta fecha. Los retirados no se ofrecen ni se ad
 | `gpt-6-luna` | 1, 2 | active | Alternativa de otro proveedor si Anthropic falla; 100 % válido, el más barato |
 | `claude-sonnet-4-6` | 4 | workshop (por defecto) | El único con 98 % de nodos y casi ninguna región sin resolver |
 | `gpt-image-2.5-flare` | 3 | workshop (por defecto) | 8/8 claras, 9,8 s, US$0,006, fuera de la cuota de Vertex |
-| `gemini-2.5-flash-image` | 3 | active | Alternativa de Google y único modelo del lote Vertex; Google lo retira el 15-03-2027 |
+| `gemini-2.5-flash-image` | 3 | retired (05-11-2026) | 429 `RESOURCE_EXHAUSTED` con peticiones en paralelo (cuota de imagen de Vertex), 6,5 veces el precio de Flare y Google lo retira el 15-03-2027. El lote Vertex queda sin modelo |
 | `recraftv4_1_vector` | 3 | active | Única ruta de SVG nativo |
 | `claude-haiku-4-5-20251001` | 1, 2 | retired | Más caro, más lento, menos válido y sin caché efectiva |
 | `claude-sonnet-4-6` en fases 1 y 2 | 1, 2 | retirado de esas fases | 30 veces el costo de Haiku 5.5 y 4 veces más lento, sin mejora visible |
