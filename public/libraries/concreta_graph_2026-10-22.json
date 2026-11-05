@@ -6,7 +6,7 @@
   "config": {
     "lang": "es-419",
     "name": "Concreta",
-    "credits": "Herbert",
+    "credits": "Pictos / MediaFranca",
     "license": "cc-by",
     "visualStylePrompt": "Fotografía de stock de alta resolución, ultrarrealista, para comunicación visual en CAA, aislada sobre un fondo blanco puro y continuo. El sujeto principal es una niña chilena de 8 años, de baja estatura, con tono de piel morena cálida y cabello oscuro trenzado hasta la cintura, vestida con ropa cotidiana chilena realista. La escena muestra [DESCRIPCIÓN DE LA ACCIÓN U OBJETO]. Iluminación de estudio clara, enfoque nítido, ningún símbolo abstracto, sin íconos flotantes, completamente literal y concreta. Cualquier otra persona en la escena es una persona chilena común, auténtica y no idealizada. Montaje minimalista, muy detallado, fotografía limpia --ar 1:1",
     "geoContext": {

@@ -239,9 +239,9 @@ flowchart LR
 
 ## Philosophy
 
-Pictograms are more than illustrations: they are communicative acts. PICTOS proposes that to generate a good pictogram, one must first *deeply understand* what is to be communicated, before deciding how to visualize it.
+Pictograms are more than illustrations: they are communicative acts. At [MediaFranca](https://github.com/mediafranca), the open initiative PICTOS belongs to, we hold that to generate a good pictogram, one must first *deeply understand* what is to be communicated, before deciding how to visualize it.
 
-The project stems from a conviction: **visual communication must be explainable and accessible, based on context**.
+The initiative stems from a shared conviction: **visual communication must be explainable and accessible, based on context**.
 
 The generated pictograms aim to reduce cognitive barriers, facilitate the expression of basic needs, and contribute to the autonomy of people with functional diversity.
 

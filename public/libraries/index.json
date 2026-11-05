@@ -18,9 +18,9 @@
       "location": "Viña del Mar, CL",
       "language": "es-419",
       "items": 3,
-      "credits": "Herbert",
+      "credits": "Pictos / MediaFranca",
       "description": "pictonet_graph_dump",
-      "filesize": 473502
+      "filesize": 473515
     },
     {
       "filename": "escena_descriptiva_graph_2026-08-26.json",
@@ -88,8 +88,9 @@
       "location": "Dunedin, Otago, Nueva Zelanda",
       "language": "en",
       "items": 6,
+      "credits": "Pictos / MediaFranca",
       "description": "pictonet_graph_dump",
-      "filesize": 374658
+      "filesize": 374697
     },
     {
       "filename": "mordillo.json",
@@ -137,8 +138,9 @@
       "location": "Santiago, Región Metropolitana de Santiago, Chile",
       "language": "es-419",
       "items": 10,
+      "credits": "Pictos / MediaFranca",
       "description": "pictonet_graph_dump",
-      "filesize": 3102728
+      "filesize": 3102748
     },
     {
       "filename": "pictos.json",
@@ -196,9 +198,9 @@
       "location": "Región de Valparaíso, Chile",
       "language": "es-419",
       "items": 38,
-      "credits": "Herbert Spencer González (e[ad] PUCV), investigación doctoral Pictos.net. Corpus original: Ana María Torres, Coordinación Institucional Ley Autismo y Sordera, Secretaría Ministerial de Educación Región de Valparaíso, Ministerio de Educación de Chile.",
+      "credits": "Pictos / MediaFranca. Corpus original: Ana María Torres, Coordinación Institucional Ley Autismo y Sordera, Secretaría Ministerial de Educación Región de Valparaíso, Ministerio de Educación de Chile.",
       "description": "pictonet_graph_dump",
-      "filesize": 4276718
+      "filesize": 4276664
     },
     {
       "filename": "transporte.json",

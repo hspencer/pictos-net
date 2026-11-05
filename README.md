@@ -246,9 +246,9 @@ flowchart LR
 
 ## Filosofía
 
-Los pictogramas son más que ilustraciones: son actos comunicativos. PICTOS propone que para generar un buen pictograma hay que primero *comprender profundamente* qué se quiere comunicar, antes de decidir cómo visualizarlo.
+Los pictogramas son más que ilustraciones: son actos comunicativos. En [MediaFranca](https://github.com/mediafranca), la iniciativa abierta a la que pertenece PICTOS, proponemos que para generar un buen pictograma hay que primero *comprender profundamente* qué se quiere comunicar, antes de decidir cómo visualizarlo.
 
-El proyecto nace de una convicción: **la comunicación visual debe ser explicable y accesible, basada en el contexto**.
+La iniciativa nace de una convicción compartida: **la comunicación visual debe ser explicable y accesible, basada en el contexto**.
 
 Los pictogramas generados buscan reducir barreras cognitivas, facilitar la expresión de necesidades básicas y contribuir a la autonomía de personas con diversidad funcional.
 
