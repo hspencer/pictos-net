@@ -13,9 +13,9 @@
  *   Phase 2 — every element (incl. nested) carries a valid CHILD_CONCEPT
  *   Phase 2 — spatial prompt is a non-empty string
  *   Round-trip — Phase 1 → Phase 2 chain for Spanish + English utterances
- *   api-gemini-nlu — conditional: skipped when Vertex credentials are absent
+ *   Claude Haiku 5.5 — temperature is dropped by api-claude (fixedSampling)
  *
- * Phase 3 (PRODUCIR) is excluded to avoid consuming Recraft/Gemini image credits.
+ * Phase 3 (PRODUCIR) is excluded to avoid consuming image credits.
  * Run it manually via the app UI after verifying Phases 1–2 pass here.
  */
 
@@ -400,54 +400,38 @@ test('[pipeline] Phase 2: model response never leaks a root element (defensive u
     assert.ok(!allIds.includes('pictogram'), 'children must not contain a pictogram node');
 });
 
-// ── api-gemini-nlu (conditional) ──────────────────────────────────────────────
+// ── Claude Haiku 5.5: fixed sampling ──────────────────────────────────────────
 
-test('[pipeline] api-gemini-nlu: Phase 1 via Gemini 2.5 Flash', { timeout: CALL_TIMEOUT_MS }, async (t) => {
+test('[pipeline] Phase 1 via Claude Haiku 5.5 tolerates temperature (proxy drops it)', { timeout: CALL_TIMEOUT_MS }, async (t) => {
     if (!serverAvailable) {
         t.skip('netlify dev not running');
         return;
     }
-    const utterance = 'la niña come una manzana';
+    // Haiku 5.5 rejects non-default sampling with a 400; ESTRUCTURAR sends
+    // temperature: 0, so api-claude must forward it only to models that accept it.
     const lang = 'es-419';
-    const model = 'gemini-2.5-flash';
-
-    let response: any;
-    try {
-        response = await callFunction('api-gemini-nlu', {
-            model,
-            max_tokens: 4096,
-            system: [{ type: 'text', text: buildNluSystem(lang), cache_control: { type: 'ephemeral' } }],
-            tools: [{
-                name: 'analyze_utterance',
-                description: 'Return the NLU semantic analysis of the communicative intention.',
-                input_schema: NLU_TOOL_SCHEMA,
-                cache_control: { type: 'ephemeral' },
-            }],
-            tool_choice: { type: 'tool', name: 'analyze_utterance' },
-            messages: [{ role: 'user', content: `UTTERANCE: "${utterance}"` }],
-        });
-    } catch (err: any) {
-        if (err.message?.includes('credentials') || err.message?.includes('401') || err.message?.includes('403')) {
-            t.skip('Vertex AI credentials not available in dev environment');
-            return;
-        }
-        throw err;
-    }
+    const response = await callFunction('api-claude', {
+        model: 'claude-haiku-5-5',
+        max_tokens: 4096,
+        temperature: 0,
+        system: [{ type: 'text', text: buildNluSystem(lang), cache_control: { type: 'ephemeral' } }],
+        tools: [{
+            name: 'analyze_utterance',
+            description: 'Return the NLU semantic analysis of the communicative intention.',
+            input_schema: NLU_TOOL_SCHEMA,
+            cache_control: { type: 'ephemeral' },
+        }],
+        tool_choice: { type: 'tool', name: 'analyze_utterance' },
+        messages: [{ role: 'user', content: 'UTTERANCE: "la niña come una manzana"' }],
+    });
 
     const nlu = extractToolUse(response, 'analyze_utterance') as NLUData;
-
-    // Gemini NLU shape: same required fields as Claude, but frame.roles may be
-    // sparse — Gemini serialises additionalProperties maps differently, so we
-    // only assert the frame array exists and has the structural wrapper.
-    assert.ok(typeof nlu.utterance === 'string', 'GeminiNlu: utterance missing');
-    assert.ok(Array.isArray(nlu.frames) && nlu.frames.length > 0, 'GeminiNlu: frames empty');
+    assert.ok(typeof nlu.utterance === 'string', 'Haiku 5.5: utterance missing');
+    assert.ok(Array.isArray(nlu.frames) && nlu.frames.length > 0, 'Haiku 5.5: frames empty');
     for (const frame of nlu.frames) {
-      assert.ok(frame.frame_name, 'GeminiNlu: frame_name missing');
-      assert.ok(frame.lexical_unit, 'GeminiNlu: lexical_unit missing');
-      assert.ok(frame.roles !== null && typeof frame.roles === 'object', 'GeminiNlu: roles must be an object (may be empty)');
+        assert.ok(frame.frame_name, 'Haiku 5.5: frame_name missing');
+        assert.ok(frame.lexical_unit, 'Haiku 5.5: lexical_unit missing');
     }
-    assert.ok(nlu.visual_guidelines?.focus_actor !== undefined, 'GeminiNlu: visual_guidelines missing');
-    assert.ok(nlu.metadata?.intent, 'GeminiNlu: metadata.intent missing');
-
-    console.log(`  ✓ Gemini NLU intent: ${nlu.metadata?.intent}`);
+    assert.ok(nlu.visual_guidelines?.focus_actor !== undefined, 'Haiku 5.5: visual_guidelines missing');
+    assert.ok(nlu.metadata?.intent, 'Haiku 5.5: metadata.intent missing');
 });
