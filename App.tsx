@@ -302,6 +302,17 @@ interface AppProps {
   authUser?: { email: string; user_metadata?: { full_name?: string; avatar_url?: string } } | null;
 }
 
+// Example libraries renamed on 2026-11-07 (flat names, `.en` suffix for en-GB).
+// Copies made before keep the old filename in meta.sourceTemplate.
+const RENAMED_TEMPLATES: Record<string, string> = {
+  'concreta_graph_2026-10-22.json': 'concreta.json',
+  'escena_descriptiva_graph_2026-08-26.json': 'escena-descriptiva.json',
+  'q___blake_graph_2026-08-11.json': 'blake.json',
+  'tablero_graph_2026-08-13.json': 'tablero.json',
+  'idiomatic.json': 'idiomatic.en.json',
+  'kitchen.json': 'kitchen.en.json',
+};
+
 const App: React.FC<AppProps> = ({ authUser }) => {
   const { t, lang, setLang } = useTranslation();
   const { svgs, exportSVGs, importSVGs, clearLibrary, addSVG } = useSVGLibrary();
@@ -678,11 +689,11 @@ const App: React.FC<AppProps> = ({ authUser }) => {
         } catch { /* sin red — no hay recuperación posible */ }
       }
 
-      const sourceTemplate = meta.sourceTemplate
+      const sourceTemplate = (meta.sourceTemplate && (RENAMED_TEMPLATES[meta.sourceTemplate] ?? meta.sourceTemplate))
         || templates?.find(t => t.name === meta.name)?.filename;
       if (!sourceTemplate) return;
       // Etiquetar para que futuras aperturas no dependan del match por nombre
-      if (!meta.sourceTemplate) {
+      if (meta.sourceTemplate !== sourceTemplate) {
         libraryService.updateLibraryMeta(libraryId, { sourceTemplate });
       }
 

@@ -11,7 +11,7 @@ const metadata = assertValidSVG(svg);
 const row = (): RowData => ({ id: 'r', UTTERANCE: metadata.nlu.utterance, NLU: structuredClone(metadata.nlu), ...structuredClone(metadata.composition), rawSvg: '<svg/>', status: 'idle', nluStatus: 'completed', visualStatus: 'completed', bitmapStatus: 'completed' });
 
 test('historical delivery NLU allows draft structuring while explaining blocked certification without changing trace or semantic evidence', () => {
-  const library = JSON.parse(fs.readFileSync(new URL('../public/libraries/escena_descriptiva_graph_2026-08-26.json', import.meta.url), 'utf8'));
+  const library = JSON.parse(fs.readFileSync(new URL('../public/libraries/escena-descriptiva.json', import.meta.url), 'utf8'));
   // The shipped row now carries regenerated NLU; its pre-1.1.0 NLU is kept in nluLegacy.
   const shipped = library.rows.find((r: RowData) => r.UTTERANCE === 'Abro la app de delivery en mi teléfono');
   const historical = { ...shipped, NLU: shipped.nluLegacy.NLU, rawSvg: '<svg/>' };

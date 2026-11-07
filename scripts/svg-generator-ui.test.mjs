@@ -16,7 +16,7 @@ const compiled = buildSync({
 const module = { exports: {} };
 new Function('require', 'module', 'exports', compiled)(createRequire(import.meta.url), module, module.exports);
 const render = module.exports.render;
-const library = JSON.parse(fs.readFileSync(path.join(root, 'public/libraries/escena_descriptiva_graph_2026-08-26.json'), 'utf8'));
+const library = JSON.parse(fs.readFileSync(path.join(root, 'public/libraries/escena-descriptiva.json'), 'utf8'));
 const historical = library.rows.find(row => row.UTTERANCE === 'Abro la app de delivery en mi teléfono');
 
 test('invalid or missing NLU leaves trace controls rendered in both layouts and locales', () => {

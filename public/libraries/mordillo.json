@@ -7,14 +7,13 @@
     "name": "Mordillo",
     "lang": "es-419",
     "uiLang": "es-419",
-    "license": "cc-by-sa",
+    "license": "cc0",
     "credits": "MediaFranca",
     "geoContext": {
-      "lat": "-33.0498135",
-      "lng": "-71.4415282",
-      "region": "Quilpué, Región de Valparaíso, Chile"
+      "lat": "-33.0245",
+      "lng": "-71.5518",
+      "region": "Viña del Mar, Región de Valparaíso, Chile"
     },
-    "annotatedContext": "Composición bidimensional (2D) plana, centrada sobre fondo blanco puro y con amplio espacio negativo. Diseño optimizado para accesibilidad cognitiva. NUNCA incluir texto, letras, números, símbolos tipográficos, globos de diálogo ni firmas. Evitar sombreado, degradados, perspectiva 3D, texturas complejas, líneas de suelo, horizontes o elementos decorativos de fondo. Un único concepto visual, directo y legible al instante.",
     "visualStylePrompt": "[IMPORTANTE] No incluir texto\n\nPictograma de estilo ilustración de cómic infantil clásico y humorístico. Trazo de línea negra uniforme, limpia y de grosor medio-alto. Construcción formal basada exclusivamente en geometrías bulbosas, esféricas y ultra-redondeadas, sin bordes afilados ni líneas rectas rígidas. La figura humana es un personaje de cuerpo rechoncho, blando y de color blanco, con una enorme nariz esférica y extremidades muy simplificadas. Paleta de colores planos, muy vivos, saturados y alegres.\n",
     "svgStyleDefs": [
       {

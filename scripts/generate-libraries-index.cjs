@@ -86,6 +86,7 @@ async function generateIndex() {
           location: data.config?.geoContext?.region || 'Unknown',
           language: data.config?.lang || 'es',
           items: data.rows?.length || 0,
+          sequences: data.sequences?.length || 0,
           credits: data.config?.credits || undefined,
           description: data.type || 'PICTOS library',
           filesize: fs.statSync(filepath).size

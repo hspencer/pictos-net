@@ -5,16 +5,15 @@
   "timestamp": "2026-07-14T00:54:03.819Z",
   "config": {
     "name": "Pictos - ISO",
-    "lang": "es",
+    "lang": "es-419",
     "uiLang": "es-419",
-    "license": "cc-by-sa",
+    "license": "cc0",
     "credits": "MediaFranca",
     "geoContext": {
-      "lat": "-33.0244535",
-      "lng": "-71.5517636",
+      "lat": "-33.0245",
+      "lng": "-71.5518",
       "region": "Viña del Mar, Región de Valparaíso, Chile"
     },
-    "annotatedContext": "",
     "visualStylePrompt": "CRÍTICO: NUNCA incluir texto, letras, números, palabras, etiquetas, subtítulos ni símbolos escritos de ningún tipo. Todo el significado debe transmitirse exclusivamente mediante elementos visuales y gestuales. \n\nPictograma de estilo Isotype de los años 1930 (estilo Gerd Arntz). Ilustración basada en siluetas sólidas de alto contraste, con la textura analógica de un grabado en linóleo (linocut) o xilografía vintage. Construcción formal geométrica, limpia pero de trazo manual. Los detalles internos se representan únicamente mediante líneas finas caladas en espacio negativo sobre las siluetas sólidas. Paleta de colores planos muy acotada (negro liso, rojo óxido, azul apagado, sobre fondo crema). Bordes con sutiles imperfecciones de tinta analógica.\nPaleta de color: figuras negras sobre blanco, uso de color estratégico y semántico: un color para el foco de atención o para establecer un énfasis.\n\nFiguras humanas: simplificadas a postura y gesto esencial. Sin rasgos faciales, sin dedos, sin detalle de ropa. Diferenciar acciones mediante ángulo corporal, posición de brazos y relación con objetos. Composición: un solo concepto por imagen, centrado, amplio espacio negativo. \n\nSin línea de suelo, sin ambiente, sin elementos decorativos. Excluir: sombras, profundidad, perspectiva, texto, etiquetas, números, letras, escritura, subtítulos, globos de diálogo, marcos, ornamentos, rellenos con textura.",
     "svgStyleDefs": [
       {

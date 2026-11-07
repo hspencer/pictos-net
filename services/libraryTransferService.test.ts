@@ -53,7 +53,7 @@ test('template/import re-keying preserves board identity, layout, colours and ro
 });
 
 test('the deployable Tablero example contains its complete 6x6 board and audio rows', () => {
-  const templateUrl = new URL('../public/libraries/tablero_graph_2026-08-13.json', import.meta.url);
+  const templateUrl = new URL('../public/libraries/tablero.json', import.meta.url);
   const template = JSON.parse(readFileSync(templateUrl, 'utf8'));
   const expectedLabels = [
     'Yo', 'Tú', 'Qué', 'Dónde', 'Sí', 'No',

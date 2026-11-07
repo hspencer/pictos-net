@@ -255,7 +255,7 @@ interface GlobalConfig {
   license: string;
   visualStylePrompt: string;
   geoContext?: { lat: string; lng: string; region: string };
-  annotatedContext?: string;
+  domainContext?: string;
   svgStyleDefs?: StyleDefinition[];
   svgKeyframes?: KeyframeDefinition[];
 }

@@ -4,17 +4,16 @@
   "type": "pictonet_graph_dump",
   "timestamp": "2026-07-14T02:00:58.669Z",
   "config": {
-    "lang": "es",
+    "lang": "es-419",
     "name": "Ilustración moderna",
     "credits": "MediaFranca",
-    "license": "cc-by-sa",
+    "license": "cc0",
     "visualStylePrompt": "Pictograma de estilo ilustración editorial contemporánea. Estética cálida, sofisticada y adecuada para un público adulto. Nivel de abstracción medio: reconocible pero estilizado, nunca fotorrealista. Formas orgánicas con contornos seguros pero ligeramente irregulares (se debe percibir el trazo manual del ilustrador con sutiles imperfecciones que aporten personalidad, sin verse desaliñado). Curvas suaves, sin bordes geométricos afilados. Trabajo de línea de grosor variable para enfatizar contornos clave, con líneas secundarias finas para detalles internos; omitir el trazo en áreas rellenas si el contraste de color es suficiente. Paleta de colores planos de 4 a 6 tonos apagados, desaturados y terrosos (terracota, ocre, oliva, azul pizarra, gris cálido, blanco roto), utilizando un único color de acento (ej. coral o verde azulado) de forma muy medida para el énfasis semántico. Figura humana de proporciones estilizadas (extremidades ligeramente alargadas, manos simplificadas). Rasgos faciales mínimos (ojos de punto, ángulo simple para la nariz, sin boca a menos que la emoción sea el mensaje principal). Ropa sugerida mediante bloques de color plano, sin texturas detalladas.\n\nComposición de figura centrada con amplio espacio negativo (\"aire\" alrededor). Se permiten elementos contextuales mínimos solo si aclaran la escena (ej. una línea para la mesa o el marco de una puerta), pero nunca un entorno o fondo completo; priorizar la sugerencia sobre la descripción. Toda la intención comunicativa debe expresarse mediante la postura corporal, los gestos de las manos, la relación espacial y la metáfora visual. CRÍTICO: NUNCA incluir texto, letras, números, palabras, etiquetas, rótulos, globos de diálogo ni símbolos escritos de ningún tipo. Evitar estrictamente: expresiones de dibujo animado, rasgos exagerados, proporciones infantiles, degradados, texturas fotográficas, sombras proyectadas, efectos 3D o bordes decorativos.",
     "geoContext": {
-      "lat": "-33.0244535",
-      "lng": "-71.5517636",
-      "region": "Viña del Mar, Valparaiso Region, Chile"
+      "lat": "-33.0245",
+      "lng": "-71.5518",
+      "region": "Viña del Mar, Región de Valparaíso, Chile"
     },
-    "annotatedContext": "Apoyos visuales transaccionales para trámites del sistema escolar chileno. Los enunciados corresponden a un diálogo entre una persona funcionaria pública (voz formal, trato de usted) y una persona usuaria que puede ser autista, sorda, con discapacidad intelectual, con baja lectoescritura o migrante. Cada pictograma representa un solo acto comunicativo: pregunta, instrucción, información o derecho. Los enunciados en primera persona (yo) son respuestas de la persona usuaria para señalar. Contexto físico: oficinas de Ayuda Mineduc, Superintendencia de Educación en Viña del Mar, y la plataforma web del Sistema de Admisión Escolar (SAE).",
     "svgStyleDefs": [
       {
         "id": "837qd931l",

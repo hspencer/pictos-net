@@ -52,7 +52,7 @@ flowchart TD
 
     subgraph CFG["<b>GlobalConfig</b>"]
         direction TB
-        cfg_lang["lang · geoContext<br>annotatedContext"]
+        cfg_lang["lang · geoContext<br>domainContext"]
         cfg_visual["visualStylePrompt"]
         cfg_css["svgStyleDefs · svgKeyframes"]
     end
@@ -228,7 +228,7 @@ flowchart LR
 | `lang` | 1, 2, 4 | Active | Language for NLU analysis and element IDs |
 | `uiLang` | — | Active | Interface language (independent of NLU) |
 | `geoContext` | 1, 4 | Active | Geographic region for contextualization and a11y metadata |
-| `annotatedContext` | 1 | Active | Additional context annotated by the user (injected into NLU prompt) |
+| `domainContext` | 1, 2 | Active | Semantic domain of the library (e.g. "hospital", "school paperwork"), injected into the COMPRENDER and COMPONER prompts |
 | `visualStylePrompt` | 3 | Active | Visual style description injected into the Recraft prompt |
 | `svgStyleDefs` | 2, 4 | Active | CSS definitions for the SVG (classes available in composition and structuring) |
 | `svgKeyframes` | 4 | Active | Animation keyframes for the structured SVG |

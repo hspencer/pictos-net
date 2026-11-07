@@ -90,7 +90,7 @@ El árbol de trabajo del 2026-08-13 contiene una implementación todavía no com
 
 El formato portable `pictonet_graph_dump` usa `schemaVersion: 3`: conserva conjuntamente filas —incluido su audio—, secuencias y tableros. Tanto la importación normal como la carga de una biblioteca de ejemplo restauran los tableros y reasignan su `libraryId` a la biblioteca de destino. El ejemplo público `Tablero` contiene el tablero de vocabulario central 6×6 reconstruido, con 36 celdas enlazadas a sus 36 filas con audio.
 
-El ejemplo canónico `public/libraries/tablero_graph_2026-08-13.json` fue consolidado desde la versión mejorada del 2026-08-13: conserva los pictogramas revisados de **No, Ir, Más, Ayuda, Bueno, Arriba y Pequeño**, y recupera los 36 audios desde la exportación anterior. `scripts/consolidate-tablero-example.mjs` permite repetir esta fusión de forma segura, validando IDs, palabras, vínculos y cantidad de celdas antes de reemplazar el canónico.
+El ejemplo canónico `public/libraries/tablero.json` fue consolidado desde la versión mejorada del 2026-08-13: conserva los pictogramas revisados de **No, Ir, Más, Ayuda, Bueno, Arriba y Pequeño**, y recupera los 36 audios desde la exportación anterior. `scripts/consolidate-tablero-example.mjs` permite repetir esta fusión de forma segura, validando IDs, palabras, vínculos y cantidad de celdas antes de reemplazar el canónico.
 
 El modo **usar** es una superficie de pantalla completa. La cuadrícula ocupa el viewport, el encabezado/editor desaparece y un botón pequeño arriba a la izquierda —además de Escape— devuelve al modo **editar**.
 

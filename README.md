@@ -58,7 +58,7 @@ flowchart TD
 
     subgraph CFG["<b>GlobalConfig</b>"]
         direction TB
-        cfg_lang["lang · geoContext<br>annotatedContext"]
+        cfg_lang["lang · geoContext<br>domainContext"]
         cfg_visual["visualStylePrompt"]
         cfg_css["svgStyleDefs · svgKeyframes"]
     end
@@ -235,7 +235,7 @@ flowchart LR
 | `lang` | 1, 2, 4 | Activo | Idioma del análisis NLU y de los IDs de elementos |
 | `uiLang` | — | Activo | Idioma de la interfaz (independiente del NLU) |
 | `geoContext` | 1, 4 | Activo | Región geográfica para contextualización y metadatos a11y |
-| `annotatedContext` | 1 | Activo | Contexto adicional anotado por el usuario (inyectado en el prompt NLU) |
+| `domainContext` | 1, 2 | Activo | Dominio semántico de la librería (p. ej. "hospital", "trámites escolares"), inyectado en los prompts de COMPRENDER y COMPONER |
 | `visualStylePrompt` | 3 | Activo | Descripción de estilo visual inyectada en el prompt de generación de imagen |
 | `svgStyleDefs` | 2, 4 | Activo | Definiciones CSS del SVG (clases disponibles en composición y en estructuración) |
 | `svgKeyframes` | 4 | Activo | Keyframes de animación para el SVG estructurado |

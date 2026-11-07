@@ -4,7 +4,7 @@
  * trimming leading silence. Uses ffmpeg (must be in PATH).
  *
  * Usage:
- *   node scripts/convertLibraryAudio.cjs public/libraries/tablero_graph_2026-08-13.json
+ *   node scripts/convertLibraryAudio.cjs public/libraries/tablero.json
  */
 
 const { execSync } = require('child_process');

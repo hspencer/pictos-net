@@ -13,6 +13,7 @@ interface LibraryMetadata {
   location: string;
   language: string;
   items: number;
+  sequences?: number;
   credits?: string;
 }
 
@@ -304,7 +305,7 @@ function TemplateCard({ tmpl, onOpen, onHide }: { tmpl: LibraryMetadata; onOpen:
 
         {/* Item count — unified with LibraryCard */}
         <p className="text-xs text-slate-400">
-          {t('home.libraryItemCount', { pictograms: tmpl.items, sequences: 0 })}
+          {t('home.libraryItemCount', { pictograms: tmpl.items, sequences: tmpl.sequences ?? 0 })}
         </p>
 
         {/* Footer — location */}

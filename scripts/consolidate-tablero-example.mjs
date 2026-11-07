@@ -8,7 +8,7 @@ if (!improvedPath) {
   throw new Error('Usage: node scripts/consolidate-tablero-example.mjs <improved-library.json>');
 }
 
-const canonicalUrl = new URL('../public/libraries/tablero_graph_2026-08-13.json', import.meta.url);
+const canonicalUrl = new URL('../public/libraries/tablero.json', import.meta.url);
 const indexUrl = new URL('../public/libraries/index.json', import.meta.url);
 const canonicalPath = fileURLToPath(canonicalUrl);
 
@@ -57,7 +57,7 @@ const merged = {
 writeFileSync(canonicalUrl, `${JSON.stringify(merged, null, 2)}\n`);
 
 const index = JSON.parse(readFileSync(indexUrl, 'utf8'));
-const entry = index.libraries.find(library => library.filename === 'tablero_graph_2026-08-13.json');
+const entry = index.libraries.find(library => library.filename === 'tablero.json');
 if (!entry) throw new Error('Tablero is missing from public/libraries/index.json.');
 entry.filesize = statSync(canonicalPath).size;
 writeFileSync(indexUrl, `${JSON.stringify(index, null, 2)}\n`);

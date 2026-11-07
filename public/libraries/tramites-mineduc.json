@@ -7,14 +7,13 @@
     "lang": "es-419",
     "name": "Trámites MINEDUC",
     "credits": "MediaFranca. Corpus original: Ana María Torres, Coordinación Institucional Ley Autismo y Sordera, Secretaría Ministerial de Educación Región de Valparaíso, Ministerio de Educación de Chile.",
-    "license": "cc-by-sa",
+    "license": "cc0",
     "visualStylePrompt": "Estilo de pictograma SAAC (Comunicación Aumentativa y Alternativa): contornos negros gruesos y uniformes, colores planos y sólidos, alto contraste, formas geométricas simples, fondo blanco puro y liso. Una única escena focal clara por imagen. \n\nEl personaje principal es completamente negro mientras que los demás personajes tienen línea de contorno.\n\nPROHIBIDO INCLUIR TEXTO: No debe contener letras, palabras, números ni caracteres de ningún tipo dentro de la imagen.\n\nSin degradados, sin sombras, sin detalles decorativos innecesarios. \n\nMárgenes blancos generosos, sin bordes negros ni marcos de ningún tipo, perspectiva totalmente frontal. \n\nDiseñado bajo la convención visual estricta de los conjuntos de símbolos de comunicación accesible.",
     "geoContext": {
       "lat": "-33.0245",
       "lng": "-71.5518",
-      "region": "Región de Valparaíso, Chile"
+      "region": "Viña del Mar, Región de Valparaíso, Chile"
     },
-    "annotatedContext": "Apoyos visuales transaccionales para trámites del sistema escolar chileno. Los enunciados corresponden a un diálogo entre una persona funcionaria pública (voz formal, trato de usted) y una persona usuaria que puede ser autista, sorda, con discapacidad intelectual, con baja lectoescritura o migrante. Cada pictograma representa un solo acto comunicativo: pregunta, instrucción, información o derecho. Los enunciados en primera persona (yo) son respuestas de la persona usuaria para señalar. Contexto físico: oficinas de Ayuda Mineduc, Superintendencia de Educación en Viña del Mar, y la plataforma web del Sistema de Admisión Escolar (SAE).",
     "svgStyleDefs": [
       {
         "id": "837qd931l",
@@ -1740,7 +1739,8 @@
       }
     },
     "libraryViewMode": "list",
-    "uiLang": "es-419"
+    "uiLang": "es-419",
+    "domainContext": "Apoyos visuales transaccionales para trámites del sistema escolar chileno. Los enunciados corresponden a un diálogo entre una persona funcionaria pública (voz formal, trato de usted) y una persona usuaria que puede ser autista, sorda, con discapacidad intelectual, con baja lectoescritura o migrante. Cada pictograma representa un solo acto comunicativo: pregunta, instrucción, información o derecho. Los enunciados en primera persona (yo) son respuestas de la persona usuaria para señalar. Contexto físico: oficinas de Ayuda Mineduc, Superintendencia de Educación en Viña del Mar, y la plataforma web del Sistema de Admisión Escolar (SAE)."
   },
   "rows": [
     {

@@ -3,17 +3,16 @@
   "type": "pictonet_graph_dump",
   "timestamp": "2026-03-05T05:09:57.213Z",
   "config": {
-    "lang": "es",
+    "lang": "es-419",
     "name": "Transporte",
     "credits": "MediaFranca",
-    "license": "cc-by-sa",
+    "license": "cc0",
     "visualStylePrompt": "CRÍTICO: NUNCA incluir texto, letras, números, palabras, etiquetas, subtítulos ni símbolos escritos de ningún tipo. Todo el significado debe transmitirse exclusivamente mediante elementos visuales y gestuales. \n\nEstilo pictográfico inspirado en el sistema de señalética pública AIGA/DOT. Alta abstracción, síntesis geométrica, legibilidad instantánea a tamaños pequeños. Toda intención comunicativa debe expresarse mediante postura corporal, gesto, relaciones espaciales entre elementos y metáfora visual. Una persona pidiendo ayuda se muestra extendiendo los brazos, no sosteniendo un cartel. Una emoción se muestra mediante el lenguaje corporal, no mediante una etiqueta. \n\nFiguras y objetos construidos con primitivas geométricas simples: círculos, rectángulos, formas redondeadas. Sin curvas orgánicas, sin apariencia de dibujo a mano. Precisión limpia y mecánica. Grosor de trazo uniforme; preferir formas rellenas sobre contornos. Donde se necesiten contornos, usar un peso consistente con terminaciones redondeadas. \n\nPaleta de color: figuras negras sobre blanco, uso de color estratégico y semántico: un color para el foco de atención o para establecer un énfasis.\n\nFiguras humanas: simplificadas a postura y gesto esencial. Sin rasgos faciales, sin dedos, sin detalle de ropa. Diferenciar acciones mediante ángulo corporal, posición de brazos y relación con objetos. Composición: un solo concepto por imagen, centrado, amplio espacio negativo. \n\nSin línea de suelo, sin ambiente, sin elementos decorativos. Excluir: sombras, profundidad, perspectiva, texto, etiquetas, números, letras, escritura, subtítulos, globos de diálogo, marcos, ornamentos, rellenos con textura.",
     "geoContext": {
-      "lat": "-33.0244535",
-      "lng": "-71.5517636",
+      "lat": "-33.0245",
+      "lng": "-71.5518",
       "region": "Viña del Mar, Región de Valparaíso, Chile"
     },
-    "annotatedContext": "",
     "svgStyleDefs": [
       {
         "id": "q6o3gcn33",

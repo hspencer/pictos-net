@@ -3,14 +3,14 @@
   "type": "pictonet_graph_dump",
   "timestamp": "2026-03-05T02:36:28.725Z",
   "config": {
-    "lang": "es",
+    "lang": "es-419",
     "name": "Señalética Color",
-    "license": "cc-by-sa",
+    "license": "cc0",
     "visualStylePrompt": "Estilo pictográfico inspirado en el sistema de señalética pública AIGA/DOT. Alta abstracción, síntesis geométrica, legibilidad instantánea en tamaños pequeños.\nFiguras y objetos construidos con primitivas geométricas simples: círculos, rectángulos, formas redondeadas. Sin curvas orgánicas, sin apariencia de dibujo a mano. Precisión limpia y mecánica.\nGrosor de trazo uniforme en todo el pictograma; preferir formas rellenas a contornos. Cuando los contornos sean necesarios, usar un único grosor constante con terminaciones redondeadas.\nPaleta de color: 3 a 5 colores planos y saturados, con alto contraste sobre el fondo blanco. Usar el color de forma semántica: un color por rol (por ejemplo, azul para la persona, naranja para el objeto, verde para la acción o el contexto). Sin degradados, sin texturas, sin patrones.\nFiguras humanas: simplificadas a su postura y gesto esenciales. Sin rasgos faciales, sin dedos, sin detalle de vestimenta. Diferenciar las acciones mediante el ángulo del cuerpo, la posición de los brazos y la relación con los objetos.\nComposición: un solo concepto por imagen, centrado, con abundante espacio negativo. Sin línea de suelo, sin entorno, sin elementos decorativos.\nExcluir: sombras, profundidad, perspectiva, texto, etiquetas, marcos, ornamentos, rellenos con textura.",
     "geoContext": {
-      "lat": "-33.0244535",
-      "lng": "-71.5517636",
-      "region": "Viña del Mar, Valparaiso Region, Chile"
+      "lat": "-33.0245",
+      "lng": "-71.5518",
+      "region": "Viña del Mar, Región de Valparaíso, Chile"
     },
     "svgStyles": {
       "f": {

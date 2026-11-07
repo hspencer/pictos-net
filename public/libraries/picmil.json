@@ -5,16 +5,15 @@
   "timestamp": "2026-07-14T01:54:35.770Z",
   "config": {
     "name": "PICMIL",
-    "lang": "es",
+    "lang": "es-419",
     "uiLang": "es-419",
-    "license": "cc-by-sa",
+    "license": "cc0",
     "credits": "MediaFranca",
     "geoContext": {
-      "lat": "-33.0244535",
-      "lng": "-71.5517636",
+      "lat": "-33.0245",
+      "lng": "-71.5518",
       "region": "Viña del Mar, Región de Valparaíso, Chile"
     },
-    "annotatedContext": "",
     "visualStylePrompt": "Pictograma de estilo señalética pública de emergencia y diseño icónico de alta visibilidad. Estructura basada exclusivamente en siluetas sólidas y formas rellenas de negro puro de gran grosor visual, sin líneas de contorno. Construcción sobre grilla geométrica rígida con ángulos dominantes de 45 y 90 grados, pero con esquinas e intersecciones sutilmente suavizadas mediante micro-redondeos. La figura humana es una síntesis abstracta y neutra: cabeza geométrica exenta (separada del cuerpo por un espacio negativo uniforme) y extremidades de grosor constante. Espacio negativo interno perfectamente calibrado y de ancho constante entre los elementos. Contraste plano extremo sobre fondo gris claro plano (hex #E5E5E5).\n\nComposición bidimensional (2D) plana, perfectamente centrada con amplio espacio negativo perimetral. Diseño optimizado para máxima accesibilidad cognitiva. \n\nNUNCA incluir texto, letras, números, símbolos tipográficos, globos de diálogo ni firmas. Sin sombreado, sin volumen, sin perspectiva 3D, sin texturas de ningún tipo y sin líneas de suelo decorativas. Un único concepto visual, limpio, geométrico y legible de un solo vistazo.",
     "svgStyleDefs": [
       {
