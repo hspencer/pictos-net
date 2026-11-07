@@ -58,6 +58,12 @@ export const MODEL_CATALOG = {
   // 2 req/min), 6.5x Flare's price; Google retires it 2027-03-15. Vertex batch stays dormant.
   'gemini-2.5-flash-image': { ...image('Gemini 2.5 Flash Image', 'gemini', 'bitmap', 0.039, vertexSource,
     { promptCostsExtra: true, size: '1024×1024' }, 'retired'), vertexBatch: true },
+  // Google alternative (benchmark 2026-11-06, 32/32 in four styles): p50 3.4 s, no thinking
+  // tokens. ~US$0.0336 from aggregators; not yet on Google's price page. Shares the Vertex
+  // image quota (2 req/min per base model) until an increase is granted.
+  'gemini-3.1-flash-lite-image': { ...image('Nano Banana 2 Lite (Gemini 3.1 Flash-Lite Image)', 'gemini', 'bitmap', 0.0336,
+    'https://www.llmreference.com/model/gemini-3.1-flash-lite-image/gcp-vertex-ai',
+    { promptCostsExtra: true, size: '1K' }, 'active'), pricingCheckedAt: '2026-11-06' },
   // The only native-SVG route; its output enters ESTRUCTURAR once the C2PA manifest is set aside.
   'recraftv4_1_vector': image('Recraft V4.1 (vector)', 'recraft', 'vector', 0.08, recraftSource, {}, 'active'),
 

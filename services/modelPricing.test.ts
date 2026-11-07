@@ -32,14 +32,16 @@ test('prices distinguish token rates from images and retain conditional bounds',
   assert.match(formatModelPrice('recraftv4_styles_vector', t), /0.05.*image/);
   assert.match(formatModelPrice('gpt-image-2', t, 'high'), /0.211.*image/);
   assert.match(formatModelPrice('gemini-3-pro-image', t), /0.134.*image/);
+  assert.match(formatModelPrice('gemini-3.1-flash-lite-image', t), /0.034.*image/);
   assert.match(modelPriceNotes('gemini-2.5-pro', t).join(' '), /200000.*US\$2.50.*US\$15.00/);
   assert.match(modelPriceNotes('gpt-5.6-terra', t).join(' '), /272000.*US\$4.00.*US\$18.00/);
   assert.match(modelPriceNotes('recraftv4_styles', t).join(' '), /existing Recraft style ID/);
   assert.match(modelPriceNotes('gemini-3.8-flash', t).join(' '), /From 2027-01-01: US\$1.50 input \/ US\$7.50 output/);
   const addedInF6 = ['gemini-3.8-flash', 'gpt-image-2.5-flare', 'gemini-nano-banana-2.1'];
   const checked20261101 = ['claude-haiku-5-5', 'gpt-6-luna'];
+  const checked20261106 = ['gemini-3.1-flash-lite-image'];
   for (const [id, value] of Object.entries(MODEL_CATALOG)) {
     assert.match(value.pricingSource, /^https:\/\//);
-    assert.equal(value.pricingCheckedAt, checked20261101.includes(id) ? '2026-11-01' : addedInF6.includes(id) ? '2026-10-22' : '2026-08-27', id);
+    assert.equal(value.pricingCheckedAt, checked20261106.includes(id) ? '2026-11-06' : checked20261101.includes(id) ? '2026-11-01' : addedInF6.includes(id) ? '2026-10-22' : '2026-08-27', id);
   }
 });

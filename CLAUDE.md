@@ -36,7 +36,7 @@ call); TRAZAR (legacy VTracer 0.6 modal) remains a manual trace-only action. Ref
 
 - **Services**: `services/claudeService.ts` (phases 1-2), `services/geminiService.ts` (phase 3, default), `services/recraftService.ts` (phase 3, Recraft fallback), `services/svgStructureService.ts` (phase 4)
 - **API**: `services/aiClient.ts` — always-proxy client. All calls go through Netlify Functions (`callClaude`, `callRecraft`). No API key ever reaches the browser.
-- **Functions**: `netlify/functions/api-claude.js` (phases 1,2,4), `api-openai-text*` (phases 1,2 with GPT-6 Luna), `api-openai-worker-background.js` + `api-openai-poll.js` (phase 3, default), `api-gemini-worker-background.js` + `api-gemini-poll.js` (phase 3, dormant: no Gemini image model admitted since 2026-11-05), `api-recraft*` (phase 3, native SVG)
+- **Functions**: `netlify/functions/api-claude.js` (phases 1,2,4), `api-openai-text*` (phases 1,2 with GPT-6 Luna), `api-openai-worker-background.js` + `api-openai-poll.js` (phase 3, default), `api-gemini-worker-background.js` + `api-gemini-poll.js` (phase 3, Nano Banana 2 Lite), `api-recraft*` (phase 3, native SVG)
 - **Machine API v1**: `netlify/functions/api-v1-comprender.js`, `api-v1-componer.js` (routes `/api/v1/*`) — thin shells over `_shared/apiV1.js` → `runPhase1`/`runPhase2`; revocable service credentials (`_shared/serviceCredentials.js`, CLI `scripts/service-credentials.mjs`), idempotency, contracts in `schemas/pictos-api-schema/`. Producir/Estructurar are draft contracts only. Reference: docs/API_V1.md
 - **State**: Zustand for SVG editor, localStorage for metadata, IndexedDB for binary (SVGs)
 - **Main orchestrator**: `App.tsx` — processCascade, processStep, row management
@@ -57,7 +57,7 @@ call); TRAZAR (legacy VTracer 0.6 modal) remains a manual trace-only action. Ref
 
 ### Phase 3: PRODUCIR (default: gpt-image-2.5-flare)
 - Input: elements + prompt + visualStylePrompt + NLU context + utterance
-- Model: `gpt-image-2.5-flare` (default, `api-openai-worker-background` + `api-openai-poll`), `recraftv4_1_vector` (native SVG, `api-recraft`). Every other image model is retired (2026-11-01); `gemini-2.5-flash-image` followed on 2026-11-05 (429 under concurrency on the Vertex image quota), so the Gemini image route and Vertex batch are dormant
+- Model: `gpt-image-2.5-flare` (default, `api-openai-worker-background` + `api-openai-poll`), `gemini-3.1-flash-lite-image` (Nano Banana 2 Lite, Google alternative via `api-gemini-worker-background`, added 2026-11-06: p50 3.4 s, ~US$0.034, shares the 2 req/min Vertex image quota), `recraftv4_1_vector` (native SVG, `api-recraft`). Every other image model is retired (2026-11-01); `gemini-2.5-flash-image` followed on 2026-11-05 (429 under concurrency), so Vertex batch is dormant. Evidence for the 2026-11-06 round: `research/2026-11-06_benchmark-producir/`
 - Prompt: one builder for browser and server, `netlify/functions/_shared/imagePrompts.js`; quoted snake_case element ids reach the image model as plain words (models drew them as captions)
 - Output: raw SVG string (`rawSvg`) for vector models; bitmap PNG (`bitmap`) for raster models
 
@@ -83,7 +83,7 @@ call); TRAZAR (legacy VTracer 0.6 modal) remains a manual trace-only action. Ref
 | `visualStylePrompt` | 3 | Active | Text added to the image generation prompt |
 | `svgStyleDefs` | 2, 4 | Active | CSS definitions for SVG editor + structuring |
 | `svgKeyframes` | 4 | Active | Animation keyframes for structured SVG |
-| `generationModel` | 3 | Active | Phase 3 model: `gpt-image-2.5-flare` (default), `recraftv4_1_vector` |
+| `generationModel` | 3 | Active | Phase 3 model: `gpt-image-2.5-flare` (default), `gemini-3.1-flash-lite-image`, `recraftv4_1_vector` |
 | `phase5Model` | 4 | Active | Phase 4 structuring model: `claude-sonnet-4-6` (only option); options come from the model catalog |
 | `aspectRatio` | — | Inactive | Was Gemini Image aspect ratio; no longer used |
 | `imageModel` | — | Inactive | Legacy; migrated to `generationModel` on first load |

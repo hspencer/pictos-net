@@ -145,6 +145,7 @@ Estado en `MODEL_CATALOG` desde esta fecha. Los retirados no se ofrecen ni se ad
 | `gpt-image-2.5-flare` | 3 | workshop (por defecto) | 8/8 claras, 9,8 s, US$0,006, fuera de la cuota de Vertex |
 | `gemini-2.5-flash-image` | 3 | retired (05-11-2026) | 429 `RESOURCE_EXHAUSTED` con peticiones en paralelo (cuota de imagen de Vertex), 6,5 veces el precio de Flare y Google lo retira el 15-03-2027. El lote Vertex queda sin modelo |
 | `recraftv4_1_vector` | 3 | active | Única ruta de SVG nativo |
+| `gemini-3.1-flash-lite-image` | 3 | active (06-11-2026) | Nano Banana 2 Lite: alternativa de Google, 32/32 en cuatro estilos, p50 3,4 s, sin tokens de razonamiento, ~US$0,034 |
 | `claude-haiku-4-5-20251001` | 1, 2 | retired | Más caro, más lento, menos válido y sin caché efectiva |
 | `claude-sonnet-4-6` en fases 1 y 2 | 1, 2 | retirado de esas fases | 30 veces el costo de Haiku 5.5 y 4 veces más lento, sin mejora visible |
 | `claude-opus-4-6` | 4 | retired | Igual cobertura que Sonnet, más regiones sin resolver, doble costo |
@@ -202,3 +203,22 @@ El catálogo cambia seguido, pero no hace falta repetir todo cada vez.
 | Trimestral | Ensayo completo como este, incluida la fase 4 | cerca de US$10 |
 
 Señales para adelantar una corrida: un aumento de `contract_errors` en el informe de uso, respuestas sin imagen o 429 frecuentes, o una fecha de retiro publicada (Gemini 2.5 Flash Image se retira el 15-03-2027).
+
+## Ronda del 06-11-2026: candidatos de PRODUCIR
+
+Mismas 8 composiciones, cuatro estilos de librerías de ejemplo (AIGA/DOT por defecto, Tablero con colores clave, Q • Blake en acuarela, ICAP 50 V2) y diez variantes: GPT Image 2.5 Flare (referencia), GPT Image 2.6 Flare en bitmap con complejidad baja y en SVG (`output_format: svg`, autor GPT-6 Luna), Nano Banana 2.1, Nano Banana 2 Lite, y en fal.ai FLUX.2 [dev] y [pro], Seedream 5.0 Lite, Ideogram 4 Turbo e Ideogram Vector. Datos en `research/2026-11-06_benchmark-producir/` (abrir `index.html`).
+
+| Variante | Entregadas | p50 | US$/imagen | Observación |
+|---|---|---|---|---|
+| GPT Image 2.5 Flare | 32/32 | 10 s | 0,007 | Sigue por defecto: el más barato y parejo en los cuatro estilos |
+| GPT Image 2.6 Flare, bitmap | 32/32 | 6 s | 0,026 | Bueno y rápido; 3,5 veces el costo sin ventaja clara |
+| GPT Image 2.6 Flare, SVG | 29/32 | 21 s | 0,028 | SVG nativo que obedece los estilos; candidato a reemplazar a Recraft (pendiente comparación directa) |
+| Nano Banana 2.1 | 32/32 | 18 s | ~0,034 + razonamiento | Expresivo; ~1.700 tokens de razonamiento por imagen |
+| Nano Banana 2 Lite | 32/32 | 3 s | ~0,034 | **Admitido como alternativa de Google**; a veces cuela rótulos o marcos |
+| FLUX.2 [dev] y [pro] (fal) | 64/64 | 11-20 s | 0,012-0,03 | Escriben texto en casi todas las imágenes |
+| Seedream 5.0 Lite (fal) | 32/32 | — | 0,035 | Correcto, sin ventaja sobre Flare y suma un proveedor |
+| Ideogram 4 Turbo (fal) | 30/32 | 10 s | 0,0075 | Figuras diminutas; su filtro de seguridad bloqueó frases de CAA con niños |
+| Ideogram Vector (fal) | 32/32 | 29 s | 0,13 | Composiciones pobres y el más caro |
+
+Gasto: unos US$7 en fal.ai (US$4,29 de Ideogram Vector), unos US$3 entre OpenAI y Vertex. La cuota de imagen de Vertex (2 por minuto por modelo base) obliga a espaciar las llamadas; antes de un taller hay que pedir un aumento para `gemini-3.1-flash-lite-image`.
+
