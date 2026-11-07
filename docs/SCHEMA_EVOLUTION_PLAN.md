@@ -232,7 +232,7 @@ del productor y validador, conservando el formato histórico sin reescritura.
 
 La capacidad de exponer y corregir artefactos intermedios es una propiedad del
 diseño; su superioridad semántica frente a un prompt directo sigue sin medirse.
-El protocolo local `research/PIPELINE_EVALUATION_PLAN.md` (no incluido en Git) separa prompt directo
+El protocolo local `research/2026-08-27_plan-modelos-cuotas/PIPELINE_EVALUATION_PLAN.md` (no incluido en Git) separa prompt directo
 cuidado, prompt expandido, cadena automática y cadena intervenida, con controles
 de modelo, contexto, coste y trabajo humano. Incluye comprensión por personas,
 errores críticos, estudios de componentes y límites de generalización. No se

@@ -26,7 +26,7 @@ No se reprodujo un rechazo general de los esquemas enviados a los proveedores. S
 - Se cambiaron temporalmente los modelos para las pruebas y se restauraron **Sonnet / Sonnet / Gemini 3 Pro Image**, con Sonnet para ESTRUCTURAR. No se regeneraron las filas originales.
 - Se consultaron el informe administrativo de producción y los registros de Netlify Blobs del **15 al 22 de octubre**, ambos inclusive. La copia de registros se tomó a las **15:11:56 de Chile**: contiene 237 llamadas e incluye pruebas de esta investigación. No incluye los ensayos posteriores a esa hora.
 - Se recorrieron los JSON de `public/libraries` con los validadores actuales, sin reescribirlos. Son apariciones de filas, con posibles duplicados entre bibliotecas, no personas ni pictogramas únicos.
-- Se consultó documentación oficial de Google, Anthropic, OpenAI y Recraft. La evidencia técnica y visual está en `research/diagnostico-2026-10-22/`, carpeta excluida de Git.
+- Se consultó documentación oficial de Google, Anthropic, OpenAI y Recraft. La evidencia técnica y visual está en `research/2026-10-22_diagnostico-generacion/diagnostico/`, carpeta excluida de Git.
 - No se modificó código de la aplicación, no se hizo commit ni despliegue. Hubo llamadas reales de generación con posible consumo de API y unidades internas.
 
 ## Pruebas en producción
@@ -201,7 +201,7 @@ OpenAI y Anthropic respondieron HTTP 200 a sus listados autenticados. Vertex res
 
 Después se hicieron ocho comprobaciones acotadas: una validación de solicitud con count_tokens de Anthropic, cinco generaciones de texto y dos de imagen. No hubo reintentos para buscar un resultado exitoso. Se detuvo la cadena de Haiku 5.5 cuando falló su primera validación.
 
-Evidencia local: research/modelos-2026-10-22/disponibilidad.json y smoke-results.json. Incluyen fechas, modelo solicitado/devuelto, HTTP, consumo disponible, latencia y resultado de validación. No contienen credenciales. El valor concreto incorrecto de temporalidad de Haiku no quedó conservado; sí la ruta y el diagnóstico del validador.
+Evidencia local: research/2026-10-22_diagnostico-generacion/modelos/disponibilidad.json y smoke-results.json. Incluyen fechas, modelo solicitado/devuelto, HTTP, consumo disponible, latencia y resultado de validación. No contienen credenciales. El valor concreto incorrecto de temporalidad de Haiku no quedó conservado; sí la ruta y el diagnóstico del validador.
 
 ### Matriz de candidatos nuevos
 
@@ -223,7 +223,7 @@ Evidencia local: research/modelos-2026-10-22/disponibilidad.json y smoke-results
 
 Los tiempos son de una llamada por fase y no incluyen Netlify ni interfaz. Las dos pruebas de imagen usaron el mismo prompt sintético breve, no el prompt completo de una librería ni las salidas de las nuevas fases 1/2. **No se suman esos tiempos para afirmar un nuevo recorrido completo validado.**
 
-Las imágenes se inspeccionaron visualmente: muestran una persona, un recipiente con agua y el gesto solicitado, sin texto visible. Eso no certifica el significado para usuarios de CAA ni la distinción taza/vaso. Archivos: research/modelos-2026-10-22/gpt-image-2.5-flare.png y gemini-nano-banana-2.1.png.
+Las imágenes se inspeccionaron visualmente: muestran una persona, un recipiente con agua y el gesto solicitado, sin texto visible. Eso no certifica el significado para usuarios de CAA ni la distinción taza/vaso. Archivos: research/2026-10-22_diagnostico-generacion/modelos/gpt-image-2.5-flare.png y gemini-nano-banana-2.1.png.
 
 ### Cambios documentados que afectan la integración
 

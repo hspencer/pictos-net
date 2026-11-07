@@ -165,7 +165,7 @@ La reconstrucción amodal —completar lo que está detrás de otro objeto— pu
 
 ## 2. Contexto y documentación aplicable
 
-Este plan desarrolla el frente bitmap → SVG semántico. Complementa el [plan general de generación de octubre](PLAN_GENERACION_2026-10.md) y los principios de [ESTRUCTURAR](ESTRUCTURAR.md). El [roadmap de marzo](ROADMAP_ESTRUCTURAR.md) es histórico: sus porcentajes esperados, modelos y propuestas no deben tomarse como resultados actuales.
+Este plan desarrolla el frente bitmap → SVG semántico. Complementa el [plan general de generación de octubre](archivo/PLAN_GENERACION_2026-10.md) y los principios de [ESTRUCTURAR](ESTRUCTURAR.md). El [roadmap de marzo](ROADMAP_ESTRUCTURAR.md) es histórico: sus porcentajes esperados, modelos y propuestas no deben tomarse como resultados actuales.
 
 La documentación de ESTRUCTURAR conserva descripciones de julio que no reflejan todas las restricciones posteriores de borradores y certificación. Para implementar, leer el código actual junto con:
 

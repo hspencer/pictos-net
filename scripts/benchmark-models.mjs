@@ -168,8 +168,13 @@ async function main() {
   if (!values.run) { console.log(JSON.stringify({ state: 'planned', ...plan }, null, 2)); return; }
   const research = fs.realpathSync(path.resolve('research'));
   const directory = path.resolve(values.out || path.join(research, `benchmark-${Date.now()}`));
-  if (!directory.startsWith(research + path.sep) || fs.existsSync(directory) || fs.realpathSync(path.dirname(directory)) !== research) throw new Error('Output must be a new direct directory inside research/');
-  fs.mkdirSync(directory);
+  // Nested study folders are allowed (research/<date>_<study>/p1-comprender/es/<model>);
+  // the nearest existing ancestor must resolve inside research/, so no symlink escapes.
+  let ancestor = path.dirname(directory);
+  while (!fs.existsSync(ancestor)) ancestor = path.dirname(ancestor);
+  const real = fs.realpathSync(ancestor);
+  if (!directory.startsWith(research + path.sep) || fs.existsSync(directory) || (real !== research && !real.startsWith(research + path.sep))) throw new Error('Output must be a new directory inside research/');
+  fs.mkdirSync(directory, { recursive: true });
   fs.writeFileSync(path.join(directory, 'plan.json'), JSON.stringify(plan, null, 2), { flag: 'wx' });
   const run = await executeBenchmark(plan, { authorized: true, record: item => fs.appendFileSync(path.join(directory, 'attempts.jsonl'), JSON.stringify(item) + '\n') });
   fs.writeFileSync(path.join(directory, 'results.json'), JSON.stringify(run, null, 2), { flag: 'wx' });

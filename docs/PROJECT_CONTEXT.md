@@ -105,7 +105,6 @@ Orden práctico para resolver contradicciones:
 3. `CLAUDE.md` para referencia operativa reciente.
 4. Documentos especializados (`ESTRUCTURAR`, CSS, UI, seguridad, privacidad).
 5. `docs/ARCHITECTURE.md`, README y roadmaps históricos.
-6. `project-context.json`, que describe una versión antigua del stack y no debe usarse como fuente vigente.
 
 Divergencias conocidas al 2026-08-13:
 
@@ -113,7 +112,6 @@ Divergencias conocidas al 2026-08-13:
 - `docs/ARCHITECTURE.md` todavía presenta Recraft vectorial como camino principal en secciones donde el código y `CLAUDE.md` usan Gemini Image como default.
 - `docs/SECURITY.md`, `.env.example` y comentarios de cuota no coinciden completamente sobre qué llamadas consumen unidades.
 - La privacidad menciona principalmente Anthropic/Recraft, pero el pipeline vigente también usa Vertex AI/Gemini.
-- `project-context.json` conserva versiones React/Vite y una arquitectura anteriores.
 
 ## Estado de verificación observado
 

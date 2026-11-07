@@ -32,7 +32,7 @@ Es 7,5 veces más barato y unos 4,6 s más rápido, con igual o mejor validez. E
 - **Fase 4**: harness del navegador `scripts/eval/vectorizarEstructurarEval.ts`, variante D (Estructurar desde el bitmap), sobre el piloto ICAP de 10 casos (`docs/eval/icap-pilot-10.json`), cambiando solo el modelo.
 - **Ruta real**: una frase nueva ("¿Puedo ir al patio a jugar?") recorrió COMPRENDER, COMPONER y PRODUCIR por los servicios del cliente y las funciones de Netlify, sin modelos fijados en la configuración.
 
-Gasto total del ensayo: unos US$10 (US$2,56 en 537 llamadas de texto, US$6,10 en 69 imágenes y cerca de US$1 en Estructurar). Los datos crudos están en `research/bench-*` (fuera de Git).
+Gasto total del ensayo: unos US$10 (US$2,56 en 537 llamadas de texto, US$6,10 en 69 imágenes y cerca de US$1 en Estructurar). Los datos crudos están en `research/2026-11-01_benchmark-modelos/` (fuera de Git; una subcarpeta por fase y modelo). La ronda del 06-11-2026 sobre PRODUCIR está en `research/2026-11-06_benchmark-producir/`.
 
 ## Resultados
 
@@ -178,14 +178,14 @@ Modelos actuales que no entran:
 # Fase 1 o 2 por modelo (pagado; los topes son obligatorios)
 node --env-file=.env scripts/benchmark-models.mjs --cases scripts/eval/cases/pipeline-es-419.json \
   --phase 1 --models claude-haiku-5-5 --repairs 2 --max-output-tokens 4096 \
-  --max-calls 40 --budget-usd 5 --run --out research/bench-p1-<fecha>-claude-haiku-5-5
+  --max-calls 40 --budget-usd 5 --run --out research/<AAAA-MM-DD>_benchmark-modelos/p1-comprender/es/claude-haiku-5-5
 
 # Fase 3 sobre composiciones exportadas de una corrida de fase 2
-node --env-file=.env scripts/eval/benchmark-images.mjs --compositions research/<composiciones>.json \
-  --models gpt-image-2.5-flare,gemini-2.5-flash-image --max-calls 20 --out research/bench-p3-<fecha>
+node --env-file=.env scripts/eval/benchmark-images.mjs --compositions research/<AAAA-MM-DD>_benchmark-modelos/corpus/compositions-8.json \
+  --models gpt-image-2.5-flare,gemini-2.5-flash-image --max-calls 20 --out research/<AAAA-MM-DD>_benchmark-modelos/p3-producir/8
 
 # Resumen
-node scripts/eval/summarize-benchmark.mjs research/bench-p1-<fecha>-*
+node scripts/eval/summarize-benchmark.mjs research/<AAAA-MM-DD>_benchmark-modelos/p1-comprender/es/*
 ```
 
 La fase 4 se corre en el navegador con `runEval` de `scripts/eval/vectorizarEstructurarEval.ts`, desde `http://localhost:3000` (Netlify Dev en el 9001 sirve `index.html` en lugar del módulo), con un manifiesto que cambie solo `model`.

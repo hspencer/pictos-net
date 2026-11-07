@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /** Summarize benchmark run directories (attempts.jsonl) into one row per model.
- *   node scripts/eval/summarize-benchmark.mjs research/bench-p1-es-* [--json]
+ *   node scripts/eval/summarize-benchmark.mjs research/2026-11-01_benchmark-modelos/p1-comprender/es/* [--json]
  * Text runs (benchmark-models.mjs) and image runs (benchmark-images.mjs) are both read. */
 import fs from 'node:fs';
 import path from 'node:path';

@@ -11,7 +11,7 @@ export const PRICING_CHECKED_AT = '2026-08-27';
  *   experimental — offered with a warning; not yet verified in Pictos routes
  *   retired      — never offered and never admitted by any endpoint; kept here
  *                  only so saved configurations and old rows keep their label
- * Evidence: docs/DIAGNOSTICO_GENERACION_2026-10-22.md, plan F1.
+ * Evidence: docs/archivo/DIAGNOSTICO_GENERACION_2026-10-22.md, plan F1.
  */
 export const MODEL_STATUSES = ['workshop', 'active', 'experimental', 'retired'];
 const anthropicSource = 'https://platform.claude.com/docs/en/about-claude/pricing';
