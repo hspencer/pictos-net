@@ -28,7 +28,8 @@ import { GenerationModel, OpenAIImageQuality, DEFAULT_GENERATION_MODEL, GENERATI
 import { structureSVG } from './services/svgStructureService';
 import { citedClassNames } from './utils/styleUtils';
 import { applySvgSafeUpdate, captureSvgSource, prepareSvgPromotion, prepareSvgDraft, observedSvgProvenance, svgForEditing, prepareSvgEditorUpdate } from './services/svgCanonical';
-import { verifySvgReference } from './schemas/pictos-svg-schema/index.js';
+import { certifyDraft, draftIssues, ensureDraftGroups } from './services/svgDraftCertification';
+import { verifySvgReference, createSvgReference } from './schemas/pictos-svg-schema/index.js';
 import * as Recording from './services/interventionRecording';
 import { validBitmap, validRawSvg, validStructuredSvg, validDownstreamSvg, hasValidBitmap, hasAnyValidArtifact, hasAnyValidSvg } from './utils/rowArtifacts';
 import { useTranslation } from './hooks/useTranslation';
@@ -2355,7 +2356,10 @@ const App: React.FC<AppProps> = ({ authUser }) => {
       addLog('error', t('messages.noSvgToEdit'));
       return;
     }
-    const { svg: svgToEdit, source } = artifact;
+    const { source } = artifact;
+    // A draft opens with an empty group for each element still without drawing,
+    // so shapes can be moved into it (see svgDraftCertification).
+    const svgToEdit = source === 'draft' ? ensureDraftGroups(row, artifact.svg) : artifact.svg;
     svgEditorSourceSnapshotRef.current = captureSvgSource(row);
 
     // Snapshot metrics at open for the recording layer.
@@ -2397,6 +2401,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
   // the edit) when the save did not land as an accepted update.
   const handleSVGEditorSave = async (updatedSvg: string): Promise<string | null> => {
     if (!svgEditorState.rowId) return null;
+    let certifiedOnSave = false;
     const source = svgEditorState.svgSource;
 
     const rowBeforeSave = rows.find(r => r.id === svgEditorState.rowId);
@@ -2406,7 +2411,13 @@ const App: React.FC<AppProps> = ({ authUser }) => {
       return t('svgGenerator.inputsChangedDuringEdit');
     }
     try {
-      const update = await prepareSvgEditorUpdate(rowBeforeSave, source, updatedSvg);
+      let update: Partial<RowData> & { svgSourceSnapshot?: string } = await prepareSvgEditorUpdate(rowBeforeSave, source, updatedSvg);
+      // Saving a draft that now meets every requirement certifies it, edit included.
+      if (source === 'draft' && draftIssues(rowBeforeSave, updatedSvg).length === 0) {
+        const parent = rowBeforeSave.structuredSvg ? await createSvgReference(rowBeforeSave.structuredSvg).catch(() => undefined) : undefined;
+        update = await prepareSvgPromotion(rowBeforeSave, certifyDraft(rowBeforeSave, updatedSvg, {}, parent?.sha256));
+        certifiedOnSave = true;
+      }
       if (captureSvgSource(rowsForSvgRef.current.find(r => r.id === rowBeforeSave.id) ?? {}) !== svgEditorSourceSnapshotRef.current) {
         addLog('error', t('svgGenerator.inputsChangedDuringEdit'));
         return t('svgGenerator.inputsChangedDuringEdit');
@@ -2428,7 +2439,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
     }
 
     const savedRow = rows.find(r => r.id === svgEditorState.rowId);
-    addLog('success', source === 'draft' ? t('svgGenerator.draftSaved') : t('messages.svgUpdatedSuccess', { utterance: savedRow?.UTTERANCE }));
+    addLog('success', certifiedOnSave ? t('svgGenerator.draftCertified') : source === 'draft' ? t('svgGenerator.draftSaved') : t('messages.svgUpdatedSuccess', { utterance: savedRow?.UTTERANCE }));
 
     // Emit a svg_raw / svg_structured edit event with metrics before/after.
     // The before was captured at openSVGEditor time; the after is the saved SVG.

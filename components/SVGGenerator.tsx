@@ -5,6 +5,8 @@ import { RowData, VisualElement, NLUData, StructuringMapping, DEFAULT_PHASE5_MOD
 import { structureSVG, assembleAndVerify, canStructureSVG, vectorizeAndStructure } from '../services/svgStructureService';
 import { captureSvgSource, prepareSvgPromotion, prepareSvgDraft, canCertifySVG, observedSvgProvenance } from '../services/svgCanonical';
 import { formatSvgStructureError, svgStructureDiagnostic } from '../services/svgStructureDiagnostics';
+import { certifyDraft, draftIssues, type ImplicitChoices } from '../services/svgDraftCertification';
+import { createSvgReference } from '../schemas/pictos-svg-schema/index.js';
 import { Phase5ReviewPanel } from './Phase5ReviewPanel';
 import useSVGLibrary from '../hooks/useSVGLibrary';
 import { GlobalConfig } from '../types';
@@ -105,7 +107,7 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
     // At most one short line. Field pointers are for researchers: tooltip.
     const draftReasonKey = !row.structuredSvgDraftDiagnostic?.key || row.structuredSvgDraftDiagnostic.key === 'structureFailed' ? 'draftReasonUnavailable' : row.structuredSvgDraftDiagnostic.key;
     const structureNotice = row.structuredSvgDraft
-        ? <p className="text-xs text-amber-900" title={row.structuredSvgDraftDiagnostic?.fields?.join(', ')}>{t(`svgGenerator.${draftReasonKey}`)}</p>
+        ? <DraftChecklist row={row} onUpdate={onUpdate} onLog={onLog} fallback={t(`svgGenerator.${draftReasonKey}`)} />
         // With a bitmap, TRAZAR and the joint action already answer "trace required".
         : !review.eligible && !(review.reasonKey === 'traceRequired' && bitmapRef) && <p role="status" className="text-xs text-amber-900" title={review.fields?.join(', ')}>{eligibilityMessage}</p>;
 
@@ -361,7 +363,7 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
     // row's trace (as a retrace would) in the same update as its result.
     const handleJoint = async () => {
         const sourceRow = latestRow.current;
-        if (!bitmapRef) return;
+        if (!bitmapRef || !keepsManualWork()) return;
         if (!Array.isArray(sourceRow.elements) || !sourceRow.elements.length) { onLog('error', t('svgGenerator.elementsRequired')); return; }
         const source = captureSvgSource(sourceRow);
         try {
@@ -555,7 +557,11 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
         </div>
     );
 
+    // Re-structuring replaces a hand-edited draft or revision: say so first.
+    const keepsManualWork = () => !(row.structuredSvgDraftDiagnostic?.key === 'draftEdited' || /"operation":\s*"manual_edit"/.test(row.structuredSvg ?? ''))
+        || window.confirm(t('svgGenerator.restructureDiscardsEdits'));
     const restructure = () => {
+        if (!keepsManualWork()) return;
         if (row.structuredSvg) onDiscardSvg?.('svg_structured', row.structuredSvg);
         removeSVGByRowId(row.id);
         setRawSvg(row.rawSvg!);
@@ -628,3 +634,69 @@ export const SVGGenerator: React.FC<SVGGeneratorProps> = ({ row, config, onLog, 
         </div>
     );
 };
+
+/**
+ * Every reason a draft does not certify yet, named by element, with the one
+ * repair the tile can make itself (declaring an Action implicit) and the
+ * Certify action. Geometry repairs happen in the draft editor; saving there
+ * certifies automatically once this list is empty.
+ */
+function DraftChecklist({ row, onUpdate, onLog, fallback }: {
+    row: RowData; onUpdate: (u: Partial<RowData>) => void;
+    onLog: (type: 'info' | 'error' | 'success', message: string) => void; fallback: string;
+}) {
+    const { t } = useTranslation();
+    const [implicit, setImplicit] = useState<ImplicitChoices>({});
+    const [busy, setBusy] = useState(false);
+    // Listed without the implicit choices (so a choice stays visible and undoable);
+    // Certify is enabled only when nothing remains once they apply.
+    const issues = React.useMemo(() => draftIssues(row, row.structuredSvgDraft!),
+        [row.structuredSvgDraft, row.NLU, row.elements, row.prompt, row.UTTERANCE]);
+    const remaining = React.useMemo(() => Object.values(implicit).some(Boolean) ? draftIssues(row, row.structuredSvgDraft!, implicit) : issues,
+        [issues, implicit]);
+    const certify = async () => {
+        setBusy(true);
+        try {
+            const parent = row.structuredSvg ? await createSvgReference(row.structuredSvg).catch(() => undefined) : undefined;
+            onUpdate(await prepareSvgPromotion(row, certifyDraft(row, row.structuredSvgDraft!, implicit, parent?.sha256)));
+            onLog('success', t('svgGenerator.draftCertified'));
+        } catch (error) {
+            onLog('error', formatSvgStructureError(error, t));
+        } finally { setBusy(false); }
+    };
+    return (
+        <div role="status" className="text-xs text-amber-900 space-y-1.5">
+            {remaining.length === 0 && <p>{t('svgGenerator.draftCertifiable')}</p>}
+            {issues.length > 0 && <>
+                <p className="font-semibold">{t('svgGenerator.draftChecklist')}</p>
+                <ul className="list-disc pl-4 space-y-1">
+                    {issues.map((issue, i) => <li key={i}>
+                        {issue.kind === 'inputs' && <>
+                            {t(`svgGenerator.${issue.reasonKey}`)}
+                            {issue.fields.length > 0 && <> {t('svgGenerator.issueInputFields', { fields: issue.fields.map(f => f.split('/').filter(Boolean).pop()).join(', ') })}</>}
+                        </>}
+                        {issue.kind === 'loose' && t('svgGenerator.issueLoose', { count: issue.count })}
+                        {issue.kind === 'unknown' && t('svgGenerator.issueUnknown', { group: issue.groupId })}
+                        {issue.kind === 'invalid' && <span title={issue.message}>{fallback}</span>}
+                        {issue.kind === 'empty' && <>
+                            {t('svgGenerator.issueEmpty', { element: issue.elementId })}
+                            {issue.performers.length > 0 && <label className="block mt-0.5">
+                                {t('svgGenerator.issueImplicit')}{' '}
+                                <select className="border border-amber-300 rounded bg-white px-1" value={implicit[issue.elementId] ?? ''}
+                                    onChange={e => setImplicit(prev => ({ ...prev, [issue.elementId]: e.target.value }))}>
+                                    <option value="">—</option>
+                                    {issue.performers.map(p => <option key={p} value={p}>{p}</option>)}
+                                </select>
+                            </label>}
+                        </>}
+                    </li>)}
+                </ul>
+                {issues.some(i => i.kind !== 'inputs') && <p>{t('svgGenerator.draftFixInEditor')}</p>}
+            </>}
+            <button type="button" onClick={certify} disabled={busy || remaining.length > 0}
+                className="px-3 py-1.5 rounded bg-violet-600 text-white font-bold uppercase tracking-wider disabled:bg-slate-200 disabled:text-slate-500">
+                {t('svgGenerator.certifyDraft')}
+            </button>
+        </div>
+    );
+}
