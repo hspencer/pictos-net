@@ -458,9 +458,11 @@ export function LibraryHome({
   const [templateSort, setTemplateSort] = useState<'recientes' | 'alfabetico'>('recientes');
   const [templateSearch, setTemplateSearch] = useState('');
   const sortedTemplates = (() => {
+    // Only the examples in the UI language (es-419 ↔ es, en-GB ↔ en).
+    const inUiLang = templates.filter(tm => (tm.language || '').split('-')[0] === lang.split('-')[0]);
     const base = templateSort === 'alfabetico'
-      ? [...templates].sort((a, b) => a.name.localeCompare(b.name))
-      : templates;
+      ? [...inUiLang].sort((a, b) => a.name.localeCompare(b.name))
+      : inUiLang;
     if (!templateSearch.trim()) return base;
     const q = templateSearch.toLowerCase();
     return base.filter(t =>
@@ -470,20 +472,6 @@ export function LibraryHome({
       (t.credits ?? '').toLowerCase().includes(q)
     );
   })();
-
-  // One group per base language (es, en...), the UI language first.
-  const uiBase = lang.split('-')[0];
-  const languageName = new Intl.DisplayNames([lang], { type: 'language' });
-  const templateGroups = [...new Set(sortedTemplates.map(tm => (tm.language || 'und').split('-')[0]))]
-    .sort((a, b) => Number(b === uiBase) - Number(a === uiBase) || a.localeCompare(b))
-    .map(code => {
-      const name = code === 'und' ? '—' : (languageName.of(code) ?? code);
-      return {
-        code,
-        label: name.charAt(0).toLocaleUpperCase(lang) + name.slice(1),
-        items: sortedTemplates.filter(tm => (tm.language || 'und').split('-')[0] === code),
-      };
-    });
 
   return (
     <>
@@ -597,23 +585,14 @@ export function LibraryHome({
             </button>
           </div>
         </div>
-        <div id="community-grid" className="space-y-8">
-          {templateGroups.map(group => (
-            <div key={group.code} role="group" aria-labelledby={`community-lang-${group.code}`}>
-              <h3 id={`community-lang-${group.code}`} className="text-xs font-medium text-slate-500 mb-3">
-                {group.label} <span className="text-slate-400">· {group.items.length}</span>
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {group.items.map(tmpl => (
-                  <TemplateCard
-                    key={tmpl.filename}
-                    tmpl={tmpl}
-                    onOpen={() => onOpenTemplate(tmpl.filename)}
-                    onHide={() => onHideTemplate(tmpl.filename)}
-                  />
-                ))}
-              </div>
-            </div>
+        <div id="community-grid" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {sortedTemplates.map(tmpl => (
+            <TemplateCard
+              key={tmpl.filename}
+              tmpl={tmpl}
+              onOpen={() => onOpenTemplate(tmpl.filename)}
+              onHide={() => onHideTemplate(tmpl.filename)}
+            />
           ))}
         </div>
       </section>
