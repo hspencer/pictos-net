@@ -18,7 +18,10 @@ test('selectors and preserved model migration use the shared capability catalog'
     assert.equal(migrateGenerationModel(model), model);
     assert.equal(getModelFamily(model as any), MODEL_CATALOG[model].output);
   }
-  assert.deepEqual(modelIdsForPhase(3).filter(id => getModelProvider(id) === 'recraft'), ['recraftv4_1_vector']);
+  // Recraft V4.1 family restored 2026-11-07; V4 Styles stays retired (needs a style_id).
+  assert.deepEqual(modelIdsForPhase(3).filter(id => getModelProvider(id) === 'recraft'), ['recraftv4_1_vector', 'recraftv4_1_utility_vector',
+    'recraftv4_1_pro_vector', 'recraftv4_1_utility_pro_vector', 'recraftv4_1', 'recraftv4_1_utility', 'recraftv4_1_pro', 'recraftv4_1_utility_pro']);
+  assert.equal(modelSupportsPhase('recraftv4_styles', 3), false);
   assert.equal(modelSupportsPhase('gpt-image-2', 2), false);
   assert.equal(modelSupportsPhase('gpt-5.6-luna', 5), false); // retired 2026-11-01
   assert.deepEqual(modelIdsForPhase(5), ['claude-sonnet-4-6']);

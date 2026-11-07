@@ -155,7 +155,7 @@ Estado en `MODEL_CATALOG` desde esta fecha. Los retirados no se ofrecen ni se ad
 | `gemini-3.1-flash-image` | 3 | retired | Historial de respuestas sin imagen, más caro, irregular |
 | `gemini-3-pro-image` | 3 | retired | 22 veces el precio de Flare, lento, cuota baja, filtra texto |
 | `gemini-nano-banana-2.1` | 3 | retired | Buena calidad, pero 3 veces más lento que Flare y sujeto a la cuota de Vertex |
-| Otras 11 variantes Recraft (raster, Utility, Pro, V4 Styles) | 3 | retired | Las raster no aportan sobre Flare; las Pro no superan a Vector; Styles exige un `style_id` previo que nadie tiene |
+| Otras 11 variantes Recraft (raster, Utility, Pro, V4 Styles) | 3 | retired | Las raster no aportan sobre Flare; las Pro no superan a Vector; Styles exige un `style_id` previo que nadie tiene. **07-11-2026:** las 7 variantes V4.1 vuelven a `active` a pedido del usuario; V4 Styles sigue retirado |
 | `gemini-2.5-flash`, `gemini-2.5-pro` | 1, 2, 4 | retired | Retirados por Google (sin cambios) |
 
 Modelos actuales que no entran:

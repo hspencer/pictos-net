@@ -64,8 +64,17 @@ export const MODEL_CATALOG = {
   'gemini-3.1-flash-lite-image': { ...image('Nano Banana 2 Lite (Gemini 3.1 Flash-Lite Image)', 'gemini', 'bitmap', 0.0336,
     'https://www.llmreference.com/model/gemini-3.1-flash-lite-image/gcp-vertex-ai',
     { promptCostsExtra: true, size: '1K' }, 'active'), pricingCheckedAt: '2026-11-06' },
-  // The only native-SVG route; its output enters ESTRUCTURAR once the C2PA manifest is set aside.
+  // Native-SVG route; its output enters ESTRUCTURAR once the C2PA manifest is set aside.
+  // Recraft V4.1 family restored 2026-11-07 at the user's request: every variant is offered
+  // (vector = native SVG; Utility = flatter, front-facing; Pro = higher detail, 3.75x the price).
   'recraftv4_1_vector': image('Recraft V4.1 (vector)', 'recraft', 'vector', 0.08, recraftSource, {}, 'active'),
+  'recraftv4_1_utility_vector': image('Recraft V4.1 Utility (vector)', 'recraft', 'vector', 0.08, recraftSource, {}, 'active'),
+  'recraftv4_1_pro_vector': image('Recraft V4.1 Pro (vector)', 'recraft', 'vector', 0.30, recraftSource, {}, 'active'),
+  'recraftv4_1_utility_pro_vector': image('Recraft V4.1 Utility Pro (vector)', 'recraft', 'vector', 0.30, recraftSource, {}, 'active'),
+  'recraftv4_1': image('Recraft V4.1 (raster)', 'recraft', 'bitmap', 0.035, recraftSource, { size: '1K' }, 'active'),
+  'recraftv4_1_utility': image('Recraft V4.1 Utility (raster)', 'recraft', 'bitmap', 0.035, recraftSource, { size: '1K' }, 'active'),
+  'recraftv4_1_pro': image('Recraft V4.1 Pro (raster)', 'recraft', 'bitmap', 0.21, recraftSource, { size: '2K' }, 'active'),
+  'recraftv4_1_utility_pro': image('Recraft V4.1 Utility Pro (raster)', 'recraft', 'bitmap', 0.21, recraftSource, { size: '2K' }, 'active'),
 
   // ── Retired: never offered or admitted; kept so saved configs and rows keep a label ──
   // 2026-11-01: superseded on cost, latency or quality by an offered model (see report).
@@ -98,13 +107,6 @@ export const MODEL_CATALOG = {
   'gemini-nano-banana-2.1': { ...image('Gemini Nano Banana 2.1', 'gemini', 'bitmap', 0.034,
     'https://cloud.google.com/gemini-enterprise-agent-platform/generative-ai/pricing',
     { promptCostsExtra: true, size: '1K' }, 'retired'), pricingCheckedAt: '2026-10-22' },
-  'recraftv4_1': image('Recraft V4.1 (raster)', 'recraft', 'bitmap', 0.035, recraftSource, { size: '1K' }, 'retired'),
-  'recraftv4_1_utility_vector': image('Recraft V4.1 Utility (vector)', 'recraft', 'vector', 0.08, recraftSource, {}, 'retired'),
-  'recraftv4_1_pro_vector': image('Recraft V4.1 Pro (vector)', 'recraft', 'vector', 0.30, recraftSource, {}, 'retired'),
-  'recraftv4_1_pro': image('Recraft V4.1 Pro (raster)', 'recraft', 'bitmap', 0.21, recraftSource, { size: '2K' }, 'retired'),
-  'recraftv4_1_utility': image('Recraft V4.1 Utility (raster)', 'recraft', 'bitmap', 0.035, recraftSource, { size: '1K' }, 'retired'),
-  'recraftv4_1_utility_pro': image('Recraft V4.1 Utility Pro (raster)', 'recraft', 'bitmap', 0.21, recraftSource, { size: '2K' }, 'retired'),
-  'recraftv4_1_utility_pro_vector': image('Recraft V4.1 Utility Pro (vector)', 'recraft', 'vector', 0.30, recraftSource, {}, 'retired'),
   'recraftv4_styles': { ...image('Recraft V4 Styles (raster)', 'recraft', 'bitmap', 0.035, recraftSource, { size: '1K' }, 'retired'), requiresStyle: true },
   'recraftv4_styles_vector': { ...image('Recraft V4 Styles (vector)', 'recraft', 'vector', 0.05, recraftSource, {}, 'retired'), requiresStyle: true },
   'recraftv4_styles_pro': { ...image('Recraft V4 Styles Pro (raster)', 'recraft', 'bitmap', 0.10, recraftSource, { size: '2K' }, 'retired'), requiresStyle: true },

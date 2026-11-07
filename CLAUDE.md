@@ -57,7 +57,7 @@ call); TRAZAR (legacy VTracer 0.6 modal) remains a manual trace-only action. Ref
 
 ### Phase 3: PRODUCIR (default: gpt-image-2.5-flare)
 - Input: elements + prompt + visualStylePrompt + NLU context + utterance
-- Model: `gpt-image-2.5-flare` (default, `api-openai-worker-background` + `api-openai-poll`), `gemini-3.1-flash-lite-image` (Nano Banana 2 Lite, Google alternative via `api-gemini-worker-background`, added 2026-11-06: p50 3.4 s, ~US$0.034, shares the 2 req/min Vertex image quota), `recraftv4_1_vector` (native SVG, `api-recraft`). Every other image model is retired (2026-11-01); `gemini-2.5-flash-image` followed on 2026-11-05 (429 under concurrency), so Vertex batch is dormant. Evidence for the 2026-11-06 round: `research/2026-11-06_benchmark-producir/`
+- Model: `gpt-image-2.5-flare` (default, `api-openai-worker-background` + `api-openai-poll`), `gemini-3.1-flash-lite-image` (Nano Banana 2 Lite, Google alternative via `api-gemini-worker-background`, added 2026-11-06: p50 3.4 s, ~US$0.034, shares the 2 req/min Vertex image quota), `recraftv4_1_vector` (native SVG, `api-recraft`) and, restored 2026-11-07 at the user's request, the rest of the Recraft V4.1 family (Utility, Pro, Utility Pro; vector and raster). Every other image model is retired (2026-11-01; Recraft V4 Styles stays retired: it needs a `style_id`); `gemini-2.5-flash-image` followed on 2026-11-05 (429 under concurrency), so Vertex batch is dormant. Evidence for the 2026-11-06 round: `research/2026-11-06_benchmark-producir/`
 - Prompt: one builder for browser and server, `netlify/functions/_shared/imagePrompts.js`; quoted snake_case element ids reach the image model as plain words (models drew them as captions)
 - Output: raw SVG string (`rawSvg`) for vector models; bitmap PNG (`bitmap`) for raster models
 
@@ -83,7 +83,7 @@ call); TRAZAR (legacy VTracer 0.6 modal) remains a manual trace-only action. Ref
 | `visualStylePrompt` | 3 | Active | Text added to the image generation prompt |
 | `svgStyleDefs` | 2, 4 | Active | CSS definitions for SVG editor + structuring |
 | `svgKeyframes` | 4 | Active | Animation keyframes for structured SVG |
-| `generationModel` | 3 | Active | Phase 3 model: `gpt-image-2.5-flare` (default), `gemini-3.1-flash-lite-image`, `recraftv4_1_vector` |
+| `generationModel` | 3 | Active | Phase 3 model: `gpt-image-2.5-flare` (default), `gemini-3.1-flash-lite-image`, Recraft V4.1 (`recraftv4_1[_utility][_pro][_vector]`) |
 | `phase5Model` | 4 | Active | Phase 4 structuring model: `claude-sonnet-4-6` (only option); options come from the model catalog |
 | `aspectRatio` | — | Inactive | Was Gemini Image aspect ratio; no longer used |
 | `imageModel` | — | Inactive | Legacy; migrated to `generationModel` on first load |
