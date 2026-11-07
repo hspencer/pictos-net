@@ -5,7 +5,7 @@ import { RowData, VisualElement, NLUData, StructuringMapping, DEFAULT_PHASE5_MOD
 import { structureSVG, assembleAndVerify, canStructureSVG, vectorizeAndStructure } from '../services/svgStructureService';
 import { captureSvgSource, prepareSvgPromotion, prepareSvgDraft, canCertifySVG, observedSvgProvenance } from '../services/svgCanonical';
 import { formatSvgStructureError, svgStructureDiagnostic } from '../services/svgStructureDiagnostics';
-import { certifyDraft, draftIssues, type ImplicitChoices } from '../services/svgDraftCertification';
+import { applyConcepts, certifyDraft, CONCEPTS, draftIssues, type ImplicitChoices } from '../services/svgDraftCertification';
 import { createSvgReference } from '../schemas/pictos-svg-schema/index.js';
 import { Phase5ReviewPanel } from './Phase5ReviewPanel';
 import useSVGLibrary from '../hooks/useSVGLibrary';
@@ -647,6 +647,7 @@ function DraftChecklist({ row, onUpdate, onLog, fallback }: {
 }) {
     const { t } = useTranslation();
     const [implicit, setImplicit] = useState<ImplicitChoices>({});
+    const [concepts, setConcepts] = useState<Record<string, string>>({});
     const [busy, setBusy] = useState(false);
     // Listed without the implicit choices (so a choice stays visible and undoable);
     // Certify is enabled only when nothing remains once they apply.
@@ -673,9 +674,28 @@ function DraftChecklist({ row, onUpdate, onLog, fallback }: {
                     {issues.map((issue, i) => <li key={i}>
                         {issue.kind === 'inputs' && <>
                             {t(`svgGenerator.${issue.reasonKey}`)}
-                            {issue.fields.length > 0 && <> {t('svgGenerator.issueInputFields', { fields: issue.fields.map(f => f.split('/').filter(Boolean).pop()).join(', ') })}</>}
+                            {issue.fields.length > 0 && <> {t(issue.reasonKey === 'nluNeedsReview' ? 'svgGenerator.issueInputFields' : 'svgGenerator.issueCompositionFields',
+                                { fields: [...new Set(issue.fields.map(f => f.split('/').filter(Boolean).pop()))].join(', ') })}</>}
                         </>}
-                        {issue.kind === 'loose' && t('svgGenerator.issueLoose', { count: issue.count })}
+                        {issue.kind === 'concepts' && <>
+                            {t('svgGenerator.issueConcepts')}
+                            <span className="grid grid-cols-[auto_auto] gap-x-2 gap-y-1 mt-1 items-center w-fit">
+                                {issue.elements.map(({ elementId, suggested }) => <React.Fragment key={elementId}>
+                                    <span>{elementId}</span>
+                                    <select className="border border-amber-300 rounded bg-white px-1" value={concepts[elementId] ?? suggested}
+                                        onChange={e => setConcepts(prev => ({ ...prev, [elementId]: e.target.value }))}>
+                                        {CONCEPTS.map(c => <option key={c} value={c}>{c}</option>)}
+                                    </select>
+                                </React.Fragment>)}
+                            </span>
+                            <button type="button" className="mt-1 px-2 py-1 rounded border border-amber-400 bg-white font-semibold"
+                                onClick={() => onUpdate({ elements: applyConcepts(row.elements ?? [],
+                                    Object.fromEntries(issue.elements.map(e => [e.elementId, concepts[e.elementId] ?? e.suggested]))) })}>
+                                {t('svgGenerator.applyConcepts')}
+                            </button>
+                        </>}
+                        {issue.kind === 'loose' && t('svgGenerator.issueLoose', { count: issue.count, parents: issue.parents.join(', '),
+                            ids: issue.ids.slice(0, 6).join(', ') + (issue.ids.length > 6 ? '…' : '') })}
                         {issue.kind === 'unknown' && t('svgGenerator.issueUnknown', { group: issue.groupId })}
                         {issue.kind === 'invalid' && <span title={issue.message}>{fallback}</span>}
                         {issue.kind === 'empty' && <>
@@ -691,7 +711,7 @@ function DraftChecklist({ row, onUpdate, onLog, fallback }: {
                         </>}
                     </li>)}
                 </ul>
-                {issues.some(i => i.kind !== 'inputs') && <p>{t('svgGenerator.draftFixInEditor')}</p>}
+                {issues.some(i => i.kind === 'loose' || i.kind === 'empty' || i.kind === 'unknown') && <p>{t('svgGenerator.draftFixInEditor')}</p>}
             </>}
             <button type="button" onClick={certify} disabled={busy || remaining.length > 0}
                 className="px-3 py-1.5 rounded bg-violet-600 text-white font-bold uppercase tracking-wider disabled:bg-slate-200 disabled:text-slate-500">

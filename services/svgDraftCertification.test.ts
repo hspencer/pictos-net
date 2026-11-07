@@ -51,3 +51,17 @@ test('a missing group is added for the editor, and an Action without drawing can
     assert.deepEqual(meta.bindings.find((b: any) => b.elementId === 'beber'), { elementId: 'beber', implicit: true, performedBy: 'persona' });
     assert.doesNotMatch(out, /id="beber"/);
 });
+
+test('a composition without concepts asks for them, suggested from the draft, then certifies', async () => {
+    const { applyConcepts } = await import('./svgDraftCertification.ts');
+    const legacy = row();
+    const strip = (els: any[]): any[] => els.map(({ concept, children, ...rest }) => ({ ...rest, ...(children ? { children: strip(children) } : {}) }));
+    legacy.elements = strip(legacy.elements as any);
+    const draft = asDraft(certified);
+    const [issue] = draftIssues(legacy, draft) as any[];
+    assert.deepEqual(issue, { kind: 'concepts', elements: [
+        { elementId: 'pictograma', suggested: 'Root' }, { elementId: 'persona', suggested: 'Agent' }, { elementId: 'vaso', suggested: 'Object' }] });
+    legacy.elements = applyConcepts(legacy.elements as any, Object.fromEntries(issue.elements.map((e: any) => [e.elementId, e.suggested])));
+    assert.deepEqual(draftIssues(legacy, draft), []);
+    assert.ok(assertValidSVG(certifyDraft(legacy, draft)));
+});

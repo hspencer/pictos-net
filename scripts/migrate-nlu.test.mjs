@@ -52,3 +52,16 @@ test('proposals count free text without printing it', () => {
   assert.doesNotMatch(JSON.stringify(table), /PRIVADO/);
   assert.equal(table.paths['/visual_guidelines/temporal'].values.AHORA.status, 'pending');
 });
+
+test('an empty optional string is removed as a lossless repair, keeping its original', async () => {
+  const { repairNlu } = await import('../netlify/functions/_shared/nluMigration.js');
+  const { validateGeneration: validateDocument } = await import('../schemas/pictos-nlu-schema/index.js');
+  const doc = structuredClone(nlu);
+  const role = doc.frames[0].roles.Agent;
+  Object.assign(role, { ref: 'YO', surface: '' });
+  assert.equal(validateDocument(doc), false);
+  const changes = repairNlu(doc);
+  assert.ok(changes.some(c => c.rule === 'empty' && c.from === ''));
+  assert.equal('surface' in role, false);
+  assert.equal(validateDocument(doc), true);
+});

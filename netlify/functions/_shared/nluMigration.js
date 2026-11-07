@@ -2,13 +2,16 @@
  * Safe NLU repair, shared by the app (applied silently on every load through
  * sanitizeRow) and scripts/migrate-nlu.mjs (corpus reports and copies).
  *
- * Only two kinds of change, both meaning-preserving:
+ * Only three kinds of change, all meaning-preserving:
  *   case      the value equals an allowed value ignoring case
  *   approved  an equivalence a person approved (APPROVED_EQUIVALENCES)
+ *   empty     an optional string that is empty or blank is removed (it carries
+ *             nothing; the schema rejects it, e.g. a role `surface: ""` next to its `ref`)
  * Free text is never classified here. Each change keeps its original value,
  * so the repair is traceable and reversible. Only the NLU is touched.
  */
-import { validateDocument, VERSION as NLU_VERSION } from '../../../schemas/pictos-nlu-schema/index.js';
+import { validateGeneration, VERSION as NLU_VERSION } from '../../../schemas/pictos-nlu-schema/index.js';
+// Repairs target the generation profile: the gate certification uses (canCertifySVG).
 
 /** Approved 2026-10-22 by the project lead (plan F5). Paths use * for array indices. */
 export const APPROVED_EQUIVALENCES = [
@@ -65,15 +68,23 @@ export function resolveValue(instancePath, value, allowed, approved = APPROVED_E
  * its original value; an empty list when it was valid or nothing was safe.
  */
 export function repairNlu(nlu, approved = APPROVED_EQUIVALENCES) {
-  if (!nlu || typeof nlu !== 'object' || validateDocument(nlu)) return [];
+  if (!nlu || typeof nlu !== 'object' || validateGeneration(nlu)) return [];
+  const errors = validateGeneration.errors ?? [];
   const changes = [];
-  for (const error of validateDocument.errors.filter(e => e.keyword === 'enum')) {
+  for (const error of errors.filter(e => e.keyword === 'enum')) {
     const value = valueAt(nlu, error.instancePath);
     const resolved = resolveValue(error.instancePath, value, error.params.allowedValues, approved);
     if (!resolved) continue;
     const keys = error.instancePath.split('/').slice(1);
     keys.slice(0, -1).reduce((node, key) => node[key], nlu)[keys.at(-1)] = resolved[0];
     changes.push({ path: error.instancePath, from: value, to: resolved[0], rule: resolved[1] });
+  }
+  for (const error of errors.filter(e => e.keyword === 'pattern')) {
+    const value = valueAt(nlu, error.instancePath);
+    if (typeof value !== 'string' || value.trim()) continue;
+    const keys = error.instancePath.split('/').slice(1);
+    delete keys.slice(0, -1).reduce((node, key) => node[key], nlu)[keys.at(-1)];
+    changes.push({ path: error.instancePath, from: value, rule: 'empty' });
   }
   return changes;
 }

@@ -25,9 +25,10 @@ const GEOMETRY = new Set(['path', 'rect', 'circle', 'ellipse', 'line', 'polygon'
 
 export type DraftIssue =
     | { kind: 'inputs'; reasonKey: string; fields: string[] }    // row NLU/composition invalid: fix those fields in COMPRENDER/COMPONER
-    | { kind: 'loose'; count: number }                            // shapes outside every element group
+    | { kind: 'loose'; count: number; ids: string[]; parents: string[] } // shapes outside every element group, by id and current parent
     | { kind: 'empty'; elementId: string; concept: string; performers: string[] } // element without drawing
     | { kind: 'unknown'; groupId: string }                        // group of an element no longer in the composition
+    | { kind: 'concepts'; elements: { elementId: string; suggested: string }[] } // legacy composition without `concept`: a person picks
     | { kind: 'invalid'; message: string };                       // final schema gate
 
 /** elementId → performer elementId, for Actions declared implicit. */
@@ -44,7 +45,33 @@ interface Inspection {
 const hasGeometry = (g: Element) => Array.from(g.getElementsByTagName('*')).some(n => GEOMETRY.has(n.localName));
 const label = (id: string) => id.replace(/[_-]+/g, ' ');
 
+export const CONCEPTS = ['Root', 'Agent', 'Action', 'Object', 'Context', 'Element'] as const;
+
+/** Elements composed before `concept` existed, with the concept the draft already shows as the suggestion. */
+function missingConcepts(row: Partial<RowData>, svg: string): { elementId: string; suggested: string }[] {
+    const shown = new Map<string, string>();
+    try {
+        for (const g of Array.from((parseSVG(svg) as unknown as Document).getElementsByTagName('g')))
+            if (g.getAttribute('id') && g.getAttribute('data-concept')) shown.set(g.getAttribute('id')!, g.getAttribute('data-concept')!);
+    } catch { /* unreadable draft: no suggestions */ }
+    const out: { elementId: string; suggested: string }[] = [];
+    const visit = (nodes: any[], depth: number) => nodes.forEach(n => {
+        if (!n.concept) out.push({ elementId: n.id, suggested: depth === 0 ? 'Root' : shown.get(n.id) ?? 'Element' });
+        if (n.children) visit(n.children, depth + 1);
+    });
+    visit(row.elements ?? [], 0);
+    return out;
+}
+
+/** Composition tree with the chosen concepts filled in (only where missing). */
+export function applyConcepts(elements: any[], choices: Record<string, string>): any[] {
+    return elements.map(n => ({ ...n, ...(!n.concept && choices[n.id] ? { concept: choices[n.id] } : {}),
+        ...(n.children ? { children: applyConcepts(n.children, choices) } : {}) }));
+}
+
 function inspect(row: Partial<RowData>, svg: string, implicit: ImplicitChoices = {}): Inspection | { issues: DraftIssue[] } {
+    const legacy = missingConcepts(row, svg);
+    if (legacy.length) return { issues: [{ kind: 'concepts', elements: legacy }] };
     const eligibility = canCertifySVG(row);
     if (!eligibility.eligible) return { issues: [{ kind: 'inputs', reasonKey: eligibility.reasonKey!, fields: eligibility.fields ?? [] }] };
     const nlu = typeof row.NLU === 'string' ? JSON.parse(row.NLU) : row.NLU;
@@ -68,14 +95,17 @@ function inspect(row: Partial<RowData>, svg: string, implicit: ImplicitChoices =
         issues.push({ kind: 'empty', elementId: node.id, concept: node.concept, performers: node.concept === 'Action' ? agents : [] });
     }
     const bound = new Set([...groups.keys()].filter(id => elements.get(id)?.concept !== 'Root'));
-    let loose = 0;
+    const looseIds: string[] = [], parents = new Set<string>();
     for (const n of Array.from(doc.getElementsByTagName('*'))) {
         if (!GEOMETRY.has(n.localName)) continue;
         let a = n.parentNode as Element | null;
         while (a && a !== doc.documentElement && a.localName !== 'defs' && !bound.has(a.getAttribute?.('id') ?? '')) a = a.parentNode as Element | null;
-        if (!a || a === doc.documentElement) loose++;
+        if (!a || a === doc.documentElement) {
+            looseIds.push(n.getAttribute('id') ?? n.localName);
+            parents.add((n.parentNode as Element)?.getAttribute?.('id') ?? 'svg');
+        }
     }
-    if (loose) issues.push({ kind: 'loose', count: loose });
+    if (looseIds.length) issues.push({ kind: 'loose', count: looseIds.length, ids: looseIds, parents: [...parents] });
     return { doc, elements, groups, drawn, issues };
 }
 
@@ -126,6 +156,11 @@ export function certifyDraft(row: Partial<RowData>, svg: string, implicit: Impli
     const nlu = typeof row.NLU === 'string' ? JSON.parse(row.NLU) : row.NLU;
     const root = doc.documentElement;
 
+    // The composition is the authority on concepts: group attributes follow it.
+    for (const [id, node] of elements) {
+        const g = Array.from(doc.getElementsByTagName('g')).find(x => x.getAttribute('id') === id);
+        if (g && node.concept !== 'Root') g.setAttribute('data-concept', node.concept);
+    }
     // Empty groups: implicit actions and the emptied unclassified bucket carry no drawing.
     for (const g of Array.from(doc.getElementsByTagName('g'))) if (!hasGeometry(g) && !g.getElementsByTagName('g').length) g.parentNode?.removeChild(g);
 

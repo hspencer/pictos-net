@@ -261,7 +261,7 @@ export interface RowData {
    * approved equivalences), each with its original value. See
    * netlify/functions/_shared/nluMigration.js.
    */
-  nluMigration?: { contract: string; at: string; changes: { path: string; from: unknown; to: string; rule: 'case' | 'approved' }[] };
+  nluMigration?: { contract: string; at: string; changes: { path: string; from: unknown; to?: string; rule: 'case' | 'approved' | 'empty' }[] };
   /** Original values requiring safe UI defaults during import; never training approval. */
   importOriginalValues?: Record<string, unknown>;
 

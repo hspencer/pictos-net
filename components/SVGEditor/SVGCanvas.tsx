@@ -18,6 +18,9 @@ import { geometryTouchesRect } from './editor/geometry';
 /** Containers whose contents are not on-canvas art (never marquee-selectable). */
 const NON_ART = 'defs, clipPath, mask, symbol, pattern, marker, style';
 
+/** Geometry dimmed around the shape in vertex editing (never groups: see isolation effect). */
+const ISOLATION_DIMMED = 'path, rect, circle, ellipse, line, polygon, polyline, use';
+
 export default function SVGCanvas() {
     const { t } = useTranslation();
     const {
@@ -400,26 +403,22 @@ export default function SVGCanvas() {
         if (!svgElement) return;
 
         if (!pathEditMode) {
-            svgElement.querySelectorAll<SVGElement>('[id]').forEach(el => {
+            svgElement.querySelectorAll<SVGElement>(ISOLATION_DIMMED).forEach(el => {
                 el.style.opacity = '';
                 el.style.transition = '';
             });
             return;
         }
 
-        svgElement.querySelectorAll<SVGElement>('[id]').forEach(el => {
-            const id = el.getAttribute('id');
-            if (id === pathEditMode.elementId) {
-                el.style.opacity = '1';
-                el.style.transition = 'opacity 0.2s ease';
-            } else {
-                el.style.opacity = '0.15';
-                el.style.transition = 'opacity 0.2s ease';
-            }
+        // Dim only the OTHER shapes. Dimming groups would also dim the edited
+        // shape inside them (opacity multiplies), leaving only its vertices visible.
+        svgElement.querySelectorAll<SVGElement>(ISOLATION_DIMMED).forEach(el => {
+            el.style.opacity = el.getAttribute('id') === pathEditMode.elementId ? '1' : '0.15';
+            el.style.transition = 'opacity 0.2s ease';
         });
 
         return () => {
-            svgElement.querySelectorAll<SVGElement>('[id]').forEach(el => {
+            svgElement.querySelectorAll<SVGElement>(ISOLATION_DIMMED).forEach(el => {
                 el.style.opacity = '';
                 el.style.transition = '';
             });
