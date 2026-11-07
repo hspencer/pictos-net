@@ -5,6 +5,7 @@ import {
     traceInteractive,
     drawBitmapToCanvas,
     preloadWasm,
+    prepareForTrace,
     DEFAULT_CONFIG,
     PRESETS,
     type VectorizerConfig,
@@ -33,6 +34,8 @@ type TraceState = 'idle' | 'tracing' | 'done' | 'error';
 // ---------------------------------------------------------------------------
 
 const CANVAS_ID = 'vtracer-canvas';
+/** Hidden canvas the WASM reads: the original, flattened by prepareForTrace. */
+const TRACE_CANVAS_ID = 'vtracer-canvas-prepared';
 
 function downloadSvgBlob(svg: string, filename: string) {
     const blob = new Blob([svg], { type: 'image/svg+xml' });
@@ -315,6 +318,9 @@ export const VectorizerModal: React.FC<VectorizerModalProps> = ({
         hiddenSvg.id = HIDDEN_SVG_ID;
         hiddenSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
         hiddenContainer.appendChild(hiddenSvg);
+        const traceCanvas = document.createElement('canvas');
+        traceCanvas.id = TRACE_CANVAS_ID;
+        hiddenContainer.appendChild(traceCanvas);
         document.body.appendChild(hiddenContainer);
 
         // Draw bitmap to canvas after DOM is ready
@@ -407,8 +413,13 @@ export const VectorizerModal: React.FC<VectorizerModalProps> = ({
 
         const tracePromise = (async () => {
             try {
+                prepareForTrace(
+                    document.getElementById(CANVAS_ID) as HTMLCanvasElement,
+                    document.getElementById(TRACE_CANVAS_ID) as HTMLCanvasElement,
+                    cfg.colorMode === 'bw' ? 0 : cfg.paletteSize ?? 0,
+                );
                 await traceInteractive(
-                    CANVAS_ID,
+                    TRACE_CANVAS_ID,
                     HIDDEN_SVG_ID,
                     cfg,
                     (p) => {
@@ -429,7 +440,7 @@ export const VectorizerModal: React.FC<VectorizerModalProps> = ({
                 // canvas.width / canvas.height exactly. We restore it here in case the
                 // initial value was stale (dims state vs real canvas) or the WASM touched
                 // any attribute on the SVG element.
-                const canvasEl = document.getElementById(CANVAS_ID) as HTMLCanvasElement | null;
+                const canvasEl = document.getElementById(TRACE_CANVAS_ID) as HTMLCanvasElement | null;
                 if (hiddenSvg && canvasEl) {
                     const cw = canvasEl.width;
                     const ch = canvasEl.height;
@@ -566,6 +577,15 @@ export const VectorizerModal: React.FC<VectorizerModalProps> = ({
                                         { label: t('vectorizer.cutout'), value: 'cutout' as const, title: 'Non-overlapping shapes' },
                                     ]}
                                     onChange={v => updateConfig({ hierarchical: v })}
+                                />
+                                <LabeledSlider
+                                    label={t('vectorizer.paletteSize')}
+                                    value={config.paletteSize ?? 0}
+                                    min={0} max={16} step={1}
+                                    leftLabel={t('vectorizer.paletteOff')}
+                                    rightLabel={t('vectorizer.paletteMore')}
+                                    disabled={isTracing}
+                                    onChange={v => updateConfig({ paletteSize: v })}
                                 />
                                 <LabeledSlider
                                     label={t('vectorizer.colorPrecision')}
@@ -716,9 +736,11 @@ export const VectorizerModal: React.FC<VectorizerModalProps> = ({
                             id="vectorizer-original"
                             className="flex-1 flex flex-col overflow-hidden border-r border-slate-200"
                         >
-                            <p className="text-xs font-medium uppercase tracking-widest text-slate-500 px-4 py-2 border-b border-slate-200 shrink-0 bg-slate-50">
-                                {t('vectorizer.original')}
-                            </p>
+                            <div className="h-10 flex items-center px-4 border-b border-slate-200 shrink-0 bg-slate-50">
+                                <p className="text-xs font-medium uppercase tracking-widest text-slate-500">
+                                    {t('vectorizer.original')}
+                                </p>
+                            </div>
                             <div className="flex-1 flex items-center justify-center p-6 overflow-auto bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2016%2016%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Crect%20width%3D%228%22%20height%3D%228%22%20fill%3D%22%23f1f5f9%22%2F%3E%3Crect%20x%3D%228%22%20y%3D%228%22%20width%3D%228%22%20height%3D%228%22%20fill%3D%22%23f1f5f9%22%2F%3E%3C%2Fsvg%3E')]">
                                 <canvas
                                     id={CANVAS_ID}
@@ -732,7 +754,7 @@ export const VectorizerModal: React.FC<VectorizerModalProps> = ({
                             id="vectorizer-result"
                             className="flex-1 flex flex-col overflow-hidden"
                         >
-                            <div className="flex items-center justify-between px-4 py-2 border-b border-slate-200 shrink-0 bg-slate-50">
+                            <div className="h-10 flex items-center justify-between px-4 border-b border-slate-200 shrink-0 bg-slate-50">
                                 <p className="text-xs font-medium uppercase tracking-widest text-slate-500">
                                     {t('vectorizer.result')}
                                 </p>

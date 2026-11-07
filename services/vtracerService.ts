@@ -16,6 +16,7 @@
  */
 
 import type { ColorImageConverter, BinaryImageConverter } from '../lib/vtracer-wasm/vtracer_webapp';
+import { posterize } from './posterize';
 
 // Re-export the converter types for use in VectorizerModal
 export type Converter = ColorImageConverter | BinaryImageConverter;
@@ -47,6 +48,8 @@ export interface VectorizerConfig {
     spliceThreshold?: number;
     /** Decimal precision for path coordinates (1-8). Default: 8 */
     pathPrecision?: number;
+    /** Flatten to this many colours (k-means + majority filter) before tracing; 0 = off. Default: 10 */
+    paletteSize?: number;
 }
 
 export const DEFAULT_CONFIG: Required<VectorizerConfig> = {
@@ -61,6 +64,7 @@ export const DEFAULT_CONFIG: Required<VectorizerConfig> = {
     maxIterations: 10,
     spliceThreshold: 45,
     pathPrecision: 8,
+    paletteSize: 10,
 };
 
 export interface VectorizerResult {
@@ -81,17 +85,17 @@ export const PRESETS: Record<string, Partial<VectorizerConfig>> = {
     pictogram: {
         colorMode: 'color', hierarchical: 'stacked',
         colorPrecision: 6, layerDifference: 16, filterSpeckle: 4,
-        cornerThreshold: 60, mode: 'spline',
+        cornerThreshold: 60, mode: 'spline', paletteSize: 10,
     },
     poster: {
         colorMode: 'color', hierarchical: 'stacked',
         colorPrecision: 8, layerDifference: 25, filterSpeckle: 4,
-        cornerThreshold: 60, mode: 'spline',
+        cornerThreshold: 60, mode: 'spline', paletteSize: 14,
     },
     photo: {
         colorMode: 'color', hierarchical: 'stacked',
         colorPrecision: 8, layerDifference: 48, filterSpeckle: 10,
-        cornerThreshold: 180, mode: 'spline',
+        cornerThreshold: 180, mode: 'spline', paletteSize: 0,
     },
 };
 
@@ -386,6 +390,19 @@ export async function drawBitmapToCanvas(
         img.onerror = () => reject(new Error('Failed to load bitmap'));
         img.src = safeBase64.startsWith('data:') ? safeBase64 : `data:image/png;base64,${safeBase64}`;
     });
+}
+
+/**
+ * Copy `src` into `dst` (the canvas the WASM reads), flattened to `paletteSize`
+ * colours first when > 0. The visible original stays untouched.
+ */
+export function prepareForTrace(src: HTMLCanvasElement, dst: HTMLCanvasElement, paletteSize: number): void {
+    dst.width = src.width;
+    dst.height = src.height;
+    const ctx = dst.getContext('2d')!;
+    const image = src.getContext('2d')!.getImageData(0, 0, src.width, src.height);
+    if (paletteSize > 0) image.data.set(posterize(image.data, image.width, image.height, paletteSize));
+    ctx.putImageData(image, 0, 0);
 }
 
 /**
