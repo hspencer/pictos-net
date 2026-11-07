@@ -32,7 +32,7 @@ import type { ClaudeResponse } from './aiClient';
 import { applyBooleanN, applySimplify } from './svgBooleanOps';
 import { findUnreachableNodeIds } from './svgTreeUtils';
 import { isMicroBlob } from './svgGeometryUtils';
-import { detectMergeCandidates } from './svgMergeCandidates';
+import { detectMergeCandidates, fusionClusters } from './svgMergeCandidates';
 import { validateStructuringMapping } from './svgMappingValidation';
 import { REGION_TOOL, absorbUnassigned, buildRegionToolSchema, regionAnswerToMapping, type RegionDiagnostics } from './regionMapping';
 import { openTraceSession, VTRACER_WEB_ENGINE, type TraceOptions, type TraceRegion, type TracedRegionPath } from './vtracerWebService';
@@ -1362,6 +1362,82 @@ function deriveChildIds(svgContent: string, lang?: string): string {
  * Every rewritten d is validated; on any failure the original is kept.
  * Used in: assembleFromMapping and redrawSVG, after deriveChildIds.
  */
+/**
+ * Deterministic paint fusion, after assembly: inside each semantic group,
+ * direct child paths with the same computed paint (fill, fill-rule, stroke,
+ * opacity) whose boxes touch, plus small slivers of a similar colour touching
+ * them (fusionClusters), become ONE boolean union, kept at the position of
+ * and with the id and paint of the largest. Removes specks and seams of the group's own
+ * colour and leaves fewer, smoother entities. Different paints never fuse;
+ * transformed paths/groups are skipped. assembleAndVerify keeps the result
+ * only if the drawing stays faithful. Needs a DOM (getBBox, computed style).
+ */
+/** paper.js simplify tolerance (viewBox px) for fused unions: smooths pixel staircases, keeps corners. */
+const SMOOTH_TOLERANCE = 0.75;
+/** Fusion is kept only if no 16×16 cell loses more than this share of its ink. */
+const FUSION_MAX_CELL_LOSS = 0.15;
+
+function fuseSameFill(svgContent: string, smoothTolerance = 0): { svg: string; fused: number; removed: number } {
+    const unchanged = { svg: svgContent, fused: 0, removed: 0 };
+    if (typeof document === 'undefined' || !document.body) return unchanged;
+    const host = document.createElement('div');
+    host.style.cssText = 'position:absolute;left:-99999px;top:0;width:512px;height:512px;overflow:hidden;visibility:hidden;pointer-events:none;';
+    try {
+        host.innerHTML = svgContent;
+        const svg = host.querySelector('svg');
+        if (!svg) return unchanged;
+        document.body.appendChild(host);
+        const clusters: { ids: string[]; fillRule: 'nonzero' | 'evenodd' }[] = [];
+        for (const g of Array.from(svg.querySelectorAll('g[role="group"]'))) {
+            if (g.closest('[transform]')) continue;
+            const paths = Array.from(g.children).filter((c): c is SVGPathElement => c.localName === 'path' && !!c.id && !c.hasAttribute('transform'));
+            if (paths.length < 2) continue;
+            const info = paths.map(p => {
+                const cs = getComputedStyle(p);
+                const b = p.getBBox();
+                const rgb = cs.fill.match(/\d+(\.\d+)?/g)?.slice(0, 3).map(Number) as [number, number, number] | undefined;
+                return { id: p.id, fill: `${cs.fill}|${cs.fillRule}|${cs.stroke}|${cs.strokeWidth}|${cs.opacity}`, rgb: rgb?.length === 3 ? rgb : undefined,
+                    bbox: [b.x, b.y, b.width, b.height] as [number, number, number, number], rule: cs.fillRule };
+            });
+            // Minor = box under 0.25 % of the canvas (slivers, specks); similar = RGB distance ≤ 96.
+            const vb = svg.viewBox.baseVal;
+            const minorArea = (vb?.width || 1024) * (vb?.height || 1024) * 0.0025;
+            for (const ids of fusionClusters(info, { minorArea, maxColourDist: 96 }))
+                clusters.push({ ids, fillRule: info.find(i => i.id === ids[0])!.rule === 'evenodd' ? 'evenodd' : 'nonzero' });
+        }
+        if (!clusters.length) return unchanged;
+        const doc = new DOMParser().parseFromString(svgContent, 'image/svg+xml');
+        if (doc.querySelector('parsererror')) return unchanged;
+        const byId = new Map(Array.from(doc.querySelectorAll('path[id]')).map(p => [p.getAttribute('id')!, p]));
+        let fused = 0, removed = 0;
+        for (const { ids, fillRule } of clusters) {
+            const els = ids.map(id => byId.get(id)).filter((e): e is Element => !!e);
+            if (els.length < 2) continue;
+            let d: string | null = null;
+            try { d = applyBooleanN('union', els.map(e => e.getAttribute('d') ?? ''), fillRule); } catch { d = null; }
+            if (!d || !validateMergedPath(d)) continue;
+            // Refit the union's staircase edge (absorbed slivers) to smooth curves.
+            if (smoothTolerance > 0) {
+                let smooth: string | null = null;
+                try { smooth = applySimplify(d, smoothTolerance); } catch { smooth = null; }
+                if (smooth && validateMergedPath(smooth)) d = smooth;
+            }
+            els[0].setAttribute('d', roundPathD(d, 1));
+            if (fillRule === 'evenodd') els[0].setAttribute('fill-rule', 'evenodd');
+            for (const e of els.slice(1)) e.parentNode?.removeChild(e);
+            fused++; removed += els.length - 1;
+        }
+        if (!fused) return unchanged;
+        let out = new XMLSerializer().serializeToString(doc);
+        out = out.replace(/ xmlns="http:\/\/www\.w3\.org\/2000\/svg"/g, '').replace(/<svg /, '<svg xmlns="http://www.w3.org/2000/svg" ');
+        return { svg: out, fused, removed };
+    } catch {
+        return unchanged;
+    } finally {
+        host.remove();
+    }
+}
+
 function polishGeometry(svgContent: string, onProgress?: (msg: string) => void): string {
     try {
         const parser = new DOMParser();
@@ -1901,6 +1977,24 @@ export async function assembleAndVerify(
     const styleStrokes = !/\bstroke\s*[=:]/.test(rawSvgWithIds);
     const measured = (svg: string) => styleStrokes ? svg.replace('</style>', 'svg path { stroke: none !important; }</style>') : svg;
     let fidelity = await verifyFidelity(rawSvgWithIds, measured(artifact(result)!));
+    // Paint fusion, in tiers: smoothed unions, then plain unions; each kept
+    // only if it stays faithful (verifyFidelity), else the unfused assembly.
+    if (fidelity.ok) {
+        for (const [tolerance, label] of [[SMOOTH_TOLERANCE, 'suavizada'], [0, 'sin suavizar']] as const) {
+            const fusion = fuseSameFill(artifact(result)!, tolerance);
+            if (!fusion.fused) break;
+            const candidate = result.svg ? { ...result, svg: fusion.svg } : { ...result, draftSvg: fusion.svg };
+            const fused = await verifyFidelity(rawSvgWithIds, measured(fusion.svg));
+            // Stricter than the general gate: a simplification may not eat fine detail.
+            if (fused.ok && fused.worstCellLoss <= FUSION_MAX_CELL_LOSS) {
+                input.onProgress?.(`[ESTRUCTURAR] fusión por color ${label}: ${fusion.fused} unión(es), ${fusion.removed} forma(s) absorbida(s)`);
+                result = candidate;
+                fidelity = fused;
+                break;
+            }
+            input.onProgress?.(`[ESTRUCTURAR] fusión por color ${label} alteraba el dibujo (${pct(fused.diffFraction)}, peor zona -${pct(fused.worstCellLoss)}) — descartada`);
+        }
+    }
     if (fidelity.ok === null) {
         input.onProgress?.('[ESTRUCTURAR] fidelidad no medible (no se pudo rasterizar) — calidad desconocida, revisa el resultado');
         return result;

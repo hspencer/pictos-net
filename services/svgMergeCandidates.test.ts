@@ -79,3 +79,27 @@ test('two accents of different colour are never paired', () => {
     ]);
     assert.equal(result.length, 0);
 });
+
+test('same-fill shapes that touch cluster transitively; other fills and distant shapes stay apart', async () => {
+    const { fusionClusters } = await import('./svgMergeCandidates.ts');
+    const clusters = fusionClusters([
+        { id: 'a', fill: '#000', bbox: [0, 0, 10, 10] },
+        { id: 'b', fill: '#000', bbox: [10.5, 0, 10, 10] },   // touches a
+        { id: 'c', fill: '#000', bbox: [21, 0, 5, 5] },       // touches b → same cluster
+        { id: 'd', fill: '#f00', bbox: [0, 0, 10, 10] },      // other fill
+        { id: 'e', fill: '#000', bbox: [100, 100, 5, 5] },    // far away
+        { id: 'f', fill: '#000' },                            // unmeasured
+    ]);
+    assert.deepEqual(clusters, [['a', 'b', 'c']]);
+});
+
+test('small slivers of a similar colour join the major shape they touch; distinct colours do not', async () => {
+    const { fusionClusters } = await import('./svgMergeCandidates.ts');
+    const clusters = fusionClusters([
+        { id: 'body', fill: 'k', rgb: [20, 20, 20], bbox: [0, 0, 100, 100] },
+        { id: 'aa', fill: 'g', rgb: [45, 45, 45], bbox: [100, 10, 2, 30] },      // dark fringe → body (nearest colour)
+        { id: 'red', fill: 'r', rgb: [220, 30, 30], bbox: [100, 50, 2, 2] },     // small but clearly another colour
+        { id: 'ring', fill: 'p', rgb: [90, 40, 140], bbox: [0, 0, 100, 100] },   // major, different colour
+    ], { minorArea: 400, maxColourDist: 96 });
+    assert.deepEqual(clusters, [['body', 'aa']]);
+});

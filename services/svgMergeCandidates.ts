@@ -74,3 +74,43 @@ export function detectMergeCandidates(paths: MergeCandidatePath[]): string[][] {
     });
     return Array.from(clusters.values()).filter(c => c.length >= 2);
 }
+
+/**
+ * Fusion clusters for the post-assembly union (svgStructureService
+ * fuseSameFill), within ONE semantic group:
+ *   - shapes with the same paint whose boxes touch (within `margin`) cluster
+ *     transitively;
+ *   - a minor shape (box area < `minorArea`: anti-aliasing slivers, specks)
+ *     that touches a major one of similar colour (RGB distance ≤ `maxColourDist`)
+ *     joins the nearest-coloured such major and takes its paint.
+ * Each cluster of 2+ becomes one boolean union whose first id is its largest
+ * shape. Clearly different colours are never fused; unmeasured shapes are skipped.
+ */
+export interface FusionPath { id: string; fill: string; rgb?: [number, number, number]; bbox?: [number, number, number, number] }
+export function fusionClusters(paths: FusionPath[], { margin = 1.5, minorArea = 0, maxColourDist = 0 } = {}): string[][] {
+    const usable = paths.filter(p => p.bbox && p.fill && !p.fill.startsWith('none'));
+    const parent = usable.map((_, i) => i);
+    const find = (i: number): number => (parent[i] === i ? i : (parent[i] = find(parent[i])));
+    const area = (p: FusionPath) => p.bbox![2] * p.bbox![3];
+    const touch = (a: FusionPath, b: FusionPath) => {
+        const [ax, ay, aw, ah] = a.bbox!, [bx, by, bw, bh] = b.bbox!;
+        return ax <= bx + bw + margin && bx <= ax + aw + margin && ay <= by + bh + margin && by <= ay + ah + margin;
+    };
+    const dist = (a: FusionPath, b: FusionPath) => a.rgb && b.rgb ? Math.hypot(a.rgb[0] - b.rgb[0], a.rgb[1] - b.rgb[1], a.rgb[2] - b.rgb[2]) : Infinity;
+    for (let i = 0; i < usable.length; i++)
+        for (let j = i + 1; j < usable.length; j++)
+            if (usable[i].fill === usable[j].fill && touch(usable[i], usable[j])) parent[find(i)] = find(j);
+    usable.forEach((p, i) => {
+        if (area(p) >= minorArea) return;
+        let best = -1, bestDist = Infinity;
+        usable.forEach((q, j) => {
+            if (j === i || area(q) < minorArea || q.fill === p.fill || !touch(p, q)) return;
+            const d = dist(p, q);
+            if (d <= maxColourDist && d < bestDist) { bestDist = d; best = j; }
+        });
+        if (best >= 0) parent[find(i)] = find(best);
+    });
+    const clusters = new Map<number, FusionPath[]>();
+    usable.forEach((p, i) => { const r = find(i); clusters.set(r, [...(clusters.get(r) ?? []), p]); });
+    return [...clusters.values()].filter(c => c.length > 1).map(c => [...c].sort((a, b) => area(b) - area(a)).map(p => p.id));
+}
