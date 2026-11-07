@@ -127,7 +127,7 @@ Concept mapping (REQUIRED on every element, including nested children):
 Available CSS classes (optional suggestedClass hint only): ${availableClasses}
 
 Prompt rules:
-— Wrap every element ID in single quotes: 'persona', 'casa'.
+— Wrap every element ID in single quotes: ${lang.startsWith('es') ? "'persona', 'casa'" : "'person', 'house'"}.
 — Describe only TOPOLOGY (relative position, size, connections). No style.
 — 3–6 sentences maximum.
 

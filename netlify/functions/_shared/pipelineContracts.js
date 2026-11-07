@@ -274,7 +274,7 @@ Concept mapping (REQUIRED on every element, including nested children):
 Available visual style context (do not add CSS fields to semantic elements): ${availableClasses}
 
 Prompt rules:
-— Wrap every element ID in single quotes: 'persona', 'casa'.
+— Wrap every element ID in single quotes: ${targetLang.startsWith('es') ? "'persona', 'casa'" : "'person', 'house'"}.
 — Describe only TOPOLOGY (relative position, size, connections). No style.
 — 3–6 sentences maximum.
 
