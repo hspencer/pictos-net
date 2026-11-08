@@ -26,5 +26,6 @@
 - Una acción sin dibujo propio se puede marcar como implícita de quien la realiza.
 - Volver a ESTRUCTURAR sobre una edición manual pide confirmación.
 - La reparación automática del NLU usa el mismo perfil que la certificación y quita textos vacíos.
+- Antes de asignar regiones, Gemini 3.8 Flash ubica con una caja cada entidad del árbol que está dibujada. Las regiones se asignan con esa evidencia, lo no dibujado no recibe regiones y una acción no dibujada pasa a ser implícita de quien la realiza. Un elemento no dibujado se puede quitar de la composición desde la lista del borrador.
 - Dentro de cada entidad se unen las formas del mismo color que se tocan y las astillas de color parecido. Si la unión altera el dibujo, se descarta. En "slice the onion": de 547 a 210 formas.
 - En el editor, al editar vértices la figura editada sigue visible (antes quedaba atenuada con su grupo).
