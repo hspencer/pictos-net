@@ -1,5 +1,13 @@
 -- allium: 3
 -- local-generation.allium
+--
+-- STATUS: PROPOSAL, NEVER IMPLEMENTED (checked against 2.8.0, 2026-11-08).
+-- No code talks to a local backend: there is no LocalBackend store, no
+-- "local" model family or catalog entry, no probe and no CSP entry for
+-- localhost. Everything below is design intent (docs/LOCAL_GENERATION_DESIGN.md).
+-- If built, the "local" model must enter the shared model catalog
+-- (netlify/functions/_shared/modelCatalog.js) with a lifecycle status like
+-- every other model; no separate model list.
 
 -- Scope: Phase 3 generation against a locally hosted image backend
 --   (ComfyUI or compatible) reached directly from the browser, plus the
@@ -12,8 +20,8 @@
 --     docs/LOCAL_GENERATION_DESIGN.md)
 --   - Phase "local puro" (model packaged inside the app) — deferred, see
 --     open question PackagedModel
--- Dependencies: GenerationModel families (generation-config.allium),
---   row lifecycle (visual-reasoning.allium)
+-- Dependencies: model catalog and GenerationModel families
+--   (generation-config.allium), row lifecycle (visual-reasoning.allium)
 
 given {
   backend: LocalBackend
@@ -50,8 +58,8 @@ contract LocalGenerationBoundary {
 
   @invariant PromptNeverLeavesTheDevice
     -- For family "local", Phase 3 traffic goes browser → configured endpoint
-    -- only. No proxy, no telemetry. Note: Phases 1-2 remain cloud (Claude via
-    -- Netlify) — a library generated "locally" still used cloud NLU unless
+    -- only. No proxy, no telemetry. Note: Phases 1-2 remain cloud (Claude or
+    -- OpenAI via Netlify) — a library generated "locally" still used cloud NLU unless
     -- those phases are also replaced (out of scope here).
 
   @invariant EndpointIsDeviceScoped
@@ -96,7 +104,7 @@ config {
   probe_timeout: Duration = 3.seconds
   generation_timeout: Duration = 120.seconds
   local_model_id: String = "local-comfyui"
-    -- registered in GenerationModel with family "local"
+    -- would be registered in the model catalog with family "local"
 }
 
 ------------------------------------------------------------
@@ -187,7 +195,7 @@ rule LocalGenerateWhileUnavailable {
 
 open question "WorkflowTemplate: ComfyUI needs a workflow graph naming a checkpoint and LoRA that exist on the user's disk. Ship one canonical template with substitutable model names (simple, opinionated), or let advanced users paste their own workflow JSON (flexible, harder to support)?"
 
-open question "LocalVectorize: Local output is raster. VTracer (Phase 4, present in the codebase but removed from the cascade) could vectorise it in-browser, yielding a fully local vector pipeline. Reintroduce as an opt-in toggle for local rows, or keep local output bitmap-only in v1?"
+open question "LocalVectorize: Local output is raster. Vectorisation already runs in the browser for any bitmap: ESTRUCTURAR's bitmap entry uses VTracer 1.0 (lib/vtracer-web), and 'Solo trazar' uses VTracer 0.6. But ESTRUCTURAR's region assignment and entity detection are cloud calls (Claude Sonnet, Gemini). Is a local row's vector output then 'Solo trazar' only, or does a fully local pipeline need a local structuring model?"
 
 open question "LocalRecording: intervention-recording captures generation events for the doctoral research. Local generations produce no server-side audit trail by design. Should the client-side recording still capture them (locally, exportable), and does the participant need to consent differently?"
 

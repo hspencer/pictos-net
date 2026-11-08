@@ -9,12 +9,22 @@
 --   - Storage usage indicator on the home screen
 --   - Bulk backup: ZIP of all library JSONs
 --   - Active library: which library is currently open in the editor
---   - Community templates: loaded into fully mutable libraries
+--   - Community templates: loaded into fully mutable libraries, media
+--     recovery from the source template
+--   - Whole-library graph dump: export and replace-in-place import from
+--     inside an open library
+--   - Phrase import (.txt) from the home screen
 -- Excludes:
 --   - Library contents (pictograms, sequences) — see visual-reasoning.allium,
 --     library-views.allium, sequences.allium
 --   - Sequence definition and export — see sequences.allium
 --   - Identity, quota, usage tracking — see usage-enforcement.allium
+-- Storage (informative, not normative): row metadata, config, sequences,
+--   boards and home-card previews live in localStorage under
+--   pictonet_libraries, pictonet_active_lib and pictonet_lib_{id}_{meta|
+--   config|seqs|boards|previews}; bitmaps and SVGs live in IndexedDB
+--   pictonet_storage (v7) keyed by library id + row id. Recorded board
+--   audio is part of the row metadata.
 -- Dependencies:
 --   - GlobalConfig (gains the active library)
 --   - library-views.allium (defines the view opened when a library is active)
@@ -26,21 +36,37 @@
 
 -- Application-wide configuration. This spec adds the active library; all
 -- other fields (lang, uiLang, geoContext, visualStylePrompt, ...) are
--- unchanged. No active library means the home screen is shown.
+-- unchanged. No active library means the home screen is shown. With an
+-- active library the user can still view the home screen (viewing_home)
+-- without closing it; the active library keeps its state.
 external entity GlobalConfig {
     active_library: Library?
+    viewing_home: Boolean
 }
 
 -- A JSON file previously exported by DownloadLibrary or BackupAllLibraries,
 -- or a community template served from /public/libraries/.
 external entity LibraryFile {
     name: String
-    is_valid: Boolean
+    filename: String
+    is_valid: Boolean               -- parses as JSON; rows/sequences/boards are optional arrays
     pictogram_count: Integer
     sequence_count: Integer
     board_count: Integer
-    media_count: Integer
     language: String?
+}
+
+-- A whole-library "graph dump" (type pictonet_graph_dump, schemaVersion 3):
+-- config, rows with media and audio, the SVG library, sequences and boards.
+-- Produced and consumed from inside an open library.
+external entity GraphDump {
+    filename: String
+    is_valid: Boolean               -- after forward migration: a row array, or an object with rows
+}
+
+-- A plain-text file with one utterance per line.
+external entity PhraseFile {
+    line_count: Integer
 }
 
 ------------------------------------------------------------
@@ -73,6 +99,12 @@ contract LibraryStorageBoundary {
     @invariant TemplatesAreNeverMutated
         -- Loading a community template creates a new Library from its JSON;
         -- the template file itself is never changed.
+
+    @invariant ConfigsAreMigratedOnEntry
+        -- Every config that enters the app (open, template load, import,
+        -- graph dump) passes through the library config migration: retired
+        -- or unknown models are dropped, legacy fields removed. Templates
+        -- drop all declared models. Rows are sanitised (NLU repair) on open.
 }
 
 ------------------------------------------------------------
@@ -91,20 +123,24 @@ enum LibrarySort {
 -- A named, self-contained collection of pictograms, sequences and boards.
 -- Libraries have no multi-state lifecycle: they exist or are deleted.
 entity Library {
-    name: String                    -- user-given; always non-empty
+    name: String                    -- user-given; always non-empty; kept equal to config.name
     pictogram_count: Integer        -- shown on the home screen card
-    sequence_count: Integer
+    sequence_count: Integer         -- shown on the home screen card
     board_count: Integer
-    media_count: Integer            -- pictograms carrying a bitmap or SVG
-    language: String?               -- lang of the library config at creation
+    language: String?               -- lang of the library config, refreshed on every save
     source_template: String?        -- template filename; absent if user-created
+    previews: List<String>          -- up to max_previews thumbnails of the first pictograms with media
     created_at: Timestamp
-    modified_at: Timestamp          -- updated when pictograms, sequences or boards change
+    modified_at: Timestamp          -- updated when pictograms, config, sequences or boards change
 }
 
 -- The application home screen, shown while no library is active.
 entity LibraryHome {
-    sort: LibrarySort               -- persisted; survives a reload
+    sort: LibrarySort               -- persisted; survives a reload (see open question)
+    template_sort: LibrarySort      -- independent sort of the examples; recientes = curation order
+    template_search: String         -- filters examples by name, location, language, credits
+    hidden_templates: Set<String>   -- template filenames hidden on this device
+    ui_language: String
     storage_used: Integer           -- bytes consumed by all libraries
     storage_estimated: Integer      -- origin storage budget estimated by the browser
 
@@ -115,7 +151,13 @@ entity LibraryHome {
 entity LibraryExport {
     library: Library
     filename: String
-    media_count: Integer
+    exported_at: Timestamp
+}
+
+-- A whole-library graph dump download, taken from inside an open library.
+entity GraphDumpExport {
+    library: Library
+    filename: String
     exported_at: Timestamp
 }
 
@@ -134,6 +176,9 @@ config {
     duplicate_suffix: String = " (copia)"
     import_suffix: String = " (importada)"
     backup_filename_prefix: String = "PICTOS-Libraries-"
+    phrase_import_fallback_name: String = "Mi librería"
+    storage_warning_ratio: Decimal = 0.8
+    max_previews: Integer = 3
 }
 
 ------------------------------------------------------------
@@ -155,10 +200,42 @@ rule SortLibraries {
 rule OpenLibrary {
     when: OpenLibraryRequested(app, library)
     ensures: app.active_library = library
+    ensures: app.viewing_home = false
 
     @guidance
         -- Triggered by "Abrir" in the card's "..." menu or by a click on the
-        -- card body. The Library editor replaces the home screen.
+        -- card body. Opening a library other than the active one asks for
+        -- confirmation first (see open question on its copy). Any pending
+        -- save of the current library is flushed before switching. The
+        -- Library editor replaces the home screen in pictogramas mode.
+}
+
+rule ShowHomeWithActiveLibrary {
+    when: HomeRequested(app)
+    requires: app.active_library != null
+    ensures: app.viewing_home = true
+
+    @guidance
+        -- The header "Biblioteca" button and the logo show the home screen
+        -- without closing the library. The active card carries a marker;
+        -- clicking it returns to the library without reloading it.
+}
+
+rule ReturnToActiveLibrary {
+    when: ActiveLibraryCardActivated(app)
+    requires: app.active_library != null
+    ensures: app.viewing_home = false
+}
+
+rule RestoreActiveLibraryOnReload {
+    when: AppStarted(app, saved_active)
+    requires: saved_active != null
+    ensures: app.active_library = saved_active
+
+    @guidance
+        -- The active library pointer is persisted; a reload reopens it.
+        -- A stale pointer (library gone) shows the home screen. Legacy
+        -- single-library storage is migrated into one library first.
 }
 
 rule LeaveLibrary {
@@ -167,7 +244,10 @@ rule LeaveLibrary {
     ensures: app.active_library = null
 
     @guidance
-        -- The home screen is shown again with an up-to-date listing.
+        -- The home screen is shown again with an up-to-date listing. There
+        -- is no explicit "close" control: a library is closed when it is
+        -- deleted while active or by "Borrar todo". Navigating home keeps
+        -- it active (ShowHomeWithActiveLibrary).
 }
 
 -- === Creating a Library ===
@@ -190,8 +270,9 @@ rule CreateLibrary {
         app.active_library = library
 
     @guidance
-        -- "Crear nueva librería" prompts for a name first; cancelling creates
-        -- nothing. The new Library opens immediately.
+        -- "Crear nueva librería" prompts for a name first (trimmed);
+        -- cancelling or an empty name creates nothing. The new Library opens
+        -- immediately.
 }
 
 -- === Duplicating a Library ===
@@ -203,9 +284,8 @@ rule DuplicateLibrary {
         pictogram_count: source.pictogram_count,
         sequence_count: source.sequence_count,
         board_count: source.board_count,
-        media_count: source.media_count,
         language: source.language,
-        source_template: source.source_template,
+        source_template: null,
         created_at: now,
         modified_at: now
     )
@@ -213,8 +293,9 @@ rule DuplicateLibrary {
     @guidance
         -- The duplicate carries the same pictogram metadata (utterances, NLU,
         -- elements, prompts, generation history, phase statuses), sequences,
-        -- boards and media (CopiesKeepTheirMedia). It appears on the home
-        -- screen and is not opened; the source is unaffected.
+        -- boards, config and media (CopiesKeepTheirMedia). It appears on the
+        -- home screen and is not opened; the source is unaffected. The
+        -- source template tag is not copied.
 }
 
 rule RenameLibrary {
@@ -224,9 +305,10 @@ rule RenameLibrary {
     ensures: library.modified_at = now
 
     @guidance
-        -- Two paths: inline edit on the home screen card, or the library
-        -- settings panel while the library is open. Cancelling or submitting
-        -- an empty name leaves the name unchanged.
+        -- Two paths: "Renombrar" in the card's "..." menu (inline edit), or
+        -- the space name in the library configuration panel while the
+        -- library is open. Both keep the card name and config.name equal.
+        -- Cancelling or submitting an empty name leaves the name unchanged.
 }
 
 -- === Downloading a Library ===
@@ -236,13 +318,13 @@ rule DownloadLibrary {
     ensures: LibraryExport.created(
         library: library,
         filename: sanitize(library.name) + ".json",
-        media_count: library.media_count,
         exported_at: now
     )
 
     @guidance
-        -- The JSON contains the library metadata, every pictogram record with
-        -- its media, sequences and boards (CopiesKeepTheirMedia).
+        -- The JSON contains the library metadata and config, every pictogram
+        -- record with its media and audio, sequences and boards
+        -- (CopiesKeepTheirMedia). Failures are reported in the log.
 }
 
 -- === Deleting a Library ===
@@ -256,12 +338,12 @@ rule DeleteLibrary {
             app.active_library = null
 
     @guidance
-        -- Deletion removes the pictogram metadata, media, sequences and boards
-        -- for good, after a destructive-action confirmation. Suggested
-        -- prompt (es-419): "¿Eliminar «{name}»? Se borrarán todos los
-        -- pictogramas e imágenes generadas. Esta acción no se puede
-        -- deshacer." The Delete item in the "..." menu is visually distinct
-        -- (e.g. red label) before the prompt appears.
+        -- Deletion removes the pictogram metadata, config, previews, media,
+        -- sequences and boards for good, after a browser confirmation:
+        -- "¿Eliminar «{name}»? Se borrarán todos los pictogramas e imágenes
+        -- generadas. Esta acción no se puede deshacer." The listing updates
+        -- at once; media cleanup in IndexedDB runs in the background and its
+        -- failure is only logged. The Delete item is red in the "..." menu.
 }
 
 -- === Backup and import ===
@@ -276,8 +358,9 @@ rule BackupAllLibraries {
     )
 
     @guidance
-        -- One JSON per library in the DownloadLibrary format, media included.
-        -- The download fires without a blocking progress modal.
+        -- One JSON per library in the DownloadLibrary format, media included,
+        -- named by the sanitised library name. The download fires without a
+        -- blocking progress modal; failures are reported in the log.
 }
 
 rule ImportLibrary {
@@ -289,7 +372,6 @@ rule ImportLibrary {
             pictogram_count: file.pictogram_count,
             sequence_count: file.sequence_count,
             board_count: file.board_count,
-            media_count: file.media_count,
             language: file.language,
             source_template: null,
             created_at: now,
@@ -299,12 +381,14 @@ rule ImportLibrary {
 
     @guidance
         -- The imported library gets a fresh id (the id in the JSON is not
-        -- reused) and carries the file's pictograms with their media,
-        -- sequences and boards. import_name appends the suffix when a library
-        -- with that name exists. The imported library opens immediately
-        -- (aligned with the implementation, 2026-10-23). "Importar librería"
-        -- is a home screen action, never inside an open library: import
-        -- creates a new library and never replaces an existing one.
+        -- reused) and carries the file's config, pictograms with their
+        -- media, sequences and boards, all re-keyed to the new id. The name
+        -- comes from the file (name, else config.name, else "Librería
+        -- importada"); import_name appends the suffix when a library with
+        -- that name exists. The imported library opens immediately. This
+        -- home-screen "Importar archivo de librería" never replaces an
+        -- existing library; the in-library replace path is
+        -- ReplaceLibraryFromGraphDump.
 }
 
 rule RejectInvalidImport {
@@ -313,7 +397,51 @@ rule RejectInvalidImport {
     ensures: ImportFailureShown(file: file)
 
     @guidance
-        -- The error is shown inline; no library is created.
+        -- The error goes to the activity log; no library is created.
+}
+
+rule ImportPhrasesFromHome {
+    when: HomePhraseImportRequested(app, file)
+    ensures:
+        if app.active_library = null:
+            app.active_library = most_recently_modified_or_new(Libraries, config.phrase_import_fallback_name)
+        PhrasesAppended(library: app.active_library, file: file)
+
+    @guidance
+        -- One new idle row per non-empty line, appended to the active
+        -- library; with none active, the most recently modified library is
+        -- opened, or "Mi librería" is created when there are none.
+}
+
+-- === Whole-library graph dump (inside an open library) ===
+
+rule ExportGraphDump {
+    when: GraphDumpExportRequested(app)
+    requires: app.active_library != null
+    ensures: GraphDumpExport.created(
+        library: app.active_library,
+        filename: sanitize(app.active_library.name) + "_graph_" + date_stamp(now) + ".json",
+        exported_at: now
+    )
+
+    @guidance
+        -- "Exportar librería (.json)" in the library menu; disabled with no
+        -- rows. Rows still processing are saved as completed or idle.
+}
+
+rule ReplaceLibraryFromGraphDump {
+    when: GraphDumpImportRequested(app, dump)
+    requires: app.active_library != null
+    requires: dump.is_valid
+    ensures: LibraryContentsReplaced(library: app.active_library, dump: dump)
+
+    @guidance
+        -- "Importar librería (.json)" in the library menu, after a warning
+        -- that current pictograms and configuration will be replaced. Rows,
+        -- config, SVG library entries, sequences and boards are replaced
+        -- (sequences and boards re-keyed to the active library). The dump
+        -- is migrated forward to the current schema first. An invalid file
+        -- logs an error and changes nothing.
 }
 
 -- === Community templates ===
@@ -326,20 +454,37 @@ rule LoadCommunityTemplate {
             pictogram_count: template.pictogram_count,
             sequence_count: template.sequence_count,
             board_count: template.board_count,
-            media_count: template.media_count,
             language: template.language,
-            source_template: template.name,
+            source_template: template.filename,
             created_at: now,
             modified_at: now
         )
         app.active_library = library
 
     @guidance
-        -- Templates are JSON files in /public/libraries/, shown in a separate
-        -- "De la comunidad" section, not pre-created libraries. The loaded
-        -- library is fully mutable (TemplatesAreNeverMutated). Template cards
-        -- can be hidden individually and restored with "Restaurar plantillas".
-        -- First launch shows the home screen; no library opens by itself.
+        -- Templates are the example libraries in /public/libraries/ (flat,
+        -- one kebab-case slug each, ".en.json" for en-GB; MediaFranca, CC0),
+        -- listed by index.json in a separate "De la comunidad" section. Only
+        -- examples in the UI language are shown. They are not pre-created
+        -- libraries; each load creates a new, fully mutable library named
+        -- after the template (TemplatesAreNeverMutated), with its config
+        -- migrated and models dropped. Template cards can be hidden per
+        -- device and restored. First launch shows the home screen; no
+        -- library opens by itself.
+}
+
+rule RecoverTemplateMedia {
+    when: LibraryMediaMissing(library)
+    requires: library.source_template != null
+    ensures: TemplateBitmapsRestored(library: library)
+
+    @guidance
+        -- When a library opens and IndexedDB has no bitmaps for it, the
+        -- source template is re-fetched and bitmaps are restored by row id.
+        -- The template is resolved through the source tag (old filenames
+        -- mapped by the RENAMED_TEMPLATES alias table) or, failing that,
+        -- by a name match, which then tags the library. Best effort: a
+        -- failure only logs.
 }
 
 ------------------------------------------------------------
@@ -356,8 +501,6 @@ invariant CountsAreNonNegative {
         library.pictogram_count >= 0
         and library.sequence_count >= 0
         and library.board_count >= 0
-        and library.media_count >= 0
-        and library.media_count <= library.pictogram_count
 }
 
 ------------------------------------------------------------
@@ -376,17 +519,23 @@ surface LibraryHomeScreen {
         for library in Libraries:
             library.name
             library.pictogram_count
+            library.sequence_count
+            library.language
+            library.previews
             library.modified_at
 
     provides:
         LibrarySortChanged(home, sort)
         OpenLibraryRequested(visitor, library)
+        ActiveLibraryCardActivated(visitor)
         CreateLibraryConfirmed(visitor, name)
         DuplicateLibraryRequested(library)
         DownloadLibraryRequested(library)
+        LibraryRenamed(library, name)
         DeleteLibraryConfirmed(visitor, library)
         BackupRequested(home) when home.backup_enabled
         ImportLibraryRequested(visitor, file)
+        HomePhraseImportRequested(visitor, file)
         TemplateLoadRequested(visitor, template)
 
     @guarantee StorageIndicatorIsInformational
@@ -395,21 +544,39 @@ surface LibraryHomeScreen {
         -- No hard limit blocks library creation.
 
     @guidance
-        -- Responsive card grid: name, pictogram count, last-modified date and
-        -- the "..." menu (Abrir, Duplicar, Descargar, Eliminar; Eliminar in
-        -- red). The "Crear nueva librería" block has a dashed border and a
-        -- "+" icon. Below the grid: storage indicator, then "Respaldar
-        -- librerías". Indicator copy (es-419): "Almacenamiento: X MB de Y MB
-        -- usados", amber above 80% of the estimate, not a progress bar. Empty
-        -- state: only the create block and "Crea tu primera librería de
-        -- pictogramas."
+        -- Workspace section with its own sort control, then an actions card
+        -- (Importar frases, Importar archivo de librería, Respaldar
+        -- librerías, tutorial PDF in the UI language), the "Crear nueva
+        -- librería" card, and one card per library: previews strip, name,
+        -- language badge, active marker, "N pictogramas · M secuencias",
+        -- relative date and the "..." menu (Abrir, Duplicar, Descargar,
+        -- Renombrar, Eliminar in red). Then the "De la comunidad" section
+        -- with search, its own sort and a "show hidden" link. Bottom bar:
+        -- storage indicator, "Almacenamiento: X de Y usados", amber above
+        -- storage_warning_ratio of the estimate, hidden when the browser
+        -- gives no estimate; not a progress bar.
+}
+
+surface LibraryMenuTransfer {
+    facing visitor: GlobalConfig
+    context library: Library
+
+    provides:
+        GraphDumpExportRequested(visitor) when library.pictogram_count > 0
+        GraphDumpImportRequested(visitor, dump)
+
+    @guidance
+        -- Items of the open library's dropdown menu; the rest of that menu
+        -- is specified in sequences.allium, boards.allium and
+        -- pdf-export.allium.
 }
 
 ------------------------------------------------------------
 -- Open Questions
 ------------------------------------------------------------
 
--- Resolved: example libraries are fully mutable (editable + deletable)
+-- Resolved: libraries made from examples are fully mutable; the example cards
+--   themselves cannot be deleted, only hidden per device
 -- Resolved 2026-10-22: duplicate, download, backup and import carry media
 -- Resolved: backup filename: PICTOS-Libraries-{YYYY-MM-DD}.zip
 -- Resolved: storage indicator is informational (no hard creation block)
@@ -417,7 +584,14 @@ surface LibraryHomeScreen {
 -- Resolved: duplicate name pattern: "{original} (copia)"
 -- Resolved: rename via the home screen card and the library settings panel
 -- Resolved: sort control LibrarySort { recientes | alfabetico }, default recientes, persisted
--- Resolved: import is a home screen action that creates a new library and opens it
--- Resolved: first launch always shows the home screen
+-- Resolved: home-screen import creates a new library and opens it; the
+--   in-library graph dump import replaces the open library's contents
+-- Resolved: first launch shows the home screen; a reload reopens the last active library
+-- Resolved: the rename-from-settings path is the space name in the library
+--   configuration panel ("Configurar librería")
 
-open question "Library settings panel: the rename-from-settings path implies a settings panel inside the open library editor; its fields and placement are not yet specified."
+open question "Home sort persistence: the spec says the workspace sort survives a reload, but the implementation keeps it in memory only. Persist it, or drop the requirement?"
+
+open question "Opening another library shows a warning that the current work will be overwritten, but nothing is overwritten. Remove the confirmation, or give it accurate copy?"
+
+open question "Duplicate does not copy the source template tag, so a duplicate of a template-derived library cannot use template media recovery. Intended?"

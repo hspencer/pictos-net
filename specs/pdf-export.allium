@@ -1,594 +1,311 @@
 -- allium: 3
 -- pdf-export.allium
 
--- Scope: A multi-page PDF export of the current Library, inspired by the
---   grid view, intended to be printed and physically cut into cards for
---   AAC use in clinical, educational and family settings.
+-- Scope: The printable PDF of the open Library ("Descargar imprimibles"): a
+--   multi-page card sheet meant to be printed and cut into cards for AAC use
+--   in clinical, educational and family settings. The same engine serves
+--   the sequence printout (sequences.allium) through two optional inputs.
 -- Includes:
---   - A new "Export PDF" action in the Library dropdown menu, placed
---     immediately after the existing "Export library" (JSON) entry
---   - Page composition: Letter portrait, 2 columns per page, ~7–9 cm of
---     pictogram width per cell, page header carrying library context
---   - Cell composition: pictogram on top (in its native aspect ratio,
---     framed by a faint cut-guide rule), utterance below in full
---   - Artifact selection per row: the most downstream available
---     (estructurado > trazado > bitmap), rasterised to PNG before
---     embedding
---   - Inclusion criterion: only rows that already carry a generated
---     pictogram; rows without any artifact are skipped
---   - Order: mirrors the Library's current sort
---   - A blocking progress modal exposing per-pictogram progress and
---     a cancel affordance
---   - Two optional, backward-compatible inputs so the same engine can serve
---     the sequence export (sequences.allium): a header title override and a
---     per-cell badge (e.g. a step number)
+--   - The library-menu item, its enabled and disabled states
+--   - Page composition: Letter portrait, 2 columns, header and footer
+--   - Cell composition: pictogram on top, full utterance below, a cut guide
+--     around the whole cell, an optional per-cell badge
+--   - Artifact selection (estructurado > trazado > bitmap) and rasterisation
+--   - A blocking progress modal with cancel
+--   - Optional inputs: title override and per-cell badge
 -- Excludes:
---   - Cover page / table of contents (resolved: a header on each page
---     replaces both)
---   - User-facing page size or orientation selector (resolved: fixed at
---     Letter portrait for v1)
---   - Per-row metadata pages (NLU, elements, prompt) — this is a card
---     sheet, not a dossier
---   - Print-shop production controls (bleed, registration marks, CMYK)
---     — out of scope for v1
+--   - Cover page or table of contents (each page carries a header)
+--   - Page size or orientation selector (fixed at Letter portrait)
+--   - Per-row metadata pages (NLU, elements, prompt)
+--   - Print-shop controls (bleed, registration marks, CMYK)
 --   - Re-running any pipeline phase to fill missing pictograms
 -- Dependencies:
---   - RowData (utterance, bitmap, rawSvg, structuredSvg, plus the row
---     id and its own aspectRatio)
---   - GlobalConfig (name, credits, license, lang) — surfaces in the
---     page header
---   - LibraryView.sort (the currently active alphabetical / completeness
---     order) — defined alongside libraryViewMode in library-views.allium
-
-------------------------------------------------------------
--- Value Types
-------------------------------------------------------------
-
-value PageSize {
-  letter   -- 8.5 x 11 in (≈ 215.9 x 279.4 mm), portrait
-  -- Other sizes (A4, A3, landscape) are deliberately omitted in v1;
-  -- introducing them is a config decision, not a layout one.
-}
-
-value PdfExportState {
-  idle         -- no export in progress; the menu item is available
-  preparing    -- the export has been triggered; rows are being collated
-  rendering    -- pages are being drawn; progress reflects current cell
-  complete     -- PDF has been generated and the download has fired
-  cancelled    -- user aborted mid-render; no file is downloaded
-  failed       -- an error stopped the export; a log entry explains it
-}
-
-value ArtifactSource {
-  estructurado    -- structuredSvg, rasterised to PNG
-  trazado         -- rawSvg, rasterised to PNG
-  bitmap          -- raster from Producir, used directly
-  none            -- the row has no artifact; row is skipped
-}
+--   - Row (visual-reasoning.allium); library-views.allium for ordering and
+--     artifact priority
+--   - GlobalConfig: name, credits, license, UI language
 
 ------------------------------------------------------------
 -- External Entities
 ------------------------------------------------------------
 
-external Row {
-  -- The pictogram row managed by the main app. PdfExport reads its
-  -- artifacts and utterance; it never mutates the row.
-  id: String
-  utterance: String
-  aspectRatio: String       -- "1:1" | "4:3" | "3:4" | "16:9" | "9:16"
-  bitmap: String?           -- present iff Producir produced a bitmap
-  rawSvg: String?           -- present iff Vectorizar produced a trazado
-  structuredSvg: String?    -- present iff Estructurar produced an estructurado
+-- A pictogram row. The export reads its artifacts and utterance only.
+external entity Row {
+    utterance: String
+    has_valid_artifact: Boolean     -- a non-discarded structured SVG, raw SVG or bitmap
+    artifact_source: ArtifactSource
 }
 
-external GlobalConfig {
-  -- Application-wide configuration. PdfExport reads the fields used in
-  -- the page header; it does not write any field.
-  name: String              -- shown in the page header
-  credits: String?          -- shown in the page header / footer if set
-  license: String           -- short token; shown in the page footer
-  lang: String              -- "es-419" | "en-GB"; selects header copy
-}
-
-external LibraryView {
-  -- The Library page state. PdfExport reads the currently active sort
-  -- and iterates rows in that order. View mode (list vs grid) does
-  -- NOT affect the PDF.
-  sort: String
-}
-
-external LibraryMenu {
-  -- The dropdown that already hosts Import phrases / Import library /
-  -- Export library (JSON) / Download PNGs / Export SVGs / Delete all.
-  -- This spec adds one new item to it.
+-- The open library's configuration, read for page furniture.
+external entity LibraryConfig {
+    name: String
+    credits: String?
+    license: String?
 }
 
 ------------------------------------------------------------
--- Entities
+-- Enumerations
 ------------------------------------------------------------
 
+enum ArtifactSource {
+    estructurado    -- structured SVG, rasterised to PNG
+    | trazado       -- raw SVG, rasterised to PNG
+    | bitmap        -- raster from Producir, embedded as is
+    | none          -- no artifact; the row is skipped
+}
+
+------------------------------------------------------------
+-- Entities and Variants
+------------------------------------------------------------
+
+-- One run of the export. Lives only while in flight; no persistence.
 entity PdfExport {
-  -- One run of the export pipeline. Lives only while the operation is
-  -- in flight; no persistence.
-  state: PdfExportState
-  totalCells: Integer          -- count of rows being exported
-  renderedCells: Integer       -- progress index, 0..totalCells
-  currentUtterance: String?    -- the utterance of the cell being drawn
+    library: LibraryConfig
+    title_override: String?         -- the sequence export passes the sequence name
+    has_badges: Boolean             -- the sequence export passes step numbers
+    total_cells: Integer
+    rendered_cells: Integer
+    total_pages: Integer
+    current_page: Integer
+    current_utterance: String?
+    status: preparing | rendering | complete | cancelled | failed
 
-  states: idle, preparing, rendering, complete, cancelled, failed
-}
-
-entity PdfPage {
-  -- One physical page of the rendered PDF.
-  pageNumber: Integer          -- 1-based
-  rows: List<PdfRow>           -- 0..N rows of cells fitting in the page
-}
-
-entity PdfRow {
-  -- A single row of two adjacent cells on a page.
-  left: PdfCell
-  right: PdfCell?              -- the very last row may have a single cell
-}
-
-entity PdfCell {
-  -- One pictogram with its utterance.
-  row: Row
-  source: ArtifactSource       -- non-none by construction (see invariant)
-  pictogramWidthMm: Number     -- design intent: 70–90 mm
-  -- The cell composes the pictogram on top in its native aspect ratio,
-  -- then the utterance below.
+    transitions status {
+        preparing -> rendering
+        preparing -> cancelled
+        preparing -> failed
+        rendering -> complete
+        rendering -> cancelled
+        rendering -> failed
+        terminal: complete, cancelled, failed
+    }
 }
 
 ------------------------------------------------------------
--- Invariants
+-- Config
 ------------------------------------------------------------
 
-invariant OnlyGeneratedRowsIncluded {
-  -- A row enters the PDF iff at least one of its artifacts exists. Rows
-  -- whose pictogram pipeline has not yet produced anything are silently
-  -- skipped — they would otherwise leave holes in the printed sheet
-  -- and waste paper at workshops.
-  for cell in PdfCell.all:
-    cell.source != none
-}
-
-invariant ArtifactPriorityMatchesGridView {
-  -- Each cell uses the most "downstream" artifact available for the
-  -- row, mirroring DisplayedStagePriority in library-views.allium. This
-  -- keeps the printed sheet visually consistent with the grid the user
-  -- has been editing on screen.
-  for cell in PdfCell.all:
-    cell.source =
-      cell.row.structuredSvg exists ? estructurado :
-      cell.row.rawSvg exists        ? trazado :
-      cell.row.bitmap exists        ? bitmap : none
-}
-
-invariant ArtifactsRasterisedToPng {
-  -- All artifacts, including SVG, are rasterised to PNG before being
-  -- embedded in the PDF. The trade-off is intentional: a single,
-  -- predictable rendering path; smaller and simpler files; no
-  -- dependency on the PDF library's SVG support. Print quality is
-  -- preserved by rasterising at print-grade resolution (≈ 300 dpi at
-  -- the cell's printed size).
-}
-
-invariant PictogramAspectRatioPreserved {
-  -- The pictogram inside the cell is rendered in its own aspectRatio,
-  -- not normalised to a square. The grid on screen uses a square slot
-  -- for visual rhythm; print is destined for cutting, so the printed
-  -- card must match the pictogram's actual shape.
-  for cell in PdfCell.all:
-    cell.pictogram.aspectRatio = cell.row.aspectRatio
-}
-
-invariant CutGuideOnEveryCell {
-  -- Each cell carries a faint grey rule around its pictogram area, so
-  -- the printed sheet can be cut into cards with a paper trimmer. The
-  -- rule is part of the spec because it changes the function of the
-  -- artefact (cutting guide, not decoration). It is not a border on
-  -- the utterance — only on the pictogram frame.
-}
-
-invariant UtteranceNeverTruncated {
-  -- The utterance is the communicative content of the card; truncation
-  -- with an ellipsis would destroy meaning for an AAC user. The
-  -- utterance therefore wraps to as many lines as needed to render in
-  -- full. The cell grows vertically to accommodate it, and so may the
-  -- row that contains it.
-  for cell in PdfCell.all:
-    cell.utterance.rendered = cell.row.utterance
-}
-
-invariant RowHeightsAlignedToMax {
-  -- Within a single PdfRow, the left and right cells share a common
-  -- height equal to the taller of the two. This keeps the printed
-  -- grid visually orderly even though both pictogram aspect ratios
-  -- and utterance lengths vary from cell to cell.
-}
-
-invariant OrderMatchesLibrarySort {
-  -- The export iterates rows in the same order the user sees in the
-  -- Library at the moment the export starts. Sort = alphabetical
-  -- yields an alphabetical sheet; sort = completeness yields a sheet
-  -- ordered by completeness. The PDF is a snapshot of what is on
-  -- screen.
-}
-
-invariant SinglePdfExportAtATime {
-  -- At most one PdfExport is in flight per Library. Re-triggering the
-  -- export while one is rendering is a no-op (the menu item is in its
-  -- disabled state in that window).
-}
-
-invariant CancellationProducesNoFile {
-  -- If the user cancels mid-render, no PDF is downloaded. The export
-  -- transitions to cancelled and the partially-rendered work is
-  -- discarded. Cancellation is a first-class option, not an error.
-}
-
-invariant LayoutFixedAtLetterPortrait {
-  -- v1 ships with a single page size and orientation. Other formats
-  -- are a future extension and would arrive with a pre-export
-  -- selector. They are not silently configurable through query params
-  -- or hidden flags.
-  PageSize = letter
+config {
+    page_width_mm: Decimal = 215.9          -- Letter portrait
+    page_height_mm: Decimal = 279.4
+    margin_mm: Decimal = 15
+    column_gutter_mm: Decimal = 8
+    row_gutter_mm: Decimal = 10
+    columns: Integer = 2
+    target_dpi: Integer = 300
+    cut_guide_stroke_mm: Decimal = 0.2
+    utterance_font_pt: Integer = 13
+    header_font_pt: Integer = 10
+    footer_font_pt: Integer = 9
+    filename_name_max_length: Integer = 30
 }
 
 ------------------------------------------------------------
 -- Rules
 ------------------------------------------------------------
 
--- === Menu item and trigger ===
-
-rule MenuItemRendering {
-  when: the Library dropdown menu is open
-  ensures:
-    a new "Export PDF" item appears immediately after the existing
-    "Export library" item and before the divider that introduces
-    Download PNGs / Export SVGs
-    the item label includes a count when at least one row carries an
-    artifact (e.g. "Export PDF (14)"), mirroring the count pattern
-    used by Download PNGs and Export SVGs
-}
-
-rule MenuItemDisabledWhenNothingToExport {
-  when: the Library dropdown menu is open and no row has any artifact
-  ensures:
-    the "Export PDF" item is disabled (reduced opacity, no pointer
-    cursor), consistent with the disabled state of Download PNGs /
-    Export SVGs in the same conditions
-}
-
-rule MenuItemDisabledWhileExporting {
-  when: a PdfExport is in any non-terminal state (preparing, rendering)
-  ensures:
-    the "Export PDF" item is disabled
-    re-opening the dropdown does not re-trigger the export
-}
-
 rule TriggerExport {
-  when: user clicks the "Export PDF" item and it is enabled
-  ensures:
-    PdfExport.state = preparing
-    the dropdown closes
-    the progress modal opens
+    when: PrintablesRequested(library, eligible_count)
+    requires: eligible_count > 0
+    requires: not exists PdfExport{library: library}
+    ensures: PdfExport.created(
+        library: library,
+        title_override: null,
+        has_badges: false,
+        total_cells: eligible_count,
+        rendered_cells: 0,
+        total_pages: 0,
+        current_page: 0,
+        current_utterance: null,
+        status: preparing
+    )
+
+    @guidance
+        -- The library menu closes and the progress modal opens. The
+        -- sequence printout calls the same engine directly, without the
+        -- modal (sequences.allium ExportSequencePdf).
 }
-
--- === Cell composition ===
-
-rule CellArtifactSelection {
-  when: a PdfCell is being composed for Row r
-  ensures:
-    PdfCell.source = ArtifactPriorityMatchesGridView(r)
-    the chosen artifact is rasterised to PNG at print resolution
-    (target ≈ 300 dpi for the cell's printed size)
-}
-
-rule CellLayout {
-  when: a PdfCell is rendered on a page
-  ensures: vertical composition
-    top: pictogram drawn in its native aspectRatio, with a faint grey
-      rule (the cut guide) around the pictogram area
-    bottom: utterance text, centred horizontally, wrapping to as many
-      lines as needed to fit the full string
-    the pictogram width sits in the 70–90 mm range (design intent),
-    determined by the page size, margins and inter-column gutter
-    when the caller supplies a per-cell badge (e.g. a sequence step number),
-      it is drawn small, on a faint white chip, in the top-left corner of the
-      cell over the pictogram; it does not consume caption space. The library
-      export passes no badge, so its cells are unaffected.
-}
-
-rule CutGuideStyle {
-  when: a PdfCell is rendered
-  ensures:
-    the cut guide is a single hairline rectangle around the pictogram
-    area, in a light grey that prints clearly but recedes visually
-    (suggested stroke ≈ 0.2 mm, suggested colour ≈ 60% grey — these
-    are guidance values, see PdfLayout below for the design rationale)
-    no cut guide is drawn around the utterance
-}
-
-rule UtteranceTypography {
-  when: an utterance is rendered under a pictogram
-  ensures:
-    the text wraps freely; no truncation, no ellipsis
-    the cell height expands to contain the full text
-    typography matches the on-screen PictogramGridCell footer
-    treatment (size, weight, line-height) so the printed cards feel
-    consistent with the app
-}
-
--- === Page composition ===
-
-rule PageLayout {
-  when: a PdfPage is being composed
-  ensures:
-    page size = Letter portrait
-    the printable area is divided into 2 equal columns separated by an
-    inter-column gutter; cells are filled left-to-right then top-to-bottom
-    as many rows fit on the page as the cell heights of that page allow
-    a row is never broken across pages (a cell never starts on one
-    page and ends on the next)
-}
-
-rule RowHeightUnification {
-  when: a PdfRow has two cells
-  ensures:
-    both cells render to the same height = the taller of the two
-    the shorter cell's empty area sits below its utterance (not
-    between pictogram and utterance), so the cut guide remains snug
-    around the pictogram
-}
-
-rule PageOverflowAdvancesPage {
-  when: composing the next PdfRow would exceed the remaining page height
-  ensures:
-    the current PdfPage is closed
-    a new PdfPage starts with this row at its top
-}
-
-rule PageHeader {
-  when: a PdfPage is being composed
-  ensures:
-    the top of every page carries a header strip with:
-      left:  the Library name (GlobalConfig.name), or a caller-supplied title
-             override when present (used by the sequence export to show the
-             sequence name instead — see sequences.allium)
-      right: the page number ("Page N of M") in the active UI language
-    a thin horizontal rule separates the header from the cell grid
-    no metadata is repeated inside the cells
-}
-
-rule PageFooter {
-  when: a PdfPage is being composed
-  ensures:
-    the bottom of every page carries a footer strip with:
-      left:  the credits string (GlobalConfig.credits) if non-empty
-      right: a short license token (GlobalConfig.license)
-    if both are empty, the footer is omitted (no empty strip)
-}
-
--- === Export lifecycle ===
 
 rule PrepareExport {
-  when: PdfExport.state = preparing
-  ensures:
-    rows are collected in LibraryView.sort order
-    rows without any artifact are filtered out (OnlyGeneratedRowsIncluded)
-    PdfExport.totalCells = count of remaining rows
-    PdfExport.renderedCells = 0
-    PdfExport.state -> rendering
+    when: export: PdfExport.created
+    requires: export.status = preparing
+    ensures: export.status = rendering
+
+    @guidance
+        -- Rows without a valid artifact are dropped (OnlyGeneratedRows).
+        -- Cell heights are measured first (utterance wrap depends on the
+        -- embedded font), rows of two cells are paginated so a row never
+        -- splits across pages, and total_pages is known before drawing.
+        -- Rows are taken in the order passed by the caller; for the library
+        -- that is the stored row order (see open questions).
 }
 
-rule RenderCells {
-  when: PdfExport.state = rendering
-  ensures:
-    cells are drawn in order; for each cell:
-      PdfExport.currentUtterance = row.utterance
-      the cell is composed (see CellLayout / CellArtifactSelection)
-      PdfExport.renderedCells += 1
-    the progress modal's bar and current-utterance label update
-    accordingly
-    when renderedCells = totalCells, PdfExport.state -> complete
+rule RenderCell {
+    when: CellRendered(export, utterance)
+    requires: export.status = rendering
+    ensures: export.rendered_cells = export.rendered_cells + 1
+    ensures: export.current_utterance = utterance
+
+    @guidance
+        -- See PdfLayout. Each cell uses the most downstream valid artifact;
+        -- SVGs are rasterised on white at target_dpi for the printed width,
+        -- bitmaps are embedded directly.
 }
 
 rule CompleteExport {
-  when: PdfExport.state -> complete
-  ensures:
-    the PDF binary is finalised
-    a download is triggered with filename
-      "{sanitize(GlobalConfig.name)}_pictos_{YYYY-MM-DD}.pdf"
-    a success entry is added to the log
-      ("PDF exported (N pictograms, M pages)")
-    the progress modal closes
-    PdfExport.state -> idle
+    when: export: PdfExport.rendered_cells
+    requires: export.status = rendering
+    requires: export.rendered_cells = export.total_cells
+    ensures: export.status = complete
+    ensures: PdfDownloaded(
+        export: export,
+        filename: sanitize(export.library.name, config.filename_name_max_length) + "_pictos_" + date_stamp(now) + ".pdf"
+    )
+
+    @guidance
+        -- "pictonet" when the sanitised name is empty. Log: "PDF exportado
+        -- (N pictogramas, M páginas)". The modal closes.
 }
 
 rule CancelExport {
-  when: user clicks the cancel control in the progress modal AND
-        PdfExport.state in (preparing, rendering)
-  ensures:
-    PdfExport.state -> cancelled
-    no file is downloaded
-    a log entry records the cancellation
-    the progress modal closes
-    PdfExport.state -> idle
+    when: CancelPdfExportRequested(export)
+    requires: export.status in {preparing, rendering}
+    ensures: export.status = cancelled
+
+    @guidance
+        -- No file is downloaded; the partial work is discarded; an info
+        -- entry is logged; the modal closes. Cancellation is a first-class
+        -- outcome, not an error.
 }
 
 rule FailExport {
-  when: an unrecoverable error occurs during rendering
-  ensures:
-    PdfExport.state -> failed
-    no file is downloaded
-    a log entry records the error with enough detail to diagnose
-    the progress modal closes
-    PdfExport.state -> idle
+    when: PdfExportErrored(export, error)
+    requires: export.status in {preparing, rendering}
+    ensures: export.status = failed
+
+    @guidance
+        -- No file; an error entry with the message is logged; the modal
+        -- closes.
+}
+
+------------------------------------------------------------
+-- Invariants
+------------------------------------------------------------
+
+invariant SinglePdfExportAtATime {
+    for a in PdfExports:
+        for b in PdfExports:
+            (a != b and a.library = b.library)
+                implies (a.status in {complete, cancelled, failed} or b.status in {complete, cancelled, failed})
+}
+
+invariant ProgressIsBounded {
+    for export in PdfExports:
+        export.rendered_cells >= 0 and export.rendered_cells <= export.total_cells
 }
 
 ------------------------------------------------------------
 -- Surfaces
 ------------------------------------------------------------
 
-surface LibraryMenuPdfItem {
-  -- The new "Export PDF" entry in the Library dropdown.
+surface LibraryMenuPrintables {
+    facing user: LibraryConfig
+    context library: LibraryConfig
 
-  @guidance "placement"
-    -- Immediately after the existing "Export library" (JSON) item,
-    -- and before the divider that introduces the Download PNGs /
-    -- Export SVGs block. The grouping reflects intent: "Export
-    -- library" + "Export PDF" are both whole-library deliverables;
-    -- PNGs and SVGs are file-bundle utilities.
+    provides:
+        PrintablesRequested(library, eligible_count)
 
-  @guidance "icon"
-    -- A document/page icon (e.g. lucide FileText or FileDown variant
-    -- that doesn't clash with the existing Export SVGs FileDown).
-    -- Pick something visually distinct from the JSON download above
-    -- and the SVG download below.
-
-  @guidance "label and count"
-    -- Label follows the existing pattern: "Export PDF" with the
-    -- count of eligible rows in parentheses, e.g. "Export PDF (14)".
-    -- The count is the number of rows with at least one artifact
-    -- (i.e. the number of cells that would be rendered).
-
-  @guidance "disabled states"
-    -- Two disabled states share the same visual treatment (40%
-    -- opacity, not-allowed cursor):
-    --   (1) no row has any artifact
-    --   (2) a PdfExport is already in flight
-
-  @guidance "i18n"
-    -- Introduce new translation keys; do not repurpose
-    -- actions.exportLibrary or actions.exportSvgs. Suggested:
-    --   actions.exportPdf -> "Export PDF" / "Exportar PDF"
-    --   actions.exportPdfWithCount with {count} interpolation
-
-  exposes:
-    PdfExport trigger
+    @guidance
+        -- "Descargar imprimibles" (lucide FileText) in the library menu,
+        -- after Exportar librería (.json) and Exportar frases (.txt) and
+        -- before "Descargar pictogramas (N)". No count in the label.
+        -- Disabled (40% opacity, not-allowed cursor) when no row has a
+        -- valid artifact or an export is in flight.
 }
 
 surface PdfExportProgressModal {
-  -- A blocking modal shown while a PdfExport is preparing / rendering.
+    facing user: LibraryConfig
+    context export: PdfExport
 
-  @guidance "blocking nature"
-    -- The modal blocks the Library while running so that the user
-    -- doesn't edit rows mid-export. Editing during render would race
-    -- against the snapshot the export captured at PrepareExport.
+    exposes:
+        export.status
+        export.total_cells
+        export.rendered_cells
+        export.current_page
+        export.total_pages
+        export.current_utterance
 
-  @guidance "content"
-    -- Title:    localised "Generating PDF…"
-    -- Body:     a progress bar reflecting renderedCells / totalCells
-    -- Caption:  "Page X of Y · Pictogram N of M: {currentUtterance}"
-    -- Footer:   a Cancel button (always enabled while non-terminal)
+    provides:
+        CancelPdfExportRequested(export)
 
-  @guidance "no auto-dismiss timing"
-    -- The modal closes only on complete, cancelled or failed states.
-    -- It does not time out on its own.
+    @guarantee BlocksTheLibrary
+        -- The modal blocks the Library while it runs, so the snapshot taken
+        -- at the start is not edited mid-export. It closes only on
+        -- complete, cancelled or failed; it never times out.
 
-  @guidance "i18n"
-    -- New keys, suggested:
-    --   pdfExport.title          -> "Generating PDF…" / "Generando PDF…"
-    --   pdfExport.progress       -> "Page {page} of {total}"
-    --   pdfExport.currentItem    -> "Pictogram {n} of {total}: {utterance}"
-    --   pdfExport.cancel         -> "Cancel" / "Cancelar"
-    --   pdfExport.successLog     -> "PDF exported ({count} pictograms, {pages} pages)"
-    --   pdfExport.cancelledLog   -> "PDF export cancelled"
-
-  exposes:
-    PdfExport.state, PdfExport.totalCells, PdfExport.renderedCells,
-    PdfExport.currentUtterance
-    cancel action
+    @guidance
+        -- Title "Generando PDF…", progress bar rendered / total, caption
+        -- "Página X de Y" (or "preparing") and "Pictograma N de M:
+        -- {utterance}", and a Cancel button.
 }
 
 surface PdfLayout {
-  -- Cross-cutting design guidance for the printed sheet itself. Not a
-  -- UI surface in the app; the guidance below shapes the PDF.
+    facing reader: LibraryConfig
+    context export: PdfExport
 
-  @guidance "page metrics"
-    -- Letter portrait: 215.9 × 279.4 mm. Outer margin ≈ 15 mm on all
-    -- sides. Inter-column gutter ≈ 8 mm. Inter-row gutter ≈ 10 mm.
-    -- These yield two columns of ≈ 89 mm, which sits in the agreed
-    -- 70–90 mm pictogram-width band.
+    @guarantee OnlyGeneratedRows
+        -- A row enters the PDF iff it has a valid (non-discarded)
+        -- artifact; empty rows would leave holes and waste paper.
 
-  @guidance "cut guide"
-    -- The light grey rule is functional: workshop participants will
-    -- cut the sheet into individual cards. Stroke ≈ 0.2 mm, colour ≈
-    -- 60% grey. It frames the pictogram only, not the utterance.
-    -- It must print reliably on common office printers — avoid
-    -- screening or dashed strokes that may render inconsistently.
+    @guarantee ArtifactPriorityMatchesGridView
+        -- Each cell uses the most downstream artifact, as the grid does:
+        -- estructurado > trazado > bitmap.
 
-  @guidance "aspect ratio cells"
-    -- The pictogram fills its allotted column width; the cell's
-    -- pictogram height = columnWidth / aspectRatio. The cut guide
-    -- traces the actual pictogram rectangle, not a square. This is
-    -- the whole point of the "respect native aspect" choice — the
-    -- card you cut out matches the shape you generated.
+    @guarantee UtteranceNeverTruncated
+        -- The utterance wraps to as many lines as needed; the cell grows,
+        -- and the two cells of a row share the taller height. The shorter
+        -- cell's spare space sits below its text.
 
-  @guidance "rasterisation"
-    -- Both SVG (rawSvg, structuredSvg) and PNG (bitmap) sources are
-    -- composited into the PDF as PNG raster at print-grade DPI for
-    -- the target cell size. Rasterising at the actual print width
-    -- (not the source width) keeps file size bounded while
-    -- preserving print quality at 1:1.
+    @guarantee CutGuideOnEveryCell
+        -- A single hairline rectangle (cut_guide_stroke_mm, about 60% grey)
+        -- frames each whole cell, pictogram and utterance together, so the
+        -- sheet can be cut into cards. (Changed: it used to frame the
+        -- pictogram only.)
 
-  @guidance "typography"
-    -- The utterance uses the same family as the app UI for visual
-    -- continuity with the on-screen grid. Size sits around 10–11 pt,
-    -- line-height comfortable, alignment centred. The font must
-    -- carry the Latin extended set (Spanish/English diacritics);
-    -- if a custom font is embedded, embed only its subset.
+    @guarantee FixedLetterPortrait
+        -- One page size and orientation; no hidden switches.
 
-  @guidance "header/footer typography"
-    -- Header and footer use a smaller, lighter weight than the
-    -- utterance so the page furniture recedes. Suggested 8–9 pt,
-    -- regular, 50% grey.
-
-  exposes:
-    -- (No runtime exposure — this is a design-document surface.)
+    @guidance
+        -- Page: Letter portrait, margin_mm on all sides, two columns of
+        -- about 89 mm with column_gutter_mm between, row_gutter_mm between
+        -- rows. Header on every page: the library name, or the title
+        -- override, on the left and "Página N de M" on the right, in
+        -- capitals, header_font_pt, over a thin rule. Footer: credits left,
+        -- license right, footer_font_pt, capitals; omitted when both are
+        -- empty. Pictogram slot: column width minus padding, with the same
+        -- height for every cell, from the library's legacy aspect ratio
+        -- (1:1 in practice); per-row native aspect ratio was never built.
+        -- Utterance: Lexend (embedded) at utterance_font_pt, line height
+        -- 1.25, centred. Badge (sequence export only): small grey number on
+        -- a faint white chip, top-left over the pictogram, outside the
+        -- caption space.
 }
 
 ------------------------------------------------------------
 -- Open Questions
 ------------------------------------------------------------
 
--- Resolved: Letter portrait fixed for v1; A4 / landscape / configurable
---   selector deferred.
--- Resolved: 2 columns per page, ~7–9 cm pictogram width band.
--- Resolved: artifact priority mirrors grid view (estructurado >
---   trazado > bitmap); all rasterised to PNG.
--- Resolved: only rows with at least one artifact are included.
--- Resolved: no cover page; each page carries its own header (and an
---   optional footer with credits / license).
--- Resolved: order mirrors the Library's current sort.
--- Resolved: menu item sits immediately after Export library (JSON),
---   before the PNG / SVG group.
--- Resolved: blocking progress modal with bar, current utterance, and
---   a cancel button.
--- Resolved: pictograms respect native aspectRatio; faint grey rule
---   acts as a cut guide; utterance is never truncated.
+-- Resolved: Letter portrait, 2 columns, header per page, optional footer
+-- Resolved: artifact priority mirrors the grid; SVG rasterised, bitmap embedded as is
+-- Resolved: blocking progress modal with cancel
+-- Resolved: font is Lexend, embedded
+-- Resolved: menu label "Descargar imprimibles", without count
+-- Superseded: cut guide around the pictogram only
+-- Superseded: pictogram drawn in each row's native aspect ratio (rows carry none)
 
--- Open: Should the modal expose an estimated time remaining, or only
---   the count-based progress? An ETA needs rendering-rate sampling
---   and may be misleading on small libraries.
+open question "Order: the spec says the sheet follows the on-screen order (alphabetical), but the library export passes rows in stored order. Pass the displayed order?"
 
--- Open: Embedding a custom font is heavier and more deterministic;
---   using a PDF standard font (Helvetica) is lighter but limits the
---   typographic match to the app. Pick one explicitly during
---   implementation.
+open question "Non-square bitmaps are drawn into the square slot without letterboxing and would be stretched. Fit them instead?"
 
--- Open: Accessibility metadata of the resulting PDF. Tagged PDF
---   (with /Alt text on each pictogram drawn from the utterance) would
---   make the export accessible to screen readers. Worth a follow-up
---   spec for v2.
+open question "Tagged, accessible PDF (alt text from the utterance) for a v2."
 
--- Open: Print marks for production runs (bleed, registration, crop
---   marks). Out of scope here, but a printable AAC sheet is exactly
---   the kind of artefact that may eventually need them.
-
--- Open: Behaviour when the Library changes while the export modal is
---   blocking. Today the modal blocks the Library, so the snapshot
---   captured at PrepareExport is stable. If the modal ever becomes
---   non-blocking, this needs an explicit policy (race detection?
---   re-snapshot?).
+open question "Estimated time remaining in the modal, or count-based progress only?"

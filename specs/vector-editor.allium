@@ -8,6 +8,13 @@
 --   explicit tool state machine, non-destructive manipulation that bakes
 --   geometry only at commit, declarative tool overlays, and a single
 --   commit/history path.
+-- Built status (2026-11-08): the selection model, tool state, non-destructive
+--   gestures, single geometry kernel, single commit path with snapshot
+--   history, visible-geometry hit testing, the semantic guard and the
+--   collapsible panels are built. Not built: the live in-memory tree as the
+--   mutation target (the committed SVG string is still the model; see
+--   LiveModelSource), declarative overlay descriptors, and Escape cancelling
+--   an in-progress gesture.
 -- Includes:
 --   - EditorDocument: the live SVG tree as the only mutation target; the SVG
 --     string is a load/serialize/persist boundary, derived at commit.
@@ -84,31 +91,29 @@ contract LiveModelSource {
     load: (svg: String) -> EditorDocument
     serialize: (document: EditorDocument) -> String
 
-    @invariant LiveTreeIsTheSourceOfTruth
-        -- During an editing session the live in-memory SVG tree is the single
-        -- source of truth. Every selection, manipulation and style edit targets
-        -- the live model. The SVG string is never the mutation target.
+    @invariant CommittedDocumentIsTheSourceOfTruth
+        -- During an editing session the last committed SVG document is the
+        -- single source of truth. Every selection, manipulation and style edit
+        -- reads that document and commits a new one; the rendered canvas is a
+        -- projection of it, and gestures preview only on the rendered node.
+        -- A serialized string that is never committed has no authority and
+        -- is discarded.
 
-    @invariant StringIsBoundaryOnly
-        -- The SVG string exists only at three boundaries: load (parse once into
-        -- the live tree), serialize (derive at commit), and persist. No action
-        -- re-parses the string to read current state and no action mutates the
-        -- string in place. This forbids the old model where the string was the
-        -- source of truth and every action re-parsed it.
-
-    @invariant SerializeIsDerivation
-        -- serialize is a pure projection of the live tree at a commit point. A
-        -- serialized string that is never committed has no authority and is
-        -- discarded.
+    @invariant LiveTreeIsDeferred
+        -- Target design, not built: a live in-memory tree as the only mutation
+        -- target, with the string only at load, commit and persist, so no
+        -- action re-parses the string. Today every action parses the committed
+        -- string, edits a copy and commits the re-serialized result.
 }
 
 contract UnifiedSelectionModel {
     primary_of: (selection: Selection) -> DocumentElement
 
     @invariant OneSelectionSet
-        -- Selection is exactly one ordered set of element ids. There is no
-        -- separate stored single-id field. This replaces the old pair of
-        -- selectedElementId plus selectedElementIds reconciled by hand.
+        -- Selection is exactly one ordered set of element ids. The single-id
+        -- field still stored next to it is written only together with the set
+        -- (as its last member), never reconciled by hand, so the two cannot
+        -- diverge.
 
     @invariant PrimaryIsDerivedNotStored
         -- primary is derived from the set (the most recently added member),
@@ -168,6 +173,11 @@ contract ToolStateMachine {
     @invariant NoToolSwitchMidGesture
         -- The tool cannot change while a gesture is previewing. The in-progress
         -- gesture must first commit or cancel.
+
+    @invariant NodeEditingIsolatesGeometryOnly
+        -- While a path is in node editing, every other shape is dimmed; groups
+        -- themselves are never dimmed, so the edited shape inside a group
+        -- stays at full strength. Escape leaves node editing.
 }
 
 contract NonDestructiveManipulation {
@@ -198,7 +208,9 @@ contract NonDestructiveManipulation {
     @invariant EscapeRestoresPrePressState
         -- Escape cancels the in-progress gesture and the art returns exactly to
         -- its pre-press state. Because nothing was baked, cancellation discards
-        -- the transform and touches no geometry.
+        -- the transform and touches no geometry. Not built: Escape today exits
+        -- node editing or clears the selection; a gesture whose commit does not
+        -- land is reverted (WhatYouSeeIsWhatIsSaved).
 
     @invariant ModifiersAreGestureParameters
         -- Shift constrains scale to proportional and rotation to 45-degree
@@ -210,13 +222,14 @@ contract DeclarativeOverlayLayer {
     overlays_for: (session: EditorSession) -> Set<Overlay>
 
     @invariant OverlaysInDocumentSpace
-        -- Tools output overlay descriptors (Marquee, BBoxHandle, Anchor,
-        -- Handle, Label) in document coordinate space. Mapping to screen space
-        -- is the view's concern.
+        -- Target design, not built: tools output overlay descriptors
+        -- (Marquee, BBoxHandle, Anchor, Handle, Label) in document coordinate
+        -- space and the view maps them to screen space. Today the bounding box
+        -- and the node editor render their own overlays.
 
     @invariant ViewRendersOnly
-        -- The view renders the descriptors and does nothing else with them. It
-        -- reads no geometry back out of the rendered overlays.
+        -- Target design, not built: the view renders the descriptors and does
+        -- nothing else with them, reading no geometry back out of them.
 
     @invariant OverlayLayerNeverBakes
         -- The overlay layer performs no geometry baking. Overlays are a
@@ -262,12 +275,13 @@ contract StructuredGeometryBoundary {
         -- every commit is compared with the document before it. An edit that
         -- adds a binding violation (a bound group removed, renamed or left
         -- without geometry, its semantic attributes changed, or geometry left
-        -- outside every bound group) is refused before it reaches the
-        -- document or the history, and the editor says which group it would
-        -- break. Edits that keep or reduce violations apply, so geometry may
-        -- move between bound groups and a draft's unclassified geometry may
-        -- be moved into a group. Loading, undo and redo are not refused.
-        -- Documents without bindings are not guarded.
+        -- outside every bound group, or the binding metadata removed) is
+        -- refused before it reaches the document or the history, and the
+        -- editor says which group it would break. Edits that keep or reduce
+        -- violations apply, so geometry may move between bound groups.
+        -- Loading, undo and redo are not refused. Documents without bindings
+        -- (raw traces, and drafts, whose metadata carries no bindings) are
+        -- not guarded, so a draft's unclassified geometry can be moved freely.
 
     @invariant WhatYouSeeIsWhatIsSaved
         -- The canvas never shows an edit the document does not hold: a
@@ -275,6 +289,10 @@ contract StructuredGeometryBoundary {
         -- writes the live document. The editor closes only after a save that
         -- landed; a failed save keeps the editor open with the edit and a
         -- visible reason, including when the edit was kept as a draft.
+        -- Saving bakes any remaining transform into geometry first. Saving a
+        -- structured SVG creates a manual_edit revision with its parent hash
+        -- through the final validation boundary; saving a draft with no
+        -- remaining issue certifies it (svg-structuring.allium).
         -- Rebuilding the style block keeps per-shape colour rules and the
         -- focus style; only library class rules are regenerated.
 }
@@ -284,9 +302,13 @@ contract TwoLevelStyleModel {
     uncite_class: (element: DocumentElement, class_name: String) -> DocumentElement
 
     @invariant ZeroInlinePresentationAttributes
-        -- No element carries fill, stroke, stroke-width, opacity or style as an
-        -- inline attribute. All presentation lives in the document's <style>
-        -- block (docs/CSS_STYLING_ARCHITECTURE.md).
+        -- In a structured document no element carries fill, stroke,
+        -- stroke-width, opacity or style as an inline attribute; presentation
+        -- lives in the document's <style> block
+        -- (docs/CSS_STYLING_ARCHITECTURE.md). Exceptions: a raw trace keeps
+        -- its inline fills and gets no library styles, and boolean union or
+        -- subtract results carry an inline even-odd fill rule
+        -- (svg-boolean-operations.allium).
 
     @invariant TwoLevels
         -- Level 1 is library rules (pure-class selectors, garbage collected to
@@ -563,8 +585,10 @@ rule CommitGesture {
     @guidance
         -- Releasing bakes the live transform into clean geometry through the
         -- single kernel (bake_transform), keeping primitives as primitives
-        -- where possible, then routes through the one commit path. It must not
-        -- commit by re-running the document load pipeline.
+        -- where possible (a group distributes it into its children), then
+        -- routes through the one commit path. It must not commit by re-running
+        -- the document load pipeline. A press that never passes the drag
+        -- threshold is a click and records no history step.
 }
 
 rule CancelGesture {
@@ -764,5 +788,7 @@ open question "primary resolution: is primary the first-selected or the most-rec
 
 
 open question "Panel-toggle rules: TreePanelToggled, InspectorToggled, and the inspector's cite/uncite/override/restore triggers are exposed on surfaces but not yet given witnessing rules here; the two-level CSS behaviour is specified in docs/CSS_STYLING_ARCHITECTURE.md and may stay there or be lifted into this spec."
+
+open question "Should the live in-memory tree (LiveTreeIsDeferred) and declarative overlay descriptors still be built, or should this spec adopt the committed-string model as final?"
 
 open question "Node-tool gesture shape: anchor and handle editing is described as reusing begin/preview/commit over individual path points. Should the node tool have its own gesture entity distinct from the select tool's bbox gesture, or share Gesture with an added target field?"

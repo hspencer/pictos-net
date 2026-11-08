@@ -1,5 +1,14 @@
 -- allium: 3
 -- batch-generation.allium
+--
+-- Two batch paths. The active one is the pipeline batch ("Generar en lote"):
+-- api-pipeline-batch-create / -background / -poll run Phases 1 -> 2 -> 3 per
+-- row on the server. The Vertex batch (api-batch-create / -status /
+-- -collect-background, Phase 3 only) is DORMANT: every model with Vertex
+-- batch capability is retired, so the catalog admits none and the endpoints
+-- refuse every submission. Its rules are kept for the day a capable model is
+-- promoted. Reference pictograms and sequence anchors were designed for the
+-- Vertex batch (plan B4) and never built.
 
 use "./generation-config.allium" as generation
 use "./usage-enforcement.allium" as usage
@@ -71,11 +80,13 @@ contract VertexBatchBoundary {
     poll: (job: BatchJob) -> VertexState
     collect: (job: BatchJob) -> List<BatchOutcome>
 
-    @invariant GeminiImageOnly
-        -- Vertex batch accepts Gemini 2.5 Flash Image and Gemini 3.1 Flash
-        -- Image only. OpenAI, Recraft, and Gemini 3 Pro are excluded. When
-        -- OpenAI is selected, the deferred Vertex action is unavailable and
-        -- direct submission is rejected; no Gemini replacement is selected.
+    @invariant CatalogAdmittedGeminiImageOnly
+        -- Vertex batch admits only models the catalog marks batch-capable
+        -- whose status is workshop or active. Today that set is empty (Gemini
+        -- 2.5 Flash Image and Gemini 3.1 Flash Image, the only capable models,
+        -- are retired), so every submission is rejected and the deferred
+        -- action is unavailable. OpenAI and Recraft are never batch-capable;
+        -- no replacement model is selected.
 
     @invariant ContentBasedCorrelation
         -- Each exact composed prompt is hashed in the manifest because Vertex
@@ -103,6 +114,8 @@ contract VertexBatchBoundary {
         -- collection on a best-effort basis with storage lifecycle as fallback.
 }
 
+-- NEVER BUILT. Designed for the Vertex batch (plan B4); no endpoint accepts a
+-- sequence, anchors or reference row, and no UI selects a reference.
 contract ReferencePictogramBoundary {
     resolve_reference: (sequence: Sequence, library_config: LibraryConfig) -> Row
 
@@ -127,13 +140,31 @@ contract PipelineBatchBoundary {
 
     @invariant SequentialRows
         -- Rows run in position order so a provider-quota circuit can stop before
-        -- any provider call is attempted for remaining rows.
+        -- any provider call is attempted for remaining rows. One row's
+        -- ordinary failure is recorded and the next row runs.
+
+    @invariant AdmissionBeforeCharge
+        -- Creation verifies the caller's Identity, accepts 1 to
+        -- config.max_rows_per_pipeline_batch rows each with an id and a
+        -- nonempty utterance, resolves every phase's model (unset fields
+        -- follow the catalog default) and refuses the job unless each model
+        -- may run its phase, a supplied Recraft style id is well formed (and
+        -- present when the model requires one), OpenAI is configured when any
+        -- phase uses it and the OpenAI quality is valid. Only then is one unit
+        -- per row charged, a single-use authorization deposited and the
+        -- background worker started. A worker that cannot be started returns
+        -- the whole charge.
+
+    @invariant EveryUtteranceRowIsEligible
+        -- The client submits the first config.max_rows_per_pipeline_batch
+        -- rows that have an utterance and are not processing, including rows
+        -- already completed; each runs again from Phase 1.
 
     @invariant CoherentPhase3Snapshot
         -- Phase 3 consumes one atomic snapshot of the current row utterance,
         -- returned NLU, returned elements, and returned prompt.
-        -- GPT Image 2 uses the same complete textual composition as individual
-        -- generation. The submitted model and effective quality are frozen
+        -- OpenAI and Gemini image models use the same complete textual
+        -- composition as individual generation; Recraft uses its own builder. The submitted model and effective quality are frozen
         -- for the job and persisted with every successful result.
 
     @invariant ProviderQuotaCircuitBreaker
@@ -150,13 +181,25 @@ contract PipelineBatchBoundary {
     @invariant ScopedExactlyOnceRefund
         -- The current row's precharged generation unit and all deferred rows
         -- are refunded once, even if text failed before image generation. Rows
-        -- completed before the circuit remain charged. Other failed OpenAI or
-        -- Recraft Phase 3 rows are refunded individually; their row keys must
-        -- neither duplicate nor suppress a later circuit refund.
+        -- completed before the circuit remain charged. Other failed rows are
+        -- refunded individually when no image was requested (Phase 1 or 2
+        -- failed) or the image model is OpenAI or Recraft; their row keys
+        -- must neither duplicate nor suppress a later circuit refund.
 
     @invariant SuccessfulApplicationCompletesUpstreamStatuses
-        -- Applying a completed result writes NLU, elements, prompt, and image to
-        -- the library row and marks Phase 1, Phase 2, and Phase 3 completed.
+        -- Applying a completed result writes NLU, elements, prompt, phase
+        -- executions and image (bitmap, or native SVG for Recraft vector
+        -- models) to the library row, records the job's model and quality and
+        -- marks Phase 1, Phase 2, and Phase 3 completed.
+
+    @invariant FailedResultsKeepAcceptedPhases
+        -- A failed row keeps whatever phases were accepted: no NLU marks Phase
+        -- 1 as error; NLU without composition marks Phase 2 as error; with
+        -- both, Phase 3 is the error. A deferred row returns to idle.
+
+    @invariant SingleUseRowResults
+        -- Each row result is read once by polling and then deleted; the job
+        -- state per library stays until the next job replaces it.
 }
 
 ------------------------------------------------------------
@@ -223,6 +266,7 @@ entity PipelineBatchRow {
     elements: List<visual/VisualElement>?
     prompt: String?
     bitmap: String?
+    raw_svg: String?
     phase1_status: visual/StepStatus
     phase2_status: visual/StepStatus
     phase3_status: visual/StepStatus
@@ -239,43 +283,15 @@ config {
     pipeline_timeout: Duration = 15.minutes
     poll_interval: Duration = 60.seconds
     -- Derived from the model catalog: models with Vertex batch capability
-    -- whose status is workshop or active. Gemini 3.1 Flash Image is
-    -- batch-capable but experimental (no image in 9 of 38 calls, 2026-10-20),
-    -- so it is not admitted until it is promoted.
-    vertex_batch_models: Set<generation/GenerationModel> = {
-        `gemini-2.5-flash-image`
-    }
+    -- whose status is workshop or active. Empty since 2026-11-05: both
+    -- batch-capable models (Gemini 2.5 Flash Image, Gemini 3.1 Flash Image)
+    -- are retired, so the Vertex batch is dormant.
+    vertex_batch_models: Set<generation/GenerationModel> = {}
 }
 
 ------------------------------------------------------------
 -- Rules
 ------------------------------------------------------------
-
-rule SelectSequenceReference {
-    when: SequenceReferenceSelected(sequence, row)
-    requires: row.bitmap_status = completed
-    requires: row.bitmap != null or row.raw_svg != null
-    ensures: sequence.reference_row = row
-}
-
-rule SelectLibraryReference {
-    when: LibraryReferenceSelected(library_config, row)
-    requires: row.bitmap_status = completed
-    requires: row.bitmap != null or row.raw_svg != null
-    ensures: library_config.reference_row = row
-}
-
-rule ClearRemovedSequenceReference {
-    when: ReferencedRowRemoved(sequence, row)
-    requires: sequence.reference_row = row
-    ensures: sequence.reference_row = null
-}
-
-rule ClearRemovedLibraryReference {
-    when: ReferencedLibraryRowRemoved(library_config, row)
-    requires: library_config.reference_row = row
-    ensures: library_config.reference_row = null
-}
 
 rule SubmitVertexBatch {
     when: VertexBatchSubmitted(
@@ -303,52 +319,6 @@ rule SubmitVertexBatch {
         model: model,
         sequence: null,
         anchors: null,
-        reference_row: reference_row,
-        reference_copy_uri: reference_copy_uri,
-        vertex_job_name: vertex_job_name,
-        last_vertex_state: pending,
-        state: submitted,
-        items: manifest,
-        row_count: rows.count,
-        succeeded_count: 0,
-        failed_count: 0,
-        created_at: now,
-        collected_at: null
-    )
-    ensures:
-        for row in rows:
-            row.bitmap_status = processing
-}
-
-rule SubmitSequenceVertexBatch {
-    when: SequenceVertexBatchSubmitted(
-        library,
-        owner,
-        reservation,
-        sequence,
-        rows,
-        model,
-        anchors,
-        manifest,
-        vertex_job_name,
-        reference_row,
-        reference_copy_uri
-    )
-    requires: model in config.vertex_batch_models
-    requires: rows.count >= 1
-    requires: rows.count <= config.max_rows_per_vertex_batch
-    requires: rows.all(r => r.prompt != null)
-    requires: manifest.count = rows.count
-    requires: reservation.reserved_units = rows.count
-    requires: anchors != ""
-    ensures: BatchJob.created(
-        id: vertex_job_name,
-        library: library,
-        owner: owner,
-        reservation: reservation,
-        model: model,
-        sequence: sequence,
-        anchors: anchors,
         reference_row: reference_row,
         reference_copy_uri: reference_copy_uri,
         vertex_job_name: vertex_job_name,
@@ -434,6 +404,7 @@ rule SubmitPipelineBatch {
     requires: rows.count >= 1
     requires: rows.count <= config.max_rows_per_pipeline_batch
     requires: rows.all(r => r.utterance != "")
+    requires: phases_admitted(pipeline_config)
     requires: reservation.reserved_units = rows.count
     ensures:
         let job = PipelineBatchJob.created(
@@ -464,6 +435,7 @@ rule SubmitPipelineBatch {
                 elements: null,
                 prompt: null,
                 bitmap: null,
+                raw_svg: null,
                 phase1_status: idle,
                 phase2_status: idle,
                 phase3_status: idle,
@@ -504,7 +476,7 @@ rule CompletePipelinePhase2 {
 }
 
 rule CompletePipelinePhase3 {
-    when: PipelinePhase3Succeeded(row, bitmap)
+    when: PipelinePhase3Succeeded(row, bitmap, raw_svg)
     requires: row.job.state = running
     requires: row.state = processing
     requires: row.phase1_status = completed
@@ -513,7 +485,9 @@ rule CompletePipelinePhase3 {
     requires: row.nlu != null
     requires: row.elements != null
     requires: row.prompt != null
+    requires: bitmap != null or raw_svg != null
     ensures: row.bitmap = bitmap
+    ensures: row.raw_svg = raw_svg
     ensures: row.phase3_status = completed
     ensures: row.state = completed
 }
@@ -526,6 +500,11 @@ rule FailPipelinePhase1 {
     ensures: row.phase1_status = error
     ensures: row.state = error
     ensures: row.error_message = error_message
+    ensures: row.job.refunded_generation_units = row.job.refunded_generation_units + usage/config.image_generation_units
+    ensures: usage/PipelineRowFailed(
+        reservation: row.job.reservation,
+        row_id: row.source_row.id
+    )
 }
 
 rule FailPipelinePhase2 {
@@ -536,6 +515,11 @@ rule FailPipelinePhase2 {
     ensures: row.phase2_status = error
     ensures: row.state = error
     ensures: row.error_message = error_message
+    ensures: row.job.refunded_generation_units = row.job.refunded_generation_units + usage/config.image_generation_units
+    ensures: usage/PipelineRowFailed(
+        reservation: row.job.reservation,
+        row_id: row.source_row.id
+    )
 }
 
 rule FailPipelinePhase3 {
@@ -547,18 +531,17 @@ rule FailPipelinePhase3 {
     ensures: row.state = error
     ensures: row.error_message = error_message
     ensures:
-        if row.job.selected_model = `gpt-image-2`:
+        if generation_model_is_openai(row.job.selected_model) or generation_model_is_recraft(row.job.selected_model):
             row.job.refunded_generation_units = row.job.refunded_generation_units + usage/config.image_generation_units
-            usage/OpenAIPipelineRowFailed(
+            usage/PipelineRowFailed(
                 reservation: row.job.reservation,
                 row_id: row.source_row.id
             )
-        if generation_model_is_recraft(row.job.selected_model):
-            row.job.refunded_generation_units = row.job.refunded_generation_units + usage/config.image_generation_units
-            usage/RecraftPipelineRowFailed(
-                reservation: row.job.reservation,
-                row_id: row.source_row.id
-            )
+
+    @guidance
+        -- A failed Gemini Phase 3 row (non-429, including a response without
+        -- an image) is not refunded in the pipeline batch, unlike the
+        -- interactive Gemini worker. Suspected code divergence; see report.
 }
 
 rule OpenProviderQuotaCircuit {
@@ -598,7 +581,22 @@ rule CompletePipelineBatch {
     when: PipelineBatchFinished(job)
     requires: job.state = running
     requires: job.rows.all(r => r.state in {completed, error})
-    ensures: job.state = completed
+    ensures:
+        if job.rows.any(r => r.state = completed):
+            job.state = completed
+        else:
+            job.state = failed
+}
+
+rule RejectUnauthorizedPipelineWorker {
+    when: PipelineWorkerAuthorizationMissing(job)
+    requires: job.state = running
+    ensures: job.state = failed
+
+    @guidance
+        -- An expired or already consumed single-use authorization makes no
+        -- provider call. The units charged at creation are not returned
+        -- today; suspected code divergence (see report).
 }
 
 rule FailPipelineBatchInfrastructure {
@@ -609,6 +607,8 @@ rule FailPipelineBatchInfrastructure {
     @guidance
         -- Preserve pending rows and the running job record so polling can expose
         -- unresolved work after the background-function budget is exceeded.
+        -- Not implemented: nothing sets this flag, so a worker killed at the
+        -- budget leaves the job running and its rows processing.
 }
 
 rule ApplyCompletedPipelineRow {
@@ -620,11 +620,12 @@ rule ApplyCompletedPipelineRow {
     requires: pipeline_row.nlu != null
     requires: pipeline_row.elements != null
     requires: pipeline_row.prompt != null
-    requires: pipeline_row.bitmap != null
+    requires: pipeline_row.bitmap != null or pipeline_row.raw_svg != null
     ensures: pipeline_row.source_row.nlu = pipeline_row.nlu
     ensures: pipeline_row.source_row.elements = pipeline_row.elements
     ensures: pipeline_row.source_row.prompt = pipeline_row.prompt
     ensures: pipeline_row.source_row.bitmap = pipeline_row.bitmap
+    ensures: pipeline_row.source_row.raw_svg = pipeline_row.raw_svg
     ensures: pipeline_row.source_row.generation_model = pipeline_row.job.selected_model
     ensures: pipeline_row.source_row.generation_quality = pipeline_row.job.selected_quality
     ensures: pipeline_row.source_row.nlu_status = completed
@@ -659,8 +660,9 @@ invariant ProviderQuotaBlockedPartition {
             and job.rows.all(r => r.state in {completed, error, provider_error, deferred})
             and job.refunded_generation_units =
                 filter(job.rows, r => r.state in {provider_error, deferred}).count
+                + filter(job.rows, r => r.state = error and r.phase3_status != error).count
                 + filter(job.rows, r => r.state = error and r.phase3_status = error
-                    and (job.selected_model = `gpt-image-2` or generation_model_is_recraft(job.selected_model))).count
+                    and (generation_model_is_openai(job.selected_model) or generation_model_is_recraft(job.selected_model))).count
 }
 
 invariant DeferredRowsOnlyBelongToBlockedJobs {
@@ -708,6 +710,8 @@ surface BatchGeneration {
 -- Open Questions
 ------------------------------------------------------------
 
-open question "Should ordinary failed or expired Vertex output lines be refunded, or remain charged as attempts?"
+open question "Should ordinary failed or expired Vertex output lines be refunded, or remain charged as attempts? (moot while the Vertex batch is dormant)"
 open question "Should identical Vertex prompts be salted to prevent manifest hash collisions?"
+open question "Should the Vertex batch code and the never-built reference/sequence design be removed rather than kept dormant?"
 open question "May a recurring sequence persona resemble the end user, and what consent would that require?"
+open question "Should the pipeline batch skip rows already completed instead of re-running them from Phase 1?"

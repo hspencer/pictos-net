@@ -2,481 +2,327 @@
 -- sequences.allium
 
 -- Scope: Sequences — named, ordered series of pictogram references within a
---   Library — their creation, editing, and two export modes (numbered PDF and
---   pictogram ZIP). Also covers the library-level "pictogramas | secuencias"
---   content toggle, the Library menu additions, and the rename of
---   "Descargar imprimibles" (was "Descargar PDF" in pdf-export.allium).
+--   Library — their creation, editing and two exports (printable PDF and
+--   pictogram ZIP). Also covers the library content modes (pictogramas |
+--   secuencias | tableros), the library-menu entries for them, and the
+--   whole-library "Descargar pictogramas" ZIP.
 -- Includes:
---   - Sequence entity: name, Library membership, ordered Steps
---   - Step entity: utterance, linked Row, state (blank | pending | complete)
---   - SequenceList: the sequence catalogue within a Library
---   - SequenceEditor: the step editor for one Sequence
---   - Autocomplete: matches existing pictogram utterances within the Library
---   - New pictogram generation from a pending Step (adds Row to Library)
---   - Sequence PDF: homologated with the library "imprimibles" export
---     (portrait, 2 columns), titled with the sequence name, each cell
---     badged with its step number
---   - Sequence pictogram ZIP: bitmap + SVG per complete Step, named by utterance
---   - Library content toggle: pictogramas | secuencias (default: pictogramas)
---   - Library menu: "Mis secuencias" entry, "Descargar pictogramas" entry,
---     rename of the whole-library PDF action to "Descargar imprimibles"
---   - "Descargar pictogramas": ZIP of all library pictogram artifacts
+--   - Sequence and Step entities
+--   - SequenceList and SequenceEditor (list and grid layouts)
+--   - Autocomplete against the active Library's rows
+--   - Creating a new Row from a step ("Generar")
+--   - Sequence PDF: reuses the library printable engine with the sequence
+--     name as title and a step-number badge per cell (pdf-export.allium)
+--   - Sequence pictogram ZIP and library pictogram ZIP
 -- Excludes:
---   - The whole-library PDF layout (pdf-export.allium; only its menu label
---     is amended here)
---   - Multi-library management — see library-manager.allium
---   - Pictogram generation pipeline internals — see visual-reasoning.allium
+--   - The printable PDF layout itself — see pdf-export.allium
+--   - Library management — see library-manager.allium
+--   - Pipeline internals — see visual-reasoning.allium
+-- Storage (informative): sequences live in localStorage under
+--   pictonet_lib_{id}_seqs, are saved on every change, and travel with
+--   library download, backup, graph dump and templates (re-keyed to the
+--   receiving library).
 -- Dependencies:
---   - Row / RowData (visual-reasoning.allium, library-views.allium)
---   - Library (library-manager.allium)
---   - LibraryView, LibraryViewMode (library-views.allium)
---   - PdfExport (pdf-export.allium — renamed "Descargar imprimibles")
-
-------------------------------------------------------------
--- Value Types
-------------------------------------------------------------
-
-value StepState {
-  blank      -- no utterance entered; the step is a placeholder
-  pending    -- utterance entered; no Row linked (no autocomplete match,
-             --   not yet generated)
-  complete   -- utterance entered and linked to an existing Row in the Library
-}
-
-value LibraryContentMode {
-  -- The three content views available inside an open Library. Orthogonal to
-  -- LibraryViewMode (list | grid) in library-views.allium, which governs
-  -- how pictograms are laid out and applies only when mode = pictogramas.
-  pictogramas    -- browsing and editing the pictogram collection (default)
-  secuencias     -- browsing and editing the sequence collection
-  tableros       -- browsing and editing the communication board collection
-                 --   (added by boards.allium)
-}
-
-value SequenceExportState {
-  idle        -- no export in progress
-  generating  -- ZIP or PDF is being assembled
-  complete    -- file has been downloaded
-  failed      -- an error stopped the export
-}
+--   - Row (visual-reasoning.allium), Library (library-manager.allium)
 
 ------------------------------------------------------------
 -- External Entities
 ------------------------------------------------------------
 
-external Row {
-  -- A pictogram record in the Library. Sequences reference Rows but do
-  -- not own them. Sequences.allium never mutates a Row directly; it
-  -- delegates mutation to the existing pipeline handlers.
-  id: String
-  utterance: String
-  bitmap: String?
-  rawSvg: String?
-  structuredSvg: String?
+-- A pictogram record. Sequences reference Rows but do not own them.
+external entity Row {
+    library: Library
+    utterance: String
+    bitmap: String?
+    raw_svg: String?
+    structured_svg: String?
+    has_content: Boolean            -- utterance, NLU or any media present
 }
 
-external Library {
-  -- Defined in library-manager.allium. A Sequence belongs to exactly one
-  -- Library and has access only to that Library's Rows.
-  id: LibraryId
-  name: String
-}
-
-external LibraryView {
-  -- Defined in library-views.allium. This spec adds the contentMode field.
-  contentMode: LibraryContentMode    -- new field added by this spec
-}
-
-external GlobalConfig {
-  -- This spec reads GlobalConfig.activeLibraryId to scope autocomplete and
-  -- new-Row generation to the active Library.
+-- Defined in library-manager.allium.
+external entity Library {
+    name: String
 }
 
 ------------------------------------------------------------
--- Entities
+-- Enumerations
 ------------------------------------------------------------
+
+enum StepState {
+    blank           -- no utterance; a placeholder
+    | pending       -- reserved: utterance typed, no Row linked. No current
+                    --   code path produces it (see open questions)
+    | complete      -- linked to a Row of the Library
+}
+
+-- The three content views of an open Library. Orthogonal to the list | grid
+-- view mode of library-views.allium, which applies only to pictogramas.
+enum LibraryContentMode {
+    pictogramas
+    | secuencias
+    | tableros
+}
+
+enum SequenceLayout {
+    list
+    | grid
+}
+
+------------------------------------------------------------
+-- Entities and Variants
+------------------------------------------------------------
+
+-- The content area of the open Library.
+entity LibraryView {
+    library: Library
+    content_mode: LibraryContentMode
+    sequence_layout: SequenceLayout     -- shared by all sequences; not persisted
+}
 
 entity Sequence {
-  -- A named, ordered series of Steps. Belongs to exactly one Library.
-  id: String
-  library: Library
-  name: String              -- user-given; always non-empty
-  steps: [Step]             -- ordered list; position is the index (1-based)
-  createdAt: Timestamp
-  modifiedAt: Timestamp     -- updated on any step change
+    library: Library
+    name: String
+    steps: Step with sequence = this
+    created_at: Timestamp
+    modified_at: Timestamp
 
-  states: exists
+    complete_steps: steps where state = complete
+    can_export: complete_steps.count > 0
 }
 
 entity Step {
-  -- One item in a Sequence. May be blank (placeholder), pending (utterance
-  -- typed, not yet resolved to a Row), or complete (linked to a Row).
-  id: String
-  sequence: Sequence
-  position: Integer         -- 1-based; contiguous, no gaps
-  utterance: String?        -- nil when state = blank
-  row: Row?                 -- non-nil only when state = complete
-  state: StepState
-
-  states: blank, pending, complete
+    sequence: Sequence
+    position: Integer               -- 1-based, contiguous
+    utterance: String?
+    row: Row?
+    state: StepState
 }
 
 ------------------------------------------------------------
--- Invariants
+-- Config
 ------------------------------------------------------------
 
-invariant SequenceBelongsToOneLibrary {
-  -- A Sequence is scoped to exactly one Library. Its Steps reference only
-  -- Rows that belong to that same Library. Cross-library references are
-  -- not possible.
-  for step in Step.all where step.state = complete:
-    step.row is a Row in step.sequence.library
-}
-
-invariant SequenceNameIsNonEmpty {
-  for seq in Sequence.all:
-    seq.name.length >= 1
-}
-
-invariant PositionsAreContiguous {
-  -- Step positions within a Sequence are always a contiguous 1-based
-  -- sequence with no gaps. After any insert, delete, or reorder, positions
-  -- are renumbered.
-  for seq in Sequence.all:
-    { step.position : step in seq.steps } = { 1 .. seq.steps.length }
-}
-
-invariant CompleteStepHasRow {
-  for step in Step.all:
-    step.state = complete  ->  step.row != nil
-    step.state != complete ->  step.row = nil
-}
-
-invariant BlankStepHasNoUtterance {
-  for step in Step.all:
-    step.state = blank  ->  step.utterance = nil
-}
-
-invariant NewSequenceHasThreeBlankSteps {
-  -- A newly created Sequence starts with exactly three blank Steps.
-  -- The user may add more or delete down from there.
-  when Sequence is created:
-    Sequence.steps.length = 3
-    all steps have state = blank
-}
-
-invariant NewPictogramJoinsLibrary {
-  -- Generating a pictogram from a pending Step always adds the resulting
-  -- Row to the Library. A Step can never hold a Row that is not in its
-  -- Library's pictogram collection.
-  when generation completes for Step S:
-    S.row is added to S.sequence.library's pictogram collection
-    S.state -> complete
+config {
+    default_sequence_name: String = "Secuencia sin nombre"
+    autocomplete_limit: Integer = 8
+    zip_name_max_length: Integer = 30
+    pdf_name_max_length: Integer = 40
 }
 
 ------------------------------------------------------------
 -- Rules
 ------------------------------------------------------------
 
--- === Library content toggle ===
+-- === Content mode ===
 
-rule DefaultContentMode {
-  when: a Library is opened (GlobalConfig.activeLibraryId is set)
-  ensures:
-    LibraryView.contentMode = pictogramas
-    -- The pictogram view is always the entry point; the user navigates to
-    -- sequences explicitly.
+rule OpenLibraryShowsPictogramas {
+    when: LibraryOpened(view)
+    ensures: view.content_mode = pictogramas
+
+    @guidance
+        -- Opening a library always lands on pictogramas.
 }
 
-rule SwitchToSequences {
-  when: user activates the "secuencias" side of the content toggle,
-        or activates "Mis secuencias" from the Library menu
-  ensures:
-    LibraryView.contentMode = secuencias
-    SequenceList is displayed for the active Library
-}
+rule SelectContentMode {
+    when: ContentModeSelected(view, mode)
+    ensures: view.content_mode = mode
 
-rule SwitchToPictogramas {
-  when: user activates the "pictogramas" side of the content toggle
-  ensures:
-    LibraryView.contentMode = pictogramas
-    the pictogram view (list or grid, per existing LibraryViewMode) is displayed
+    @guidance
+        -- From the toolbar tabs, or "Mis secuencias" / "Mis tableros" in the
+        -- library menu. Choosing secuencias shows SequenceList (any open
+        -- sequence is closed); tableros shows BoardList (boards.allium).
 }
 
 -- === Sequence lifecycle ===
 
 rule CreateSequence {
-  when: user activates "Crear nueva secuencia" in SequenceList
-  ensures:
-    the user is prompted for a name
-    if the user confirms a non-empty name:
-      a new Sequence is created with:
-        the given name
-        three blank Steps (NewSequenceHasThreeBlankSteps)
-        createdAt = modifiedAt = now
-      SequenceEditor opens for the new Sequence
-    if the user cancels:
-      no Sequence is created
-}
+    when: CreateSequenceRequested(view)
+    ensures:
+        let sequence = Sequence.created(
+            library: view.library,
+            name: config.default_sequence_name,
+            created_at: now,
+            modified_at: now
+        )
+        SequenceOpened(sequence: sequence)
 
-rule OpenSequence {
-  when: user activates a Sequence in SequenceList
-  ensures:
-    SequenceEditor opens for that Sequence
-    existing Steps are shown in position order with their current state
-}
-
-rule DeleteSequence {
-  when: user activates "Eliminar" for Sequence S in SequenceList
-        or from within SequenceEditor
-  requires:
-    user confirms via a destructive-action prompt
-  ensures:
-    Sequence S and all its Steps are permanently removed
-    the Rows referenced by S's complete Steps remain in the Library
-      (sequences are references, not owners)
-    SequenceList is shown (if deleted from SequenceEditor)
+    @guidance
+        -- No name prompt and no initial steps (changed: it used to prompt
+        -- for a name and start with three blank steps). The editor opens at
+        -- once; the user renames inline and adds steps.
 }
 
 rule RenameSequence {
-  when: user edits the Sequence name inline in SequenceEditor's header,
-        or activates "Renombrar" from the "..." menu of a Sequence in SequenceList
-  ensures:
-    if the user confirms a non-empty name:
-      Sequence.name = the new name
-      Sequence.modifiedAt = now
-    if the user cancels or submits an empty string:
-      Sequence.name is unchanged
+    when: SequenceRenamed(sequence, name)
+    requires: name != ""
+    ensures: sequence.name = name
+    ensures: sequence.modified_at = now
+
+    @guidance
+        -- Inline in the editor header (Enter commits, Escape or an empty
+        -- name restores) or "Renombrar" in the card's "..." menu.
+}
+
+rule DeleteSequence {
+    when: DeleteSequenceConfirmed(sequence)
+    ensures: not exists sequence
+
+    @guidance
+        -- From the card's "..." menu. Rows referenced by its steps stay in
+        -- the Library. The spec requires a destructive-action confirmation;
+        -- the implementation currently deletes on the first click (see
+        -- open questions).
 }
 
 -- === Step editing ===
 
-rule EnterStepUtterance {
-  when: user types in the utterance field of a blank Step
-  ensures:
-    Step.state -> pending
-    Step.utterance = typed text
-    autocomplete suggestions are shown (see AutocompleteStep)
+rule AddStep {
+    when: AddStepRequested(sequence)
+    ensures: Step.created(
+        sequence: sequence,
+        position: sequence.steps.count + 1,
+        utterance: null,
+        row: null,
+        state: blank
+    )
+    ensures: sequence.modified_at = now
 }
 
-rule AutocompleteStep {
-  -- Standard combobox pattern (WAI-ARIA): suggestions are never auto-linked.
-  -- Explicit confirmation is always required to avoid accidental associations.
-  when: Step.state = pending and Step.utterance is non-empty
-  ensures:
-    matching Rows from the Library whose utterance contains the typed text
-      are shown as suggestions (case-insensitive, partial match)
+rule LinkStepToRow {
+    when: AutocompleteSuggestionSelected(step, row)
+    requires: step.state = blank
+    requires: row.library = step.sequence.library
+    ensures: step.row = row
+    ensures: step.utterance = row.utterance
+    ensures: step.state = complete
+    ensures: step.sequence.modified_at = now
 
-  -- Keyboard navigation:
-  --   ↓ / ↑  move focus through the suggestion list
-  --   Enter   confirms the focused suggestion → SelectAutocompleteSuggestion
-  --   Escape  closes the list without linking
-  -- Shortcut: if exactly one suggestion is shown, Enter confirms it directly
-  --   without needing to press ↓ first
-  -- Mouse/touch: clicking a suggestion → SelectAutocompleteSuggestion
-  -- No auto-link on exact text match — confirmation is always explicit.
+    @guidance
+        -- Suggestions: rows of the Library whose utterance contains the
+        -- typed text (case-insensitive), at most autocomplete_limit, picked
+        -- with the pointer. Never auto-linked on an exact match. Arrow-key
+        -- navigation is not implemented; Enter means "Generar".
 }
 
-rule SelectAutocompleteSuggestion {
-  when: user selects a Row suggestion from the autocomplete list
-  ensures:
-    Step.state -> complete
-    Step.row = selected Row
-    Step.utterance = Row.utterance
-    autocomplete list closes
-}
+rule CreatePictogramForStep {
+    when: GenerateStepRequested(step, text)
+    requires: step.state = blank
+    requires: text != ""
+    ensures:
+        let row = Row.created(library: step.sequence.library, utterance: text)
+        step.row = row
+        step.utterance = text
+        step.state = complete
+        CascadeRequested(row: row)
 
-rule NoPictogramMatch {
-  when: Step.state = pending and Step.utterance is non-empty
-        and no Row in the Library matches the utterance
-  ensures:
-    autocomplete list shows an empty state
-    a "Generar" button appears for this Step
-    Step.state remains pending
-}
-
-rule GeneratePictogramFromStep {
-  when: user activates "Generar" for a pending Step S
-  ensures:
-    the pictogram generation pipeline (Comprender → Componer → Producir)
-      is triggered with S.utterance as the input
-      (same pipeline as adding a new row to the Library; see visual-reasoning.allium)
-    while generation is in progress:
-      the Step shows an in-progress indicator
-      the "Generar" button is not available again (prevents double-trigger)
-    when generation completes:
-      the resulting Row is added to the Library (NewPictogramJoinsLibrary)
-      Step.state -> complete
-      Step.row = new Row
-    if generation fails:
-      Step.state remains pending
-      the "Generar" button is available again
-      an error is shown inline in the Step
-}
-
-rule EditCompletedStepUtterance {
-  when: user edits the utterance of a Step in state complete
-  ensures:
-    Step.state -> pending
-    Step.row = nil
-    the new utterance text enters autocomplete (AutocompleteStep applies)
-    -- Editing resets the link; the user must either select a new match
-    -- or generate a new pictogram. The original Row remains in the Library.
-}
-
-rule ClearStepUtterance {
-  when: user clears the utterance of a Step (field becomes empty)
-  ensures:
-    Step.state -> blank
-    Step.utterance = nil
-    Step.row = nil
-    autocomplete list closes
+    @guidance
+        -- "Generar" or Enter on the step field. The new Row joins the
+        -- Library at once and the step is linked immediately (there is no
+        -- in-progress pending state). The spec intends the cascade to start
+        -- for the new row; the implementation currently creates the row
+        -- idle and the user presses Play on it (see open questions). A
+        -- linked step renders as the full row component with its step
+        -- number and drag handle, so editing its utterance edits the Row
+        -- itself; the earlier "edit unlinks the step" rule was never built.
 }
 
 rule DeleteStep {
-  when: user activates the delete action on Step S
-  ensures:
-    Step S is removed from Sequence.steps
-    remaining steps are renumbered to maintain PositionsAreContiguous
-    if S.state = complete: S.row remains in the Library (not deleted)
-}
+    when: DeleteStepRequested(step)
+    ensures: not exists step
+    ensures:
+        if step.row != null and not step.row.has_content:
+            not exists step.row
+    ensures: step.sequence.modified_at = now
 
-rule AddStep {
-  when: user activates "Agregar paso" in SequenceEditor
-  ensures:
-    a new blank Step is appended to Sequence.steps with the next position
-    Sequence.modifiedAt = now
+    @guidance
+        -- Remaining steps are renumbered. A linked Row with content stays
+        -- in the Library; an empty one created for the step is removed.
 }
 
 rule ReorderStep {
-  when: user drags Step S to a new position P within the Sequence
-  ensures:
-    Step S's position becomes P
-    all other Steps are renumbered to maintain PositionsAreContiguous
-    Sequence.modifiedAt = now
+    when: StepMoved(step, position)
+    ensures: step.position = position
+    ensures: step.sequence.modified_at = now
+
+    @guidance
+        -- Drag by the always-visible handle, in list or grid layout; all
+        -- steps are renumbered.
 }
 
--- === Library menu changes ===
+-- === Exports ===
 
-rule LibraryMenuMisSecuencias {
-  when: the Library dropdown menu is open
-  ensures:
-    a "Mis secuencias" item appears below the "Configurar" section
-    activating it is equivalent to SwitchToSequences
+rule ExportSequencePdf {
+    when: PrintSequenceRequested(sequence)
+    requires: sequence.can_export
+    ensures: SequencePdfDownloaded(sequence: sequence)
+
+    @guidance
+        -- Calls exportLibraryToPdf (pdf-export.allium) with the rows of the
+        -- complete steps in position order (steps whose row no longer
+        -- exists are skipped), titleOverride = sequence name, and a badge
+        -- per cell with the step position. Caption = Row.utterance, never
+        -- Step.utterance. Filename: "{sanitized name, max
+        -- pdf_name_max_length}_{YYYY-MM-DD}.pdf". A failure is only logged
+        -- to the browser console (see open questions).
 }
 
-rule LibraryMenuDescargarImprimibles {
-  -- The whole-library PDF export (pdf-export.allium) is renamed in the menu.
-  when: the Library dropdown menu is open
-  ensures:
-    the item formerly labelled "Descargar PDF" is now labelled
-      "Descargar imprimibles"
-    its behaviour is unchanged (triggers PdfExport as defined in pdf-export.allium)
+rule ExportSequenceZip {
+    when: SequenceZipRequested(sequence)
+    requires: sequence.can_export
+    ensures: SequenceZipDownloaded(sequence: sequence)
 
-  @guidance "i18n"
-    -- Update translation key to reflect the new label.
-    -- Suggested: actions.downloadPrintables → "Descargar imprimibles" / "Download printables"
-}
-
-rule LibraryMenuDescargarPictogramas {
-  when: the Library dropdown menu is open
-  ensures:
-    a "Descargar pictogramas" item appears in the menu
-    the item is disabled when no Row in the Library has any artifact
-    activating it when enabled triggers DownloadLibraryPictogramsZip
-
-  @guidance "placement"
-    -- Place adjacent to "Descargar imprimibles" — both are artifact-export
-    -- actions. Suggested order: Descargar imprimibles, Descargar pictogramas.
+    @guidance
+        -- One entry set per complete step, in position order, prefixed by
+        -- its zero-padded ordinal among complete steps:
+        -- "01-{utterance}.png" (bitmap) and "01-{utterance}.svg" (most
+        -- downstream SVG: structured > raw). Filename:
+        -- "{sanitize(sequence.name)}-pictogramas.zip".
 }
 
 rule DownloadLibraryPictogramsZip {
-  when: user activates "Descargar pictogramas" from the Library menu
-  ensures:
-    a ZIP file is generated containing one entry per Row that has at least
-      one artifact, using the following naming per Row:
-        if bitmap exists:      "{sanitize(row.utterance)}.png"
-        if rawSvg or structuredSvg exists:
-          the most downstream SVG (structuredSvg > rawSvg) is included as:
-            "{sanitize(row.utterance)}.svg"
-        if a Row has both bitmap and SVG, both files are included
-    Rows with no artifact are excluded (no empty entries)
-    filename: "{sanitize(Library.name)}-pictogramas.zip"
-    the download fires without a blocking progress modal for typical library
-      sizes; a progress indicator may be shown for large libraries
+    when: LibraryPictogramsZipRequested(library)
+    ensures: LibraryZipDownloaded(library: library)
 
-  @guidance "utterance sanitisation"
-    -- Sanitise utterances to safe filenames: replace spaces with hyphens,
-    -- strip characters outside [a-zA-Z0-9áéíóúüñÁÉÍÓÚÜÑ._-], lowercase,
-    -- truncate at 80 characters. Append "_2", "_3" etc. for collisions.
+    @guidance
+        -- "Descargar pictogramas (N)" in the library menu, disabled when no
+        -- row has media. Per row with media: "{sanitize(utterance)}.png"
+        -- for the bitmap and "{sanitize(utterance)}.svg" for the most
+        -- downstream SVG; rows without media are skipped. sanitize: strip
+        -- accents, non-alphanumerics to "_", lowercase, at most
+        -- zip_name_max_length characters, row id when empty. Filename:
+        -- "{sanitize(library name)}-pictogramas.zip". No collision
+        -- suffixes: rows whose names sanitise alike overwrite each other
+        -- (see open questions).
 }
 
--- === Sequence PDF export ===
+------------------------------------------------------------
+-- Invariants
+------------------------------------------------------------
 
-rule ExportSequencePdf {
-  when: user activates "Imprimir secuencia" for Sequence S
-  ensures:
-    a PDF is generated by reusing the library "imprimibles" engine
-      (pdf-export.allium), so page layout, proportions, cut guide, typography
-      and caption handling are identical to the whole-library export, with
-      two sequence-specific differences:
-        the page header shows the Sequence name (S.name) instead of the
-          Library name (the engine's title override)
-        each cell is badged with its step number, small, in the top-left
-          corner, mirroring the grid-view chip (the engine's per-cell badge)
-      cells are built from the Rows of S's complete Steps, in position order
-      the caption under each pictogram is the Row's utterance (Row.utterance),
-        never Step.utterance — which may be nil for generated steps
-      only Steps in state = complete are rendered; blank and pending Steps
-        are excluded
-    filename: "{sanitize(S.name)}_{YYYY-MM-DD}.pdf"
-    the download fires on completion
-
-  @guidance "homologation"
-    -- The sequence export keeps no layout of its own. It calls
-    -- exportLibraryToPdf with the sequence's ordered Rows, titleOverride =
-    -- S.name, and a badge resolver returning each Row's step position. This
-    -- guarantees the sequence sheet and the library sheet never drift, and
-    -- fixes the prior defects (stretched pictograms; missing captions, which
-    -- came from reading Step.utterance instead of Row.utterance).
-
-  @guidance "step badge"
-    -- Small grey number on a faint white chip, top-left corner of the cell,
-    -- matching SequenceGridCell. It overlays the pictogram corner; it does
-    -- not consume caption space.
-
-  @guidance "incomplete sequences"
-    -- A sequence with all Steps pending/blank produces no PDF (the action
-    -- is disabled). The action is enabled as soon as one Step is complete.
+invariant SequenceNameIsNonEmpty {
+    for sequence in Sequences:
+        sequence.name != ""
 }
 
-rule ExportSequencePdfDisabled {
-  when: Sequence S has zero complete Steps
-  ensures:
-    the "Imprimir secuencia" action is disabled for S
+invariant CompleteStepHasRow {
+    for step in Steps:
+        (step.state = complete implies step.row != null)
+        and (step.state != complete implies step.row = null)
 }
 
--- === Sequence pictogram ZIP export ===
-
-rule ExportSequencePictogramsZip {
-  when: user activates "Descargar pictogramas de secuencia" for Sequence S
-  ensures:
-    a ZIP file is generated containing artifacts for each complete Step,
-      in position order, using the same naming and artifact-priority rules
-      as DownloadLibraryPictogramsZip but scoped to the Steps of S
-    blank and pending Steps are excluded
-    filename: "{sanitize(S.name)}-pictogramas.zip"
-
-  @guidance "ordering inside the ZIP"
-    -- Files are ordered by step position. Prefixing with the zero-padded
-    -- step number ensures alphabetical file order matches the sequence:
-    -- "01-{utterance}.png", "02-{utterance}.svg", etc.
+invariant BlankStepHasNoUtterance {
+    for step in Steps:
+        step.state = blank implies step.utterance = null
 }
 
-rule ExportSequencePictogramsZipDisabled {
-  when: Sequence S has zero complete Steps
-  ensures:
-    the "Descargar pictogramas de secuencia" action is disabled for S
+invariant StepRowBelongsToSequenceLibrary {
+    for step in Steps:
+        step.row != null implies step.row.library = step.sequence.library
+}
+
+invariant PositionsAreContiguous {
+    for step in Steps:
+        step.position >= 1 and step.position <= step.sequence.steps.count
 }
 
 ------------------------------------------------------------
@@ -484,138 +330,108 @@ rule ExportSequencePictogramsZipDisabled {
 ------------------------------------------------------------
 
 surface LibraryContentToggle {
-  -- Top-centre of the Library view. Switches between the three content modes.
-  -- Amended by boards.allium to add the "Tableros" segment.
+    facing user: LibraryView
+    context view: LibraryView
 
-  @guidance "placement"
-    -- Centred at the top of the Library content area, between the left-side
-    -- view-mode switcher (list | grid) and the right-side sort controls.
-    -- The view-mode switcher (list | grid) is hidden when contentMode =
-    -- secuencias or tableros (it applies to pictograms only).
+    exposes:
+        view.content_mode
 
-  @guidance "visual style"
-    -- Segmented control or tab strip. Three equal segments: "Pictogramas",
-    -- "Secuencias", "Tableros". Active segment is visually distinct (background
-    -- fill or underline). Same visual weight as the existing list | grid switcher.
+    provides:
+        ContentModeSelected(view, mode)
 
-  exposes:
-    LibraryView.contentMode (read/write)
+    @guidance
+        -- Three text tabs at the left of the library toolbar: Pictogramas,
+        -- Secuencias, Tableros; the active one darker and aria-pressed. The
+        -- list | grid switcher sits at the right end and only in
+        -- pictogramas.
+}
+
+surface LibraryMenu {
+    facing user: LibraryView
+    context view: LibraryView
+
+    provides:
+        ContentModeSelected(view, mode)
+        LibraryPictogramsZipRequested(view.library)
+
+    @guidance
+        -- The open library's dropdown: Configurar librería, Mis secuencias,
+        -- Mis tableros, the pictogram count, Importar frases, Importar
+        -- librería (.json), Exportar librería (.json), Exportar frases
+        -- (.txt), Descargar imprimibles (pdf-export.allium), Descargar
+        -- pictogramas (N), then batch generation. The whole-library PDF
+        -- action is labelled "Descargar imprimibles".
 }
 
 surface SequenceList {
-  -- The sequence catalogue for the active Library. Shown when
-  -- LibraryView.contentMode = secuencias.
+    facing user: LibraryView
+    context view: LibraryView where content_mode = secuencias
 
-  @guidance "layout"
-    -- A list or card grid of Sequence entries. Each entry shows the sequence
-    -- name, step count (including only complete steps), and last-modified date.
-    -- A "Crear nueva secuencia" block appears at the end (same visual idiom
-    -- as the LibraryHome's "Crear nueva librería" block).
+    provides:
+        CreateSequenceRequested(view)
+        SequenceRenamed(sequence, name)
+        DeleteSequenceConfirmed(sequence)
 
-  @guidance "empty state"
-    -- When no Sequences exist, show only the create block and a short
-    -- invitation: "Crea tu primera secuencia." (es-419)
-
-  @guidance "per-sequence actions"
-    -- Clicking a sequence card opens SequenceEditor.
-    -- A "..." menu on each card exposes: Abrir, Renombrar, Eliminar.
-
-  exposes:
-    Sequence.all for active Library (read)
-    create Sequence
-    open Sequence (navigates to SequenceEditor)
-    delete Sequence
+    @guidance
+        -- Card grid: preview of the first linked pictograms, name, "N
+        -- pasos" with the complete count, relative date and a "..." menu
+        -- (Abrir, Renombrar, Eliminar). A "Crear nueva secuencia" card.
+        -- Empty state: a short "no sequences yet" line. Clicking a card
+        -- opens the editor.
 }
 
 surface SequenceEditor {
-  -- The step-by-step editor for one Sequence.
+    facing user: LibraryView
+    context sequence: Sequence
 
-  @guidance "header"
-    -- Shows the Sequence name (editable inline). A back button returns to
-    -- SequenceList. The header also exposes "Imprimir secuencia" and
-    -- "Descargar pictogramas de secuencia" actions, plus its own list | grid
-    -- view switcher (independent from the library-level pictogram switcher,
-    -- which stays hidden under contentMode = secuencias).
+    exposes:
+        sequence.name
+        sequence.can_export
+        for step in sequence.steps:
+            step.position
+            step.state
+            step.utterance
 
-  @guidance "view modes"
-    -- SequenceEditor offers two layouts of the same ordered Steps:
-    --   list — the vertical step editor described under "step list".
-    --   grid — a card grid that mirrors the pictogram grid view exactly
-    --     (same cell as PictogramGridCell): square pictogram area on top and
-    --     a footer caption from the Row's utterance (Row.utterance), shown on
-    --     up to three lines without truncation. Each cell carries the step
-    --     number as a small chip in the top-left corner and a delete control
-    --     on hover. Column counts match the pictogram grid breakpoints.
-    -- The grid view is read/reorder only (no inline utterance editing or
-    -- pipeline badges); editing happens in list view.
+    provides:
+        SequenceRenamed(sequence, name)
+        AddStepRequested(sequence)
+        AutocompleteSuggestionSelected(step, row)
+        GenerateStepRequested(step, text)
+        DeleteStepRequested(step)
+        StepMoved(step, position)
+        PrintSequenceRequested(sequence) when sequence.can_export
+        SequenceZipRequested(sequence) when sequence.can_export
 
-  @guidance "step list"
-    -- Vertical list of Steps, each showing:
-    --   position number (1-based, left of the step)
-    --   utterance text field (with autocomplete dropdown)
-    --   pictogram thumbnail (when state = complete)
-    --   in-progress indicator (when generation is running)
-    --   "Generar" button (when state = pending and no match exists)
-    --   delete button (right of the step)
-    --   drag handle (left of the position number; activates drag-reorder)
-    -- Below the last step: "Agregar paso" button.
-
-  @guidance "autocomplete dropdown"
-    -- Appears below the utterance field as the user types. Shows matching
-    -- Row utterances from the Library with their pictogram thumbnails.
-    -- Keyboard-navigable (↑ ↓ Enter Escape).
-
-  @guidance "complete step appearance"
-    -- A complete step shows the pictogram thumbnail (best available artifact)
-    -- alongside the utterance. The thumbnail is a small square, visually
-    -- marking that this step is resolved and contributing to the sequence.
-
-  @guidance "drag reorder"
-    -- Drag handle is always visible (not hover-only) to make reordering
-    -- discoverable. On touch devices, drag is triggered by a long-press
-    -- on the handle.
-
-  exposes:
-    Sequence.name (read/write, inline)
-    Step.all for Sequence (read/write)
-    add Step
-    delete Step
-    reorder Step (drag)
-    generate pictogram for pending Step
-    export Sequence PDF
-    export Sequence pictogram ZIP
+    @guidance
+        -- Header: back to the list, inline-editable name, its own list |
+        -- grid switcher, "Imprimir" and "Descargar" (disabled without
+        -- complete steps), and a step count. List layout: blank steps show
+        -- a drag handle, a text field with autocomplete, "Generar" and a
+        -- delete button; linked steps show the full row component (step
+        -- number, drag handle, pipeline controls). Grid layout mirrors
+        -- PictogramGridCell (square picture, caption from Row.utterance on
+        -- up to three lines, step number chip top-left) and is read and
+        -- reorder only. "Agregar paso" below; with no complete steps a hint
+        -- says to add pictograms before printing or downloading.
 }
 
 ------------------------------------------------------------
 -- Open Questions
 ------------------------------------------------------------
 
--- Resolved: steps are blank | pending | complete (three-state)
--- Resolved: autocomplete is scoped to the active Library
--- Resolved: generating from a step adds the new Row to the Library
--- Resolved: sequences are library-scoped (not cross-library)
--- Resolved: new sequence starts with 3 blank steps
--- Resolved: steps support drag reorder, add, edit utterance, delete
--- Resolved: editing a complete step's utterance resets its link (→ pending)
--- Resolved: sequence PDF homologated with the library "imprimibles" export
---   (portrait, 2 columns, via exportLibraryToPdf); header shows the sequence
---   name; each cell badged with its step number (top-left); caption is the
---   Row's utterance (was Step.utterance, which left captions blank)
--- Resolved: partial last page — empty cell positions are left blank (no reflow)
--- Resolved: sequence pictogram ZIP follows same artifact-priority as library export
--- Resolved: "Descargar pictogramas" downloads a ZIP for the whole Library
--- Resolved: "Descargar PDF" renamed to "Descargar imprimibles" in the Library menu
--- Resolved: Sequence rename via two paths — inline in SequenceEditor header and
---   "Renombrar" in SequenceList "..." menu
+-- Resolved: sequences are library-scoped; autocomplete and new rows use the active Library
+-- Resolved: sequence PDF homologated with the library printable export
+-- Resolved: "Descargar PDF" renamed to "Descargar imprimibles"
+-- Superseded: a new sequence prompted for a name and started with three blank steps
+-- Superseded: editing a complete step's utterance reset its link
+-- Superseded: ZIP collision suffixes "_2", "_3" were specified but never built
 
--- Open: Library settings panel. The `RenameLibrary` path from settings
---   (defined in library-manager.allium) implies a settings panel within the
---   open Library editor. Its contents were not specified here; define separately.
+open question "DeleteSequence has no confirmation in the implementation (SequenceList onDelete removes at once). Add the confirmation, or accept one-click deletion?"
 
--- Open: Maximum number of steps per sequence. No limit was specified. Very
---   long sequences (100+ steps) could produce many PDF pages. Consider
---   whether a soft warning is appropriate.
+open question "'Generar' creates the row idle; an unused handler with auto-cascade exists. Should Generar start the cascade, as the label implies?"
 
--- Open: Sequence import / sharing. No cross-library or cross-device sequence
---   sharing was specified. If needed later, follow the Library JSON format
---   precedent from library-manager.allium.
+open question "StepState.pending is never produced. Drop it, or restore an in-progress state for generated steps?"
+
+open question "Library pictogram ZIP: duplicate sanitised utterances overwrite each other. Add collision suffixes?"
+
+open question "Maximum steps per sequence: none; long sequences produce many PDF pages."

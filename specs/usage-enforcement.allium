@@ -90,7 +90,10 @@ contract QuotaEnforcementBoundary {
     @invariant FlatGenerationUnit
         -- Every Phase 3 image generation attempt costs one PICTOS unit,
         -- independent of Gemini, OpenAI, or Recraft model or image quality.
-        -- Text-only phases cost zero.
+        -- A pipeline batch charges one unit per row once, at creation; its
+        -- worker never charges again. Every text and vision call (Phases 1,
+        -- 2 and 5, spatial prompt, entity detection, machine API v1) costs
+        -- zero units but is still audited.
 
     @invariant DistinctQuotaSources
         -- PICTOS user quota is an admission failure. External provider quota
@@ -99,16 +102,33 @@ contract QuotaEnforcementBoundary {
         -- automatically retryable. Neither source is PICTOS user quota.
 
     @invariant MonotonicityWithEnumeratedRefunds
-        -- A daily quota total never decreases except for a batch that never
-        -- started, a failed Gemini, OpenAI or Recraft image generation (any
-        -- provider failure, including a terminal 429 and a successful response
-        -- without an image), the current and
-        -- deferred rows of a provider-quota pipeline circuit, or explicit
-        -- administrator correction.
+        -- A daily quota total never decreases except for a batch whose worker
+        -- never started, a failed interactive Gemini, OpenAI or Recraft image
+        -- generation (any provider failure, including a terminal 429 and a
+        -- successful response without an image), a pipeline batch row that
+        -- failed before its image was requested or whose OpenAI or Recraft
+        -- image failed, the current and deferred rows of a provider-quota
+        -- pipeline circuit, or explicit administrator correction (by hand in
+        -- the store; there is no endpoint for it).
 
     @invariant RefundsAreIdempotent
         -- A stable request or job-and-row-set key makes repeated refund delivery
-        -- harmless. A refund changes the daily total at most once.
+        -- harmless. A refund changes the daily total at most once: the applied
+        -- refund id is stored in the same quota record by a conditional write.
+        -- The one exception is the never-started batch refund, which runs once
+        -- in the creating request's error path and carries no key.
+
+    @invariant LiveRolesAtQuotaDecisions
+        -- The superuser bypass reads the caller's roles live from Identity at
+        -- each quota decision, falling back to the token's roles only when
+        -- the live read fails, so a role assigned in the Identity panel
+        -- applies without signing in again. Background workers receive the
+        -- roles captured by the synchronous gate in their authorization.
+
+    @invariant LimitFromDeployment
+        -- The daily limit is config.daily_limit unless the deployment sets
+        -- DAILY_LIMIT_PER_USER (production 50, preview 100); a change reaches
+        -- functions only on the next deploy. Counters are per UTC day.
 }
 
 contract AuditBoundary {
@@ -206,8 +226,10 @@ contract UsageReportingBoundary {
     report: (request: UsageReportRequest) -> UsageReport
 
     @invariant AdminOnly
-        -- Usage data is returned only to the configured administrator, a valid
-        -- administrator API key, or local development.
+        -- Usage data is returned only to the administrator named by the
+        -- deployment (ADMIN_EMAIL), a valid administrator API key, or local
+        -- development. Any other caller gets 401. An optional email narrows
+        -- the report to one user.
 
     @invariant CompleteReportShape
         -- A report exposes its inclusive date range, current daily limit, total
@@ -228,7 +250,7 @@ enum QuotaFailureSource { pictonet_user_quota | external_provider_quota | extern
 enum Provider { anthropic | gemini | openai | recraft }
 enum GenerationPhase { phase1 | phase2 | phase3 | phase5 }
 enum GenerationRequestStatus { pending | admitted | blocked | completed | failed }
-enum RefundReason { failed_start | external_provider_quota | gemini_generation_failed | openai_generation_failed | recraft_generation_failed | administrator_correction }
+enum RefundReason { failed_start | external_provider_quota | provider_error | no_image | gemini_generation_failed | openai_generation_failed | recraft_generation_failed | administrator_correction }
 enum QuotaDecision { allowed | denied }
 enum UsageReportStatus { pending | completed | rejected }
 enum UsageReportRejection { unauthenticated | forbidden | invalid_range }
@@ -346,7 +368,8 @@ config {
     image_generation_units: Integer = 1
     daily_limit: Integer = 50
     blob_store: String = "pictonet-usage"
-    admin_email: String = "contact@pictos.net"
+    -- Deployment setting (ADMIN_EMAIL); no default in code.
+    admin_email: String = ""
 }
 
 ------------------------------------------------------------
@@ -376,6 +399,7 @@ rule AdmitSuperuserRequest {
     when: QuotaAdmissionRequested(request, quota)
     requires: request.status = pending
     requires: request.unit_cost > 0
+    requires: not request.user.local_dev
     requires: "superuser" in request.user.roles
     ensures: request.status = admitted
     ensures: request.decision = allowed
@@ -597,36 +621,24 @@ rule RefundFailedRecraftImage {
     )
 }
 
-rule RefundFailedRecraftPipelineRow {
-    when: RecraftPipelineRowFailed(reservation, row_id)
+rule RefundFailedPipelineRow {
+    when: PipelineRowFailed(reservation, row_id)
     requires: reservation.started
-    let refund_key = reservation.idempotency_key + ":" + row_id + ":recraft-error"
+    let refund_key = reservation.idempotency_key + ":" + row_id + ":provider-error"
     requires: not exists RefundRequest{idempotency_key: refund_key}
     ensures: RefundRequest.created(
         idempotency_key: refund_key,
         user: reservation.user,
         units: config.image_generation_units,
-        reason: recraft_generation_failed,
+        reason: provider_error,
         applied: false,
         generation_request: null,
         batch_reservation: reservation
     )
-}
 
-rule RefundFailedOpenAIPipelineRow {
-    when: OpenAIPipelineRowFailed(reservation, row_id)
-    requires: reservation.started
-    let refund_key = reservation.idempotency_key + ":" + row_id + ":openai-error"
-    requires: not exists RefundRequest{idempotency_key: refund_key}
-    ensures: RefundRequest.created(
-        idempotency_key: refund_key,
-        user: reservation.user,
-        units: config.image_generation_units,
-        reason: openai_generation_failed,
-        applied: false,
-        generation_request: null,
-        batch_reservation: reservation
-    )
+    @guidance
+        -- Emitted by the pipeline batch for a row that failed in Phase 1 or 2
+        -- (no image requested) or whose OpenAI or Recraft image failed.
 }
 
 rule RefundBatchThatNeverStarted {
@@ -709,7 +721,7 @@ rule RejectNonAdminUsageReport {
     requires: request.requester.email != config.admin_email
     requires: not request.admin_api_key_valid
     ensures: request.status = rejected
-    ensures: request.rejection = forbidden
+    ensures: request.rejection = unauthenticated
 }
 
 ------------------------------------------------------------
@@ -774,3 +786,4 @@ open question "Should audit records have an explicit retention period?"
 open question "Should concurrent quota admissions use strict serialization rather than best-effort counters?"
 open question "Should PICTOS quota responses include Retry-After for the next UTC reset?"
 open question "Should production and preview share one user's PICTOS quota?"
+open question "Refunds decrement today's UTC counter, not the counter of the day the unit was charged; should a refund after midnight target the charging day?"

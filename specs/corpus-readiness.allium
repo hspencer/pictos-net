@@ -4,6 +4,12 @@
 -- newly accepted NLU/composition executions. Review UI, training export,
 -- immutable artifact history and consent workflows below are specified goals,
 -- not assertions that these capabilities have already been implemented.
+-- Built (2026-11-08): accepted-execution provenance for Phases 1 and 2,
+-- meaning-preserving NLU repair on load with a migration record, the local
+-- attempt log, and a read-only structural inventory of the shipped corpus
+-- (scripts/audit-corpus.mjs) that always reports training eligibility as not
+-- assessed. Not built: CorpusRecord, review, eligibility, exclusion and
+-- snapshot operations; nothing creates those entities yet.
 
 ------------------------------------------------------------
 -- External Entities
@@ -24,7 +30,9 @@ value ExecutionProvenance {
     schema_version: String
     schema_hash: String
     prompt_version: String
+    prompt_hash: String
     model: String
+    provider: String
     input_hash: String
     output_hash: String
     completed_at: Timestamp
@@ -83,7 +91,9 @@ contract PortableResearchRecord {
     @invariant NewExecutionProvenanceIsActualEvidence
         -- Newly accepted NLU/composition records identify the actual schema
         -- id/version/hash, prompt revision, selected model, input/output hashes
-        -- and acceptance time of that execution. Inputs reflect the actual
+        -- and acceptance time of that execution, plus the provider, the
+        -- prompt hash and, when returned, the actual model, duration and
+        -- usage. Inputs reflect the actual
         -- request snapshot, including applicable configuration, not whatever
         -- library settings happen to exist at export time. Provider request id
         -- is recorded only if returned. Absence never becomes invented history.

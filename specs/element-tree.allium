@@ -10,7 +10,8 @@
 -- Scope: Hierarchical element tree editor for the COMPONER phase
 -- Includes: Tree structure, drag-and-drop reordering, visual connections, invalidation
 -- Excludes:
---   - Prompt generation logic (handled by geminiService)
+--   - Prompt generation logic (spatial prompt regeneration in claudeService,
+--     see visual-reasoning.allium)
 --   - Bitmap generation (downstream phase)
 --   - Element naming validation rules
 -- Dependencies: VisualElement type from types.ts
@@ -28,6 +29,9 @@ external entity SpatialPrompt {
 ------------------------------------------------------------
 -- Enumerations
 ------------------------------------------------------------
+
+-- Mirrors visual-reasoning.allium VisualConcept (from the NLU frame roles).
+enum VisualConcept { root | agent | action | object | context | element }
 
 enum DropZone {
     before      -- insert as previous sibling of target
@@ -55,6 +59,7 @@ entity ElementTree {
 
 entity Element {
     id: String
+    concept: VisualConcept?
     tree: ElementTree
     parent: Element?
     children: Element with parent = this
@@ -125,7 +130,8 @@ rule DropReorder {
     @guidance
         -- before: the dragged element becomes the previous sibling of the
         -- target; inside: its last child; after: its next sibling. The
-        -- dragged element's subtree moves with it intact.
+        -- dragged element's subtree moves with it intact, concepts included.
+        -- Every tree edit also marks COMPONER and PRODUCIR outdated.
 }
 
 rule DropCancel {
@@ -152,7 +158,12 @@ rule AddElement {
     ensures: tree.prompt.status = outdated
 
     @guidance
-        -- The new element becomes the last child of its parent.
+        -- The new element becomes the last child of its parent. It starts
+        -- with the placeholder id "elemento" in rename mode, and with no
+        -- concept: COMPONER assigns concepts, not the tree editor. An element
+        -- without concept is structured with a concept guessed from its id,
+        -- and its draft cannot certify until a person picks one
+        -- (svg-structuring.allium DraftChecklistAndCertification).
 }
 
 rule RemoveElement {

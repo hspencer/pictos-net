@@ -1,491 +1,220 @@
 -- allium: 3
 -- library-views.allium
 
--- Scope: Visual presentation and layout of the Library — row list and grid views —
---   plus the focused view of a single row (FocusViewModal).
+-- Scope: Visual presentation and layout of the open Library in pictogramas
+--   mode — row list and grid views — plus the focused view of a single row
+--   (FocusViewModal).
 -- Includes:
---   - The LibraryViewMode setting (list | grid), default and persistence
---   - The grid cell composition: pictogram on top, utterance + actions below
---   - Click and hover model on the grid cell (pictogram, utterance, badges,
---     play, hover overlay)
---   - Expanded row layout constraints (height, viewport containment, scroll)
---   - Row list view artifact stacking: all available artifacts in the Produce column
---   - Stage label visibility (hover-only for trazado and estructurado)
---   - The four-step layout of FocusViewModal (nlu, visual, producir, format)
---   - Edit, retrace, and restructure actions in focused view steps 3 and 4
+--   - The library view mode (list | grid), default and persistence
+--   - Row ordering shared by both views
+--   - The grid cell composition, click and hover model
+--   - Expanded row layout constraints (list view)
+--   - Artifact stacking in the row list
+--   - Stage labels on artifacts
+--   - The four steps of FocusViewModal (nlu, visual, producir, format), with
+--     the producir and format step contents
 -- Excludes:
---   - Sort logic (alphabetical / completeness) — already implemented; applies
---     unchanged to both view modes
---   - Actions inside the focus modal for steps 1 and 2 (comprender, componer)
---     — already implemented; this spec covers steps 3 and 4
---   - The home view (welcome / empty library) — orthogonal
---   - Bitmap editing — no tool implemented; deferred (see open questions)
---   - The SVG editor's internal behaviour (see vector-editor.allium). The
---     editor is not coupled to VTracer: it edits whatever SVG a slot holds
---     (native Phase 3 output or a structured artifact), independent of how a
---     trazado was produced.
--- Phase 4 / VTracer status: VTracer (trazado from a bitmap) is present in the
---   codebase but removed from the automatic cascade — Gemini image models emit
---   native SVG, so Producir usually yields a vector directly (see CLAUDE.md and
---   local-generation.allium). Retrace / trazar is therefore a separate,
---   user-initiated action on a bitmap row, not a pipeline step. The retrace
---   controls below describe that optional action.
+--   - The home screen and library management — see library-manager.allium
+--   - Sequences and boards content modes — see sequences.allium, boards.allium
+--   - Steps 1 and 2 editing UIs (NLU editor, elements editor)
+--   - Bitmap editing — no tool implemented (see open questions)
+--   - The SVG editor's internal behaviour — see vector-editor.allium. The
+--     editor edits whatever SVG a slot holds, independent of its origin.
+--   - Structuring internals — see svg-structuring.allium
+-- Trace status: Vectorizar is no longer a pipeline phase. The default
+--   Producir model (gpt-image-2.5-flare) and Gemini emit a bitmap; only the
+--   Recraft "_vector" models emit native SVG. On a bitmap row, Estructurar
+--   (UI phase 4, internal id 5) starts from the bitmap and writes its region
+--   trace to rawSvg; "Solo trazar" / retrace (the legacy VTracer modal) is a
+--   separate, user-initiated trace-only action.
 -- Dependencies:
---   - RowData (utterance, NLU, elements, prompt, bitmap, rawSvg,
---     structuredSvg, generationModel, plus *Status fields)
---   - GlobalConfig (gains the libraryViewMode field)
---   - FocusViewModal (four steps: nlu, visual, producir, format)
-
-------------------------------------------------------------
--- Value Types
-------------------------------------------------------------
-
-value LibraryViewMode {
-  list      -- the existing row list
-  grid      -- the new pictogram grid
-}
-
-value PictogramStage {
-  none           -- no image yet (Producir not run)
-  bitmap         -- raster from Producir (bitmap-producing models only)
-  trazado        -- vector SVG; from Phase 4 VTracer (bitmap rows)
-                 --   or directly from Phase 3 (recraftv4_1_vector rows)
-  estructurado   -- semantic SVG from Estructurar (structuredSvg, Phase 5)
-}
-
-value FocusStep {
-  nlu        -- step 1: Comprender
-  visual     -- step 2: Componer (elements + prompt)
-  producir   -- step 3: Producir — bitmap OR native SVG, depending on model
-  format     -- step 4: Formatear y ajustar (trazado + estructurado, SSOT)
-}
+--   - Row (visual-reasoning.allium)
+--   - LibraryConfig: the open library's GlobalConfig (library-manager.allium)
 
 ------------------------------------------------------------
 -- External Entities
 ------------------------------------------------------------
 
-external Row {
-  -- The pictogram row managed by the main app. This spec reads its
-  -- artifacts and statuses; mutations are forwarded through existing
-  -- handlers (cascade, processStep, regenerate, edit utterance, etc.).
-  id: String
-  utterance: String
-  bitmap: String?           -- present iff Producir used a bitmap-producing model
-  rawSvg: String?           -- present iff Producir produced native SVG (recraftv4_1_vector)
-                            --   OR Vectorizar (Phase 4) traced a bitmap;
-                            --   source is distinguished by generationModel
-  structuredSvg: String?    -- present iff Estructurar (Phase 5) completed
-  generationModel: String?  -- model that produced Phase 3 output; nil until Phase 3 completes
-  nluStatus: StepStatus
-  visualStatus: StepStatus
-  bitmapStatus: StepStatus
-  status: StepStatus        -- aggregate cascade status
+-- The pictogram row managed by the main app. This spec reads its artifacts
+-- and statuses; mutations go through the existing pipeline handlers.
+external entity Row {
+    utterance: String
+    bitmap: String?                 -- present iff Producir used a bitmap model
+    raw_svg: String?                -- native SVG from a vector model, or a trace of the bitmap
+    structured_svg: String?         -- present iff Estructurar produced an accepted result
+    structured_svg_draft: String?   -- a non-certified Estructurar result
+    is_vector_model: Boolean        -- generation model emits native SVG
+    is_processing: Boolean
 }
 
-external GlobalConfig {
-  -- Application-wide configuration (already exists). This spec adds one
-  -- field; everything else (lang, credits, recording, etc.) is unchanged.
-  libraryViewMode: LibraryViewMode    -- new field, persisted with the rest
-}
-
-external FocusViewModal {
-  -- The maximised view of one step of one row.
-  step: FocusStep
-  rowId: String
-}
-
-external VectorizerModal {
-  -- The VTracer wrapper modal. Triggered from the format step left column
-  -- (bitmap rows only) as a separate, user-initiated action. VTracer is not
-  -- part of the automatic cascade and the SVG editor does not depend on it
-  -- (see the Phase 4 / VTracer status note in the header and vector-editor.allium).
-}
-
-external SVGEditorModal {
-  -- The SVG editor (raw or structured source). Triggered from the producir
-  -- step (vector rows only) or from either column of the format step.
+-- The open library's configuration. This spec adds one field.
+external entity LibraryConfig {
+    view_mode: LibraryViewMode      -- persisted with the library config, so per library
 }
 
 ------------------------------------------------------------
--- Entities
+-- Enumerations
 ------------------------------------------------------------
 
-entity LibraryView {
-  -- Top-level state of the Library page.
-  mode: LibraryViewMode
+enum LibraryViewMode {
+    list            -- the row list (default)
+    | grid          -- the pictogram grid
 }
 
+enum PictogramStage {
+    none            -- no image yet
+    | bitmap        -- raster from Producir
+    | trazado       -- raw SVG: native vector output or a trace of the bitmap
+    | estructurado  -- semantic SVG from Estructurar
+}
+
+enum FocusStep {
+    nlu             -- step 1: Comprender
+    | visual        -- step 2: Componer (elements + prompt)
+    | producir      -- step 3: Producir; bitmap OR native SVG
+    | format        -- step 4: Estructurar (trazado, estructurado, borrador)
+}
+
+------------------------------------------------------------
+-- Entities and Variants
+------------------------------------------------------------
+
+-- One cell of the grid view, bound to a Row.
 entity PictogramCell {
-  -- One cell of the grid view, bound to a Row.
-  row: Row
-  displayedStage: PictogramStage    -- which artifact is shown right now
-  hovered: Boolean                  -- pointer is over the pictogram area
+    row: Row
+    hovered: Boolean
 
-  states: idle, hovered
+    -- The most downstream available artifact (grid only).
+    displayed_stage:
+        if row.structured_svg != null: estructurado
+        else if row.raw_svg != null: trazado
+        else if row.bitmap != null: bitmap
+        else: none
 }
 
-------------------------------------------------------------
--- Invariants
-------------------------------------------------------------
-
-invariant DefaultViewIsList {
-  -- A first-time user opens the Library in list mode. The grid mode is
-  -- discoverable through the view switcher but is not the default —
-  -- the row layout makes the pipeline state and the per-row controls
-  -- legible, and that legibility matters more on the first encounter
-  -- than the visual catalogue character of the grid.
-  for fresh GlobalConfig:
-    GlobalConfig.libraryViewMode = list
-}
-
-invariant ViewModePersists {
-  -- Switching modes writes the choice to GlobalConfig (which is persisted
-  -- via the same path as every other config field). Reloading the app
-  -- restores the last chosen mode.
-}
-
-invariant SortAppliesToBothViews {
-  -- The alphabetical / completeness sort buttons (top-right of the
-  -- Library) operate on the underlying row collection, not on the
-  -- presentation. Switching view modes does not change ordering.
-}
-
-invariant DisplayedStagePriority {
-  -- Applies to grid view (PictogramCell) only.
-  -- Each grid cell shows the most "downstream" available artifact:
-  --   if structuredSvg exists -> estructurado
-  --   else if rawSvg exists   -> trazado
-  --   else if bitmap exists   -> bitmap
-  --   else                    -> none
-  -- Row list view shows all available artifacts simultaneously
-  -- (see RowArtifactStacking).
-  for cell in PictogramCell.all:
-    cell.displayedStage =
-      structuredSvg exists ? estructurado :
-      rawSvg exists        ? trazado :
-      bitmap exists        ? bitmap : none
-}
-
-invariant PictogramClickAlwaysOpensNLU {
-  -- Clicking the pictogram itself, regardless of the displayed stage,
-  -- opens the focus modal at step nlu (Comprender). The pictogram is the
-  -- consequence; clicking it traces back to the semantic origin.
-  -- Step-specific shortcuts go through the badges, not the picture.
-}
-
-invariant FormatRightColumnGated {
-  -- The estructurado column is interactive only when rawSvg exists,
-  -- because Estructurar consumes rawSvg as input. Without rawSvg the
-  -- right column is disabled and shows an explanation pointing at the
-  -- left column.
-}
-
-invariant Phase3ArtifactStaysInProducirStep {
-  -- The producir step in FocusViewModal always shows the Phase 3 artifact only:
-  --   bitmap model row  → bitmap
-  --   vector model row  → rawSvg as produced by Phase 3 (recraftv4_1_vector)
-  -- The Phase 4 trazado (VTracer output from a separate user action) does NOT
-  -- appear in the producir step. It belongs exclusively in the format step.
-  for modal in FocusViewModal where modal.step = producir:
-    displayed artifact = row.bitmap           (if generationModel is bitmap-producing)
-                       | row.rawSvg           (if generationModel = recraftv4_1_vector)
-    and is never substituted with rawSvg produced by Phase 4 (VTracer)
-}
-
-invariant RetraceRequiresBitmap {
-  -- The retrace action (re-trigger Phase 4 Vectorizar) is only available
-  -- for rows that have a bitmap. Vector model rows (recraftv4_1_vector)
-  -- produce rawSvg directly from Phase 3 and have no bitmap to trace.
-  -- Retrace must not appear for those rows in any view or step.
-  retrace action is available iff row.bitmap exists
-}
-
-invariant JointActionRequiresBitmapAndTree {
-  -- The joint action, labelled "Estructurar" on a bitmap-only row and
-  -- "Estructurar desde el bitmap" beside "Estructurar trazado"
-  -- (svg-structuring.allium JointVectorizeStructure) is available only when
-  -- the row has a bitmap and a nonempty element tree. On a bitmap-only row it
-  -- is the primary action and trace-only (TRAZAR) is secondary; with no tree,
-  -- TRAZAR stays primary. Once a trace exists it is secondary beside
-  -- ESTRUCTURAR. A bitmap-only row shows these actions instead of a "trace
-  -- required" notice. Its region trace replaces rawSvg in the same update as
-  -- its draft or accepted revision; an earlier accepted revision becomes
-  -- outdated.
-  joint action is available iff row.bitmap exists and row.elements is nonempty
+-- The maximised view of one step of one row.
+entity FocusView {
+    row: Row
+    step: FocusStep
 }
 
 ------------------------------------------------------------
 -- Rules
 ------------------------------------------------------------
 
--- === View mode switching ===
+-- === View mode ===
 
-rule SwitchToGrid {
-  when: user clicks the "grid" button in the view switcher
-  ensures:
-    GlobalConfig.libraryViewMode = grid
-    -- Library re-renders as a grid of PictogramCells, one per row.
-    -- Sort order is preserved.
+rule SelectViewMode {
+    when: ViewModeSelected(settings, mode)
+    ensures: settings.view_mode = mode
+
+    @guidance
+        -- Re-renders the same rows in the chosen layout; ordering is kept.
+        -- The choice is written to the library config, so reopening the
+        -- library or reloading the app restores it. A missing value means
+        -- list.
 }
 
-rule SwitchToList {
-  when: user clicks the "list" button in the view switcher
-  ensures:
-    GlobalConfig.libraryViewMode = list
-    -- Library re-renders as the existing row list. Sort order preserved.
+rule NewRowShowsList {
+    when: RowAddedFromSearch(settings, row)
+    ensures: settings.view_mode = list
+
+    @guidance
+        -- Adding a row from the header search switches to list so the new
+        -- row is visible, open, and starts its cascade when it has text.
 }
 
-rule LoadPersistedViewMode {
-  when: the application initialises
-  ensures:
-    LibraryView.mode = GlobalConfig.libraryViewMode
-    -- If the field is missing (fresh install or pre-feature state),
-    -- LibraryView.mode = list.
+-- === Grid cell ===
+
+rule HoverCell {
+    when: CellHovered(cell)
+    requires: cell.displayed_stage != none
+    ensures: cell.hovered = true
+
+    @guidance
+        -- Shows the stage pill (bitmap | trazado | estructurado, existing
+        -- i18n terms) and an action strip: trace (bitmap stage only, opens
+        -- the VTracer modal), edit (trazado or estructurado, opens
+        -- SVGEditorModal on that artifact) and download of the displayed
+        -- artifact (.png or .svg). With no image there is no overlay; the
+        -- large Play button is the only affordance.
 }
-
--- === Expanded row layout ===
-
-rule ExpandedRowLayout {
-  when: a row is expanded in list view
-
-  ensures: the expanded row height does not exceed approximately 85vh
-  ensures: the expanded row is fully visible within the viewport without page scroll
-  ensures: each column within the expanded row occupies the full available interior height
-  ensures: content within each column scrolls independently when it exceeds column height
-
-  @guidance "responsive layout"
-    -- Wide viewports (3-column): each column takes the full available height, with
-    --   internal scroll. The page does not scroll to reveal column content.
-    -- Narrow viewports (single-column): each artifact slot occupies at most 90vh.
-    --   Scroll-snap is applied between artifact slots so each snaps into view.
-    --   The transition from 3-column to single-column follows the existing
-    --   responsive breakpoint of the row component.
-}
-
--- === Row list view: artifact stacking ===
-
-rule RowArtifactStacking {
-  when: a row is rendered in list view
-
-  ensures: the Produce column shows all available image artifacts stacked vertically
-    in pipeline order:
-    1. bitmap (if present) — from Phase 3 bitmap-producing model
-    2. trazado (rawSvg, if present) — from Phase 4 VTracer (bitmap rows)
-         or as Phase 3 native SVG (recraftv4_1_vector rows, where bitmap is absent)
-    3. estructurado (structuredSvg, if present) — from Phase 5
-
-  ensures: every artifact slot exposes a download action
-
-  ensures: each vectorial artifact slot (trazado, estructurado) additionally exposes:
-    edit button — opens SVGEditorModal for that artifact
-
-  ensures: the trazado artifact slot exposes a retrace action
-    when row.bitmap exists (bitmap rows only)
-    -- retrace re-triggers Phase 4 (Vectorizar) for that row
-    -- retrace is NOT shown for recraftv4_1_vector rows (no bitmap to trace)
-
-  ensures: the estructurado artifact slot exposes a restructure action
-    -- restructure re-triggers Phase 5 (Estructurar) for that row
-
-  ensures: the bitmap artifact slot exposes no edit or retrace action
-    -- Phase 3 regeneration is the column-level regenerate button,
-    --   not a per-artifact action on the bitmap slot
-
-  @invariant "grid view unaffected"
-    -- This rule applies to row list view only.
-    -- PictogramCell (grid view) continues to apply DisplayedStagePriority.
-}
-
--- === Stage label visibility ===
-
-rule StageLabelVisibility {
-  when: a trazado or estructurado artifact is rendered in any view
-
-  ensures: the stage label ("trazado" or "estructurado") is hidden when the
-    pointer is not over the artifact
-  ensures: the stage label becomes visible when the pointer hovers over the artifact
-  ensures: bitmap artifacts carry no stage label in any view
-    -- The absence of a label on bitmap is intentional; it is the default
-    --   Phase 3 output and does not need annotation.
-}
-
--- === Grid cell composition ===
-
-rule CellLayout {
-  when: a PictogramCell is rendered
-  ensures: vertical layout
-    top: pictogram area (square) showing displayedStage
-      or, if displayedStage = none, a large Play button in its place
-    bottom: utterance text + small Play button + 3 pipeline badges
-}
-
-rule CellHoverOverlay {
-  when: pointer enters the pictogram area of a PictogramCell
-  requires: cell.displayedStage != none
-  ensures:
-    a stage indicator pill appears in a corner of the pictogram, labelled
-    with the existing i18n term for the stage (trazado | estructurado)
-    -- bitmap stage carries no pill (see StageLabelVisibility)
-    a strip of action buttons appears: edit (if vectorial), re-trace
-    (if row.bitmap exists), download
-    (these actions delegate to the existing handlers and do not need new logic)
-}
-
-rule CellHoverEmpty {
-  when: pointer enters the pictogram area of a PictogramCell
-  requires: cell.displayedStage = none
-  ensures:
-    no overlay is shown
-    -- Nothing to label, nothing to act on. The large Play button is the
-    -- only affordance.
-}
-
--- === Click model on the grid cell ===
 
 rule ClickPictogram {
-  when: user clicks the pictogram area of a PictogramCell
-  requires: cell.displayedStage != none
-  ensures:
-    FocusViewModal.step = nlu
-    FocusViewModal.rowId = cell.row.id
-    focus modal opens
-    -- Always nlu, regardless of displayedStage. Step-specific entry uses
-    -- the badges below the pictogram.
-}
+    when: CellPictogramClicked(cell)
+    requires: cell.displayed_stage != none
+    ensures: FocusView.created(
+        row: cell.row,
+        step: if cell.displayed_stage = bitmap: producir else: format
+    )
 
-rule ClickPlaceholderPlay {
-  when: user clicks the large Play button shown when cell.displayedStage = none
-  ensures:
-    cascade is triggered for cell.row
-    focus modal does NOT open
-}
-
-rule ClickSmallPlay {
-  when: user clicks the small Play button in the cell footer
-  ensures:
-    cascade is triggered for cell.row
-    focus modal does NOT open
+    @guidance
+        -- The pictogram opens the step that owns the displayed artifact.
+        -- (Changed: it used to open nlu.) Enter or Space on the focused
+        -- pictogram does the same.
 }
 
 rule ClickBadge {
-  when: user clicks pipeline badge N (1, 2, or 3) in the cell footer
-  ensures:
-    FocusViewModal.step = N=1 ? nlu : N=2 ? visual : producir
-    FocusViewModal.rowId = cell.row.id
-    focus modal opens
+    when: CellBadgeClicked(cell, step)
+    requires: step in {nlu, visual, producir}
+    ensures: FocusView.created(row: cell.row, step: step)
+
+    @guidance
+        -- Three badges, numbered 1-3, coloured by the step status, with
+        -- the failure cause in the tooltip.
 }
 
-rule ClickUtterance {
-  when: user clicks the utterance text in the cell footer
-  ensures:
-    the utterance becomes editable in place, with the same edit semantics
-    as in the row view (commit on blur / Enter / cascade trigger; recorded
-    by the intervention recorder if enabled)
-    focus modal does NOT open
+rule ClickPlay {
+    when: CellPlayClicked(cell)
+    requires: not cell.row.is_processing
+    ensures: CascadeRequested(row: cell.row)
+
+    @guidance
+        -- Both the large placeholder Play (no image) and the small footer
+        -- Play trigger the cascade; no modal opens. While the row is
+        -- processing the footer button is Stop.
 }
 
-rule ClickElsewhere {
-  when: user clicks the cell outside any of the targets above
-  ensures:
-    no action — the cell does not open the modal as a whole; only the
-    explicit targets do
+rule EditUtteranceInCell {
+    when: CellUtteranceEdited(cell, text)
+    ensures: cell.row.utterance = text
+
+    @guidance
+        -- Inline edit with the row view's semantics: steps 1-3 become
+        -- outdated; commit on blur or Enter, Escape leaves the editor.
+        -- Committing settles the intervention recorder. No modal opens.
+        -- Clicks elsewhere on the cell do nothing.
 }
 
--- === Focused view: Producir step (step 3) ===
+-- === Focus view ===
 
-rule ProducirStepContent {
-  when: FocusViewModal.step = producir
-
-  ensures: the Phase 3 artifact is displayed:
-    if row.generationModel is a bitmap-producing model:
-      bitmap is shown
-      no edit button (no bitmap editor)
-    if row.generationModel = recraftv4_1_vector:
-      native SVG (rawSvg from Phase 3) is shown
-      edit button is available — opens SVGEditorModal on that rawSvg
-
-  ensures: a regenerate button is available to re-run Phase 3
-
-  ensures: a bitmap row shows "Estructurar", which opens the format step
-    -- Structuring actions live in the format step, as in the row list.
-
-  ensures: Phase 4 trazado is never shown in this step
-    -- rawSvg from VTracer belongs in the format step (step 4), not here
+rule FocusStepChanged {
+    when: FocusStepSelected(view, step)
+    ensures: view.step = step
 }
 
--- === Focused view: Format step (step 4) ===
+rule ProducirStructureShortcut {
+    when: ProducirStructureClicked(view)
+    requires: view.step = producir
+    requires: view.row.bitmap != null
+    requires: not view.row.is_vector_model
+    ensures: view.step = format
 
-rule FormatStepRendering {
-  when: FocusViewModal.step = format
-
-  ensures: the same SVGGenerator view as the row list, laid out in columns
-    -- One view, two layouts (stacked in the row list, columns here): the
-    -- same tiles, the same action row, the same notice. See
-    -- StructuringViewIsTheSameEverywhere.
-
-  ensures: tiles, left to right:
-    trazado (rawSvg) when it exists, else the bitmap as source (no actions)
-    estructurado (structuredSvg) when it exists
-    borrador (structuredSvgDraft) when it exists
-    an empty slot beside a lone trazado, so the pair keeps its shape
-
-  ensures: each artifact tile carries edit, download and delete
-    -- Edit opens SVGEditorModal on that artifact. Delete asks for
-    -- confirmation; trazado and estructurado are discarded (flag kept for
-    -- telemetry), the borrador is cleared.
-
-  ensures: one action row below the tiles:
-    with structuredSvg: restructure (when rawSvg exists) + retrace
-    with rawSvg only: Estructurar trazado (primary) + Estructurar desde el
-      bitmap + retrace
-    with a bitmap only: Estructurar (primary) + Solo trazar
-    retrace only when row.bitmap exists
-
-  ensures: "Limpiar estilos en línea" is NOT present in this view
-    -- That action is accessible only from within SVGEditorModal itself.
+    @guidance
+        -- A bitmap row shows "Estructurar" under the image, which moves to
+        -- the format step; structuring actions live there, as in the row
+        -- list.
 }
 
-invariant StructuringViewIsTheSameEverywhere {
-  -- Row list and focus view render artifacts, actions and notices from one
-  -- component; only the layout differs. While structuring runs, a progress
-  -- panel takes the result slot. Below the action row there is at most one
-  -- short line: the reason a borrador is not certified, or why structuring
-  -- is pending. Schema field pointers are research detail and stay in the
-  -- line's tooltip. The Phase 5 model is chosen in Ajustes, not per row.
-  for each SVG artifact on the row: the row list and the focus view offer the same actions
-}
+------------------------------------------------------------
+-- Invariants
+------------------------------------------------------------
 
-rule LeftColumnEmptyState {
-  when: rawSvg = none and row.bitmap exists and FocusViewModal.step = format
-  ensures:
-    left column shows an empty state with a single primary action: Vectorizar
-    that action invokes VectorizerModal on row.bitmap (existing flow)
-    -- This state only occurs for bitmap model rows where Phase 4 has not run.
-}
-
-rule RightColumnDisabled {
-  when: rawSvg = none and FocusViewModal.step = format
-  ensures:
-    right column is disabled (visually muted, no interactive actions)
-    a short message points the user at the left column: "El estructurado
-    se genera a partir del trazado. Vectoriza primero." (es-419) or the
-    en-GB equivalent
-    no Estructurar button is shown until rawSvg exists
-}
-
-rule RightColumnReady {
-  when: rawSvg exists and structuredSvg = none and FocusViewModal.step = format
-  ensures:
-    right column is enabled
-    primary action: Estructurar — produces structuredSvg from rawSvg
-}
-
-rule RightColumnHasContent {
-  when: rawSvg exists and structuredSvg exists and FocusViewModal.step = format
-  ensures:
-    right column shows structuredSvg with its full action set:
-      edit button, restructure button, copy, download
-    restructure re-triggers Phase 5 to regenerate structuredSvg from current rawSvg
+invariant RetraceRequiresBitmap {
+    -- The trace / retrace action (VTracer modal) is offered only for rows
+    -- with a bitmap. Vector model rows have no bitmap to trace.
+    for cell in PictogramCells:
+        cell.displayed_stage = bitmap implies cell.row.bitmap != null
 }
 
 ------------------------------------------------------------
@@ -493,137 +222,173 @@ rule RightColumnHasContent {
 ------------------------------------------------------------
 
 surface LibraryViewSwitcher {
-  @guidance "placement"
-    -- Top-left of the Library, parallel to the sort buttons on the right.
-    -- Visible while in list or grid mode; hidden in the home view.
+    facing user: LibraryConfig
+    context settings: LibraryConfig
 
-  @guidance "visual style"
-    -- Two icon buttons sharing a border, with the active one highlighted
-    -- (same idiom as the existing alphabetical / completeness pair).
+    exposes:
+        settings.view_mode
 
-  @guidance "button order"
-    -- List first (default), grid second.
+    provides:
+        ViewModeSelected(settings, mode)
 
-  @guidance "icons"
-    -- list = horizontal-rows icon (e.g. lucide List)
-    -- grid = grid-of-squares icon (e.g. lucide LayoutGrid)
+    @guarantee SortAppliesToBothViews
+        -- Both views show the same rows in the same order: alphabetical by
+        -- utterance, filtered by the header search text. There is no
+        -- user-facing sort control (the planned alphabetical /
+        -- completeness buttons were never built).
 
-  exposes:
-    GlobalConfig.libraryViewMode (read/write)
+    @guarantee DefaultViewIsList
+        -- A library with no stored mode opens in list: the row layout
+        -- makes the pipeline state and per-row controls legible on first
+        -- encounter.
+
+    @guidance
+        -- Right end of the library toolbar, after the Pictogramas /
+        -- Secuencias / Tableros tabs; list first, grid second (lucide List,
+        -- LayoutGrid), active one highlighted and aria-pressed. Shown only
+        -- in pictogramas mode with at least one row. When it scrolls under
+        -- the sticky header a floating copy appears at the right edge.
+}
+
+surface RowListView {
+    facing user: LibraryConfig
+    context row: Row
+
+    exposes:
+        row.utterance
+        row.bitmap
+        row.raw_svg
+        row.structured_svg
+        row.structured_svg_draft
+
+    @guarantee ExpandedRowLayout
+        -- An expanded row fits the viewport below the sticky header without
+        -- page scroll; each column takes the full interior height and
+        -- scrolls on its own. On narrow viewports the columns stack, each
+        -- slot snaps into view.
+
+    @guarantee RowArtifactStacking
+        -- The produce column stacks the available artifacts in pipeline
+        -- order: bitmap, trazado, estructurado (and borrador). Every slot
+        -- offers download; SVG slots add edit; the trazado slot adds
+        -- retrace only when the row has a bitmap; Phase 3 regeneration is
+        -- the column-level button, not a bitmap-slot action.
+
+    @guarantee StructuringViewIsTheSameEverywhere
+        -- The row list and the focus view render artifacts, actions and
+        -- notices from one component (SVGGenerator); only the layout
+        -- differs (stacked here, columns in the focus view). While
+        -- structuring runs a progress panel takes the result slot. Below
+        -- the action row there is at most one short line: why a borrador
+        -- is not certified, or why structuring is pending. The Phase 4
+        -- model is chosen in the library settings, not per row.
 }
 
 surface PictogramGridCell {
-  @guidance "aspect ratio"
-    -- The pictogram area is square (1:1). Non-square pictograms are
-    -- letterboxed inside their square slot.
+    facing user: LibraryConfig
+    context cell: PictogramCell
 
-  @guidance "responsive columns"
-    -- Number of columns adapts to viewport width. Suggested breakpoints:
-    --   <640px   : 2 columns
-    --   <1024px  : 3 columns
-    --   <1280px  : 4 columns
-    --   >=1280px : 5 columns
-    -- Tune in implementation; no hard requirement.
+    exposes:
+        cell.displayed_stage
+        cell.row.utterance
+        cell.hovered
 
-  @guidance "stage-pill labels"
-    -- Use existing translation keys. Only trazado and estructurado carry
-    -- a pill (see StageLabelVisibility). Bitmap has no pill.
+    provides:
+        CellHovered(cell)
+        CellPictogramClicked(cell) when cell.displayed_stage != none
+        CellBadgeClicked(cell, step)
+        CellPlayClicked(cell)
+        CellUtteranceEdited(cell, text)
 
-  @guidance "hover affordance gating"
-    -- Action buttons must be reachable by Tab in the same DOM order they
-    -- appear visually. The stage pill itself is informational only.
+    @guarantee StageLabelOnHover
+        -- The stage pill is visible only on hover and names every
+        -- displayed stage, bitmap included. (Changed: the bitmap used to
+        -- carry no label; grid cells now fall back to it on most rows.)
 
-  exposes:
-    Row.utterance, Row.bitmap, Row.rawSvg, Row.structuredSvg
-    Row.nluStatus, Row.visualStatus, Row.bitmapStatus
-    cascade trigger, focus-modal trigger (nlu / visual / producir)
-    edit (if vectorial) / re-trace (if bitmap exists) / download for displayed stage
-    inline utterance editing (delegates to existing row handler)
+    @guidance
+        -- Vertical card: square pictogram area (non-square images
+        -- letterboxed) showing displayed_stage, or a large Play when none;
+        -- footer with the sentence-cased utterance, Play/Stop and badges
+        -- 1-3. Columns: 2 below 640 px, 3 below 1024 px, 4 below 1280 px,
+        -- 5 above. Hover actions are reachable by Tab in visual order.
 }
 
 surface ProducirFocusStep {
-  @guidance "model-conditional rendering"
-    -- Show bitmap for bitmap-producing models; show native SVG for vector models.
-    -- The step label and content must reflect the actual output type.
+    facing user: LibraryConfig
+    context view: FocusView where step = producir
 
-  @guidance "edit button gating"
-    -- Edit button appears only when native SVG is shown (recraftv4_1_vector rows).
-    -- Not shown for bitmap output.
+    exposes:
+        view.row.bitmap when not view.row.is_vector_model
+        view.row.raw_svg when view.row.is_vector_model
 
-  @guidance "no inline style cleanup"
-    -- "Limpiar estilos en línea" is not present here. It is accessible
-    -- only from within SVGEditorModal.
+    provides:
+        ProducirStructureClicked(view) when view.row.bitmap != null
+        FocusStepSelected(view, step)
 
-  exposes:
-    Row.bitmap (bitmap model rows)
-    Row.rawSvg (vector model rows, as Phase 3 native SVG)
-    edit action for rawSvg (vector rows only)
-    Phase 3 regenerate trigger
+    @guarantee Phase3ArtifactStaysInProducirStep
+        -- This step shows only the Phase 3 artifact: the bitmap for a
+        -- bitmap model, the native SVG for a vector model. A trace of the
+        -- bitmap never appears here; it belongs to the format step.
+
+    @guidance
+        -- Vector rows: edit (SVGEditorModal on the raw SVG) and an SVG
+        -- download. Bitmap rows: "Estructurar". Footer: regenerate (Stop
+        -- while running) and copy, which copies the prompt. "Limpiar
+        -- estilos en línea" is not offered here; only inside the editor.
 }
 
-surface FocusModalFormatStep {
-  @guidance "two-column rule"
-    -- Source left (trazado, or the bitmap), results right (estructurado,
-    -- borrador). All visible at the same time; no toggling.
+surface FormatFocusStep {
+    facing user: LibraryConfig
+    context view: FocusView where step = format
 
-  @guidance "column sizing"
-    -- 50/50 split on wide viewports. Stack left-then-right on narrow ones.
+    exposes:
+        view.row.raw_svg
+        view.row.structured_svg
+        view.row.structured_svg_draft
+        view.row.bitmap
 
-  @guidance "action labels"
-    -- "Retrace" re-triggers VTracer on the bitmap; shown only on bitmap rows.
-    -- "Restructure" re-triggers Phase 5 on rawSvg; shown when structuredSvg exists.
-    -- Use existing i18n keys where available; add new keys for retrace/restructure
-    -- if none exist yet.
+    provides:
+        FocusStepSelected(view, step)
 
-  @guidance "no inline style cleanup"
-    -- "Limpiar estilos en línea" is not present in this view. It is accessible
-    -- only from within SVGEditorModal.
+    @guarantee FormatStepRendering
+        -- Same SVGGenerator view as the row list, in columns. Tiles, left
+        -- to right: trazado (or the bitmap as source, no actions),
+        -- estructurado, borrador, and an empty slot beside a lone trazado.
+        -- Each artifact tile carries edit, download and delete (delete
+        -- asks first; trazado and estructurado are flagged discarded, the
+        -- borrador is cleared). One action row: with an estructurado,
+        -- restructure (when a trazado exists) + retrace; with a trazado
+        -- only, "Estructurar trazado" (primary) + "Estructurar desde el
+        -- bitmap" + retrace; with a bitmap only, "Estructurar" (primary) +
+        -- "Solo trazar". Retrace only when the row has a bitmap. The
+        -- footer downloads the most downstream SVG.
 
-  exposes:
-    Row.rawSvg, Row.structuredSvg, Row.structuredSvgDraft
-    edit, download and delete per artifact tile
-    retrace action (only when row.bitmap exists)
-    restructure action (when structuredSvg exists)
-    Estructurar trazado (primary, when rawSvg exists and structuredSvg absent)
-    Estructurar / Solo trazar (bitmap only)
+    @guarantee FormatStepEmpty
+        -- With no trazado, estructurado, borrador or bitmap, a single
+        -- notice replaces the tiles. The earlier gated design (right
+        -- column disabled until a trace exists) is superseded.
+
+    @guidance
+        -- "Limpiar estilos en línea" is not present; only inside the
+        -- editor. 50/50 split on wide viewports, stacked on narrow ones.
 }
 
 ------------------------------------------------------------
 -- Open Questions
 ------------------------------------------------------------
 
--- Resolved: default view is list, mode persists in GlobalConfig
--- Resolved: sort buttons stay top-right, view switcher goes top-left
--- Resolved: terms are bitmap / trazado / estructurado (existing i18n)
--- Resolved: pictogram click always opens NLU step, badges are shortcuts
--- Resolved: utterance click edits inline (same as row mode)
--- Resolved: placeholder Play and footer Play share style/handler
--- Resolved: format step right column disabled until rawSvg exists
--- Resolved: FocusStep renamed bitmap → producir (step 3 shows bitmap OR native SVG)
--- Resolved: edit button in step 3 gated on native SVG (vector rows only)
--- Resolved: retrace and restructure are explicit labels in step 4 (not generic "regenerate")
--- Resolved: retrace requires row.bitmap; not available for recraftv4_1_vector rows
--- Resolved: "Limpiar estilos en línea" removed from focused view; accessible in SVGEditorModal only
--- Resolved: row list view stacks all artifacts (bitmap → trazado → estructurado) in Produce column
--- Resolved: bitmap slot in row list has download only; Phase 3 regeneration is column-level
--- Resolved: DisplayedStagePriority applies to grid view only
--- Resolved: expanded row max ~85vh, viewport-contained, columns scroll internally
+-- Resolved: default view is list; the mode persists in the library config
+-- Superseded: sort buttons were never built; rows are alphabetical
+-- Superseded: pictogram click opened nlu; it now opens producir or format
+-- Superseded: format right column disabled until a trace exists
+-- Superseded: bitmap carries no stage label
+-- Resolved: retrace requires a bitmap; never on vector model rows
+-- Resolved: "Limpiar estilos en línea" lives only in SVGEditorModal
 
--- Open: Hover overlay on touch devices — touch has no hover. Should the
---       overlay become tap-to-reveal (first tap reveals, second activates)?
---       Or are the actions reachable only via the focus modal on touch?
+open question "The format-step empty notice still reads 'El estructurado se genera a partir del trazado. Vectoriza primero.' (library.structureRequiresRaw), but it now shows only when the row has no image at all. Should it point at Producir?"
 
--- Open: Cell selection / multi-select in grid mode — a grid invites it
---       (pinterest-like) but row view has no multi-select either.
---       Out of scope for v1; worth revisiting.
+open question "Hover overlay on touch devices: tap-to-reveal, or actions only through the focus modal?"
 
--- Open: Keyboard navigation across cells (arrow keys, Enter to open NLU,
---       Space to trigger Play). Not addressed here; expected for
---       accessibility parity in a future pass.
+open question "Keyboard navigation across grid cells (arrow keys) for accessibility parity."
 
--- Open: Bitmap editing with external tool — the bitmap slot has no edit
---       action (no bitmap editor implemented). A future "edit with external
---       tool" affordance was suggested and deferred. When revisited: define
---       what "external tool" means in a browser context (download-and-open
---       vs. round-trip edit) and whether it belongs to this spec or a
---       dedicated tool-integration spec.
+open question "Bitmap editing with an external tool: download-and-open or round-trip; this spec or a tool-integration spec?"

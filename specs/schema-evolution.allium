@@ -1,6 +1,16 @@
 -- allium: 3
 -- Schema products evolve from empirical work inside PICTOS. This describes
 -- the release contract, not a claim that remote publication has happened.
+--
+-- Tooling (2.8.0): scripts/export-schema.mjs prepares local snapshots
+-- (preview or committed, allowlist, credential scan, EXPORT_MANIFEST.json);
+-- scripts/publish-schema.sh is a compatibility entry to it and never
+-- publishes; scripts/sync-schema-mirror.sh <product> is a dry run unless
+-- --push, and pushes one-way to github.com/mediafranca/<product>.
+-- Current product versions: pictos-nlu-schema 1.1.0, pictos-composition-schema
+-- 0.1.0, pictos-svg-schema 2.0.0-draft.1, pictos-api-schema 1.1.0 (in
+-- progress). Licences: CC BY-SA 4.0 for the NLU product, CC BY 4.0 for the
+-- other three.
 
 ------------------------------------------------------------
 -- External Entities
@@ -54,10 +64,11 @@ contract CanonicalSchemaProducts {
         -- Legacy readability does not certify current-generation conformity.
 
     @invariant PortableSvgContractsStaySynchronized
-        -- The mf-svg product bundles the exact versioned NLU and composition
+        -- The pictos-svg-schema product bundles the exact versioned NLU and composition
         -- definitions needed to validate embedded payloads without PICTOS or
         -- network access. Tests compare these bundled definitions with their
-        -- canonical local products; copying them does not create another
+        -- canonical local products (2.0.0-draft.1 pins NLU 1.1.0 and
+        -- composition 0.1.0); copying them does not create another
         -- independently editable authority. Schema resolution never falls back
         -- silently to an unversioned remote definition or a newer profile.
 
@@ -80,7 +91,8 @@ contract IndependentPublication {
 
     @invariant ExplicitApproval
         -- Publication requires an explicit maintainer approval for the exact
-        -- product, revision, destination and licence. Preparing files locally
+        -- product, revision, destination and licence (in practice: the
+        -- maintainer runs the sync with --push from a clean product directory). Preparing files locally
         -- does not authorize creating a remote repository, pushing, or tagging.
 
     @invariant PreserveRemoteHistory
@@ -94,8 +106,12 @@ contract IndependentPublication {
         -- directory. Synchronisation stops without publishing when it would
         -- replace a frozen release, delete a file that exists only in the
         -- mirror, or reuse a tagged version for different contract bytes,
-        -- unless the maintainer names that exact file. A change that leaves
-        -- every contract identical is published without a new version tag.
+        -- unless the maintainer names that exact file. Frozen files and their
+        -- hashes are listed in the product's FROZEN_RELEASES.json. The
+        -- product's own tests run before export. A change that leaves every
+        -- contract identical is published without a new version tag; a
+        -- version tag that already exists is never reused for different
+        -- *.schema.json bytes.
 
     @invariant SchemaLicenceDoesNotGrantCorpusRights
         -- A product licence covers only material to which the publisher has
@@ -302,5 +318,5 @@ surface ProductDevelopment {
 -- Open Questions
 ------------------------------------------------------------
 
-open question "Which publication and licensing policy is approved for each of the three products, preserving existing rights and distinguishing specifications, examples and executable validators?"
+open question "Which publication and licensing policy is approved for each of the four products, preserving existing rights and distinguishing specifications, examples and executable validators? (The NLU product is CC BY-SA 4.0, the others CC BY 4.0; is the difference intended?)"
 open question "What release/version compatibility policy is required once independent consumers rely on these products?"

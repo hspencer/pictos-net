@@ -167,9 +167,13 @@ contract UnderstandingBoundary {
 
     @invariant UnderstandingModelRouting
         -- The effective model is comprender_model, then legacy_nlu_model, then
-        -- Claude Haiku. Claude models use the Claude boundary; Gemini text
-        -- models use the Gemini NLU boundary. OpenAI text models use their
-        -- own server boundary with the same canonical acceptance validator.
+        -- config.default_nlu_model (Claude Haiku 5.5). Only models the model
+        -- catalog admits for the phase may run; the offered ones are Claude
+        -- Haiku 5.5 and, as alternative provider, OpenAI GPT-6 Luna. Claude
+        -- models use the Claude boundary; OpenAI text models use their own
+        -- server boundary with the same canonical acceptance validator. The
+        -- Gemini NLU boundary remains but no Gemini text model is admitted
+        -- for this phase (all retired), so it is dormant.
 }
 
 contract CompositionBoundary {
@@ -203,7 +207,8 @@ contract CompositionBoundary {
 
     @invariant CompositionModelRouting
         -- The effective model is componer_model, then legacy_nlu_model, then
-        -- Claude Haiku, routed by provider family independently of Phase 1.
+        -- config.default_nlu_model (Claude Haiku 5.5), routed by provider
+        -- family independently of Phase 1, from the same catalog-admitted set.
         -- OpenAI follows the same shared full-document contract in individual
         -- and batch execution; provider choice never removes semantic fields.
 }
@@ -258,14 +263,19 @@ contract Phase3GenerationBoundary {
         -- atomically at trigger time. An in-flight call never mixes versions.
 
     @invariant SquareArtifact
-        -- Bitmap models produce square PNG; the vector model produces native
-        -- square SVG. A vector response never embeds a raster image.
+        -- Bitmap models (GPT Image 2.5 Flare, the default; Nano Banana 2 Lite;
+        -- Recraft V4.1 raster variants) produce a square bitmap; the Recraft
+        -- V4.1 vector variants produce native square SVG. A vector response
+        -- never embeds a raster image.
 
     @invariant OpenAIUsesTheCompleteTextPrompt
-        -- OpenAI image models (GPT Image 2 and GPT Image 2.5 Flare) consume the
-        -- same textual prompt composition as Gemini:
+        -- OpenAI image models (GPT Image 2.5 Flare; GPT Image 2 is retired)
+        -- consume the same textual prompt composition as Gemini, built by one
+        -- shared builder for browser and server:
         -- semantic snapshot, element identities, spatial instructions, visual
-        -- style, palette, and communicative intention. No JSON schema, function
+        -- style, palette, and communicative intention. Quoted snake_case
+        -- element ids reach the image model as plain words, never as
+        -- captions to draw. No JSON schema, function
         -- call, or XML output is required from the image model. Image editing
         -- and reference-image input are outside this integration.
 
@@ -340,29 +350,50 @@ contract VectorizationBoundary {
     vectorize: (bitmap: String) -> String
 
     @invariant LocalAndUserTriggered
-        -- VTracer runs locally and only after an explicit user action. It makes
-        -- no provider call, charges no quota, and preserves the source bitmap.
+        -- Vectorizing is not a pipeline phase. "Solo trazar" (the legacy
+        -- VTracer 0.6 trace dialog) runs locally and only after an explicit
+        -- user action. It makes no provider call, charges no quota, and
+        -- preserves the source bitmap. Applying a trace replaces the row's
+        -- trace and invalidates any structured SVG derived from the old one.
+        -- The region trace made inside Estructurar from the bitmap (VTracer
+        -- 1.0) is part of StructuringBoundary, not this boundary.
 }
 
 contract StructuringBoundary {
     structure: (raw_svg: String, elements: List<VisualElement>) -> StructuringMapping
+    structure_from_bitmap: (bitmap: String, elements: List<VisualElement>) -> StructuringMapping
     assemble_revision: (input: structured/StructuringInput, mapping: StructuringMapping) -> String
 
+    @invariant TwoEntriesOneAssembly
+        -- Phase 5 (shown as phase 4 in the interface; its persisted and
+        -- logged identifier stays 5) has two entries. From the bitmap, the
+        -- primary action on a bitmap row, it traces regions locally and asks
+        -- restructure_regions (structured/JointVectorizeStructure). From an
+        -- existing trace or native SVG it asks restructure_svg. Both end in
+        -- the same local assembly and verification. The only structuring
+        -- model offered is Claude Sonnet 4.6.
+
     @invariant OneModelCall
-        -- Phase 5 makes one forced restructure_svg call per trigger, without an
-        -- automatic retry loop.
+        -- Each trigger makes one forced structuring call (restructure_svg or
+        -- restructure_regions), without an automatic retry loop. The bitmap
+        -- entry first makes one entity-detection call (Gemini 3.8 Flash, zero
+        -- usage units); its failure is not retried and structuring proceeds
+        -- without detection.
 
     @invariant NLUExcluded
         -- Utterance, frames, pragmatics, domain, and visual guidelines are not
         -- sent to the structuring model. It receives visual evidence and elements.
-        -- This restriction concerns the regrouping model request. Local final
+        -- The entity-detection request receives the bitmap, the utterance and
+        -- the non-root element ids, nothing else from the NLU.
+        -- This restriction concerns the model requests. Local final
         -- assembly receives and embeds the complete accepted NLU and complete
         -- composition including its prompt, plus actually known provenance.
 
     @invariant GeometryRemainsLocal
-        -- The model returns path ids and optional merge sources, never path
-        -- geometry. Kept geometry comes verbatim from raw SVG; accepted merges
-        -- are computed locally after IoU, area, and fill-role validation.
+        -- The model returns path or region ids and optional merge sources,
+        -- never path geometry. Kept geometry comes verbatim from the trace;
+        -- accepted merges are computed locally after IoU, area, fill-role and
+        -- identical-paint validation. Post-assembly paint fusion is local too.
 
     @invariant MergeFailureIsNonBlocking
         -- An invalid merge silently falls back to its original paths and does
@@ -379,14 +410,15 @@ contract StructuringBoundary {
     @invariant AccessibleSchemaAssembly
         -- Selected semantic groups reproduce the element hierarchy, expose group
         -- roles and editable labels, use palette CSS classes without inline fill,
-        -- retain unassigned paths in a context group, and conform to mf-svg.
+        -- retain unassigned paths in an unclassified group without a concept,
+        -- and conform to mf-svg.
         -- Retaining unassigned geometry preserves a draft, not evidence of a
         -- known Context concept. Conformance is determined after all final
         -- post-processing under the versioned structured artifact contract.
 
     @invariant FinalRevisionAcceptance
-        -- Every entry point, reviewed assembly, redraw and editor save uses
-        -- the same final validation boundary. A failed candidate remains
+        -- Every entry point, reviewed assembly, draft certification and editor
+        -- save uses the same final validation boundary. A failed candidate remains
         -- available as a diagnostic draft, preserving the previous accepted
         -- SVG. XML parsing or a confirmed mapping alone cannot mark completion.
         -- Only exact validated final bytes acquire a canonical hash reference.
@@ -401,8 +433,10 @@ contract StructuringBoundary {
         -- overwrite a newer workspace snapshot as if it described that state.
 
     @invariant FidelityPrefersLessLoss
-        -- Before completion, path coverage is compared with raw SVG. If needed,
-        -- a merge-free assembly replaces a lossier merged result.
+        -- Before completion, ink coverage is compared with the trace the
+        -- result derives from, drafts included. Paint fusion is kept only when
+        -- that comparison still passes. If the comparison fails, a merge-free
+        -- assembly replaces a lossier merged result. It never blocks.
 
     @invariant ConsoleTraceIsComplete
         -- Console output records prompt, image summary, model, duration, HTTP
@@ -413,8 +447,9 @@ contract StructuringBoundary {
 -- Enumerations
 ------------------------------------------------------------
 
-enum StepStatus { idle | processing | completed | error | outdated }
+enum StepStatus { idle | processing | completed | error | outdated | review }
 enum NLUModel {
+    `claude-haiku-5-5` |
     `claude-haiku-4-5-20251001` |
     `claude-sonnet-4-6` |
     `gemini-2.5-flash` |
@@ -425,8 +460,11 @@ enum NLUModel {
     `gpt-5.6-sol` |
     `gpt-6-luna`
 }
--- In NLUModel, gemini-2.5-flash and gemini-2.5-pro are retired (2026-10-20)
--- and kept only because saved configurations may name them.
+-- In NLUModel only claude-haiku-5-5 (default) and gpt-6-luna are admitted.
+-- The rest are retired (Gemini 2.5 by Google on 2026-10-20, the others by the
+-- 2026-11-01 benchmark) and kept only because saved configurations may name
+-- them; a library config that names one drops it on load. gemini-3.8-flash
+-- survives only as the entity-detection model, outside these phases.
 enum VisualConcept { root | agent | action | object | context | element }
 enum Phase3AttemptStatus { processing | completed | error | cancelled }
 enum Phase3FailureKind { generation_error | external_provider_quota | no_image }
@@ -453,6 +491,7 @@ entity VisualReasoning {
     structured_svg: String?
     structured_svg_reference: structured/RevisionReference?
     structured_svg_status: StepStatus
+    structured_svg_draft: String?
     audio: String?
     active_phase3_attempt: Phase3Attempt?
     active_phase5_attempt: Phase5Attempt?
@@ -485,7 +524,7 @@ entity Phase5Attempt {
 
 config {
     openai_image_size: Integer = 1024
-    default_nlu_model: NLUModel = `claude-haiku-4-5-20251001`
+    default_nlu_model: NLUModel = `claude-haiku-5-5`
     phase5_review_reading_wpm: Integer = 200
     phase5_review_multiplier: Integer = 3
     phase5_review_minimum: Duration = 10.seconds
@@ -509,13 +548,9 @@ rule CompleteUnderstanding {
     requires: canonical_nlu_valid(nlu, validation)
     ensures: reasoning.nlu = nlu
     ensures: reasoning.nlu_status = completed
-    ensures:
-        if reasoning.visual_status in {completed, error}:
-            reasoning.visual_status = outdated
-        if reasoning.bitmap_status in {completed, error}:
-            reasoning.bitmap_status = outdated
-        if reasoning.structured_svg_status in {completed, error}:
-            reasoning.structured_svg_status = outdated
+    ensures: reasoning.visual_status = outdated
+    ensures: reasoning.bitmap_status = outdated
+    ensures: reasoning.structured_svg_status = outdated
 }
 
 rule FailUnderstanding {
@@ -541,11 +576,8 @@ rule CompleteComposition {
     ensures: reasoning.elements = composition.elements
     ensures: reasoning.prompt = composition.prompt
     ensures: reasoning.visual_status = completed
-    ensures:
-        if reasoning.bitmap_status in {completed, error}:
-            reasoning.bitmap_status = outdated
-        if reasoning.structured_svg_status in {completed, error}:
-            reasoning.structured_svg_status = outdated
+    ensures: reasoning.bitmap_status = outdated
+    ensures: reasoning.structured_svg_status = outdated
 }
 
 rule FailComposition {
@@ -579,7 +611,7 @@ rule RegenerateSpatialPrompt {
     ensures: reasoning.visual_status = completed
     ensures: reasoning.bitmap_status = outdated
     ensures:
-        if reasoning.structured_svg_status in {completed, error}:
+        if reasoning.structured_svg != null or reasoning.structured_svg_status in {completed, error, review}:
             reasoning.structured_svg_status = outdated
 }
 
@@ -654,9 +686,7 @@ rule CompleteBitmapPhase3 {
     ensures: attempt.reasoning.generation_model = attempt.selected_model
     ensures: attempt.reasoning.generation_quality = attempt.selected_quality
     ensures: attempt.reasoning.bitmap_status = completed
-    ensures:
-        if attempt.reasoning.structured_svg_status in {completed, error}:
-            attempt.reasoning.structured_svg_status = outdated
+    ensures: attempt.reasoning.structured_svg_status = idle
 }
 
 rule CompleteVectorPhase3 {
@@ -670,9 +700,7 @@ rule CompleteVectorPhase3 {
     ensures: attempt.reasoning.generation_model = attempt.selected_model
     ensures: attempt.reasoning.generation_quality = null
     ensures: attempt.reasoning.bitmap_status = completed
-    ensures:
-        if attempt.reasoning.structured_svg_status in {completed, error}:
-            attempt.reasoning.structured_svg_status = outdated
+    ensures: attempt.reasoning.structured_svg_status = outdated
 }
 
 rule FailPhase3 {
@@ -759,14 +787,17 @@ rule VectorizeBitmapLocally {
     requires: reasoning.bitmap != null
     requires: not generation_model_is_vector(reasoning.generation_model)
     ensures: reasoning.raw_svg = svg_artifact
+    ensures: reasoning.structured_svg = null
+    ensures: reasoning.structured_svg_status = outdated
+    @guidance
+        -- "Solo trazar": the manual trace dialog. Not part of the cascade.
 }
 
 rule StartPhase5 {
     when: Phase5Requested(reasoning, selected_model)
     requires: reasoning.raw_svg != null
-    requires: reasoning.nlu != null
     requires: reasoning.elements != null
-    requires: reasoning.prompt != null
+    requires: reasoning.elements.count > 0
     ensures:
         let attempt = Phase5Attempt.created(
             reasoning: reasoning,
@@ -777,6 +808,41 @@ rule StartPhase5 {
         )
         reasoning.active_phase5_attempt = attempt
         reasoning.structured_svg_status = processing
+    @guidance
+        -- "Estructurar trazado": structures the existing trace or native SVG.
+        -- Missing or historical NLU does not block a draft; it blocks only
+        -- certification (structured/DraftAdmissionIsOperational).
+}
+
+rule StartPhase5FromBitmap {
+    when: Phase5FromBitmapRequested(reasoning, selected_model)
+    requires: reasoning.bitmap != null
+    requires: reasoning.elements != null
+    requires: reasoning.elements.count > 0
+    ensures:
+        let attempt = Phase5Attempt.created(
+            reasoning: reasoning,
+            selected_model: selected_model,
+            status: processing,
+            mapping: null,
+            review_duration: null
+        )
+        reasoning.active_phase5_attempt = attempt
+        reasoning.structured_svg_status = processing
+    @guidance
+        -- "Estructurar" on a bitmap row ("Estructurar desde el bitmap" when a
+        -- trace exists, which it replaces). Entity detection, region trace,
+        -- one restructure_regions call, then the common assembly.
+}
+
+rule KeepRegionTrace {
+    when: RegionTraceProduced(attempt, trace)
+    requires: attempt.status in {processing, review}
+    ensures: attempt.reasoning.raw_svg = trace
+    @guidance
+        -- The region trace is the technical artifact the structure derives
+        -- from. It replaces the row's trace even when structuring then fails
+        -- or yields only a draft, and before a recording-mode review.
 }
 
 rule BeginPhase5Review {
@@ -819,6 +885,20 @@ rule ConfirmPhase5Review {
         profile_version: conformance.profile_version,
         content_hash: conformance.content_hash
     }
+}
+
+rule RetainPhase5Draft {
+    when: Phase5DraftProduced(attempt, draft)
+    requires: attempt.status in {processing, review}
+    ensures: attempt.status = completed
+    ensures: attempt.reasoning.structured_svg_draft = draft
+    ensures:
+        if attempt.reasoning.structured_svg_status != completed:
+            attempt.reasoning.structured_svg_status = outdated
+    @guidance
+        -- Assembly that renders but does not certify yields an editable
+        -- draft. It never replaces the accepted structured SVG or its
+        -- reference; a row that had one keeps status completed.
 }
 
 rule FailPhase5 {
@@ -869,8 +949,8 @@ invariant NativeSvgIsNeverBitmapModelOutput {
 
 invariant OpenAIQualitySnapshot {
     for attempt in Phase3Attempts:
-        (attempt.selected_model = `gpt-image-2` implies attempt.selected_quality != null)
-        and (attempt.selected_model != `gpt-image-2` implies attempt.selected_quality = null)
+        (generation_model_is_openai(attempt.selected_model) implies attempt.selected_quality != null)
+        and (not generation_model_is_openai(attempt.selected_model) implies attempt.selected_quality = null)
 }
 
 ------------------------------------------------------------
@@ -898,5 +978,7 @@ surface VisualReasoningPipeline {
 -- Explicitly supplied implicit bindings are allowed; otherwise the node stays
 -- unresolved in the retained complete composition, not silently inferred.
 open question "Should Phase 5 review include a minimum time per semantic node?"
+open question "When entity detection finds several Agents, which one performs an undrawn Action? Today the first detected Agent in tree order is used."
+open question "Should the redraw route (redrawSVG, retired as default for high variance and reachable from no entry point) be deleted or kept as an explicit option?"
 open question "Should confirmed Phase 5 review data be retained as a future training tuple?"
 open question "Should Phase 5 review allow individual path selection within a semantic node?"

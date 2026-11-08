@@ -1,193 +1,312 @@
 -- allium: 3
 -- intervention-recording.allium
 
--- Scope: Recording of user interventions on the semantic AND graphic
---   phases of the pipeline.
+-- Scope: Recording of user interventions on the semantic AND graphic phases
+--   of the pipeline, for research (services/interventionRecording.ts), and
+--   the per-row audit panel that gives participants full control over it
+--   (components/RowAuditPanel.tsx).
 -- Includes:
---   - Per-row intervention log embedded inside the row JSON
---   - Session envelope bound to row engagement (any of: row expanded in
---     list, focus modal, SvgEditor, VectorizerModal — all for the same row)
---   - Edit and discard events on phases: utterance, nlu, elements, prompt,
---     svg_raw, svg_structured
---   - Element-level operation kinds: add, remove, rename, reorder
---   - SvgMetrics summary for svg_raw and svg_structured: size, entity count,
---     class set, structural hash. NO full SVG content is stored.
---   - Global toggle "Registrar modificaciones" in the Library settings
---   - Context metadata snapshot per event (analysis language, geo context, model)
---   - Empty sessions are dropped at close, not stored
---   - No-op edits (before == after on every metric) emit no event
+--   - A per-row intervention log embedded in the row JSON
+--   - Sessions bound to row engagement
+--   - Edit and discard events on utterance, nlu, elements, prompt, svg_raw,
+--     svg_structured
+--   - Element operation kinds: add, remove, rename, reorder
+--   - SvgMetrics summaries for SVG phases; no SVG content is stored
+--   - The "Registrar modificaciones" library setting
+--   - Empty sessions dropped at close; no-op edits emit nothing
+--   - The row clipboard context header
 -- Excludes:
---   - Configuration changes: lang, geoContext, visualStylePrompt, aspectRatio
---   - Row management actions: create, delete, reorder, duplicate, import from library
---   - Free-text rationale from the participant (captured outside the tool, in workshop)
---   - Audit panel actions on the log itself (read/edit/copy/delete) — meta-recursive
---   - Per-event identity. Attribution is provided once, at the Library level,
---     by GlobalConfig.credits (existing field, "Autores/institución para
---     atribución de la librería"). The intervention log carries no
---     participant identifier of its own.
--- Dependencies: RowData and GlobalConfig from types.ts (notably GlobalConfig.credits)
-
-------------------------------------------------------------
--- Value Types
-------------------------------------------------------------
-
-value Phase {
-  utterance       -- the input phrase typed by the participant
-  nlu             -- the NSM analysis output (NLUData)
-  elements        -- the visual hierarchy tree
-  prompt          -- the spatial articulation prompt
-  svg_raw         -- the traced SVG (rawSvg) produced by VTracer
-  svg_structured  -- the semantically structured SVG (structuredSvg)
-}
-
-value EventKind {
-  edit        -- the participant manually changed the artifact
-  discard     -- the previous artifact was rejected and regenerated without manual change
-}
-
-value ElementOp {
-  add         -- a new node was inserted under a parent
-  remove      -- a node and its subtree were removed
-  rename      -- the id of an existing node was changed
-  reorder     -- a node was moved to a new position in the tree
-}
-
-value RowClipboardContext {
-  -- Portability header attached to a row ONLY when it leaves its
-  -- containing library (e.g. via "Copy Row" → clipboard). Inside a
-  -- library export the library config already carries lang / uiLang /
-  -- geoContext, so events never duplicate them. The header restores
-  -- that information when the row travels alone.
-  lang: String              -- analysis language inherited from the library at copy time
-  ui_lang: String?          -- interface language at copy time
-  geo_context: String?      -- geographic context if configured
-}
-
-value InterventionEvent {
-  id: String                    -- stable short id (8-char hex) generated at creation;
-                                -- enables per-event annotations and audit-panel curation
-                                -- to survive reordering or partial deletion of the events array
-  phase: Phase
-  kind: EventKind
-  at: Timestamp                 -- ISO 8601, captured at commit moment
-  op: ElementOp?                -- present iff phase = elements and kind = edit
-  before: Artifact?             -- previous state of the phase artifact (absent on first edit)
-  after: Artifact?              -- new state (absent when kind = discard)
-  model_id: String?             -- Gemini model that produced the discarded artifact;
-                                -- only set on discard events for AI-generated phases
-  -- Note: lang / uiLang / geoContext are NOT recorded per event. The
-  -- library config carries them once, and every event under that library
-  -- inherits them by construction. This is by design — the participant
-  -- is told to configure the library before starting work, so mid-work
-  -- configuration changes are not expected. If they did happen, they
-  -- would not be visible in this log; the library config is the canonical
-  -- record of "the analysis configuration this corpus was made under".
-}
-
-value Artifact {
-  -- Container for the phase content at the moment of the event.
-  -- Shape depends on phase:
-  --   utterance      -> String
-  --   nlu            -> NLUData JSON
-  --   elements       -> tree of { id, children } pairs
-  --   prompt         -> String
-  --   svg_raw        -> SvgMetrics (NOT the full SVG content)
-  --   svg_structured -> SvgMetrics (NOT the full SVG content)
-  -- For semantic phases the recorder stores the artifact verbatim so the
-  -- corpus is reconstructible. For SVG phases the recorder stores only
-  -- a lightweight summary — full SVG content can be hundreds of KB and
-  -- copying it before/after every editor session would balloon the log.
-}
-
-value SvgMetrics {
-  -- Lightweight, indicative summary of an SVG artifact.
-  size: Integer                  -- byte length of the SVG string
-  entities: Integer              -- count of <path>, <rect>, <circle>, <ellipse>,
-                                 -- <polygon>, <polyline>, <line>, <g> elements
-  classes: [String]              -- ordered union of every value in `class=` attributes
-  structural_hash: String        -- short hash (e.g. sha-256, 8 chars) of the
-                                 -- concatenation of every `d=` attribute. Equal hash
-                                 -- before/after = geometry unchanged. The hash is a
-                                 -- fingerprint, not a content store.
-}
-
-------------------------------------------------------------
--- Entities
-------------------------------------------------------------
-
-entity RecordingSetting {
-  -- Lives inside GlobalConfig and persists across sessions.
-  enabled: Boolean           -- default: false
-  -- The setting controls *writes*. Toggling does not erase prior logs.
-}
-
-entity RowInterventionLog {
-  -- Embedded inside the JSON of a Row. Travels with the row on copy and export.
-  sessions: [InterventionSession]
-}
-
-entity InterventionSession {
-  -- A session has no identifier of its own. Attribution is carried by
-  -- GlobalConfig.credits at the Library level. Sessions are ordered
-  -- implicitly by started_at within their containing log.
-  started_at: Timestamp
-  ended_at: Timestamp?            -- absent while active
-  events: [InterventionEvent]
-
-  states: active, closed
-
-  @invariant "monotonic time"
-    -- For every pair of consecutive events e_i, e_{i+1}: e_i.at <= e_{i+1}.at
-}
+--   - Configuration changes (lang, geoContext, visualStylePrompt, models)
+--   - Row management (create, delete, reorder, duplicate, import)
+--   - Free-text rationale (captured in the workshop, outside the tool)
+--   - Actions on the log itself (read, edit, copy, delete): not recorded
+--   - Per-event identity: attribution is the Library's credits field
+-- Dependencies: Row and GlobalConfig (types.ts)
 
 ------------------------------------------------------------
 -- External Entities
 ------------------------------------------------------------
 
-external Row {
-  -- A pictogram row in the main grid. This spec does not model its phase
-  -- content; it only references the boundaries at which interventions
-  -- are observed.
-  --
-  -- "engaged" replaces the earlier binary open/closed model. A row is
-  -- engaged whenever ANY of its viewing/editing surfaces is active:
-  --   - the row is expanded in list view, OR
-  --   - the focus modal is open for this row, OR
-  --   - the SVG editor is open for this row, OR
-  --   - the vectorizer modal is open for this row.
-  -- The row stays engaged across transitions among those surfaces; it
-  -- becomes idle only when no surface is active. Sessions track the
-  -- engaged interval, not any single surface's lifetime.
-  states: idle, engaged
-  intervention_log: RowInterventionLog
+-- A pictogram row. Its log travels inside its JSON.
+external entity Row {
+    engaged: Boolean                -- any engagement surface is active for it
+    utterance: String
+    log: InterventionLog
 }
 
-external SvgEditor {
-  -- The DOM-level SVG editor modal. Operates on either the rawSvg or
-  -- the structuredSvg. This spec only references its open/close events
-  -- and the artifact it operates on; the editor's internal interactions
-  -- (boolean ops, simplify, node moves, class edits) are not modelled
-  -- individually.
-  source: svg_raw | svg_structured
-  rowId: String
+-- The open library's configuration.
+external entity LibraryConfig {
+    recording_enabled: Boolean      -- "Registrar modificaciones"; default false
+    credits: String?                -- library-level attribution
+    lang: String
+    ui_lang: String?
+    geo_context: String?
 }
 
-external VectorizerModal {
-  -- The VTracer wrapper that produces a fresh rawSvg from the bitmap.
-  -- Apply replaces any existing rawSvg.
-  rowId: String
+------------------------------------------------------------
+-- Value Types
+------------------------------------------------------------
+
+-- Lightweight, indicative summary of an SVG artifact.
+value SvgMetrics {
+    size: Integer                   -- byte length of the SVG string
+    entities: Integer               -- path, rect, circle, ellipse, polygon, polyline, line, g
+    classes: List<String>           -- sorted set of every class token
+    structural_hash: String         -- FNV-1a 32-bit (8 hex) of all path d attributes
 }
 
-external GlobalConfig {
-  -- The application-wide configuration object. This spec writes
-  -- RecordingSetting and reads other fields for ContextSnapshot
-  -- construction. Attribution travels through credits, which is
-  -- already part of GlobalConfig and is not redefined here.
-  recording: RecordingSetting
-  credits: String?          -- existing: "Autores/institución para atribución de la librería"
-  lang: String
-  geo_context: String?
-  ui_lang: String
+-- Portability header attached only when a row leaves its library alone.
+value RowClipboardContext {
+    lang: String
+    ui_lang: String?
+    geo_context: String?
+}
+
+------------------------------------------------------------
+-- Enumerations
+------------------------------------------------------------
+
+enum Phase {
+    utterance
+    | nlu
+    | elements
+    | prompt
+    | svg_raw             -- the raw SVG: native vector output or a trace
+    | svg_structured      -- the structured SVG
+}
+
+enum EventKind {
+    edit                -- the participant changed the artifact by hand
+    | discard           -- the artifact was rejected (regenerated or deleted)
+}
+
+enum ElementOp {
+    add
+    | remove
+    | rename
+    | reorder
+}
+
+------------------------------------------------------------
+-- Entities and Variants
+------------------------------------------------------------
+
+entity InterventionLog {
+    row: Row
+    sessions: InterventionSession with log = this
+
+    active_sessions: sessions where status = active
+}
+
+entity InterventionSession {
+    log: InterventionLog
+    started_at: Timestamp
+    ended_at: Timestamp?
+    events: InterventionEvent with session = this
+    status: active | closed
+
+    transitions status {
+        active -> closed
+        terminal: closed
+    }
+}
+
+entity InterventionEvent {
+    session: InterventionSession
+    event_id: String                -- 8-char hex, stable for curation
+    phase: Phase
+    kind: EventKind
+    at: Timestamp
+    op: ElementOp?                  -- present iff phase = elements and kind = edit
+    before: String?                 -- verbatim for semantic phases, SvgMetrics for SVG phases
+    after: String?                  -- absent on discard
+    model_id: String?               -- model that produced a discarded artifact (see open questions)
+}
+
+------------------------------------------------------------
+-- Rules
+------------------------------------------------------------
+
+-- === Sessions ===
+
+rule SessionStart {
+    when: row: Row.engaged transitions_to true
+    requires: exists LibraryConfig{recording_enabled: true}
+    requires: row.log.active_sessions.count = 0
+    ensures: InterventionSession.created(log: row.log, started_at: now, status: active)
+
+    @guidance
+        -- Engagement surfaces: the row expanded in list view, the focus
+        -- modal for it, the SVG editor for it, and the vectorizer modal
+        -- for it. The implementation counts only the first three (see open
+        -- questions). With recording off no session starts; existing
+        -- sessions are untouched. Moving between surfaces of the same row
+        -- keeps one session.
+}
+
+rule SessionEnd {
+    when: row: Row.engaged transitions_to false
+    for session in row.log.active_sessions:
+        ensures: PendingEditsSettled(row: row)
+        ensures:
+            if session.events.count = 0:
+                not exists session
+            else:
+                session.status = closed
+                session.ended_at = now
+
+    @guidance
+        -- Pending semantic edits are settled first, then an empty session
+        -- is dropped; only sessions with events are kept.
+}
+
+-- === Semantic edits ===
+
+rule SettleSemanticEdits {
+    when: PendingEditsSettled(row)
+    for session in row.log.active_sessions:
+        ensures: SemanticEditsRecorded(session: session)
+
+    @guidance
+        -- Settle moments: blur or Enter on a field, just before a
+        -- regeneration, and session end. Utterance, NLU and prompt are
+        -- compared with the snapshot taken at the last settle; each phase
+        -- that differs emits one edit event with before and after verbatim.
+        -- Typing, Tab and idle autosave are not commit moments.
+}
+
+rule ElementsEdit {
+    when: ElementOperationCommitted(row, op, before, after)
+    requires: exists LibraryConfig{recording_enabled: true}
+    requires: before != after
+    for session in row.log.active_sessions:
+        ensures: InterventionEvent.created(
+            session: session,
+            event_id: short_hex_id(),
+            phase: elements,
+            kind: edit,
+            at: now,
+            op: op,
+            before: before,
+            after: after
+        )
+
+    @guidance
+        -- Recorded eagerly, one event per committed operation with its
+        -- explicit kind; a gesture that changes a subtree is one event.
+}
+
+-- === Graphic edits ===
+
+rule SvgEditorSave {
+    when: SvgEditorSaved(row, phase, before, after)
+    requires: exists LibraryConfig{recording_enabled: true}
+    requires: before != after
+    requires: phase in {svg_raw, svg_structured}
+    for session in row.log.active_sessions:
+        ensures: InterventionEvent.created(
+            session: session,
+            event_id: short_hex_id(),
+            phase: phase,
+            kind: edit,
+            at: now,
+            before: before,
+            after: after
+        )
+
+    @guidance
+        -- One event per saved editor session, aggregating every operation
+        -- inside it: before = SvgMetrics at open, after = SvgMetrics of the
+        -- saved SVG. Equal metrics (every field) emit nothing; closing
+        -- without saving emits nothing.
+}
+
+-- === Discards ===
+
+rule PhaseRegenerationDiscard {
+    when: PhaseRegenerated(row, phase, before)
+    requires: exists LibraryConfig{recording_enabled: true}
+    requires: phase in {nlu, elements, prompt}
+    requires: before != null
+    for session in row.log.active_sessions:
+        ensures: InterventionEvent.created(
+            session: session,
+            event_id: short_hex_id(),
+            phase: phase,
+            kind: discard,
+            at: now,
+            before: before,
+            after: null
+        )
+
+    @guidance
+        -- Regenerating a step, and the cascade after an upstream edit,
+        -- each emit one discard per downstream phase that held a value.
+        -- The new artifact becomes the baseline of later events. The
+        -- implementation sends no model id (see open questions).
+}
+
+rule SvgArtifactDiscard {
+    when: SvgArtifactDiscarded(row, phase, before)
+    requires: exists LibraryConfig{recording_enabled: true}
+    requires: phase in {svg_raw, svg_structured}
+    for session in row.log.active_sessions:
+        ensures: InterventionEvent.created(
+            session: session,
+            event_id: short_hex_id(),
+            phase: phase,
+            kind: discard,
+            at: now,
+            before: before,
+            after: null
+        )
+
+    @guidance
+        -- Fired when the participant deletes a trazado or estructurado
+        -- tile, and when re-structuring replaces an existing structured
+        -- SVG. The spec also requires it when a fresh trace (Solo trazar /
+        -- retrace, or Estructurar from the bitmap) replaces an existing raw
+        -- SVG; the implementation does not record that case (see open
+        -- questions). First-time trace or structure: nothing to discard.
+}
+
+-- === Audit panel ===
+
+rule AuditPanelSave {
+    when: AuditLogSaved(row, edited)
+    requires: edited.is_valid_log
+    ensures: AuditLogReplaced(row: row, log: edited)
+
+    @guidance
+        -- Participant curation: drop sessions, redact events. The JSON
+        -- must parse and carry a sessions array, else an inline error.
+        -- Never auto-saves; closing without Save discards the edit.
+}
+
+rule AuditPanelClear {
+    when: AuditLogClearConfirmed(row)
+    for session in row.log.sessions:
+        ensures: not exists session
+
+    @guidance
+        -- After an inline confirmation. Only the log is cleared, including
+        -- any active session; the row and its media are kept. Later
+        -- engagement may start a fresh session.
+}
+
+rule CopyRowToClipboard {
+    when: CopyRowRequested(row, settings)
+    ensures: RowCopied(
+        row: row,
+        context: RowClipboardContext(lang: settings.lang, ui_lang: settings.ui_lang, geo_context: settings.geo_context)
+    )
+
+    @guidance
+        -- JSON with schemaVersion, appVersion, type "row-clipboard",
+        -- timestamp, context, the row (log included) and its SVG library
+        -- entries. The context is the only place lang / uiLang / geoContext
+        -- appear beside events; inside a library export the config carries
+        -- them once.
 }
 
 ------------------------------------------------------------
@@ -195,393 +314,29 @@ external GlobalConfig {
 ------------------------------------------------------------
 
 invariant SingleActiveSessionPerRow {
-  -- A row never has more than one active session at a time.
-  for row in Row.all:
-    count(row.intervention_log.sessions where state = active) <= 1
-}
-
-invariant EventsOnlyInsideSession {
-  -- Every event belongs to exactly one session, and is appended only while
-  -- that session is active.
-  for event in InterventionEvent.all:
-    exists session: InterventionSession
-      where session.events contains event
-      and event.at >= session.started_at
-      and (session.ended_at = none or event.at <= session.ended_at)
+    for log in InterventionLogs:
+        log.active_sessions.count <= 1
 }
 
 invariant DiscardHasNoAfter {
-  -- A discard event records what was rejected, not what replaced it.
-  -- The replacement is captured by subsequent events on the same phase
-  -- (or by the new artifact living in the row itself).
-  for event in InterventionEvent.all where event.kind = discard:
-    event.after = none
-    event.before exists
+    for event in InterventionEvents:
+        event.kind = discard implies (event.after = null and event.before != null)
 }
 
 invariant EditOnElementsHasOp {
-  -- Element edits always carry an operation kind so that downstream
-  -- analysis can distinguish add / remove / rename / reorder without
-  -- diffing the trees.
-  for event in InterventionEvent.all where event.phase = elements and event.kind = edit:
-    event.op exists
+    for event in InterventionEvents:
+        (event.phase = elements and event.kind = edit) implies event.op != null
 }
 
-invariant TogglingOffPreservesCorpus {
-  -- Disabling RecordingSetting must not mutate any existing log.
-  -- After RecordingSetting.enabled becomes false, prior sessions and
-  -- events remain byte-identical.
+invariant EventsInsideTheirSession {
+    for event in InterventionEvents:
+        event.at >= event.session.started_at
+        and (event.session.ended_at = null or event.at <= event.session.ended_at)
 }
 
-invariant LogTravelsWithRow {
-  -- The intervention log is part of the row JSON. Copying or exporting
-  -- the row carries the log; deleting the row deletes the log.
-  -- This applies to every export path: single-row JSON download,
-  -- copy-to-clipboard, share-link, and full Library export. A Library
-  -- export is a collection of rows, so each row's log travels with it
-  -- by construction. There is no separate "audit corpus" file.
-}
-
-invariant AttributionViaCredits {
-  -- The intervention log carries no participant identifier. Any
-  -- attribution required for the corpus is read from
-  -- GlobalConfig.credits, which is the Library-level field
-  -- already used for author/institution attribution.
-}
-
-------------------------------------------------------------
--- Rules
-------------------------------------------------------------
-
--- === Session lifecycle ===
-
-rule SessionStart {
-  when: a Row transitions from idle to engaged
-        (any of: row expanded in list, focus modal opens for this row,
-         SvgEditor opens for this row, VectorizerModal opens for this row)
-  requires:
-    GlobalConfig.recording.enabled = true
-  ensures:
-    new InterventionSession created with:
-      started_at = now
-      state = active
-      events = []
-    session appended to Row.intervention_log.sessions
-}
-
-rule SessionStartSuppressed {
-  when: a Row transitions from idle to engaged
-  requires:
-    GlobalConfig.recording.enabled = false
-  ensures:
-    -- No session is created. No events will be recorded during this
-    -- engagement. Existing sessions in the log remain untouched.
-}
-
-rule SessionContinuesAcrossSurfaces {
-  when: a Row is engaged through one surface (e.g. row expanded) and
-        the participant opens or closes another surface (e.g. focus
-        modal, SvgEditor, VectorizerModal) for the same row, while at
-        least one surface remains active
-  ensures:
-    no new session is started
-    the existing active session remains open
-    -- A session covers one continuous engagement, regardless of how
-    -- many surfaces overlap. This avoids session over-production when
-    -- the participant navigates list -> focus modal -> SvgEditor without
-    -- ever disengaging from the row.
-}
-
-rule SessionEnd {
-  when: a Row transitions from engaged to idle
-        (the last active surface for this row closes)
-  requires:
-    Row has an active session
-  ensures:
-    active_session.ended_at = now
-    active_session.state = closed
-}
-
-rule DropEmptySessionsAtEnd {
-  when: a session is being closed (SessionEnd just fired)
-  requires:
-    active_session.events is empty
-  ensures:
-    the session is removed from Row.intervention_log.sessions
-    -- Empty sessions ("opened the row, made no edits, closed it") are
-    -- noise. They are dropped at the moment of closing, not later, so
-    -- the log only ever contains sessions with at least one event.
-}
-
--- === Phase commits become events ===
-
-rule UtteranceEdit {
-  when: the participant commits an edit to the utterance field
-  requires:
-    Row has an active session
-    new value differs from the previous value
-  ensures:
-    new InterventionEvent appended to active_session.events with:
-      id = freshly generated short hex (8 chars)
-      phase = utterance
-      kind = edit
-      at = now
-      before = previous utterance string
-      after = new utterance string
-    -- Commit moments are deliberately limited to: blur of the input,
-    -- Enter key, and triggering regeneration. Auto-save on idle, Tab,
-    -- and form submit are not commit moments. Keeping the set small
-    -- avoids spurious events while typing.
-}
-
-rule NluEdit {
-  when: the participant commits an edit to the NLU artifact
-        through the NLU editing UI
-  requires:
-    Row has an active session
-    new NLU differs from the previous NLU
-  ensures:
-    new InterventionEvent appended with:
-      id = freshly generated
-      phase = nlu
-      kind = edit
-      before = previous NLUData
-      after = new NLUData
-}
-
-rule ElementsEdit {
-  when: the participant performs add | remove | rename | reorder
-        on the elements tree and the operation commits
-  requires:
-    Row has an active session
-  ensures:
-    new InterventionEvent appended with:
-      phase = elements
-      kind = edit
-      op = the operation kind
-      before = previous tree
-      after = new tree
-      -- (no context field; library config provides lang/uiLang/geoContext)
-    -- A single user gesture that mutates more than one node
-    -- (e.g. remove parent removing its subtree) produces one event
-    -- whose before/after captures the full tree change.
-    -- Undo/Redo within the elements editor does not generate one
-    -- event per step. Only the net change between the last commit
-    -- and the current commit is recorded, with op derived from the
-    -- net structural diff.
-}
-
-rule PromptEdit {
-  when: the participant commits an edit to the spatial prompt
-  requires:
-    Row has an active session
-    new prompt differs from the previous prompt
-  ensures:
-    new InterventionEvent appended with:
-      phase = prompt
-      kind = edit
-      before = previous prompt string
-      after = new prompt string
-      -- (no context field; library config provides lang/uiLang/geoContext)
-}
-
--- === SVG editor sessions become events on close ===
-
-rule SvgEditorSessionEdit {
-  when: the SvgEditor closes after having been opened on a row's rawSvg
-        or structuredSvg
-  requires:
-    Row has an active session
-    the SVG content (rawSvg or structuredSvg, per editor.source) has
-    changed between editor open and editor close, measured by SvgMetrics
-  ensures:
-    new InterventionEvent appended with:
-      phase = svg_raw  (if editor.source = svg_raw)
-        OR   svg_structured  (if editor.source = svg_structured)
-      kind = edit
-      at = now
-      before = SvgMetrics computed at editor open
-      after  = SvgMetrics computed at editor close
-      -- (no context field; library config provides lang/uiLang/geoContext)
-    -- The event is per editor *session*, not per atomic operation
-    -- inside it. Boolean ops, simplify, node moves, class changes,
-    -- and so on all aggregate into the open->close metric delta.
-
-  @guidance "what counts as 'changed'"
-    -- Any one of size, entities, classes, or structural_hash differing
-    -- between before and after qualifies. Editor sessions that produce
-    -- no measurable change emit no event (see SvgEditorSessionNoOp).
-}
-
-rule SvgEditorSessionNoOp {
-  when: the SvgEditor closes after having been opened
-  requires:
-    SvgMetrics at open == SvgMetrics at close (every field equal)
-  ensures:
-    no event is appended
-    -- The participant inspected without changing anything. No record.
-}
-
-rule VectorizerApplyDiscardsRaw {
-  when: the participant applies a fresh trace from VectorizerModal,
-        replacing an existing rawSvg
-  requires:
-    Row has an active session
-    rawSvg had a value before the apply
-  ensures:
-    new InterventionEvent appended with:
-      phase = svg_raw
-      kind = discard
-      at = now
-      before = SvgMetrics of the rawSvg being discarded
-      after = none
-      -- (no context field; library config provides lang/uiLang/geoContext)
-    -- VTracer regeneration is treated as a discard, not an edit:
-    -- the previous rawSvg becomes a discarded candidate; the new one
-    -- replaces it. Same model as regenerating NLU.
-
-  @guidance "first-time vectorization"
-    -- When the participant applies a trace and rawSvg had no prior
-    -- value, no discard fires (nothing to discard). The new rawSvg
-    -- simply becomes the baseline for any future svg_raw event.
-}
-
-rule ReStructurarDiscardsStructured {
-  when: the participant triggers Re-Estructurar (or equivalent action
-        that regenerates structuredSvg from rawSvg), replacing an
-        existing structuredSvg
-  requires:
-    Row has an active session
-    structuredSvg had a value before the action
-  ensures:
-    new InterventionEvent appended with:
-      phase = svg_structured
-      kind = discard
-      at = now
-      before = SvgMetrics of the structuredSvg being discarded
-      after = none
-      -- (no context field; library config provides lang/uiLang/geoContext)
-
-  @guidance "first-time structuring"
-    -- When the participant runs Estructurar for the first time and
-    -- structuredSvg had no prior value, no discard fires.
-}
-
--- === Regenerations become discard events ===
-
-rule PhaseRegenerationDiscard {
-  when: the participant triggers regeneration of a phase artifact
-        that has a current value, without manual edit of that artifact
-        (phase in { nlu, elements, prompt })
-  requires:
-    Row has an active session
-    the phase has a current artifact value
-  ensures:
-    new InterventionEvent appended with:
-      phase = the regenerated phase
-      kind = discard
-      before = the artifact being replaced
-      after = none
-      model_id = id of the Gemini model that produced the discarded artifact
-      -- (no context field; library config provides lang/uiLang/geoContext)
-    -- The new artifact produced by regeneration is not recorded as an
-    -- event by this rule. It becomes the "before" of any future event
-    -- on the same phase.
-}
-
-rule CascadeDiscard {
-  when: an upstream edit invalidates a downstream phase that holds a value
-        (utterance edit -> nlu, elements, prompt are invalidated)
-        (elements edit -> prompt is invalidated)
-        and the downstream phase is regenerated as part of the cascade
-  requires:
-    Row has an active session
-    the downstream phase had a current value before the cascade
-  ensures:
-    one discard InterventionEvent appended per regenerated downstream phase, with:
-      phase = the downstream phase
-      kind = discard
-      before = the value being replaced
-      model_id = id of the Gemini model that produced the discarded artifact
-      -- (no context field; library config provides lang/uiLang/geoContext)
-    -- The triggering edit event (e.g. utterance edit) is recorded
-    -- separately by its own edit rule. The cascade adds one discard
-    -- per downstream phase regenerated.
-}
-
--- === Recording suppressed ===
-
-rule CommitSuppressedNoSession {
-  when: a phase commit or regeneration occurs on a row
-  requires:
-    Row has no active session
-  ensures:
-    no event is appended
-    the artifact change still happens on the row itself
-    -- This covers: recording globally disabled, or row was opened
-    -- while disabled and is still in that opening.
-}
-
--- === Row clipboard portability ===
-
-rule CopyRowToClipboard {
-  when: the participant clicks "Copy row" on a single row
-  ensures:
-    a portable JSON document is written to the system clipboard with:
-      schemaVersion = current export schema number
-      type          = "row-clipboard"
-      context       = RowClipboardContext built from the current library config
-                      (lang, uiLang, geoContext)
-      row           = the row content (including its intervention_log)
-      svgs          = the row's associated SVG library entries, if any
-    -- The context block is the ONLY place lang/uiLang/geoContext appear
-    -- alongside intervention events. Inside a library export the
-    -- library's config provides them once for the whole bundle; on a
-    -- standalone row, the header restores that information.
-}
-
--- === Participant-driven CRUD on the log ===
-
-rule AuditPanelOpen {
-  when: the participant clicks the audit affordance on a row
-  ensures:
-    RowAuditPanel becomes visible for that row
-    the panel renders Row.intervention_log in editable form
-    -- The panel opens regardless of RecordingSetting.enabled, so that
-    -- past recordings remain inspectable and removable even after the
-    -- participant has paused or disabled recording.
-}
-
-rule AuditPanelEdit {
-  when: the participant edits the log content in the panel and saves
-  requires:
-    edited content is a structurally valid intervention_log
-    (parses as JSON, sessions and events conform to their value types)
-  ensures:
-    Row.intervention_log = edited value
-    -- This is participant-driven curation: removing sessions, redacting
-    -- specific events, or correcting context fields. It is distinct
-    -- from automatic appends performed by phase commit rules.
-}
-
-rule AuditPanelCopy {
-  when: the participant clicks copy in the audit panel
-  ensures:
-    Row.intervention_log JSON written to system clipboard
-    Row.intervention_log unchanged
-}
-
-rule AuditPanelDelete {
-  when: the participant confirms deletion in the audit panel
-  requires:
-    confirmation dialog acknowledged
-  ensures:
-    Row.intervention_log.sessions = []
-    any active session for this row is discarded
-    -- Only the log subobject is cleared; the row itself and all its
-    -- pictogram content are preserved. After deletion, future
-    -- interventions on this row may start a fresh session if
-    -- RecordingSetting.enabled = true.
+invariant ClosedSessionsAreNotEmpty {
+    for session in InterventionSessions:
+        session.status = closed implies session.events.count > 0
 }
 
 ------------------------------------------------------------
@@ -589,101 +344,72 @@ rule AuditPanelDelete {
 ------------------------------------------------------------
 
 surface LibraryRecordingControl {
-  -- The switch and help icon shown in the Library section that exposes
-  -- RecordingSetting to the participant.
+    facing user: LibraryConfig
+    context settings: LibraryConfig
 
-  @guidance "switch placement"
-    -- The control sits in the Library settings area, alongside other
-    -- global toggles. Visible at all times the Library is visible.
+    exposes:
+        settings.recording_enabled
 
-  @guidance "label"
-    -- The visible label is "Registrar modificaciones" (es-419) or
-    -- "Record modifications" (en-GB), localised through the existing
-    -- i18n pipeline.
+    @guarantee TogglingOffPreservesCorpus
+        -- Turning recording off changes no existing log and asks no
+        -- question; turning it on reconstructs nothing. While off, no
+        -- session starts and no event is appended, even inside a session
+        -- already open.
 
-  @guidance "default state"
-    -- The setting is off by default for new installations. The state
-    -- persists across sessions in GlobalConfig.
+    @guarantee LogTravelsWithRow
+        -- The log is part of the row JSON: every export path (row
+        -- clipboard, library download, backup, graph dump) carries it;
+        -- deleting the row deletes it. There is no separate corpus file.
 
-  @guidance "help icon and tooltip"
-    -- A help icon adjacent to the label opens a tooltip on hover or
-    -- focus. Tooltip text:
-    --   "Esta opción permite registrar la auditoría del pictograma,
-    --    en el caso que se ajuste y modifique."
+    @guarantee AttributionViaCredits
+        -- The log carries no participant identifier; attribution is the
+        -- library's credits field.
 
-  @guidance "no destructive action"
-    -- Toggling the switch off must not present a confirmation dialog
-    -- about deleting prior recordings, because no deletion occurs.
-    -- Toggling on does not retroactively reconstruct missing events.
-
-  exposes:
-    RecordingSetting.enabled (read/write)
+    @guidance
+        -- A switch "Registrar modificaciones" / "Record modifications" in
+        -- the library configuration panel, with a help tooltip ("Esta
+        -- opción permite registrar la auditoría del pictograma, en el caso
+        -- que se ajuste y modifique."). Off by default; persisted in the
+        -- library config.
 }
 
 surface RowAuditPanel {
-  -- Per-row popup that exposes the row's intervention_log for
-  -- transparent CRUD: read, edit, copy, delete. The panel exists
-  -- so that recording is convivial: participants can see exactly
-  -- what was captured about their work and remove it freely.
+    facing user: LibraryConfig
+    context row: Row
 
-  @guidance "trigger placement"
-    -- Each row footer carries an "audit" button next to copy and
-    -- delete. The button is visible at all times, regardless of
-    -- RecordingSetting.enabled, because past recordings must remain
-    -- inspectable and removable after the participant pauses recording.
+    exposes:
+        row.log
 
-  @guidance "panel content"
-    -- The popup renders Row.intervention_log as editable JSON.
-    -- All sessions and their events are visible at once.
-    -- Empty state: when the log has no sessions, the panel shows a
-    -- short explanation that no interventions have been recorded for
-    -- this pictogram.
+    provides:
+        AuditLogSaved(row, edited)
+        AuditLogClearConfirmed(row)
+        CopyRowRequested(row, user)
 
-  @guidance "actions"
-    -- Save: persists the edited JSON back to the row.
-    -- Copy: writes the current log JSON to the system clipboard.
-    -- Delete: clears the log subobject; requires confirmation because
-    --   this destroys research data that cannot be reconstructed.
-    -- Close: dismisses the popup, discarding any unsaved edits.
-
-  @guidance "active session marker"
-    -- When the row currently has an active session, the panel shows
-    -- it with a clear marker. Editing or deleting an active session
-    -- ends it first.
-
-  @guidance "no surprise"
-    -- The panel never auto-saves while typing. All edits are explicit
-    -- through Save. Closing without Save discards changes.
-
-  exposes:
-    Row.intervention_log (read/write/delete)
+    @guidance
+        -- An audit button in each row footer, next to copy and delete,
+        -- always visible regardless of the setting. The modal shows a
+        -- summary (sessions, events) or an empty-state line, the log as
+        -- editable JSON, and Clear (inline confirmation), Copy (log JSON to
+        -- the clipboard) and Save. Escape or close discards unsaved edits.
+        -- A marker for the active session was specified but is not built.
 }
 
 ------------------------------------------------------------
 -- Open Questions
 ------------------------------------------------------------
 
--- Resolved: no per-event identifier; attribution is the Library's credits field
--- Resolved: switch state persists in GlobalConfig
--- Resolved: tooltip text is set ("Esta opción permite registrar la auditoría del pictograma...")
--- Resolved: row delete cascades to log delete (intrinsic, log lives inside row JSON)
--- Resolved: events have stable short ids (8-char hex), generated at creation
--- Resolved: events do NOT carry context (lang/uiLang/geoContext) — the library config does
--- Resolved: a portable context header is injected only when a row is copied to clipboard
--- Resolved: export schema is versioned via top-level schemaVersion (currently 3)
--- Resolved: graphic phases (svg_raw, svg_structured) recorded with SvgMetrics summaries (no full content)
--- Superseded: only semantic phases were recorded — now extended to graphic phases too
--- Resolved: SVG editor sessions emit one edit event on close, aggregating all atomic ops
--- Resolved: VTracer apply and Re-Estructurar are discards, not edits
--- Resolved: empty sessions are dropped at close (not stored)
--- Resolved: no-op editor sessions (before == after metrics) emit no event
--- Resolved: session = row engagement (any of row-expanded, focus-modal, SvgEditor, VectorizerModal)
--- Resolved: audit panel actions on the log itself are not recorded (meta-recursive)
--- Resolved: regenerations without manual edit are recorded as discard events
--- Superseded: session boundary was row open/close — now generalised to row engagement
--- Resolved: element edits carry an explicit op (add | remove | rename | reorder)
--- Resolved: every export path (single row, library) carries the log; no separate corpus file
--- Resolved: commit moments are limited to blur, Enter, regenerate (no auto-save / Tab / submit)
--- Resolved: Undo/Redo in elements editor records only the net change at commit
--- Resolved: corpus aggregation is out of scope; per-row logs are the unit, library export bundles them
--- Resolved: participant has CRUD access to the log via RowAuditPanel
+-- Resolved: attribution is the Library's credits field; events have 8-char hex ids
+-- Resolved: events carry no lang / uiLang / geoContext; the clipboard header does
+-- Resolved: SVG phases are recorded as SvgMetrics, one event per saved editor session
+-- Resolved: regenerations and artifact deletions are discards
+-- Resolved: empty sessions are dropped at close; no-op edits emit nothing
+-- Superseded: elements recorded the net change at commit; each operation is now recorded eagerly
+-- Superseded: structural hash was a truncated SHA-256; it is FNV-1a 32-bit
+
+open question "Engagement: the vectorizer modal is not an engagement surface in the implementation, although the code comment says it is. Opening it from the grid without the row expanded records nothing. Add it?"
+
+open question "A fresh trace replacing an existing raw SVG emits no svg_raw discard (VTracer apply, Estructurar from the bitmap). Record it?"
+
+open question "Discard events never carry a model id. Pass the model that produced the discarded artifact, or drop the field?"
+
+open question "Active-session marker in the audit panel: build it or drop it?"

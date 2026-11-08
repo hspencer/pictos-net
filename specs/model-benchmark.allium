@@ -1,6 +1,9 @@
 -- allium: 3
--- Local experiment preparation and explicitly authorized text-only execution.
--- Specifying this boundary does not authorize a paid run or prove model quality.
+-- Local experiment preparation and explicitly authorized execution: the text
+-- benchmark for Phases 1-2 (scripts/benchmark-models.mjs), the image benchmark
+-- for Phase 3 (scripts/eval/benchmark-images.mjs) and the summary of their
+-- runs (scripts/eval/summarize-benchmark.mjs). Specifying this boundary does
+-- not authorize a paid run or prove model quality.
 
 ------------------------------------------------------------
 -- External Entities
@@ -18,6 +21,7 @@ value BenchmarkLimits {
     budget_usd: Decimal
     max_calls: Integer
     max_output_tokens: Integer
+    repairs: Integer
 }
 
 value BenchmarkResult {
@@ -29,6 +33,8 @@ value BenchmarkResult {
     output_tokens: Integer?
     estimated_cost_usd: Decimal?
     canonical_valid: Boolean
+    first_call_valid: Boolean
+    provider_calls: Integer
     failure: String?
     output_hash: String?
 }
@@ -49,7 +55,10 @@ contract ReproducibleTextBenchmark {
         -- installation, tests, dry-run, model selection or schema validation.
 
     @invariant ComparableInputs
-        -- Initial scope is Phase 1 and Phase 2 only, with no image generation.
+        -- The text benchmark covers Phase 1 and Phase 2 only, with no image
+        -- generation. Every selected model must be admitted by the catalog for
+        -- the phase (retired models are refused) and models are distinct. A
+        -- plan above config.max_planned_attempts must be split explicitly.
         -- Phase 2 compares models against the same fixed, validated complete
         -- NLU for each case, not another model's newly generated interpretation.
         -- Use the application's canonical request builders and validators.
@@ -74,8 +83,13 @@ contract ReproducibleTextBenchmark {
         -- input/output hashes and canonical validation diagnostics. Record
         -- failures that consumed tokens; never substitute zero for unknown
         -- usage or hide failed cases when computing aggregate results.
-        -- No automatic semantic retries, fallback models or output-cap raises
-        -- expand the planned experiment. Outputs remain local by default.
+        -- No fallback models or output-cap raises expand the planned
+        -- experiment. Contract repairs happen only when the plan declares
+        -- them (0 to the production maximum, default 0; --repairs 2 mirrors
+        -- production); the reservation covers every call a repair may make,
+        -- and each attempt records whether its first call was valid and how
+        -- many provider calls it made. Outputs are written only to a new
+        -- directory inside research/, never elsewhere.
 
     @invariant StructuralScoresAreNotCommunicativeScores
         -- Automatic conformance metrics measure structure, not semantic
@@ -83,6 +97,37 @@ contract ReproducibleTextBenchmark {
         -- and timing with failures included. Human evaluation and appropriate
         -- repeated comparisons are required before declaring a better model;
         -- running a benchmark never changes production defaults automatically.
+        -- Defaults change only by an edit to the catalog backed by a dated
+        -- report (docs/BENCHMARK_MODELOS_2026-11.md).
+}
+
+contract ImageBenchmark {
+    run: (compositions_file: String, models: List<String>, max_calls: Integer, out: String) -> Any
+
+    @invariant ProductionPromptsAndAdapters
+        -- Phase 3 cases reuse fixed compositions (normally exported from a
+        -- Phase 2 run) and the production prompt builders and provider
+        -- adapters, called directly with local credentials: no PICTOS quota,
+        -- no Netlify functions. OpenAI renders at low quality.
+
+    @invariant PaidRunNeedsExplicitCap
+        -- There is no dry-run: invoking it is a paid run. It requires an
+        -- explicit positive call cap at least the number of planned images,
+        -- an output directory inside research/ and models admitted for
+        -- Phase 3. Models run in parallel, each model's cases sequentially.
+        -- Every attempt, including failures and no-image responses, is
+        -- appended to the run log. Cost is the catalog's flat per-image price,
+        -- excluding prompt tokens, and is an estimate.
+}
+
+contract BenchmarkSummary {
+    summarize: (run_directories: List<String>) -> Any
+
+    @invariant FailuresIncluded
+        -- One row per model across the given runs: validity rate, latency
+        -- p50/p95, mean and total estimated cost and cost per valid output;
+        -- for text runs also first-call validity, calls per case and cache
+        -- read share. Failed attempts count in every aggregate and are listed.
 }
 
 ------------------------------------------------------------
@@ -90,6 +135,10 @@ contract ReproducibleTextBenchmark {
 ------------------------------------------------------------
 
 enum BenchmarkPhase { phase1 | phase2 }
+enum BenchmarkStopReason {
+    call_cap | estimated_budget | usage_uncertain |
+    reservation_bound_exceeded | provider_rejected | user_cancelled
+}
 enum BenchmarkState { planned | running | completed | stopped }
 enum AttemptState { reserved | recorded }
 
@@ -104,7 +153,7 @@ entity BenchmarkRun {
     limits: BenchmarkLimits?
     estimated_exposure_usd: Decimal
     state: BenchmarkState
-    stop_reason: String?
+    stop_reason: BenchmarkStopReason?
 
     attempts: BenchmarkAttempt with run = this
 
@@ -130,6 +179,16 @@ entity BenchmarkAttempt {
 }
 
 ------------------------------------------------------------
+-- Config
+------------------------------------------------------------
+
+config {
+    max_planned_attempts: Integer = 1000
+    max_output_tokens_ceiling: Integer = 32768
+    max_contract_repairs: Integer = 2
+}
+
+------------------------------------------------------------
 -- Rules
 ------------------------------------------------------------
 
@@ -137,6 +196,9 @@ rule PrepareWithoutProviderCalls {
     when: BenchmarkPlanPrepared(researcher, plan, plan_hash, planned_calls, limits)
     requires: plan_hash != ""
     requires: planned_calls > 0
+    requires: planned_calls <= config.max_planned_attempts
+    requires: limits = null or (limits.repairs >= 0 and limits.repairs <= config.max_contract_repairs)
+    requires: limits = null or limits.max_output_tokens <= config.max_output_tokens_ceiling
     requires: synthetic_inputs_and_fixed_nlu_valid(plan)
     ensures: BenchmarkRun.created(
         plan: plan,
@@ -191,12 +253,12 @@ rule RecordAttemptIncludingFailure {
     ensures:
         if result.estimated_cost_usd = null:
             attempt.run.state = stopped
-            attempt.run.stop_reason = "usage_uncertain"
+            attempt.run.stop_reason = usage_uncertain
         else:
             attempt.run.estimated_exposure_usd = attempt.run.estimated_exposure_usd - attempt.reserved_usd + result.estimated_cost_usd
             if attempt.run.estimated_exposure_usd >= attempt.run.limits.budget_usd:
                 attempt.run.state = stopped
-                attempt.run.stop_reason = "estimated_budget_reached"
+                attempt.run.stop_reason = estimated_budget
 }
 
 rule CompletePlannedExperiment {
@@ -210,12 +272,12 @@ rule CompletePlannedExperiment {
 rule StopBeforeAnotherCall {
     when: BenchmarkStopRequested(run, reason)
     requires: run.state = running
-    requires: reason != ""
     ensures: run.state = stopped
     ensures: run.stop_reason = reason
     @guidance
         -- Includes call cap, insufficient next reservation, user cancellation,
-        -- missing credentials, provider billing/access failure and uncertainty.
+        -- provider rejection (401, 403 or 429), measured usage above the
+        -- reserved token bound, and uncertain usage.
         -- A dispatched call remains accounted for even if cancellation leaves
         -- its final upstream consumption unknown.
 }
@@ -256,12 +318,12 @@ surface LocalBenchmark {
         BenchmarkAttemptRequested(run: BenchmarkRun, request_hash: String, reservation_usd: Decimal) when run.state = running
         BenchmarkAttemptFinished(attempt: BenchmarkAttempt, result: BenchmarkResult) when attempt.state = reserved
         BenchmarkCompletionRequested(run: BenchmarkRun) when run.state = running
-        BenchmarkStopRequested(run: BenchmarkRun, reason: String) when run.state = running
+        BenchmarkStopRequested(run: BenchmarkRun, reason: BenchmarkStopReason) when run.state = running
 }
 
 ------------------------------------------------------------
 -- Open Questions
 ------------------------------------------------------------
 
-open question "What concrete budget, case set, repetition count and randomized order are authorized for the first paid comparison?"
+open question "Should the image benchmark gain the text benchmark's dry-run plan and dollar budget, or is the call cap enough?"
 open question "Which human semantic and CAA evaluation criteria and reviewers will establish comparative quality beyond canonical conformance?"

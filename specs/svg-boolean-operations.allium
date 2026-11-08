@@ -9,7 +9,12 @@
 --   subtracted from a larger disc to form a hole, etc.).
 -- Includes: Operand eligibility, operand ordering, identity of the result,
 --   placement in the semantic tree, style survival, empty-result handling,
---   history.
+--   history, and Simplify (curve refit of selected paths), which shares the
+--   toolbar block and the commit path.
+-- Not built (deferred): group operands, keyboard shortcuts, the top/base
+--   marker for two shapes, and user-visible rejection messages (rejections
+--   are only logged; a disabled button's tooltip carries the eligibility
+--   reason).
 -- Excludes:
 --   - Multi-selection mechanics: the unified selection model is owned by
 --     vector-editor.allium. This spec only consumes the current selection.
@@ -64,11 +69,13 @@ external entity SVGEditor {
 contract BooleanOperationBoundary {
     combine: (op: BooleanOp, operands: List<Shape>) -> Geometry
 
-    @invariant GroupOperandCollapsesFirst
-        -- A group among the operands counts as the union of its
-        -- descendants' geometries. The group keeps its id and classes
-        -- through the collapse; its internal subtree is discarded. A group
-        -- with non-geometric descendants is not an eligible operand.
+    @invariant GroupsAreNotOperands
+        -- Only <path> and primitives (rect, circle, ellipse, polygon,
+        -- polyline) are eligible operands; a group in the selection makes the
+        -- operation ineligible (unsupported element). Deferred design: a
+        -- group would count as the union of its descendants' geometries and
+        -- keep its id and classes; one with non-geometric descendants would
+        -- stay ineligible.
 
     @invariant GeometryIsCommutativeExceptSubtract
         -- For union and intersect, operand order does not change the
@@ -78,15 +85,28 @@ contract BooleanOperationBoundary {
         -- from the shape below, which is the base.
 
     @invariant BaseIdentitySurvives
-        -- The result keeps the base's id, classes and local CSS overrides
-        -- (#id.class rules). Other operands' classes and overrides are
-        -- discarded, subject to library-class garbage collection.
+        -- The result is always a <path> that keeps the base's id, classes,
+        -- local CSS overrides (#id rules follow the id) and any inline fill,
+        -- stroke, stroke-width and opacity the base carried (raw traces have
+        -- inline fills). Other operands' classes and overrides are discarded,
+        -- subject to library-class garbage collection. Union and subtract
+        -- results take the even-odd fill rule, as attribute and inline style,
+        -- so holes render whatever the winding order: a deliberate exception
+        -- to the zero-inline-attributes convention.
 
     @invariant TransformsBaked
-        -- The result's geometry is expressed in the coordinate space of the
-        -- deepest common ancestor. Transforms on operands, or on their
-        -- ancestors up to that ancestor, are baked into the path data before
-        -- the boolean is computed; the result carries no transform.
+        -- Every operand's transforms, and its ancestors' up to the SVG root,
+        -- are baked into its path data before the boolean is computed, so the
+        -- result is in root space and carries no transform. It is placed in
+        -- the deepest common ancestor only when neither that ancestor nor any
+        -- ancestor above it is transformed; otherwise it goes to the root.
+
+    @invariant SemanticGuardApplies
+        -- The result is committed through the editor's single commit path, so
+        -- on a structured SVG with bindings the semantic guard refuses an
+        -- operation that would add a binding violation (for example operands
+        -- in two bound groups, whose result would land outside them). The
+        -- document and selection are then unchanged.
 
     @invariant NoSemanticRecovery
         -- An applied operation is reversed only by undo. Original operands
@@ -137,7 +157,7 @@ rule ApplyBooleanOperation {
     let result = editor_combine(op, operands)
     requires: not is_empty(result)
     ensures: base.geometry = result
-    ensures: base.parent = deepest_common_ancestor(operands)
+    ensures: base.parent = result_parent(operands)
     ensures:
         for operand in operands:
             if operand != base:
@@ -151,12 +171,13 @@ rule ApplyBooleanOperation {
         -- order; for subtract the operand with the lower z_index (the one
         -- that is bitten). editor_combine computes union (overlaps merge,
         -- internal edges disappear), base minus top for subtract, or the
-        -- intersection. The result is placed in the deepest common ancestor
-        -- at the base's z_index (or that of the base's ancestor under it).
-        -- Operands in different branches collapse toward the root; with
-        -- operands in disjoint top-level groups the ancestor is the SVG root,
-        -- an acceptable loss of nesting for cleanup. Group operands are
-        -- removed with their whole subtree. Classes cited only by removed
+        -- intersection. result_parent is the deepest common ancestor, or the
+        -- SVG root when that ancestor or one above it is transformed. The
+        -- result takes the base's z_index there (or that of the base's
+        -- ancestor under it). With operands in disjoint top-level groups the
+        -- ancestor is the SVG root, an acceptable loss of nesting for cleanup
+        -- on an unbound trace (refused by the guard on a bound document).
+        -- Groups left empty are removed. Classes cited only by removed
         -- operands lose a citation; library rules left with none are
         -- collected by the existing unciteClass mechanism. The history step
         -- is atomic: one undo restores every operand at its position with its
@@ -173,8 +194,11 @@ rule RejectIneligibleSelection {
     )
 
     @guidance
-        -- The document is unchanged; the user is told why: insufficient
-        -- operands, unsupported element type, or empty/degenerate geometry.
+        -- The document is unchanged. Intended: the user is told why
+        -- (insufficient operands, unsupported element type, or degenerate
+        -- geometry). Built so far: buttons follow eligibility and a disabled
+        -- button's tooltip names the reason; a rejected request is only
+        -- logged.
 }
 
 rule RejectEmptyResult {
@@ -186,8 +210,25 @@ rule RejectEmptyResult {
     @guidance
         -- Examples: the intersection of disjoint shapes; a subtraction whose
         -- top shape covers the bottom one. In cleanup this almost always
-        -- means a user error, so the operands are kept and the reason shown
-        -- rather than deleting silently.
+        -- means a user error, so the operands are kept rather than deleted
+        -- silently. The reason is only logged today (see RejectIneligibleSelection).
+}
+
+rule SimplifySelectedPaths {
+    when: SimplifyRequested(editor)
+    requires: editor.selection.shapes.any(s => s.kind = path)
+    ensures:
+        for shape in editor.selection.shapes:
+            if shape.kind = path:
+                shape.geometry = refit_curves(shape.geometry)
+    ensures: HistoryStepRecorded(editor: editor, operation: simplify)
+
+    @guidance
+        -- Refits polyline noise to Bezier curves (tolerance 0.5) in place;
+        -- non-path members are skipped; a path whose refit fails is kept.
+        -- With nothing to refit the request is rejected without change. In
+        -- node-edit mode the edited path counts as the selection. Shown as a
+        -- toolbar button whenever the selection holds a path.
 }
 
 ------------------------------------------------------------
@@ -215,25 +256,24 @@ surface BooleanOperationControls {
         -- Host: the buttons live in SelectionToolbar (the floating toolbar
         -- above the canvas while shapes are selected), not in the side
         -- properties panel, which is for one shape's attributes. Order:
-        -- [Group] [Ungroup] | [Union] [Subtract] [Intersect] | [Duplicate]
-        -- [BringForward] [SendBackward] | [ApplyClass] | [Delete], with
-        -- dividers around the boolean block, next to Group/Ungroup because
-        -- both combine operands. Icons follow Inkscape/Figma: two filled
-        -- overlapping discs (union), a disc with a disc-shaped bite
-        -- (subtract), a lens (intersect). With exactly two shapes selected
-        -- the UI marks which one is on top (it bites) and which is the base;
-        -- the user reorders with BringForward/SendBackward. Shortcuts, active
-        -- only while the editor has focus and the selection is eligible:
-        -- Cmd/Ctrl + Plus (union), Minus (subtract), Asterisk (intersect),
-        -- as in Inkscape. Operations on complex paths may exceed 100 ms:
-        -- show a brief spinner in the active button or disable the toolbar,
-        -- and move clipping to a Web Worker if latency becomes noticeable on
-        -- real workshop data.
+        -- [Group] [Ungroup] | [Union] [Subtract] [Intersect] | [Simplify] |
+        -- [Duplicate] [BringForward] [SendBackward] | [ApplyClass] | [Delete],
+        -- with dividers around the boolean block, next to Group/Ungroup
+        -- because both combine operands. Icons follow Inkscape/Figma: two
+        -- filled overlapping discs (union), a disc with a disc-shaped bite
+        -- (subtract), a lens (intersect). The user reorders the two subtract
+        -- operands with BringForward/SendBackward.
+        -- Deferred, not built: marking which of two shapes is on top (it
+        -- bites) and which is the base; keyboard shortcuts (Inkscape's
+        -- Cmd/Ctrl + Plus/Minus would collide with the editor's zoom
+        -- shortcuts); a spinner or Web Worker for operations over 100 ms.
 }
 
 ------------------------------------------------------------
 -- Open Questions
 ------------------------------------------------------------
+
+open question "Which keyboard shortcuts should trigger boolean operations, given that Cmd/Ctrl + Plus/Minus already zoom the editor?"
 
 open question "Should a group operand with non-geometric descendants (text, image, foreignObject) disqualify the whole operation, or silently skip those descendants?"
 

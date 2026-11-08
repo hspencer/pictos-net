@@ -1,6 +1,11 @@
 -- allium: 3
 -- pap.allium
 -- Pictographic Annotated Portfolios
+--
+-- STATUS: PROPOSAL, NOT IMPLEMENTED. pap is a separate application; no pap
+-- code exists in this repository (or a sibling checkout) as of 2.8.0
+-- (2026-11-08). This file is design intent. The pictos.net shapes it
+-- consumes (below) were re-checked against 2.8.0 and are current.
 
 -- Scope: A standalone web application for analysing pictogram libraries
 --   exported from pictos.net under the Annotated Portfolios design-research
@@ -75,12 +80,17 @@ value AnnotationAuthor {
 ------------------------------------------------------------
 
 external LibraryJson {
-  -- The JSON shape produced by pictos.net's "Export library" action.
+  -- The JSON shape produced by pictos.net's "Export library" action
+  -- (services/libraryService.ts exportLibraryJson): id, name, createdAt,
+  -- modifiedAt, config (GlobalConfig, which carries credits and license),
+  -- rows (with media inlined), sequences and boards.
   -- pap reads this shape verbatim and never writes it back.
+  id: String
   name: String
-  credits: String?
-  license: String
+  config: GlobalConfig        -- credits and license live here
   rows: [RowData]
+  sequences: [Any]
+  boards: [Any]
   -- Plus any additional fields pictos.net's export carries — pap stores
   -- the full payload and exposes it in the metadata view, even fields
   -- it does not specifically recognise.
@@ -108,9 +118,11 @@ external InterventionSession {
 }
 
 external InterventionEvent {
+  id: String           -- stable 8-char hex id, assigned at creation
   phase: String        -- utterance | nlu | elements | prompt | svg_raw | svg_structured
   kind: String         -- edit | discard
   at: Timestamp
+  op: String?          -- add | remove | rename | reorder, iff phase = elements and kind = edit
 }
 
 ------------------------------------------------------------
@@ -130,8 +142,8 @@ entity Library {
   -- One imported pictos.net library, identified by its source file.
   source_path: String         -- e.g. "portfolios/workshop-2026-04.json"
   name: String                -- from LibraryJson.name
-  credits: String?            -- from LibraryJson.credits
-  license: String             -- from LibraryJson.license
+  credits: String?            -- from LibraryJson.config.credits
+  license: String             -- from LibraryJson.config.license
   rows: [RowData]
 }
 
@@ -167,17 +179,13 @@ entity Annotation {
 }
 
 value EventTarget {
-  -- Pointer into a specific intervention event. Resolved by:
-  --   pictogram (which row in which library)
-  --   session_index (the i-th session in the row's log)
-  --   event_index   (the j-th event in that session)
-  -- The pointer is implicit-by-position because intervention events
-  -- have no stable id of their own. If the underlying log is edited
-  -- (via pictos.net's audit panel), pre-existing per_event annotations
-  -- may dangle (see DanglingEventAnnotation).
+  -- Pointer into a specific intervention event: the pictogram (which row
+  -- in which library) and the event's stable id. pictos.net now gives
+  -- every event an id so per-event annotations survive reordering or
+  -- partial deletion of the log. A per_event annotation dangles only when
+  -- its event is removed (see DanglingEventAnnotation).
   pictogram: Pictogram
-  session_index: Integer
-  event_index: Integer
+  event_id: String
 }
 
 entity TagRegistry {
@@ -255,10 +263,9 @@ invariant SingleResearcher {
 }
 
 invariant DanglingEventAnnotation {
-  -- A per_event annotation is anchored by (pictogram, session_index,
-  -- event_index). If the underlying intervention log changes shape
-  -- (events removed, sessions reindexed), the anchor may no longer
-  -- resolve. Such annotations are flagged in the UI as dangling and
+  -- A per_event annotation is anchored by (pictogram, event_id). If the
+  -- event is removed from the intervention log, the anchor no longer
+  -- resolves. Such annotations are flagged in the UI as dangling and
   -- listed in a "rescue" panel; pap never silently drops them.
 }
 
@@ -372,7 +379,7 @@ rule CreatePerEventAnnotation {
   ensures:
     new Annotation appended with:
       kind = per_event
-      event_target = (pictogram, session_index, event_index)
+      event_target = (pictogram, event_id)
       author = Portfolio.author
 }
 

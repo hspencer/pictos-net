@@ -1,5 +1,6 @@
 -- allium: 3
--- Phase 5 and the portable mf-svg artifact boundary.
+-- Phase 5 (ESTRUCTURAR; phase 4 in the interface, identifier 5 everywhere it
+-- is persisted or logged) and the portable mf-svg artifact boundary.
 -- This specifies the 2.0.0-draft.1 candidate, not a published release.
 -- Existing 1.0 documents remain historical inputs under their frozen contract.
 -- Implementation gates below must be verified; this file alone does not prove
@@ -64,8 +65,9 @@ contract LocalGeometryAssembly {
         -- It does not author replacement geometry. Original geometry remains
         -- local; effective ancestor transforms, fill, fill-rule, stroke and
         -- opacity survive re-parenting. fill="none" never becomes solid fill.
-        -- Redraw, where explicitly selected, is a distinct geometric revision
-        -- and must not claim exact preservation of the original geometry.
+        -- Redraw (model-authored geometry) is retired: no entry point offers
+        -- it. If restored it would be a distinct geometric revision and must
+        -- not claim exact preservation of the original geometry.
 
     @invariant GeometryAndStylePreservation
         -- Existing unique ids and user style classes are preserved where
@@ -76,6 +78,9 @@ contract LocalGeometryAssembly {
         -- focus styles and referenced keyframes survive style filtering.
         -- Non-path primitives cannot be silently dropped: preserve them or
         -- return a diagnostic draft that cannot claim geometry completeness.
+        -- Child paths take ids derived from their entity: a lone shape is
+        -- <entity>-forma (shape in English), several are numbered
+        -- <entity>-1, <entity>-2, in drafts too; #id CSS rules follow them.
 
     @invariant EverySourcePathAccountedFor
         -- Every source path is retained exactly once, included in an explicitly
@@ -115,6 +120,16 @@ contract LocalGeometryAssembly {
         -- is emitted once; a path claimed only under an unknown node keeps its
         -- geometry as unassigned. A type cast is not validation.
 
+    @invariant PaintFusionKeepsFidelity
+        -- After assembly, within each semantic group without transforms,
+        -- shapes of identical paint whose boxes touch, and small slivers that
+        -- touch a shape of similar colour, are unioned locally into one shape
+        -- that keeps the largest member's id. A smoothed union is tried first,
+        -- then a plain one; each is kept only if the ink comparison still
+        -- passes and no local cell loses more than
+        -- config.fusion_max_cell_loss of its ink. Otherwise the unfused
+        -- assembly stands. Clearly different colours are never fused.
+
     @invariant OneAssemblyPathForImmediateAndReviewed
         -- Assembly after recording-mode review runs the same assembly, ink
         -- comparison and merge-free fallback as immediate assembly.
@@ -153,8 +168,17 @@ contract JointVectorizeStructure {
         -- Tracing, region compaction, assembly and verification are local.
         -- The operation makes one semantic request; changing only curve
         -- tolerance never repeats it. The NLU, utterance and composition
-        -- prompt are not sent: the bitmap, the numbered regions, the tree and
-        -- the palette suffice.
+        -- prompt are not sent to it: the bitmap, the numbered regions, the
+        -- tree, the palette and any entity detection suffice.
+
+    @invariant EntityDetectionIsEvidenceNotAuthority
+        -- Before the semantic request, one detection request (bitmap,
+        -- utterance, non-root element ids; zero usage units) returns a box
+        -- per entity actually drawn. Each region is told which boxes contain
+        -- its anchor; entities without a box are named as not drawn and get
+        -- no regions. Boxes are strong evidence, not assignment: the
+        -- structuring model still decides each region. When detection fails
+        -- the operation proceeds exactly as without it.
 
     @invariant RegionsKeepProvenance
         -- Every traced path names the region it came from; regions are never
@@ -233,9 +257,13 @@ contract GeometricEditingBoundary {
     @invariant DraftEditorTargetsChosenArtifact
         -- A passive draft has its own edit and download actions in both compact
         -- and focused views. Editing opens that exact draft, never substitutes
-        -- the raw trace or an accepted revision. Saving creates an uncertified
-        -- draft snapshot and changes neither the raw trace nor the accepted
-        -- revision or its reference. Editing alone never requests certification.
+        -- the raw trace or an accepted revision; on opening, an empty,
+        -- correctly attributed group is added for each element that has none,
+        -- so shapes can be moved into it. Saving changes neither the raw
+        -- trace nor the accepted revision or its reference unless the saved
+        -- draft has no remaining issue, in which case the save certifies it
+        -- through the final validation boundary; otherwise it stays an
+        -- uncertified draft snapshot.
         -- If the draft or its source context changes after opening the editor,
         -- reject the stale save with a localized conflict diagnostic; retain
         -- the editor's unsaved content and the newer workspace artifacts.
@@ -251,6 +279,21 @@ contract GeometricEditingBoundary {
         -- including affected fields or references where available. If a
         -- historical draft has no retained reason, explicitly say that the
         -- cause was not recorded; do not infer a semantic or provider failure.
+
+    @invariant DraftChecklistAndCertification
+        -- A draft lists every reason it does not certify yet, by element:
+        -- invalid row NLU or composition (with fields), geometry outside every
+        -- element group, elements without drawing, groups of elements no
+        -- longer in the composition, a legacy composition without concepts,
+        -- and the final schema failure. Certifying a draft needs no model
+        -- call and changes no geometry: concepts follow the composition,
+        -- empty groups are dropped, bindings are built from the groups as
+        -- they are (implicit for chosen Actions), and the schema decides.
+        -- Removing an undrawn element is a person's decision from the
+        -- checklist: its children move to its parent and the prompt keeps the
+        -- word unquoted. Concepts missing from a legacy composition are
+        -- chosen by a person, suggested from the draft. Nothing is removed or
+        -- classified automatically.
 
     @invariant HistoricalValuesRemainEvidence
         -- Validation does not rewrite imported NLU or composition. Controls
@@ -306,9 +349,14 @@ contract PortablePictogramRevision {
         -- An action may be expressed by posture or relations with no separate
         -- drawn action group. A declared implicit binding has no own SVG
         -- group id. A supplied performedBy reference must resolve to a rendered
-        -- explicit group. No performer is inferred solely from node order or
-        -- guessed from the first Agent. Absence remains unknown; it does not
-        -- require invention of an empty group or a decorative action symbol.
+        -- explicit group. A performer comes from evidence, never from node
+        -- order alone: from the bitmap entry, an Action that entity detection
+        -- found undrawn is bound implicitly to the detected Agent; otherwise a
+        -- person chooses the performer among the drawn elements in the draft
+        -- checklist. Without that evidence absence remains unknown; it does
+        -- not require invention of an empty group or a decorative symbol.
+        -- An undrawn Object or Context cannot be implicit: the checklist
+        -- offers to remove it from the composition instead.
 
     @invariant AccessibleResolvableDocument
         -- SVG namespace and viewBox are valid. Document-wide ids are unique.
@@ -393,6 +441,7 @@ entity StructuredRevision {
 config {
     candidate_profile_version: String = "2.0.0-draft.1"
     fidelity_warning_ratio: Decimal = 0.05
+    fusion_max_cell_loss: Decimal = 0.15
 }
 
 ------------------------------------------------------------
@@ -497,8 +546,8 @@ surface StructuredArtifactBoundary {
         StructuredDraftProduced(editor, content: String, parent_hash: String?)
         ConformanceEvaluated(revision: StructuredRevision, conformance: SvgConformance) when revision.status = draft
     @guarantee CompletionRequiresFinalValidation
-        -- All generation routes, regrouping review, explicit redraw and editor
-        -- saves pass the same final conformance boundary before accepting a
+        -- All generation routes, regrouping review, draft certification and
+        -- editor saves pass the same final conformance boundary before accepting a
         -- new canonical reference. XML parsing and model success do not bypass
         -- it. Invalid results preserve the previous reference and the draft.
 }
@@ -510,3 +559,6 @@ surface StructuredArtifactBoundary {
 open question "Which disclosed review evidence and cognitive evaluation criteria should the first public mf-svg profile support?"
 open question "What explicit privacy and redaction workflow permits publication of a revision whose original NLU contains participant-identifying content?"
 open question "How should unresolved composition nodes and retained unclassified geometry be reviewed before a draft becomes a public pictogram revision?"
+-- Deferred: resolving splitRequests into their nodes with masks, without a
+-- second general request (plan VE7). Today a split goes to the nodes' deepest
+-- common ancestor or stays unassigned.
