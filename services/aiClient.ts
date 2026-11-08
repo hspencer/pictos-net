@@ -133,6 +133,13 @@ export async function callGeminiNlu(params: ClaudeParams): Promise<ClaudeRespons
 }
 
 /** OpenAI text/vision returns the same forced-tool envelope; canonical validation remains local. */
+export interface EntityDetection { label: string; box: [number, number, number, number] }
+
+/** Entity boxes (normalized 0..1) before ESTRUCTURAR; absent entities are not drawn. */
+export async function callDetectEntities(params: { bitmap: string; utterance: string; labels: string[] }): Promise<{ detections: EntityDetection[]; model: string }> {
+    return callProxy('api-gemini-detect', params);
+}
+
 export async function callOpenAIText(params: ClaudeParams): Promise<ClaudeResponse> {
     return callProxy('api-openai-text', params);
 }

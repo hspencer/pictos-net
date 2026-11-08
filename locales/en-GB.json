@@ -952,6 +952,8 @@
     "issueCompositionFields": "Check in COMPONER: {fields}. The image and this draft are kept.",
     "issueConcepts": "This composition predates semantic concepts. Confirm each element's concept (suggested by the draft):",
     "applyConcepts": "Apply concepts",
+    "removeElement": "Remove from the composition",
+    "removeElementTitle": "Not drawn: it leaves the COMPONER tree; its children move up a level and the composition text keeps it as a plain word.",
     "draftFixInEditor": "Fix this in “Edit draft”: saving certifies the draft automatically once it meets everything. Your edit is kept; no need to run ESTRUCTURAR again.",
     "certifyDraft": "Certify",
     "draftCertified": "Draft certified with your edit (manual_edit revision).",

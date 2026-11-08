@@ -93,6 +93,16 @@ Es el enfoque de julio 2026, con las correcciones de octubre.
 
 Los contornos dobles (borde interno y externo de una misma línea) se detectan antes de la llamada: IoU de bbox ≥ 0,7, razón de áreas ≥ 0,4, mismo `fill-role` **y misma pintura**, agrupados por union-find. El modelo confirma o rechaza en `merge.sources`. La unión se calcula localmente y solo si todas las fuentes tienen la misma pintura (color, regla de relleno, opacidad): compartir el rol "accent" no basta.
 
+## Detección de entidades (desde el bitmap)
+
+Antes de llamar al modelo de regiones, `api-gemini-detect` pide a Gemini 3.8 Flash una caja por cada elemento del árbol de COMPONER que esté dibujado. Las regiones se anotan con las cajas que las contienen ("dentro de: …"), los elementos sin caja se declaran "no dibujados" y no reciben regiones, y una Acción no dibujada se enlaza como implícita del Agente detectado. Si la detección falla, todo sigue como antes. Benchmark del 07-11-2026 (`research/2026-11-07_segmentacion-semantica/`): Gemini con cajas encuentra el 90 % de las entidades en unos 3 s; SAM 3 el 44 %; pedir máscaras a Gemini no sirve porque la respuesta supera 8.192 tokens.
+
+Un elemento de Contexto u Objeto que no está dibujado no puede enlazarse como implícito; la lista del borrador ofrece quitarlo de la composición.
+
+## Fusión por color
+
+Después del ensamblado, dentro de cada entidad, las formas de la misma pintura que se tocan y las astillas pequeñas de color parecido se unen en una sola forma (unión booleana). Primero se prueba la versión suavizada y luego la sin suavizar; cada una se conserva solo si la fidelidad se mantiene y ninguna celda pierde más del 15 % de su tinta.
+
 ## Ensamblado común
 
 - **Validación de la respuesta** (`validateStructuringMapping`): ids de path desconocidos y nodos inexistentes se descartan con diagnóstico; un path reclamado dos veces se emite una sola; los números de marca se resuelven al path correspondiente. Una respuesta malformada falla; no se repara inventando semántica.

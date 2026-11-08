@@ -27,8 +27,8 @@
 import type { NLUData, VisualElement, GlobalConfig, StructuringMapping, StructuringGroup, MergedPath, SvgStructureDiagnostic } from '../types';
 import { SVG_STYLESHEET } from './svgStyles';
 import { generateCssString } from '../lib/style-editor/lib/utils/cssGenerator';
-import { callStructuringModel, extractToolUse } from './aiClient';
-import type { ClaudeResponse } from './aiClient';
+import { callStructuringModel, extractToolUse, callDetectEntities } from './aiClient';
+import type { ClaudeResponse, EntityDetection } from './aiClient';
 import { applyBooleanN, applySimplify } from './svgBooleanOps';
 import { findUnreachableNodeIds } from './svgTreeUtils';
 import { isMicroBlob } from './svgGeometryUtils';
@@ -2218,6 +2218,7 @@ export async function vectorizeAndStructure(input: JointStructureInput): Promise
         img.src = input.bitmap;
         await img.decode();
         const session = await openTraceSession(img, 1024, JOINT_SEGMENT);
+        const W = session.width(), H = session.height();
         let trace: ReturnType<typeof buildJointTrace>;
         try {
             trace = buildJointTrace(session.width(), session.height(), session.regions() as TraceRegion[], session.finish(JOINT_FINISH) as TracedRegionPath[]);
@@ -2235,11 +2236,38 @@ export async function vectorizeAndStructure(input: JointStructureInput): Promise
         const image = await rasterizeWithMarks(rawSvg, { ...inventory, paths: markedPaths });
 
         const nodeList = flattenElements(input.elements);
+        // Entity boxes from a vision model that sees the whole drawing (Gemini):
+        // each region learns which entities contain it, and entities not drawn are
+        // named so they get nothing. Without detection everything runs as before.
+        const entityIds = nodeList.filter(n => n.concept !== 'Root').map(n => n.id);
+        let detections: EntityDetection[] | null = null;
+        try {
+            detections = (await callDetectEntities({ bitmap: input.bitmap, utterance: input.utterance, labels: entityIds })).detections;
+            input.onProgress?.(`[ESTRUCTURAR desde bitmap] detección: ${new Set(detections.map(d => d.label)).size}/${entityIds.length} entidades en la imagen`);
+        } catch (error) {
+            input.onProgress?.(`[ESTRUCTURAR desde bitmap] detección no disponible (${error instanceof Error ? error.message.slice(0, 80) : 'error'}) — sigue sin cajas`);
+        }
+        const notDrawn = detections ? entityIds.filter(id => !detections!.some(d => d.label === id)) : [];
+        const boxesAt = (cx: number, cy: number) => detections
+            ? [...new Set(detections.filter(d => cx >= d.box[0] * W && cx <= (d.box[0] + d.box[2]) * W && cy >= d.box[1] * H && cy <= (d.box[1] + d.box[3]) * H).map(d => d.label))]
+            : [];
         const regionLines = markedPaths.map((p, i) => {
             const r = trace.regionOf(p.id);
             const [x, y, w, h] = (p.bbox ?? [0, 0, 0, 0]).map(Math.round);
-            return `  mark ${i}: ${p.id} color=${r?.color ?? p.fill} caja=(${x},${y},${w},${h}) área=${r?.area ?? '?'}px`;
+            const inside = boxesAt(p.cx, p.cy);
+            return `  mark ${i}: ${p.id} color=${r?.color ?? p.fill} caja=(${x},${y},${w},${h}) área=${r?.area ?? '?'}px${detections ? ` dentro de: ${inside.join(', ') || 'ninguna entidad detectada'}` : ''}`;
         }).join('\n');
+        const detectionText = detections ? `
+
+Detección previa (otro modelo de visión, cajas sobre la imagen original, mismas coordenadas que las regiones):
+${detections.map(d => `- ${d.label}: caja=(${d.box.map((v, k) => Math.round(v * (k % 2 ? H : W))).join(',')})`).join('\n')}
+${notDrawn.length ? `No dibujados en la imagen: ${notDrawn.join(', ')}. No les asignes regiones.` : 'Todas las entidades del árbol están dibujadas.'}
+Usa "dentro de" como evidencia fuerte; decide tú cuando una región cae en varias cajas o en ninguna.` : '';
+        // An Action with no drawing of its own is expressed by whoever performs it.
+        const performer = nodeList.find(n => n.concept === 'Agent' && detections?.some(d => d.label === n.id))?.id;
+        const implicitBindings = performer
+            ? nodeList.filter(n => n.concept === 'Action' && notDrawn.includes(n.id)).map(n => ({ elementId: n.id, implicit: true as const, performedBy: performer }))
+            : [];
         const userText = `Árbol semántico:
 ${nodeList.map(n => `- ${n.id} [${n.concept}] "${n.label}"${n.parentId ? ` (hijo de ${n.parentId})` : ''}`).join('\n')}
 
@@ -2247,7 +2275,7 @@ Paleta CSS disponible:
 ${extractPaletteClasses(generateStylesheet(input.config))}
 
 Regiones (${markedPaths.length}; además ${trace.attached.length} astillas de borde sin marca que siguen a la región que las contiene):
-${regionLines}`;
+${regionLines}${detectionText}`;
 
         input.onProgress?.(`[ESTRUCTURAR desde bitmap] llamando ${model} (${userText.length} chars, marcas ${image.widthPx}×${image.heightPx}px)…`);
         const response: ClaudeResponse = await callStructuringModel({
@@ -2284,7 +2312,8 @@ ${regionLines}`;
         if (input.config.recording?.enabled) {
             return { svg: '', rawSvg, success: true, mapping, pendingReview: true, regionDiagnostics: diagnostics };
         }
-        const result = await assembleAndVerify(mapping, { ...input, rawSvg, referenceImage: input.bitmap });
+        const result = await assembleAndVerify(mapping, { ...input, rawSvg, referenceImage: input.bitmap,
+            implicitBindings: [...(input.implicitBindings ?? []), ...implicitBindings] });
         return { ...result, rawSvg, regionDiagnostics: diagnostics };
     } catch (error) {
         return {

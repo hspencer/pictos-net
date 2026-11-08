@@ -5,7 +5,7 @@ import { RowData, VisualElement, NLUData, StructuringMapping, DEFAULT_PHASE5_MOD
 import { structureSVG, assembleAndVerify, canStructureSVG, vectorizeAndStructure } from '../services/svgStructureService';
 import { captureSvgSource, prepareSvgPromotion, prepareSvgDraft, canCertifySVG, observedSvgProvenance } from '../services/svgCanonical';
 import { formatSvgStructureError, svgStructureDiagnostic } from '../services/svgStructureDiagnostics';
-import { applyConcepts, certifyDraft, CONCEPTS, draftIssues, type ImplicitChoices } from '../services/svgDraftCertification';
+import { applyConcepts, certifyDraft, CONCEPTS, draftIssues, removeElement, type ImplicitChoices } from '../services/svgDraftCertification';
 import { createSvgReference } from '../schemas/pictos-svg-schema/index.js';
 import { Phase5ReviewPanel } from './Phase5ReviewPanel';
 import useSVGLibrary from '../hooks/useSVGLibrary';
@@ -700,6 +700,10 @@ function DraftChecklist({ row, onUpdate, onLog, fallback }: {
                         {issue.kind === 'invalid' && <span title={issue.message}>{fallback}</span>}
                         {issue.kind === 'empty' && <>
                             {t('svgGenerator.issueEmpty', { element: issue.elementId })}
+                            <button type="button" className="ml-1 underline decoration-dotted" title={t('svgGenerator.removeElementTitle')}
+                                onClick={() => onUpdate(removeElement(row.elements ?? [], row.prompt ?? '', issue.elementId))}>
+                                {t('svgGenerator.removeElement')}
+                            </button>
                             {issue.performers.length > 0 && <label className="block mt-0.5">
                                 {t('svgGenerator.issueImplicit')}{' '}
                                 <select className="border border-amber-300 rounded bg-white px-1" value={implicit[issue.elementId] ?? ''}

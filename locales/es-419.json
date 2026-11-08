@@ -952,6 +952,8 @@
     "issueCompositionFields": "Revisa en COMPONER: {fields}. Se conservan la imagen y este borrador.",
     "issueConcepts": "Esta composición es anterior a los conceptos semánticos. Confirma el concepto de cada elemento (viene propuesto por el borrador):",
     "applyConcepts": "Aplicar conceptos",
+    "removeElement": "Quitar de la composición",
+    "removeElementTitle": "No está dibujado: se quita del árbol de COMPONER; sus hijos suben un nivel y el texto de composición lo conserva como palabra.",
     "draftFixInEditor": "Corrige esto en «Editar borrador»: al guardar, el borrador se certifica solo si ya cumple todo. Tu edición se conserva; no hace falta volver a ESTRUCTURAR.",
     "certifyDraft": "Certificar",
     "draftCertified": "Borrador certificado con tu edición (revisión manual_edit).",

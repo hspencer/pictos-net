@@ -65,3 +65,14 @@ test('a composition without concepts asks for them, suggested from the draft, th
     assert.deepEqual(draftIssues(legacy, draft), []);
     assert.ok(assertValidSVG(certifyDraft(legacy, draft)));
 });
+
+test('an element that is not drawn can be removed from the composition, keeping the sentence readable', async () => {
+    const { removeElement } = await import('./svgDraftCertification.ts');
+    const withContext = row();
+    (withContext.elements![0] as any).children.push({ id: 'cocina_casa', concept: 'Context', children: [{ id: 'mesa', concept: 'Object' }] });
+    withContext.prompt += " Todo ocurre en la 'cocina_casa', con la 'mesa' al fondo.";
+    const { elements, prompt } = removeElement(withContext.elements as any, withContext.prompt!, 'cocina_casa');
+    assert.ok(JSON.stringify(elements).includes('"mesa"'));
+    assert.ok(!JSON.stringify(elements).includes('cocina_casa'));
+    assert.match(prompt, /en la cocina casa, con la 'mesa'/);
+});

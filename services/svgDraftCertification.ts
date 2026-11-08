@@ -185,3 +185,16 @@ export function certifyDraft(row: Partial<RowData>, svg: string, implicit: Impli
     assertValidSVG(out);
     return out;
 }
+
+/**
+ * Composition without one element that is not drawn: its children move up to
+ * its parent and the composition prompt keeps the word unquoted (so it stays a
+ * readable sentence but no longer references an element). A person decides
+ * this from the draft checklist; nothing removes elements automatically.
+ */
+export function removeElement(elements: any[], prompt: string, id: string): { elements: any[]; prompt: string } {
+    const strip = (nodes: any[]): any[] => nodes.flatMap(n => n.id === id
+        ? strip(n.children ?? [])
+        : [{ ...n, ...(n.children ? { children: strip(n.children) } : {}) }]);
+    return { elements: strip(elements), prompt: prompt.split(`'${id}'`).join(id.replace(/_/g, ' ')) };
+}

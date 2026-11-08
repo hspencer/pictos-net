@@ -92,9 +92,12 @@ export const MODEL_CATALOG = {
     cachedInputUsdPerMillion: 0.40,
     longContext: { aboveInputTokens: 272000, inputUsdPerMillion: 8, outputUsdPerMillion: 30 },
   }, 'retired'),
-  'gemini-3.8-flash': { ...text('Gemini 3.8 Flash', 'gemini', [1, 2], 0.75, 3.75,
+  // Not offered for any pipeline phase (retired from COMPRENDER/COMPONER 2026-11-01). Its only
+  // role is entity detection before ESTRUCTURAR ('detect', api-gemini-detect): 90 % of entities
+  // in ~3 s (research/2026-11-07_segmentacion-semantica).
+  'gemini-3.8-flash': { ...text('Gemini 3.8 Flash', 'gemini', ['detect'], 0.75, 3.75,
     'https://cloud.google.com/gemini-enterprise-agent-platform/generative-ai/pricing',
-    { scheduledChange: { from: '2027-01-01', inputUsdPerMillion: 1.50, outputUsdPerMillion: 7.50 } }, 'retired'),
+    { scheduledChange: { from: '2027-01-01', inputUsdPerMillion: 1.50, outputUsdPerMillion: 7.50 } }, 'active'),
     thinking: { level: 'LOW' }, pricingCheckedAt: '2026-10-22' },
   'gpt-image-2': image('OpenAI GPT Image 2', 'openai', 'bitmap', 0.006,
     'https://developers.openai.com/api/docs/models/gpt-image-2', {
@@ -124,6 +127,8 @@ export const MODEL_CATALOG = {
  */
 export const DEFAULT_MODELS = Object.freeze({
   1: 'claude-haiku-5-5', 2: 'claude-haiku-5-5', 3: 'gpt-image-2.5-flare', 5: 'claude-sonnet-4-6',
+  /** Entity boxes before ESTRUCTURAR (not a user-selectable phase). */
+  detect: 'gemini-3.8-flash',
 });
 
 /** The model a config selects for a phase; unset fields follow DEFAULT_MODELS. */
