@@ -312,6 +312,7 @@ const RENAMED_TEMPLATES: Record<string, string> = {
   'tablero_graph_2026-08-13.json': 'tablero.json',
   'idiomatic.json': 'idiomatic.en.json',
   'kitchen.json': 'kitchen.en.json',
+  'picmil.json': 'pictos-senaletica.json',
 };
 
 const App: React.FC<AppProps> = ({ authUser }) => {

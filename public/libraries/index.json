@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-07T17:01:29.248Z",
+  "generated": "2026-11-08T18:02:26.820Z",
   "count": 26,
   "libraries": [
     {
@@ -44,7 +44,7 @@
       "sequences": 0,
       "credits": "MediaFranca",
       "description": "pictonet_graph_dump",
-      "filesize": 6264766
+      "filesize": 6264720
     },
     {
       "filename": "escena-descriptiva.en.json",
@@ -110,7 +110,7 @@
       "sequences": 0,
       "credits": "MediaFranca",
       "description": "pictonet_graph_dump",
-      "filesize": 7553081
+      "filesize": 7553035
     },
     {
       "filename": "ilustracion-moderna.json",
@@ -154,7 +154,7 @@
       "sequences": 0,
       "credits": "MediaFranca",
       "description": "pictonet_graph_dump",
-      "filesize": 608665
+      "filesize": 608625
     },
     {
       "filename": "mordillo.json",
@@ -166,17 +166,6 @@
       "credits": "MediaFranca",
       "description": "pictonet_graph_dump",
       "filesize": 1555230
-    },
-    {
-      "filename": "picmil.json",
-      "name": "PICMIL",
-      "location": "Viña del Mar, Región de Valparaíso, Chile",
-      "language": "es-419",
-      "items": 22,
-      "sequences": 0,
-      "credits": "MediaFranca",
-      "description": "pictonet_graph_dump",
-      "filesize": 6551083
     },
     {
       "filename": "pictos-color.json",
@@ -199,6 +188,17 @@
       "credits": "MediaFranca",
       "description": "pictonet_graph_dump",
       "filesize": 35064787
+    },
+    {
+      "filename": "pictos-senaletica.json",
+      "name": "PICTOS - Señalética",
+      "location": "Viña del Mar, Región de Valparaíso, Chile",
+      "language": "es-419",
+      "items": 28,
+      "sequences": 1,
+      "credits": "MediaFranca",
+      "description": "pictonet_graph_dump",
+      "filesize": 3659021
     },
     {
       "filename": "pictos-tramites.json",
