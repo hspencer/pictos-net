@@ -86,7 +86,7 @@ La fidelidad no cambia: la absorción solo reasigna grupos. Faltan nodos donde u
 
 ### Edición posterior de un SVG estructurado
 
-Verificado sobre un SVG certificado por la operación conjunta: editar el dibujo dentro de los grupos (mover, escalar, guardar) conserva la validez y crea una revisión `manual_edit` con el hash del padre, sin tocar NLU, composición ni enlaces. Borrar toda la geometría de un grupo, una unión booleana entre grupos, sacar una forma de su grupo o desagrupar un grupo semántico invalidan el esquema: el guardado los deja como borrador y la revisión aceptada no cambia. Desde el mismo día el editor las bloquea antes de aplicarlas (guardián semántico en cada commit) y explica qué grupo rompería; mover formas entre grupos sigue permitido. Las booleanas ahora dejan el resultado en el ancestro común de los operandos, como pedía el spec, en vez de la raíz. Detalle en [ESTRUCTURAR.md](ESTRUCTURAR.md#edición-posterior-en-el-editor).
+Verificado sobre un SVG certificado por la operación conjunta: editar el dibujo dentro de los grupos (mover, escalar, guardar) conserva la validez y crea una revisión `manual_edit` con el hash del padre, sin tocar NLU, composición ni enlaces. Borrar toda la geometría de un grupo, una unión booleana entre grupos, sacar una forma de su grupo o desagrupar un grupo semántico invalidan el esquema: el guardado los deja como borrador y la revisión aceptada no cambia. Desde el mismo día el editor las bloquea antes de aplicarlas (guardián semántico en cada commit) y explica qué grupo rompería; mover formas entre grupos sigue permitido. Las booleanas ahora dejan el resultado en el ancestro común de los operandos, como pedía el spec, en vez de la raíz. Detalle en [ESTRUCTURAR.md](../ESTRUCTURAR.md#edición-posterior-en-el-editor).
 
 Hallazgos nuevos durante la implementación:
 
@@ -165,19 +165,19 @@ La reconstrucción amodal —completar lo que está detrás de otro objeto— pu
 
 ## 2. Contexto y documentación aplicable
 
-Este plan desarrolla el frente bitmap → SVG semántico. Complementa el [plan general de generación de octubre](archivo/PLAN_GENERACION_2026-10.md) y los principios de [ESTRUCTURAR](ESTRUCTURAR.md). El [roadmap de marzo](ROADMAP_ESTRUCTURAR.md) es histórico: sus porcentajes esperados, modelos y propuestas no deben tomarse como resultados actuales.
+Este plan desarrolla el frente bitmap → SVG semántico. Complementa el [plan general de generación de octubre](PLAN_GENERACION_2026-10.md) y los principios de [ESTRUCTURAR](../ESTRUCTURAR.md). El [roadmap de marzo](ROADMAP_ESTRUCTURAR.md) es histórico: sus porcentajes esperados, modelos y propuestas no deben tomarse como resultados actuales.
 
 La documentación de ESTRUCTURAR conserva descripciones de julio que no reflejan todas las restricciones posteriores de borradores y certificación. Para implementar, leer el código actual junto con:
 
 | Documento | Autoridad o uso |
 |---|---|
-| [visual-reasoning.allium](../specs/visual-reasoning.allium) | Vectorización local, una petición de estructuración, evidencia enviada al modelo, revisión y estados de las fases. |
-| [svg-structuring.allium](../specs/svg-structuring.allium) | Preservación geométrica, cobertura de paths, borradores, promoción y revisiones. |
-| [element-tree.allium](../specs/element-tree.allium) | Árbol de COMPONER; no confundirlo con el árbol DOM del editor. |
-| [library-views.allium](../specs/library-views.allium) | Acciones y presentación de bitmap, trazado, borrador y estructurado. |
-| [intervention-recording.allium](../specs/intervention-recording.allium) | Registro de intervenciones, revisión y atribución de reemplazos de artefactos. |
-| [svg-boolean-operations.allium](../specs/svg-boolean-operations.allium) | Contrato de las operaciones geométricas reutilizadas. |
-| [README del esquema SVG](../schemas/pictos-svg-schema/README.md) | Perfil vigente `2.0.0-draft.1`, bindings, validación y hash de bytes finales. |
+| [visual-reasoning.allium](../../specs/visual-reasoning.allium) | Vectorización local, una petición de estructuración, evidencia enviada al modelo, revisión y estados de las fases. |
+| [svg-structuring.allium](../../specs/svg-structuring.allium) | Preservación geométrica, cobertura de paths, borradores, promoción y revisiones. |
+| [element-tree.allium](../../specs/element-tree.allium) | Árbol de COMPONER; no confundirlo con el árbol DOM del editor. |
+| [library-views.allium](../../specs/library-views.allium) | Acciones y presentación de bitmap, trazado, borrador y estructurado. |
+| [intervention-recording.allium](../../specs/intervention-recording.allium) | Registro de intervenciones, revisión y atribución de reemplazos de artefactos. |
+| [svg-boolean-operations.allium](../../specs/svg-boolean-operations.allium) | Contrato de las operaciones geométricas reutilizadas. |
+| [README del esquema SVG](../../schemas/pictos-svg-schema/README.md) | Perfil vigente `2.0.0-draft.1`, bindings, validación y hash de bytes finales. |
 
 Los documentos bajo `schemas/pictos-svg-schema/docs/` describen el perfil histórico; el README del producto advierte que no son el contrato normativo v2. `lib/mf-schema` también es una copia histórica, no la fuente canónica para cambios nuevos.
 
@@ -197,9 +197,9 @@ Este documento propone esas modificaciones; no declara que los contratos ya haya
 
 ### 3.1 Vectorizar
 
-[VectorizerModal.tsx](../components/VectorizerModal.tsx) recibe `bitmap`, `utterance` y configuración. El enunciado sirve para presentación y nombres; el árbol de entidades no participa en el trazado.
+[VectorizerModal.tsx](../../components/VectorizerModal.tsx) recibe `bitmap`, `utterance` y configuración. El enunciado sirve para presentación y nombres; el árbol de entidades no participa en el trazado.
 
-[vtracerService.ts](../services/vtracerService.ts) utiliza `ColorImageConverter` o `BinaryImageConverter` del WASM acoplado al DOM: lee un canvas por ID y escribe paths en un SVG por ID. `runConversion` ejecuta `tick()` en intervalos; `traceInteractive` lo utiliza desde el modal y `vectorizeBitmap` crea elementos ocultos.
+[vtracerService.ts](../../services/vtracerService.ts) utiliza `ColorImageConverter` o `BinaryImageConverter` del WASM acoplado al DOM: lee un canvas por ID y escribe paths en un SVG por ID. `runConversion` ejecuta `tick()` en intervalos; `traceInteractive` lo utiliza desde el modal y `vectorizeBitmap` crea elementos ocultos.
 
 Hallazgos estáticos:
 
@@ -213,7 +213,7 @@ Hallazgos estáticos:
 
 ### 3.2 ESTRUCTURAR
 
-Las entradas activas son `App.processStep(..., 'structure')` y `SVGGenerator.handleFormat`. Ambas utilizan [svgStructureService.ts](../services/svgStructureService.ts). El ensamblado es del navegador; los workers remotos devuelven respuestas del proveedor, no el SVG final.
+Las entradas activas son `App.processStep(..., 'structure')` y `SVGGenerator.handleFormat`. Ambas utilizan [svgStructureService.ts](../../services/svgStructureService.ts). El ensamblado es del navegador; los workers remotos devuelven respuestas del proveedor, no el SVG final.
 
 El servicio ya recibe `rawSvg`, `elements` y `referenceImage`. Construye inventario, marcas y candidatos de fusión; pide un `StructuringMapping`; ensambla grupos y aplica pulido. Es una base reutilizable.
 
@@ -646,7 +646,7 @@ Una petición semántica es una llamada a nivel de aplicación. Los reintentos H
 - El cliente consulta cada 2 segundos hasta aproximadamente 6 minutos. Ese techo de transporte no es un objetivo de experiencia de usuario.
 - Las políticas de reintento y tiempo total difieren por proveedor; conservar atribución y medir intentos reales.
 
-Referencias: [aiClient.ts](../services/aiClient.ts), [api-structure-stage.js](../netlify/functions/api-structure-stage.js), [api-claude.js](../netlify/functions/api-claude.js), [worker Gemini](../netlify/functions/api-gemini-structure-background.js), [worker OpenAI](../netlify/functions/api-openai-text-background.js).
+Referencias: [aiClient.ts](../../services/aiClient.ts), [api-structure-stage.js](../../netlify/functions/api-structure-stage.js), [api-claude.js](../../netlify/functions/api-claude.js), [worker Gemini](../../netlify/functions/api-gemini-structure-background.js), [worker OpenAI](../../netlify/functions/api-openai-text-background.js).
 
 ### 10.3 Métricas por intento
 
@@ -946,14 +946,14 @@ La métrica PERE de R3 incluye efectos del completado amodal; adoptar la idea de
 
 Reutilizar y ampliar:
 
-- [svgBooleanOps.test.ts](../services/svgBooleanOps.test.ts)
-- [svgMergeCandidates.test.ts](../services/svgMergeCandidates.test.ts)
-- [svgGeometryUtils.test.ts](../services/svgGeometryUtils.test.ts)
-- [svgPathPolish.test.ts](../services/svgPathPolish.test.ts)
-- [svgTreeUtils.test.ts](../services/svgTreeUtils.test.ts)
-- [svgCanonical.test.ts](../services/svgCanonical.test.ts)
-- [contratos SVG](../schemas/pictos-svg-schema/tests/contracts.test.mjs)
-- [svg-generator-ui.test.mjs](../scripts/svg-generator-ui.test.mjs)
+- [svgBooleanOps.test.ts](../../services/svgBooleanOps.test.ts)
+- [svgMergeCandidates.test.ts](../../services/svgMergeCandidates.test.ts)
+- [svgGeometryUtils.test.ts](../../services/svgGeometryUtils.test.ts)
+- [svgPathPolish.test.ts](../../services/svgPathPolish.test.ts)
+- [svgTreeUtils.test.ts](../../services/svgTreeUtils.test.ts)
+- [svgCanonical.test.ts](../../services/svgCanonical.test.ts)
+- [contratos SVG](../../schemas/pictos-svg-schema/tests/contracts.test.mjs)
+- [svg-generator-ui.test.mjs](../../scripts/svg-generator-ui.test.mjs)
 
 El script `npm test` cubre los tests de funciones Netlify y servicios, pero no el archivo de UI bajo `scripts`. Incorporar explícitamente esa ejecución al cierre. Revisar las precondiciones reales del harness antes de invocarlo.
 
@@ -986,19 +986,19 @@ La elección final del motor y los umbrales depende de esos resultados. Si la me
 
 | Área | Archivos actuales | Cambio previsto |
 |---|---|---|
-| Motor raster | [vtracerService.ts](../services/vtracerService.ts), [bindings actuales](../lib/vtracer-wasm/vtracer_webapp.js) | Adaptador nuevo y comparación versionada; no sustitución binaria ciega. |
-| Controles actuales | [VectorizerModal.tsx](../components/VectorizerModal.tsx) | Reutilizar vista/comparación donde aporte; dejar parámetros técnicos en acceso avanzado. |
-| Estructuración | [svgStructureService.ts](../services/svgStructureService.ts) | Contrato de regiones, ensamblador común, preservación y verificador. |
-| Tipos | [types.ts](../types.ts) | Tipos versionados y compatibilidad explícita del mapping. |
-| Geometría | [svgBooleanOps.ts](../services/svgBooleanOps.ts), [svgPathPolish.ts](../services/svgPathPolish.ts), [svgGeometryUtils.ts](../services/svgGeometryUtils.ts), [svgMergeCandidates.ts](../services/svgMergeCandidates.ts) | Corregir huecos/pintura y retirar heurísticas insuficientes del camino nuevo. |
-| Entradas de usuario | [SVGGenerator.tsx](../components/SVGGenerator.tsx), [App.tsx](../App.tsx) | Invocar el mismo coordinador con instantánea. |
-| Revisión | [Phase5ReviewPanel.tsx](../components/Phase5ReviewPanel.tsx) | Mantener registro y aplicar el mismo cierre geométrico. |
-| Transporte | [aiClient.ts](../services/aiClient.ts), [api-structure-stage.js](../netlify/functions/api-structure-stage.js) | Reutilizar staging/routing y versionar herramienta si cambia el contrato. |
-| Auditoría del proveedor | [pipelineContracts.js](../netlify/functions/_shared/pipelineContracts.js) | Distinguir respuesta remota, validez del mapping y resultado local. |
-| Promoción | [svgCanonical.ts](../services/svgCanonical.ts) | Reutilizar guardas de contexto y validación final. |
-| Persistencia | [libraryService.ts](../services/libraryService.ts) | Conservar medios y referencias; migrar solo si se demuestra necesidad. |
-| Esquema portable | [pictos-svg-schema](../schemas/pictos-svg-schema/README.md) | Respetar bindings y metadata cerrado; cualquier extensión es versionada. |
-| Specs | [visual-reasoning](../specs/visual-reasoning.allium), [svg-structuring](../specs/svg-structuring.allium), [library-views](../specs/library-views.allium), [intervention-recording](../specs/intervention-recording.allium) | Expresar las nuevas responsabilidades antes de declarar convergencia. |
+| Motor raster | [vtracerService.ts](../../services/vtracerService.ts), [bindings actuales](../../lib/vtracer-wasm/vtracer_webapp.js) | Adaptador nuevo y comparación versionada; no sustitución binaria ciega. |
+| Controles actuales | [VectorizerModal.tsx](../../components/VectorizerModal.tsx) | Reutilizar vista/comparación donde aporte; dejar parámetros técnicos en acceso avanzado. |
+| Estructuración | [svgStructureService.ts](../../services/svgStructureService.ts) | Contrato de regiones, ensamblador común, preservación y verificador. |
+| Tipos | [types.ts](../../types.ts) | Tipos versionados y compatibilidad explícita del mapping. |
+| Geometría | [svgBooleanOps.ts](../../services/svgBooleanOps.ts), [svgPathPolish.ts](../../services/svgPathPolish.ts), [svgGeometryUtils.ts](../../services/svgGeometryUtils.ts), [svgMergeCandidates.ts](../../services/svgMergeCandidates.ts) | Corregir huecos/pintura y retirar heurísticas insuficientes del camino nuevo. |
+| Entradas de usuario | [SVGGenerator.tsx](../../components/SVGGenerator.tsx), [App.tsx](../../App.tsx) | Invocar el mismo coordinador con instantánea. |
+| Revisión | [Phase5ReviewPanel.tsx](../../components/Phase5ReviewPanel.tsx) | Mantener registro y aplicar el mismo cierre geométrico. |
+| Transporte | [aiClient.ts](../../services/aiClient.ts), [api-structure-stage.js](../../netlify/functions/api-structure-stage.js) | Reutilizar staging/routing y versionar herramienta si cambia el contrato. |
+| Auditoría del proveedor | [pipelineContracts.js](../../netlify/functions/_shared/pipelineContracts.js) | Distinguir respuesta remota, validez del mapping y resultado local. |
+| Promoción | [svgCanonical.ts](../../services/svgCanonical.ts) | Reutilizar guardas de contexto y validación final. |
+| Persistencia | [libraryService.ts](../../services/libraryService.ts) | Conservar medios y referencias; migrar solo si se demuestra necesidad. |
+| Esquema portable | [pictos-svg-schema](../../schemas/pictos-svg-schema/README.md) | Respetar bindings y metadata cerrado; cualquier extensión es versionada. |
+| Specs | [visual-reasoning](../../specs/visual-reasoning.allium), [svg-structuring](../../specs/svg-structuring.allium), [library-views](../../specs/library-views.allium), [intervention-recording](../../specs/intervention-recording.allium) | Expresar las nuevas responsabilidades antes de declarar convergencia. |
 
 Los módulos nuevos deben corresponder a responsabilidades reales: sesión geométrica, contrato de regiones, coordinación y verificación. No dividir por anticipado en múltiples servicios remotos ni duplicar el ensamblador.
 

@@ -1,7 +1,7 @@
 /**
  * Batch Service — bulk Phase 3 (PRODUCIR) via the Vertex Batch API.
  *
- * Spec: specs/batch-generation.allium. Design: docs/BATCH_GENERATION_DESIGN.md.
+ * Spec: specs/batch-generation.allium. Design: docs/archivo/BATCH_GENERATION_DESIGN.md.
  * Orchestrates the client side of batch generation; used by App.tsx
  * (startLibraryBatch handler, the 60s status poll and the drain effect).
  *

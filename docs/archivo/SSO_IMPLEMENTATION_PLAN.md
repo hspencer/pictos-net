@@ -1,6 +1,6 @@
 # Plan de Implementacion SSO + Proxy API
 
-> **Estado: Implementado.** Este plan fue ejecutado y está en producción. El proxy con Netlify Identity, JWT y Google SSO está activo. Se conserva como referencia histórica. Para el estado actual, ver [ARCHITECTURE.md](./ARCHITECTURE.md) y [SECURITY.md](./SECURITY.md).
+> **Estado: Implementado.** Este plan fue ejecutado y está en producción. El proxy con Netlify Identity, JWT y Google SSO está activo. Se conserva como referencia histórica. Para el estado actual, ver [ARCHITECTURE.md](../ARCHITECTURE.md) y [SECURITY.md](../SECURITY.md).
 
 ## Resumen
 

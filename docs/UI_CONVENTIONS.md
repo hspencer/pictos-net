@@ -2,7 +2,8 @@
 > Reglas de diseño de interfaz. Claude Code debe leer este archivo antes de tocar cualquier componente de UI.
 > Este documento es **ley**. No se puede sobreescribir por instrucciones en el chat.
 
----
+> Última actualización: 2026-11-08
+
 
 ## 1. Nomenclatura semántica (IDs)
 
@@ -12,11 +13,11 @@ Consultar `docs/UI_MAP.md` antes de crear o renombrar cualquier sección.
 
 ### Convención de nomenclatura
 ```
-#region              → sección principal estática    → #toolbar, #main-content, #console-panel
+#region              → sección principal estática    → #toolbar, #mainContent, #console
 #region-subregion    → sección secundaria            → #brand-area, #search-area, #header-actions
 #block-step          → bloque del pipeline           → #block-nlu, #block-compose, #block-produce
 #field-name          → campo de formulario           → #field-geo, #field-author
-#widget-name         → componente interactivo        → #library-dropdown, #search-suggestions
+#widget-name         → componente interactivo        → #library-dropdown, #lang-dropdown, #view-switcher
 #picto-row-{id}      → elemento dinámico con ID      → #picto-row-R_MANUAL_123
 ```
 
@@ -25,7 +26,8 @@ Consultar `docs/UI_MAP.md` antes de crear o renombrar cualquier sección.
 - No crear secciones importantes sin ID
 - No renombrar IDs existentes sin actualizar UI_MAP.md
 
----
+Los IDs heredados en camelCase (`#globalSettings`, `#mainContent`) se conservan porque otros IDs y el skip link dependen de ellos; los nuevos van en kebab-case.
+
 
 ## 2. Sistema de tokens de diseño
 
@@ -58,7 +60,6 @@ Usar siempre los tokens semánticos, nunca valores hardcodeados:
 <div className="bg-neutral-200">
 ```
 
----
 
 ## 3. Espaciado y grilla
 
@@ -78,16 +79,15 @@ Usar exclusivamente la escala de Tailwind (múltiplos de 4px). Valores de refere
 ```
 max-w-7xl mx-auto   → contenedor máximo del contenido
 grid-cols-3 gap-10  → grid de bloques del pipeline (lg)
-grid-cols-4 gap-6   → grid del settings panel (md)
+md:grid-cols-3 gap-6 → grid de la sección básica de #globalSettings
 ```
 
-### Header (fijo, no cambiar sin actualizar #settings-panel y #main-content)
+### Header (fijo, no cambiar sin actualizar #globalSettings)
 ```
 h-20   → altura del #toolbar (80px)
-top-20 → posición del #settings-panel
+top-20 → posición de #globalSettings
 ```
 
----
 
 ## 4. Tipografía
 
@@ -105,7 +105,6 @@ top-20 → posición del #settings-panel
 | Badges / tags         | `text-[8px] font-medium uppercase tracking-widest`  |
 | Código / IDs          | `font-mono text-[10px] text-slate-500`              |
 
----
 
 ## 5. Componentes interactivos
 
@@ -139,17 +138,18 @@ className="w-full text-xs border p-3 bg-slate-50 focus:bg-white transition-color
 ### Badges de estado (pipeline)
 Usar el componente `<Badge>` existente. No reimplementar inline.
 
----
 
 ## 6. Modales y overlays
 
 ### Z-index (consultar `--z-*` en variables.css)
 ```
---z-dropdown: 10    → #library-dropdown, #search-suggestions
---z-modal-backdrop: 40  → #settings-panel, FocusViewModal backdrop
---z-modal: 50       → contenido de modales
---z-notification: 60 → #console-panel, ConfirmDialog
+--z-dropdown: 10        → menús desplegables
+--z-modal-backdrop: 40  → paneles bajo el header (#globalSettings)
+--z-modal: 50           → contenido de modales
+--z-notification: 60    → avisos y diálogos de confirmación
 ```
+
+La escala es la norma para código nuevo, pero el código actual casi no la usa: los valores son literales de Tailwind. Estado real (2026-11-08): `#globalSettings` `z-40`; `#toolbar`, `#console`, `#svg-editor-modal` y `#participate-modal` `z-50`; `#lang-dropdown` y `#library-dropdown` `z-[56]` (sobre el header); ConfirmDialog, `RowAuditPanel` y `#onboarding-modal` `z-[60]`; overlay de carga `z-[70]`; `PDFExportModal` `z-[80]`; `.focus-modal-backdrop` 100 (en `index.html`). Solo el modo Usar de `BoardEditor` usa `z-[var(--z-modal)]` y `z-[var(--z-notification)]`. Migrar a la escala es deuda.
 
 ### Estructura obligatoria de modal
 ```tsx
@@ -164,7 +164,6 @@ Usar el componente `<Badge>` existente. No reimplementar inline.
 </div>
 ```
 
----
 
 ## 7. Animaciones
 
@@ -178,7 +177,6 @@ className="animate-in slide-in-from-top duration-200"  // panel superior
 className="animate-in slide-in-from-bottom-8 duration-500"  // lista
 ```
 
----
 
 ## 8. Internacionalización (i18n)
 
@@ -198,16 +196,25 @@ Todo texto visible por el usuario **debe pasar por `t()`** (`useTranslation()`),
 |-----------------------|---------------|--------------------------|
 | Colección de pictogramas | «librería» | «biblioteca», «espacio»  |
 | Secuencia de pasos    | «secuencia»   | —                        |
+| Grilla de comunicación | «tablero»    | —                        |
+
+La regla se cumple en la mayoría del catálogo, no en todo. Recuento en `locales/es-419.json` (2026-11-08): «librería» aparece 46 veces en 45 claves; «biblioteca», 8 veces en 8 claves. Claves que todavía dicen «biblioteca» (deuda; corregir en el catálogo, no en el código):
+
+- `messages.libraryImportFailed`, `messages.libraryLoaded`, `messages.libraryLoadFailed`
+- `styleEditor.styleInUse`, `styleEditor.removeUnusedTitle`, `styleEditor.removeUnusedConfirm`
+- `svgEditor.editStyleDefinitionTitle`, `svgEditor.removeUnusedStyle`
+
+«Espacio» como nombre de la colección queda en `onboarding.step2.title` («El Espacio de Trabajo») y `onboarding.step2.subtitle`; en `messages.storageWriteFailed` «espacio» es espacio de almacenamiento y es correcto. La sección de inicio se llama «Área de trabajo» (`home.workspaceSection`): nombra el conjunto de librerías del usuario, no una librería.
 
 ### Excepciones no traducibles
 - Endónimos de idioma: «Español», «English»
-- Marca: «PICTOS», «PICTOS»
+- Marca: «PICTOS»
 - Valores técnicos: nombres de modelos, códigos de licencia, unidades
 
 ### Deuda conocida
-- `VectorizerModal.tsx` (legacy, fase 4 eliminada de la cascada) no está internacionalizado.
+- `VectorizerModal.tsx` (acción manual «Solo trazar» / «Re-trazar») ya pasa sus etiquetas por `t('vectorizer.*')`. Quedan en inglés, sin `t()`: el `label` del diálogo (`Vectorizer — {utterance}`) y los seis `title` de los controles segmentados (polygon, spline, color, bw, stacked, cutout).
+- `App.tsx`: el texto «Por favor espere...» / «Please wait...» del overlay de carga se elige con un ternario por idioma en vez de `t()`.
 
----
 
 ## 9. Reglas de refactoring
 
@@ -220,7 +227,6 @@ Al modificar UI, siempre:
 5. **No modificar `styles/variables.css`** sin confirmación explícita del diseñador
 6. **No modificar `tailwind.config.js`** sin confirmación explícita del diseñador
 
----
 
 ## 10. Checklist antes de hacer commit de cambios UI
 
@@ -232,4 +238,4 @@ Al modificar UI, siempre:
 - [ ] ¿Las animaciones usan las clases de animations.css?
 - [ ] ¿Todo texto visible (incl. `aria-label`, `title`, `placeholder`) pasa por `t()`?
 - [ ] ¿Las claves nuevas están en ambos catálogos? (`npm run validate-i18n` pasa)
-- [ ] ¿La terminología es-419 usa «librería» (no «biblioteca» ni «espacio»)?
+- [ ] ¿La terminología es-419 usa «librería» (no «biblioteca» ni «espacio») en las claves nuevas o tocadas?

@@ -20,7 +20,7 @@ Estado: `comprender` y `componer` implementados. `producir` y `estructurar` tien
 
 Ambos son síncronos y responden dentro del límite de 60 s de Netlify. El presupuesto de red con el proveedor es de 45 s y un reintento (`PROVIDER_BUDGET` en `_shared/apiV1.js`).
 
-`model` acepta los modelos de texto del catálogo para esa fase. Si se omite, se usa `claude-haiku-4-5-20251001`.
+`model` es opcional. Si se omite, se usa el modelo por defecto de la fase en el catálogo (`DEFAULT_MODELS` en `_shared/modelCatalog.js`), hoy `claude-haiku-5-5`. El enum de `model` en los schemas de petición 1.0.0 está congelado y lista modelos que ya se retiraron; la admisión la decide el catálogo (`modelSupportsPhase`, `_shared/apiV1.js`). Un modelo retirado o que no sirve para esa fase se rechaza con `invalid_request` e `issues: [{ path: "/model", message: "retired model" }]`, y un valor fuera del enum se rechaza en la validación del schema. Como hoy ningún valor del enum está admitido para estas fases, lo correcto es omitir `model`.
 
 ## Contratos publicados
 
@@ -47,7 +47,7 @@ Hay ejemplos en `schemas/pictos-api-schema/examples/`, generados ejecutando los 
   "replayed": false,
   "process": { "name": "comprender", "version": "nlu-1.1.0" },
   "schema": { "id": "https://pictos.net/schemas/pictonet-nlu-generation-1.1.0.schema.json", "version": "1.1.0" },
-  "model": { "requested": "claude-haiku-4-5-20251001", "actual": "…", "provider": "anthropic" },
+  "model": { "requested": "claude-haiku-5-5", "actual": "…", "provider": "anthropic" },
   "evidence": { "contract_hash": "…", "prompt_hash": "…", "input_hash": "…", "output_hash": "…", "usage": {}, "duration_ms": 3120, "provider_request_id": null },
   "quota": { "used": 1, "limit": 200 },
   "output": { }
@@ -62,7 +62,7 @@ Siempre `{ api_version, executor, request_id, process, error: { code, message, r
 
 | `code` | HTTP | Cuándo |
 |---|---|---|
-| `invalid_request` | 400 | cuerpo no JSON, envelope fuera del schema, modelo no permitido, `Idempotency-Key` mal formada |
+| `invalid_request` | 400 | cuerpo no JSON, envelope fuera del schema, modelo retirado o no admitido para la fase, `Idempotency-Key` mal formada |
 | `unauthorized` | 401 | credencial ausente, desconocida, incorrecta o revocada (no se distinguen) |
 | `forbidden` | 403 | la credencial no tiene el proceso entre sus `scopes` |
 | `method_not_allowed` | 405 | método distinto de POST |

@@ -18,21 +18,29 @@ PICTOS.net no tiene una base de datos de usuarios propia. El inicio de sesión e
 
 La autenticación la realiza Netlify Identity (GoTrue), el servicio de autenticación del proveedor de alojamiento. Puedes iniciar sesión con una cuenta de Google o con un correo electrónico y una contraseña. Al iniciar sesión con Google, el sitio recibe únicamente tu correo electrónico, tu nombre y la URL de tu foto de perfil, tal como los entrega Google; el proyecto no obtiene acceso a tu cuenta de Google ni solicita nada más de ella. Al iniciar sesión con correo, se crea un registro que consiste en tu correo electrónico y una contraseña cifrada. Ese registro de acceso es la única información de identidad que se guarda en un servidor.
 
-Para aplicar el límite diario de generación y acotar el costo de los servicios de IA, el servidor mantiene además un contador técnico de llamadas de generación por correo electrónico, junto con la marca de tiempo, la fase del proceso y el modelo utilizado. Ese registro operacional existe para prevención de abuso y control de costos; no contiene enunciados, ni pictogramas, ni contenido de ningún tipo, no se analiza como dato de investigación y no se usa para contactarte.
+Para aplicar el límite diario de generación y acotar el costo de los servicios de IA, el servidor mantiene además un contador diario de unidades por correo electrónico y un registro de auditoría de cada llamada a un modelo (`logCall` en `netlify/functions/_shared/usage.js`). Cada entrada guarda el correo, la marca de tiempo, la fase, el modelo, las unidades cobradas, la duración, el número de tokens, si la llamada tuvo éxito, identificadores técnicos de la solicitud y, si falló, un resumen técnico del error. Ese registro operacional existe para prevención de abuso y control de costos; no contiene enunciados, prompts, pictogramas ni imágenes, no se analiza como dato de investigación y no se usa para contactarte.
 
 El sistema no almacena perfiles, no rastrea sesiones entre visitas, y no construye un historial de comportamiento. Los costos de los servicios de inteligencia artificial son financiados por la cuenta personal del investigador principal; el usuario no paga ni contrae obligación alguna al utilizar la herramienta.
 
 ## Qué sale de tu dispositivo
 
-Exactamente dos flujos cruzan el límite de tu dispositivo, ambos visibles en el código fuente.
+Solo las solicitudes de generación cruzan el límite de tu dispositivo con contenido tuyo, y todas pasan por las funciones del sitio (Netlify Functions), que las reenvían al proveedor sin conservarlas. Según la fase:
 
-Primero, las solicitudes de generación. Cuando pides al sistema que produzca un pictograma, el texto que escribiste se envía a las APIs de modelos externos (Anthropic u OpenAI para el análisis lingüístico y la composición; OpenAI, Google Gemini o Recraft para la generación de imágenes, según el modelo elegido en la herramienta) y el resultado se devuelve a tu navegador. Este es un procesamiento transitorio; el proyecto no retiene nada. No escribas información personal sobre otras personas.
+- **COMPRENDER y COMPONER**: el enunciado y el contexto configurado (idioma, región, dominio) van a Anthropic o, si eliges GPT-6 Luna, a OpenAI.
+- **PRODUCIR**: el prompt de imagen, que incluye el enunciado, los elementos de la composición y el estilo visual, va a OpenAI, a Google (Vertex AI) o a Recraft, según el modelo elegido.
+- **ESTRUCTURAR**, cuando lo pides: al estructurar desde el bitmap, la imagen, el enunciado y los nombres de los elementos van primero a Google (Vertex AI) para detectar dónde está dibujado cada uno; luego la imagen original, una copia rasterizada con marcas numeradas, el árbol de elementos y la descripción de las regiones trazadas van a Anthropic. Al estructurar un trazado o un SVG nativo van a Anthropic las imágenes rasterizadas, el árbol de elementos y el código fuente del SVG (hasta 10.000 caracteres).
 
-Segundo, el intercambio que tú inicias. Puedes elegir publicar una librería de pictogramas usando un token que tú mismo configuras. Nada se comparte por defecto y nada se comparte en silencio. Las librerías compartidas registran la autoría, el nombre de la librería y la procedencia, de modo que la atribución se preserve y el contenido pueda revisarse o retirarse.
+La imagen generada en PRODUCIR queda en el almacenamiento del sitio solo hasta que tu navegador la recoge; en ese momento se borra. Lo mismo ocurre con los datos de entrada de un trabajo en segundo plano. No escribas información personal sobre otras personas.
+
+Si escribes una ciudad en el contexto geográfico de la configuración, ese texto se envía al servicio público Nominatim de OpenStreetMap para sugerir lugares.
+
+Las grabaciones de audio de los tableros se guardan solo en tu navegador y no se envían a ningún servidor. Exportar una librería, un respaldo o un PDF produce un archivo en tu dispositivo; nada se publica. La aplicación no ofrece hoy ninguna forma de compartir pictogramas o librerías con un servidor: la función `share-pictogram` existe en el código, pero ningún flujo de la interfaz la llama.
+
+La API de máquina v1 (`/api/v1/*`) es un servicio entre servidores para otros sistemas; no la usa tu navegador y no recibe nada de tu dispositivo.
 
 ## Soberanía
 
-El principio de diseño detrás de estas decisiones es la soberanía del usuario: la persona que crea materiales de comunicación, y la persona que se comunica a través de ellos, retiene el control sobre ese material. Almacenamiento en tu dispositivo, intercambio solo a tu iniciativa, capacidades de registro bajo tu control, y formatos abiertos (SVG, JSON) que puedes llevar a cualquier lugar en cualquier momento.
+El principio de diseño detrás de estas decisiones es la soberanía del usuario: la persona que crea materiales de comunicación, y la persona que se comunica a través de ellos, retiene el control sobre ese material. Almacenamiento en tu dispositivo, grabaciones bajo tu control, y formatos abiertos (SVG, JSON) que puedes llevar a cualquier lugar en cualquier momento.
 
 ## Licencia y auditabilidad
 

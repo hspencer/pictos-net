@@ -5,7 +5,7 @@
  * api-batch-status.js (poll job state). Fase B2 (api-batch-collect-background)
  * will reuse listGcsObjects/downloadGcsObject to read predictions.
  *
- * Spec: specs/batch-generation.allium. Design: docs/BATCH_GENERATION_DESIGN.md.
+ * Spec: specs/batch-generation.allium. Design: docs/archivo/BATCH_GENERATION_DESIGN.md.
  *
  * All calls authenticate with the service-account OAuth token from
  * _shared/vertex.js (scope cloud-platform covers both aiplatform and storage).

@@ -14,7 +14,7 @@ Implementación:
 | Booleanas | `services/svgBooleanOps.ts` |
 | Contrato del artefacto | `specs/svg-structuring.allium`, `schemas/pictos-svg-schema/` |
 
-Plan y evaluación: [Optimización conjunta de VECTORIZAR y ESTRUCTURAR](PLAN_VECTORIZAR_ESTRUCTURAR_2026-10-29.md) (estado por entrega, piloto de 10 casos de ICAP en `docs/eval/`).
+Plan y evaluación: [Optimización conjunta de VECTORIZAR y ESTRUCTURAR](archivo/PLAN_VECTORIZAR_ESTRUCTURAR_2026-10-29.md) (estado por entrega, piloto de 10 casos de ICAP en `docs/eval/`).
 
 ## Principios
 
@@ -208,4 +208,4 @@ El tiempo humano de retoque no se ha medido.
 6. **Artefacto de distribución**: separar el SVG de trabajo del SVG final para AAC (Experimento E del roadmap histórico[^2]).
 
 [^1]: La decisión y su justificación están comentadas en `redrawSVG` (`services/svgStructureService.ts`).
-[^2]: `docs/ROADMAP_ESTRUCTURAR.md` es el plan de marzo 2026, anterior a la migración a Recraft; su Experimento E sigue vigente.
+[^2]: `docs/archivo/ROADMAP_ESTRUCTURAR.md` es el plan de marzo 2026, anterior a la migración a Recraft; su Experimento E sigue vigente.

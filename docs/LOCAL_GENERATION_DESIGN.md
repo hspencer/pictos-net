@@ -1,5 +1,9 @@
 # Local Generation Design (ComfyUI backend)
 
+Estado: **Propuesta, no implementada.** No existe `services/localGenerationService.ts`, ni el modelo `local-comfyui` en el catálogo, ni el campo de backend local en la configuración. Todo lo que sigue describe el diseño previsto.
+
+Última actualización: 2026-11-08
+
 Companion to `specs/local-generation.allium`. The spec defines behaviour; this
 document records the backend choice, the API mechanics, the browser security
 constraints, and the migration path toward a fully packaged local model.
@@ -118,5 +122,15 @@ spec.
 ## Out of scope for v1
 
 A1111 support, LAN/shared backends, local NLU (Phases 1-2 stay on Claude via
-Netlify), local vectorization toggle (VTracer reintroduction — tracked as
-LocalVectorize in the spec), and any model download management inside the app.
+Netlify), and any model download management inside the app.
+
+VTracer is not gone, so a local bitmap needs no "reintroduction" to become
+vector. It already runs in the browser in two places: ESTRUCTURAR on a bitmap
+row vectorises with VTracer 1.0 (`lib/vtracer-web`) before the single
+`restructure_regions` call, and the manual "Solo trazar" action
+(`VectorizerModal`, VTracer 0.6) produces a trace with no network call at all.
+A local row would therefore get a fully local trace for free; only the
+semantic structuring step still calls Claude through Netlify. The spec's
+LocalVectorize open question (`specs/local-generation.allium`) predates this
+and should be closed in those terms. See [ESTRUCTURAR.md](ESTRUCTURAR.md) and
+[ARCHITECTURE.md](ARCHITECTURE.md).

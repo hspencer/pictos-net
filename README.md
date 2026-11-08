@@ -2,14 +2,13 @@
 
 This document is in Spanish. For a complete English version, please see [the English README](./README_en.md).
 
----
 
 # [PICTOS](https://pictos.net)
 
 **Pictogramas generativos para la Comunicación Aumentativa y Alternativa (CAA)**
 
 * [![Netlify Status](https://api.netlify.com/api/v1/badges/24f068d3-f368-4526-a503-2f09af1def0b/deploy-status)](https://app.netlify.com/projects/pictos/deploys)
-* ![version](https://img.shields.io/badge/version-2.6.0-violet)
+* ![version](https://img.shields.io/badge/version-2.8.0-violet)
 * ![opensource](https://img.shields.io/badge/opensource--always-available-blue)
 
 PICTOS transforma intenciones comunicativas expresadas en lenguaje natural en pictogramas mediante un pipeline de razonamiento semántico. Es parte de la investigación doctoral de [Herbert Spencer](https://herbertspencer.net/cc) en diseño para la Comunicación Aumentativa y Alternativa.
@@ -21,228 +20,65 @@ La rama de desarrollo `dev` contiene la siguiente versión:
 
 ## Cómo funciona
 
-El sistema implementa un pipeline de tres fases automáticas más una de post-procesamiento opcional. Cada fase es visible, editable y regenerable de forma independiente:
+PICTOS es un pipeline de tres fases automáticas y una cuarta que inicia el usuario. Cada fase es visible, editable y regenerable por separado; editar una fase marca como desactualizadas las siguientes.
 
-**(1) Comprender** (Claude Haiku) — Análisis lingüístico profundo basado en Natural Semantic Metalanguage (NSM): 65 primitivos semánticos universales. Usa tool use forzado para garantizar JSON válido. Produce un esquema estructurado con intención comunicativa, dominio, roles semánticos (FrameNet) e instrucciones visuales.
+**(1) Comprender** (Claude Haiku 5.5; alternativa GPT-6 Luna). Analiza el enunciado y produce un NLU según [pictos-nlu-schema](schemas/pictos-nlu-schema) 1.1.0: acto de habla e intención, dominio, frames semánticos con sus roles, explicaciones en los 65 primos del Metalenguaje Semántico Natural (NSM), forma lógica, pragmática y pautas visuales. Usa el contexto geográfico y el contexto de dominio de la librería.
 
-**(2) Componer** (Claude Haiku) — Traduce el análisis NLU a una jerarquía de elementos visuales (`elements`) y una descripción de articulación espacial (`prompt`). Cada elemento lleva un `concept` semántico (Agent, Action, Object, Context) derivado de los roles de frame del NLU, que viaja hasta el `data-concept` del SVG final. Si el usuario edita los elementos, puede regenerar solo el prompt sin repetir toda la composición.
+**(2) Componer** (Claude Haiku 5.5; alternativa GPT-6 Luna). Traduce el NLU a un árbol de elementos visuales y a un prompt de articulación espacial. Cada elemento lleva un `concept` (Agent, Action, Object, Context, Element) que viaja hasta el `data-concept` del SVG final. Los nombres se escriben en el idioma de la librería. Si el usuario edita el árbol, puede regenerar solo el prompt.
 
-**(3) Producir** (Gemini image — por defecto: Gemini 2.5 Flash) — Genera el pictograma a partir del contexto semántico, los elementos, el prompt espacial y el estilo visual configurado. Los modelos vectoriales producen SVG nativo directamente editable; los modelos raster producen un bitmap PNG. El modelo se configura por librería.
+**(3) Producir** (por defecto GPT Image 2.5 Flare; alternativas Nano Banana 2 Lite y la familia Recraft V4.1). Genera la imagen a partir del enunciado, el NLU, los elementos, el prompt espacial y el estilo visual de la librería. Los modelos raster entregan un bitmap; Recraft vector entrega SVG nativo.
 
-**(4) Estructurar** (Claude Sonnet, opcional) — Organiza el dibujo en grupos semánticos congruentes con la jerarquía de la fase 2 y embebe NLU, composición, enlaces y metadatos de accesibilidad según [pictos-svg-schema](https://github.com/mediafranca/pictos-svg-schema). Sobre un bitmap, **Estructurar** segmenta localmente el bitmap en regiones (VTracer 1.0, partición en mosaico) y una sola llamada de visión asigna cada región a un nodo del árbol. Sobre un trazado o un SVG nativo, **Estructurar trazado** asigna sus paths. En ambos casos la geometría se calcula en el navegador, el modelo solo decide la pertenencia, y el resultado se certifica solo si cumple el esquema; si no, queda como borrador editable con su diagnóstico. Documentación detallada en [docs/ESTRUCTURAR.md](docs/ESTRUCTURAR.md).
+**(4) Estructurar** (Claude Sonnet 4.6, opcional). Convierte el dibujo en un SVG semántico según [pictos-svg-schema](schemas/pictos-svg-schema): un grupo por elemento del árbol, con el NLU, la composición, los vínculos y los metadatos de accesibilidad embebidos. Sobre un bitmap, Gemini 3.8 Flash ubica primero cada entidad dibujada, VTracer 1.0 corta la imagen en regiones y una sola llamada de visión asigna cada región a una entidad. La geometría se calcula en el navegador: el modelo solo decide la pertenencia. Si el resultado cumple el esquema queda certificado; si no, queda como borrador con una lista de lo que falta, que se puede resolver sin volver a estructurar. Detalle en [docs/ESTRUCTURAR.md](docs/ESTRUCTURAR.md).
 
-La cascada automática (1 → 2 → 3) se ejecuta al crear una nueva frase o presionar Play. La fase 4 es opcional y la inicia el usuario manualmente. Los pictogramas pueden evaluarse con el marco [ICAP](https://github.com/mediafranca/ICAP).
-
-## Esquema detallado
+Los pictogramas certificados se usan en **secuencias** (rutinas paso a paso), **tableros de comunicación** (cuadrículas con colores Fitzgerald y audio) e **impresos** en PDF.
 
 ```mermaid
-%%{init: {
-  'theme': 'base',
-  'themeVariables': {
-    'primaryColor': '#e8f0fe',
-    'primaryTextColor': '#1a1a2e',
-    'primaryBorderColor': '#4a6fa5',
-    'lineColor': '#888',
-    'fontSize': '13px',
-    'fontFamily': 'Lexend, system-ui, sans-serif'
-  },
-  'flowchart': {
-    'padding': 20,
-    'nodeSpacing': 35,
-    'rankSpacing': 45,
-    'curve': 'basis'
-  }
-}}%%
 flowchart TD
-    UTT["<b>utterance</b><br><i>intención comunicativa</i>"]
+    UTT["enunciado"]
+    CFG["librería<br>idioma · región · dominio<br>estilo visual · clases CSS"]
 
-    subgraph CFG["<b>GlobalConfig</b>"]
-        direction TB
-        cfg_lang["lang · geoContext<br>domainContext"]
-        cfg_visual["visualStylePrompt"]
-        cfg_css["svgStyleDefs · svgKeyframes"]
-    end
+    UTT --> F1["(1) COMPRENDER<br>Claude Haiku 5.5"]
+    CFG -.-> F1
+    F1 --> NLU["NLU<br>acto de habla · frames · NSM<br>pragmática · pautas visuales"]
+    NLU --> F2["(2) COMPONER<br>Claude Haiku 5.5"]
+    CFG -.-> F2
+    F2 --> EL["árbol de elementos<br>con su concept"]
+    F2 --> PR["prompt espacial"]
+    EL --> F3["(3) PRODUCIR<br>GPT Image 2.5 Flare por defecto"]
+    PR --> F3
+    CFG -.->|"estilo visual"| F3
+    F3 --> IMG["bitmap o SVG nativo"]
+    IMG -->|"el usuario inicia"| F4["(4) ESTRUCTURAR<br>detección Gemini 3.8 Flash<br>+ regiones VTracer 1.0<br>+ Claude Sonnet 4.6"]
+    EL -.->|"árbol objetivo"| F4
+    F4 --> SVG["SVG semántico<br>certificado o borrador"]
+    SVG --> USO["secuencias · tableros · impresos"]
 
-    subgraph F1["<b>(1) COMPRENDER</b> — Claude Haiku"]
-        direction TB
-        f1_proc["NSM Schema Engine<br>65 primos universales<br>pictos-nlu-schema v1.1<br>tool use forzado"]
-        f1_out["<b>NLUData</b><br>domain · frames · frame_label<br>nsm_explications<br>visual_guidelines · pragmatics"]
-    end
-
-    subgraph F2["<b>(2) COMPONER</b> — Claude Haiku"]
-        direction TB
-        f2a["Visual Topology Node<br><i>genera elements + prompt<br>en una sola llamada</i>"]
-        f2b["Spatial Articulation Node<br><i>solo en regeneración manual<br>cuando usuario edita elements</i>"]
-        f2_elem["<b>elements</b><br>VisualElement tree<br><i>concept por nodo desde<br>roles de frame NLU</i>"]
-        f2_prompt["<b>prompt</b><br>composición espacial"]
-    end
-
-    subgraph F3["<b>(3) PRODUCIR</b> — Gemini image (default: 2.5 Flash)"]
-        direction TB
-        f3_merge["<b>fullPrompt</b> combina:<br>utterance + NLU context<br>+ elements + prompt<br>+ visualStylePrompt"]
-        f3_gen["gemini-2.5-flash-image<br>sin texto · fondo blanco"]
-        f3_out["<b>rawSvg / bitmap</b><br>SVG nativo o PNG"]
-    end
-
-    subgraph POST["Post-procesamiento — manual, opcional · ver docs/ESTRUCTURAR.md"]
-        direction TB
-        subgraph F4["<b>(4) ESTRUCTURAR</b> — Claude Sonnet Vision"]
-            direction TB
-            f4_regions["Bitmap: regiones locales<br><i>VTracer 1.0 mosaico · color robusto<br>(Estructurar desde el bitmap)</i>"]
-            f4_measure["Trazado: medición local<br><i>anclas reales getBBox + CTM<br>candidatos de fusión (IoU bbox)</i>"]
-            f4_marks["Set-of-marks<br><i>marcas numeradas con anti-colisión<br>y líneas guía al ancla</i>"]
-            f4_vision["Claude vision<br><i>asigna regiones o paths a elementos<br>marca dudas · tool use forzado</i>"]
-            f4_assemble["Ensamblaje local<br><i>uniones booleanas + redes de seguridad<br>geometría nunca sale del browser</i>"]
-            f4_polish["Pulido determinístico<br><i>refit selectivo a curvas<br>redondeo de coordenadas</i>"]
-            f4_out["<b>structuredSvg</b> o borrador<br>pictos-svg-schema · grupos semánticos<br>data-concept congruente con NLU<br>metadatos de accesibilidad"]
-        end
-    end
-
-    subgraph ROW["<b>RowData</b> — estado acumulativo por fila"]
-        direction LR
-        r1["NLU"]
-        r2["elements<br>prompt"]
-        r3["rawSvg"]
-        r4["structuredSvg"]
-    end
-
-    UTT ==> F1
-    cfg_lang --> F1
-    f1_proc --> f1_out
-
-    f1_out ==> F2
-    cfg_css -.->|availableClasses| F2
-    f2a --> f2_elem
-    f2a --> f2_prompt
-    f2b -.->|"regenera solo prompt"| f2_prompt
-
-    f2_elem ==> F3
-    f2_prompt ==> F3
-    cfg_visual --> f3_merge
-    f1_out -.->|"intent · domain · focus"| f3_merge
-    UTT -.->|contexto original| f3_merge
-    f3_merge --> f3_gen --> f3_out
-
-    f3_out -.->|"usuario inicia"| POST
-    f2_elem -.->|"estructura DOM + concept"| f4_vision
-    cfg_css -->|generateStylesheet| f4_assemble
-    f4_measure --> f4_marks --> f4_vision --> f4_assemble --> f4_polish --> f4_out
-
-    f1_out --> r1
-    f2_elem --> r2
-    f2_prompt --> r2
-    f3_out --> r3
-    f4_out --> r4
-
-    style UTT fill:#fff3cd,stroke:#e6a800,stroke-width:2px,color:#664d00
-    style CFG fill:#f5f5f5,stroke:#aaa,stroke-width:1px,color:#555
-    style cfg_lang fill:#e9e9e9,stroke:#bbb,color:#444
-    style cfg_visual fill:#e9e9e9,stroke:#bbb,color:#444
-    style cfg_css fill:#e9e9e9,stroke:#bbb,color:#444
-
-    style F1 fill:#dbeafe,stroke:#3b82f6,stroke-width:2px
-    style f1_proc fill:#eff6ff,stroke:#93c5fd,color:#1e40af
-    style f1_out fill:#bfdbfe,stroke:#3b82f6,stroke-width:2px,color:#1e3a5f
-
-    style F2 fill:#d1fae5,stroke:#10b981,stroke-width:2px
-    style f2a fill:#ecfdf5,stroke:#6ee7b7,color:#065f46
-    style f2b fill:#ecfdf5,stroke:#6ee7b7,color:#065f46,stroke-dasharray: 5 5
-    style f2_elem fill:#a7f3d0,stroke:#10b981,stroke-width:2px,color:#064e3b
-    style f2_prompt fill:#a7f3d0,stroke:#10b981,stroke-width:2px,color:#064e3b
-
-    style F3 fill:#ffedd5,stroke:#f97316,stroke-width:2px
-    style f3_merge fill:#fff7ed,stroke:#fdba74,color:#7c2d12
-    style f3_gen fill:#fff7ed,stroke:#fdba74,color:#7c2d12
-    style f3_out fill:#fed7aa,stroke:#f97316,stroke-width:2px,color:#7c2d12
-
-    style POST fill:#f8f8ff,stroke:#999,stroke-width:1px,stroke-dasharray: 8 4
-    style F4 fill:#fce7f3,stroke:#ec4899,stroke-width:2px
-    style f4_measure fill:#fdf2f8,stroke:#f9a8d4,color:#831843
-    style f4_marks fill:#fdf2f8,stroke:#f9a8d4,color:#831843
-    style f4_vision fill:#fdf2f8,stroke:#f9a8d4,color:#831843
-    style f4_assemble fill:#fdf2f8,stroke:#f9a8d4,color:#831843
-    style f4_polish fill:#fdf2f8,stroke:#f9a8d4,color:#831843
-    style f4_out fill:#fbcfe8,stroke:#ec4899,stroke-width:2px,color:#831843
-
-    style ROW fill:#fafafa,stroke:#333,stroke-width:3px
-    style r1 fill:#bfdbfe,stroke:#3b82f6,color:#1e3a5f
-    style r2 fill:#a7f3d0,stroke:#10b981,color:#064e3b
-    style r3 fill:#fed7aa,stroke:#f97316,color:#7c2d12
-    style r4 fill:#fbcfe8,stroke:#ec4899,color:#831843
+    style F1 fill:#dbeafe,stroke:#3b82f6
+    style F2 fill:#d1fae5,stroke:#10b981
+    style F3 fill:#ffedd5,stroke:#f97316
+    style F4 fill:#fce7f3,stroke:#ec4899
+    style USO fill:#fef9c3,stroke:#ca8a04
 ```
 
-### Modelo de retroalimentación
+La arquitectura completa, con los diagramas del servidor, la persistencia, los estados y el modelo de datos, está en [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-Cada campo es editable. Al modificar un dato, los pasos posteriores se marcan como `outdated` y el usuario puede regenerarlos selectivamente:
+## Pregunta de investigación
 
-```mermaid
-%%{init: {
-  'theme': 'base',
-  'themeVariables': {
-    'primaryColor': '#fafafa',
-    'primaryTextColor': '#1a1a2e',
-    'lineColor': '#888',
-    'fontSize': '12px',
-    'fontFamily': 'Lexend, system-ui, sans-serif'
-  },
-  'flowchart': { 'curve': 'basis' }
-}}%%
-flowchart LR
-    subgraph EDIT["Edición del usuario"]
-        e1["Edita <b>utterance</b>"]
-        e2["Edita <b>NLU</b>"]
-        e3["Edita <b>elements</b>"]
-        e4["Edita <b>prompt</b>"]
-    end
+¿Qué controles necesitan los profesionales de la comunicación para definir y expresar su experticia al crear pictogramas, y cómo deben estar diseñados? PICTOS es el instrumento con el que se explora esa pregunta en cuatro momentos: la **comprensión** (qué se quiere comunicar), la **composición** (qué se dibuja y cómo se relaciona), la **producción** (el estilo que da coherencia a una librería) y la **activación** (las secuencias, tableros y láminas donde el pictograma se usa). [docs/CONTROLES_DE_EXPERTICIA.md](docs/CONTROLES_DE_EXPERTICIA.md) describe los controles que existen hoy en cada momento y las brechas que abren preguntas de diseño.
 
-    subgraph INVALIDATION["Campos invalidados"]
-        nlu_out["NLU outdated"]
-        vis_out["visual outdated"]
-        svg_out["rawSvg outdated"]
-    end
+### Configuración de una librería
 
-    subgraph REGEN["Regeneración disponible"]
-        r1["Regenerar NLU"]
-        r2["Regenerar composición"]
-        r2b["Regenerar solo prompt"]
-        r3["Regenerar SVG"]
-        r_all["Cascada completa"]
-    end
-
-    e1 --> nlu_out & vis_out & svg_out
-    e2 --> vis_out & svg_out
-    e3 --> svg_out
-    e3 -.->|"botón Regenerar Prompt"| r2b
-    e4 --> svg_out
-    e4 -.->|"botón Producir"| r3
-
-    nlu_out --> r1 --> r_all
-    vis_out --> r2
-    svg_out --> r3
-
-    style EDIT fill:#fff3cd,stroke:#e6a800
-    style INVALIDATION fill:#fef3c7,stroke:#f59e0b
-    style REGEN fill:#ecfdf5,stroke:#10b981
-    style nlu_out fill:#fde68a,stroke:#f59e0b,color:#92400e
-    style vis_out fill:#fde68a,stroke:#f59e0b,color:#92400e
-    style svg_out fill:#fde68a,stroke:#f59e0b,color:#92400e
-```
-
-### Parámetros de configuración global
-
-| Parámetro | Fase | Estado | Descripción |
-|---|---|---|---|
-| `lang` | 1, 2, 4 | Activo | Idioma del análisis NLU y de los IDs de elementos |
-| `uiLang` | — | Activo | Idioma de la interfaz (independiente del NLU) |
-| `geoContext` | 1, 4 | Activo | Región geográfica para contextualización y metadatos a11y |
-| `domainContext` | 1, 2 | Activo | Dominio semántico de la librería (p. ej. "hospital", "trámites escolares"), inyectado en los prompts de COMPRENDER y COMPONER |
-| `visualStylePrompt` | 3 | Activo | Descripción de estilo visual inyectada en el prompt de generación de imagen |
-| `svgStyleDefs` | 2, 4 | Activo | Definiciones CSS del SVG (clases disponibles en composición y en estructuración) |
-| `svgKeyframes` | 4 | Activo | Keyframes de animación para el SVG estructurado |
-| `aspectRatio` | — | Inactivo | Era el aspect ratio de Gemini Image; ya no se usa |
-| `imageModel` | — | Inactivo | Era el selector flash/pro de Gemini; eliminado del pipeline |
-
----
+| Parámetro | Fase | Descripción |
+|---|---|---|
+| `lang` | 1, 2, 4 | Idioma del análisis y de los nombres de los elementos |
+| `uiLang` | — | Idioma de la interfaz |
+| `geoContext` | 1, 4 | Región geográfica, para el análisis y los metadatos de accesibilidad |
+| `domainContext` | 1, 2 | Dominio semántico de la librería (p. ej. "hospital", "trámites escolares") |
+| `visualStylePrompt` | 3 | Descripción del estilo visual que se agrega al prompt de imagen |
+| `svgStyleDefs`, `svgKeyframes` | 4 | Clases CSS y animaciones del SVG estructurado |
+| `comprenderModel`, `componerModel`, `generationModel`, `phase5Model` | 1, 2, 3, 4 | Modelo por fase; si se omite, la librería sigue el modelo por defecto del catálogo |
+| `credits`, `license` | — | Autoría y licencia de la librería |
+| `recording` | — | Registro de las ediciones por fila, para investigación |
 
 ## Filosofía
 
@@ -252,7 +88,6 @@ La iniciativa nace de una convicción compartida: **la comunicación visual debe
 
 Los pictogramas generados buscan reducir barreras cognitivas, facilitar la expresión de necesidades básicas y contribuir a la autonomía de personas con diversidad funcional.
 
----
 
 ## Esquemas: dónde se trabajan y cómo se publican
 
@@ -301,49 +136,44 @@ El espejo recibe la instantánea del commit actual que produce `scripts/export-s
 | [ICAP](https://github.com/mediafranca/ICAP) | Marco de evaluación de pictogramas (6 dimensiones cognitivas) |
 | [pictos.cl](https://pictos.cl) | Plataforma de apoyos visuales para servicios públicos (Núcleo Accesibilidad PUCV) |
 
----
 
 ## Uso
 
 **Aplicación web**: [pictos.net](https://pictos.net)
 
-Los pictogramas y datos se almacenan **localmente en el navegador** (IndexedDB + localStorage). Para respaldar tu trabajo usa **Exportar Librería** — genera un JSON con todas las imágenes y metadatos del pipeline.
+Los pictogramas y datos se almacenan **localmente en el navegador** (localStorage + IndexedDB). Para respaldar tu trabajo usa **Exportar librería**: genera un JSON con los pictogramas, sus imágenes, el audio, las secuencias y los tableros.
 
 Puedes compartir tu grafo exportado con comentarios a [contact@pictos.net](mailto:contact@pictos.net).
 
----
 
 ## Desarrollo local
 
 ```bash
 git clone https://github.com/hspencer/pictos-net.git
 cd pictos-net
-cp .env.example .env        # agrega ANTHROPIC_API_KEY y credenciales de Vertex AI
+cp .env.example .env        # agrega las claves de los proveedores
 npm install
 npm run dev                 # → http://localhost:9001 (netlify dev)
 ```
 
-Las API keys necesarias:
-- `ANTHROPIC_API_KEY` — [console.anthropic.com](https://console.anthropic.com)
-- `GOOGLE_SERVICE_ACCOUNT_JSON` — credenciales de Vertex AI (cuenta de servicio Google Cloud, una línea)
-- `RECRAFT_API_KEY` — [recraft.ai](https://www.recraft.ai/api) (opcional, solo modelos Recraft)
-- `GITHUB_TOKEN` — para la función de compartir pictogramas (opcional)
+Claves necesarias:
+- `ANTHROPIC_API_KEY`: [console.anthropic.com](https://console.anthropic.com), fases 1, 2 y 4
+- `OPENAI_API_KEY`: [platform.openai.com](https://platform.openai.com), modelo de imagen por defecto y GPT-6 Luna
+- `GOOGLE_SERVICE_ACCOUNT_JSON`: cuenta de servicio de Vertex AI en una línea, para Nano Banana 2 Lite y la detección de entidades
+- `RECRAFT_API_KEY`: [recraft.ai](https://www.recraft.ai/api), opcional, solo modelos Recraft
 
 Ver [docs/CONTRIBUTING.md](./docs/CONTRIBUTING.md) para instrucciones completas.
 
----
-
 ## Stack
 
-- React 19 + TypeScript 5.8
-- Vite 6 + Tailwind CSS 3.4
-- Zustand (estado SVG editor)
-- Anthropic SDK — Claude Haiku 4.5 (fases 1 y 2) + Claude Sonnet 4.6 (fase 4, visión)
-- Google Gemini image models — Vertex AI (fase 3, SVG nativo o bitmap PNG)
-- Netlify Functions (proxy API con JWT) + Netlify Identity
-- IndexedDB v3 + localStorage (persistencia dual)
-
----
+- React 19, TypeScript 5.8, Vite 6, Tailwind CSS 3.4, Zustand (editor SVG)
+- Anthropic: Claude Haiku 5.5 (fases 1 y 2) y Claude Sonnet 4.6 (fase 4)
+- OpenAI: GPT Image 2.5 Flare (fase 3, por defecto) y GPT-6 Luna (fases 1 y 2, alternativa)
+- Google Vertex AI: Nano Banana 2 Lite (fase 3) y Gemini 3.8 Flash (detección de entidades)
+- Recraft V4.1 (fase 3, vector o raster)
+- VTracer 1.0 compilado a WebAssembly (regiones en el navegador)
+- Netlify Functions, Blobs e Identity
+- localStorage + IndexedDB (persistencia local)
 
 ## Documentación
 
@@ -351,11 +181,17 @@ Ver [docs/CONTRIBUTING.md](./docs/CONTRIBUTING.md) para instrucciones completas.
 
 | Documento | Descripción |
 |---|---|
-| [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) | Arquitectura técnica, modelos de datos, servicios |
-| [docs/CONTRIBUTING.md](./docs/CONTRIBUTING.md) | Guía de desarrollo, esquemas canónicos, i18n, deployment |
-| [docs/SECURITY.md](./docs/SECURITY.md) | Gestión de API keys, consideraciones de seguridad |
-| [docs/PRIVACY.md](./docs/PRIVACY.md) | Arquitectura de datos y privacidad: qué sale del navegador, soberanía del usuario |
-| [docs/PIPELINE_MIGRATION_CLAUDE_RECRAFT.md](./docs/PIPELINE_MIGRATION_CLAUDE_RECRAFT.md) | Notas de la migración Gemini → Claude + Recraft (v1.x → v2.0) |
+| [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) | Arquitectura completa con diagramas: pipeline, servidor, persistencia, datos |
+| [docs/CONTROLES_DE_EXPERTICIA.md](./docs/CONTROLES_DE_EXPERTICIA.md) | La pregunta de investigación cruzada con los controles de cada momento |
+| [docs/ESTRUCTURAR.md](./docs/ESTRUCTURAR.md) | Fase 4 por dentro: detección, regiones, ensamblado, certificación |
+| [docs/BENCHMARK_MODELOS_2026-11.md](./docs/BENCHMARK_MODELOS_2026-11.md) | Evidencia de la elección de modelos |
+| [docs/API_V1.md](./docs/API_V1.md) | API de máquina v1 |
+| [docs/CONTRIBUTING.md](./docs/CONTRIBUTING.md) | Guía de desarrollo, esquemas canónicos, i18n |
+| [docs/SECURITY.md](./docs/SECURITY.md) | Claves, proxies, autenticación y cuota |
+| [docs/PRIVACY.md](./docs/PRIVACY.md) | Qué sale del navegador y hacia dónde |
+| [docs/SCHEMA_PUBLICATION.md](./docs/SCHEMA_PUBLICATION.md) | Publicación de los esquemas |
+| [docs/RELEASE_2.8.0.md](./docs/RELEASE_2.8.0.md) | Cambios de la versión actual |
+| [docs/archivo/](./docs/archivo/) | Planes, migraciones y versiones anteriores, como registro histórico |
 
 ### Interfaz de usuario
 
@@ -366,15 +202,12 @@ Ver [docs/CONTRIBUTING.md](./docs/CONTRIBUTING.md) para instrucciones completas.
 | [docs/CSS_STYLING_ARCHITECTURE.md](./docs/CSS_STYLING_ARCHITECTURE.md) | Modelo de dos niveles para estilos SVG (clases + overrides locales) |
 | [docs/WCAG_ROADMAP.md](./docs/WCAG_ROADMAP.md) | Estado de conformidad WCAG 2.1 AA y roadmap de accesibilidad |
 
----
-
 ## Comunidad
 
 PICTOS invita a **lingüistas** a refinar el análisis NLU y NSM, **diseñadores** a mejorar la composición visual, a **educadores y sicólogos** a imaginar nuevos escenarios de uso, **investigadores** a validar métricas de calidad, y **desarrolladores** a extender las funcionalidades.
 
 Las contribuciones son bienvenidas. Reporta bugs, propone features o abre un Pull Request en GitHub.
 
----
 
 ## Citar
 

@@ -36,14 +36,18 @@ cp .env.example .env
 Edita `.env` con tus API keys:
 
 ```env
-ANTHROPIC_API_KEY=tu_key_aquí
+PICTOS_ANTHROPIC_KEY=tu_key_aquí
+OPENAI_API_KEY=tu_key_aquí
 RECRAFT_API_KEY=tu_key_aquí
 GOOGLE_SERVICE_ACCOUNT_JSON={"type":"service_account",...}
 ```
 
-- `ANTHROPIC_API_KEY`: obtenla en [Anthropic Console](https://console.anthropic.com)
-- `RECRAFT_API_KEY`: obtenla en [Recraft](https://www.recraft.ai)
-- `GOOGLE_SERVICE_ACCOUNT_JSON`: service account de Vertex AI (para modelos Gemini alternativos)
+- `PICTOS_ANTHROPIC_KEY` (o `ANTHROPIC_API_KEY`): obtenla en [Anthropic Console](https://console.anthropic.com). Fases 1, 2 y 4
+- `OPENAI_API_KEY`: obtenla en [OpenAI Platform](https://platform.openai.com). PRODUCIR por defecto y GPT-6 Luna
+- `RECRAFT_API_KEY`: obtenla en [Recraft](https://www.recraft.ai). Modelos Recraft V4.1 en PRODUCIR
+- `GOOGLE_SERVICE_ACCOUNT_JSON`: cuenta de servicio de Vertex AI en una sola línea. Nano Banana 2 Lite en PRODUCIR y detección de entidades antes de ESTRUCTURAR
+
+`.env.example` documenta las variables opcionales. La lista completa está en [SECURITY.md](./SECURITY.md#variables-de-entorno).
 
 **Seguridad:** Las keys viven solo en el servidor (Netlify Functions). El bundle del cliente no las contiene. Ver [SECURITY.md](./SECURITY.md).
 
@@ -69,6 +73,7 @@ Genera los archivos optimizados en `dist/`.
 
 ```bash
 npx tsc --noEmit       # verificación de tipos
+npm test               # pruebas node --test de funciones y servicios
 npm run validate-i18n  # consistencia de traducciones
 ```
 
@@ -86,8 +91,8 @@ Flujo de trabajo: `dev` → `main` (fast-forward merge).
 ### Configuración en Netlify:
 
 1. **Netlify Identity**: Habilitado con Google SSO
-2. **Variables de entorno**: `ANTHROPIC_API_KEY`, `RECRAFT_API_KEY`, `GOOGLE_SERVICE_ACCOUNT_JSON` configuradas como variables server-side (scope: Functions)
-3. **Netlify Functions**: `api-claude.js` y funciones relacionadas se despliegan automáticamente desde `netlify/functions/`
+2. **Variables de entorno**: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `RECRAFT_API_KEY`, `GOOGLE_SERVICE_ACCOUNT_JSON` y `DAILY_LIMIT_PER_USER` configuradas como variables server-side (scope: Functions); ver [SECURITY.md](./SECURITY.md#variables-de-entorno)
+3. **Netlify Functions**: se despliegan automáticamente desde `netlify/functions/`; el mapa está en [ARCHITECTURE.md](./ARCHITECTURE.md#8-servidor-funciones-autenticación-y-cuota)
 
 ## Verificación de Servicios de IA
 
@@ -98,9 +103,9 @@ Para verificar que el pipeline funciona en local:
 3. Abre `http://localhost:9001`
 4. Ingresa un utterance de prueba (ej: "Quiero beber agua")
 5. El sistema debería generar:
-   - Análisis NLU (fase 1 — Claude Haiku)
-   - Elementos visuales y prompt espacial (fase 2 — Claude Haiku)
-   - SVG vectorial (fase 3 — modelo seleccionado en configuración)
+   - Análisis NLU (fase 1, Claude Haiku 5.5)
+   - Elementos visuales y prompt espacial (fase 2, Claude Haiku 5.5)
+   - Imagen (fase 3, GPT Image 2.5 Flare por defecto: bitmap; un modelo Recraft vectorial entrega SVG)
 
 Si encuentras errores de API:
 - Verifica que las keys estén correctamente configuradas en `.env`
@@ -157,9 +162,13 @@ addLog('success', t('messages.importSuccess', { count: phrases.length }));
 - **Vite 6** — Build tool y dev server (via `netlify dev`)
 - **Tailwind CSS 3.4** — Styling
 - **Lucide React** — Iconografía
-- **Anthropic Claude** (Haiku 4.5 / Sonnet 4.6) — Fases 1, 2, 4 del pipeline
-- **Recraft V4.1 Vector** — Fase 3 (SVG generativo)
-- **Gemini (Vertex AI)** — Alternativo en fase 3 (imagen) y fase 4 (structuring)
+- **Claude Haiku 5.5**: COMPRENDER y COMPONER (alternativa: OpenAI GPT-6 Luna)
+- **OpenAI GPT Image 2.5 Flare**: PRODUCIR por defecto (bitmap). Alternativas: Nano Banana 2 Lite (`gemini-3.1-flash-lite-image`, Vertex AI) y la familia Recraft V4.1 (Standard, Utility, Pro y Utility Pro, en vector o raster)
+- **Claude Sonnet 4.6**: ESTRUCTURAR
+- **Gemini 3.8 Flash (Vertex AI)**: detección de entidades antes de ESTRUCTURAR
+- **VTracer** (WASM): trazado local del bitmap
+
+El catálogo de modelos (`netlify/functions/_shared/modelCatalog.js`) es la única fuente de esta lista.
 
 ## Convenciones de código
 
@@ -184,5 +193,7 @@ addLog('success', t('messages.importSuccess', { count: phrases.length }));
 - [SECURITY.md](./SECURITY.md) — Modelo de seguridad y API keys
 - [ARCHITECTURE.md](./ARCHITECTURE.md) — Arquitectura detallada del sistema
 - [ESTRUCTURAR.md](./ESTRUCTURAR.md) — Fase 4: pipeline interno de estructuración SVG
+- [API_V1.md](./API_V1.md) — API de máquina v1
+- [archivo/](./archivo/) — planes y diseños históricos, ya no vigentes
 - [Anthropic API Docs](https://docs.anthropic.com)
 - [NSM Homepage](https://nsm-approach.net/)

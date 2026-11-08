@@ -2,7 +2,7 @@
 
 Documento técnico que describe el modelo de dos niveles para la gestión de estilos en el Editor SVG.
 
-Última actualización: 2026-03-02
+Última actualización: 2026-11-08
 
 ## Regla central
 
@@ -14,7 +14,7 @@ El bloque `<style>` tiene dos secciones ordenadas:
 
 ```xml
 <style>
-  /* Nivel 1 — Reglas de biblioteca (generadas automáticamente) */
+  /* Nivel 1 — Reglas de librería (generadas automáticamente) */
   .main { fill: #1a1a1a; stroke: #ffffff; stroke-width: 3pt; }
   .red  { fill: #FF3B30; stroke: #CC2D25; }
 
@@ -26,7 +26,7 @@ El bloque `<style>` tiene dos secciones ordenadas:
 </style>
 ```
 
-### Nivel 1: Reglas de biblioteca
+### Nivel 1: Reglas de librería
 
 - Selector de clase pura: `.nombre-clase { ... }`
 - Generadas por `applyUsedStylesToSvg()` en `stores/svgEditorStore.ts`
@@ -43,12 +43,22 @@ El bloque `<style>` tiene dos secciones ordenadas:
 
 ### Reglas preservadas
 
-Hay reglas que no son de biblioteca ni overrides y que la reconstrucción del `<style>` conserva tal cual (`extractPreservedRules()` en `utils/styleUtils.ts`):
+Hay reglas que no son de librería ni overrides y que la reconstrucción del `<style>` conserva tal cual (`extractPreservedRules()` en `utils/styleUtils.ts`):
 
 - **Colores por forma** que escribe ESTRUCTURAR, `#mamá-1 { fill: #505052; }`: el color exacto de cada región o path original. Siguen al elemento si se renombra.
 - **Estilo de foco de accesibilidad**, `g[role="group"]:focus { … }`.
 
 Hasta el 30 de octubre de 2026 el editor las descartaba al cargar un SVG estructurado, así que guardar una edición recoloreaba el pictograma con los colores genéricos de la paleta.
+
+## Origen del `<style>` en ESTRUCTURAR
+
+El SVG estructurado nace con este modelo ya aplicado (`services/svgStructureService.ts`):
+
+1. `generateStylesheet(config)` toma la paleta de la librería (`config.svgStyleDefs` + `config.svgKeyframes`, serializada con `generateCssString`); si la librería no tiene paleta propia, usa `SVG_STYLESHEET` de `services/svgStyles.ts`, la hoja canónica de clases semánticas (`.main`, `.secondary`, `.accent`…), utilidades de trazo, keyframes y la regla de foco.
+2. `buildFilteredCSS()` conserva solo las reglas cuyas clases usa el documento, los keyframes que esas reglas animan y, siempre, la regla `g[role="group"]:focus`.
+3. Se agregan los colores por forma, `#id { fill: … }` bajo el comentario `/* Original path fills */`, para cada path cuyo color no venga ya de una clase, y las reglas propias del SVG de entrada bajo `/* User-defined styles */`.
+
+El modelo de visión solo asigna clases de la paleta por grupo; el prompt le prohíbe colores inline. La geometría y los colores exactos los pone el ensamblaje local.
 
 ## Ciclo de vida completo
 
@@ -71,7 +81,7 @@ stateDiagram-v2
 
 ### INSTANCIAR
 
-Ocurre automáticamente dentro de `applyUsedStylesToSvg()`. Si la clase ya existe en la biblioteca (`styleDefinitions`), su regla CSS se copia al `<style>` del SVG. Si la clase no está en la biblioteca, no se instancia (el selector queda vacío o ausente).
+Ocurre automáticamente dentro de `applyUsedStylesToSvg()`. Si la clase ya existe en la librería (`styleDefinitions`), su regla CSS se copia al `<style>` del SVG. Si la clase no está en la librería, no se instancia (el selector queda vacío o ausente).
 
 ### MODIFICAR (`setLocalOverride`)
 
@@ -96,17 +106,17 @@ Se ejecuta automáticamente en cada llamada a `applyUsedStylesToSvg()`:
 2. `styleIsCited()` — filtra `styleDefinitions` a solo las clases en uso
 3. Solo las clases en uso se regeneran en el bloque `<style>` nivel 1
 
-## Estilos de la biblioteca desde el editor
+## Estilos de la librería desde el editor
 
-Una clase creada en el editor ("Definir", "Convertir en clase" o "Definir nueva clase" en la paleta) es una clase de la biblioteca: `saveStyleDefinition()` la aplica al documento y la escribe en la paleta de la biblioteca abierta (`config.svgStyleDefs`). Cada clase citada tiene "Editar", que abre su definición para cambiar o agregar propiedades; el cambio se ve de inmediato en el documento y queda en la biblioteca. Al editar se conservan los selectores, porque renombrar una clase citada dejaría huérfanos a los elementos que la citan.
+Una clase creada en el editor ("Definir", "Convertir en clase" o "Definir nueva clase" en la paleta) es una clase de la librería: `saveStyleDefinition()` la aplica al documento y la escribe en la paleta de la librería abierta (`config.svgStyleDefs`). Cada clase citada tiene "Editar", que abre su definición para cambiar o agregar propiedades; el cambio se ve de inmediato en el documento y queda en la librería. Al editar se conservan los selectores, porque renombrar una clase citada dejaría huérfanos a los elementos que la citan.
 
-Una clase que ningún pictograma de la biblioteca cita (ni el documento abierto) puede quitarse de la paleta: con la papelera en la paleta del editor, con "Eliminar" en el editor de estilos, o con "Quitar sin uso" para todas a la vez. Una clase en uso no se puede eliminar, y el editor lo explica. Esto vale también para las clases base: cada biblioteca puede quedarse con un stock menor, toda biblioteca nueva parte del conjunto base completo, y "Restaurar defaults" lo devuelve.
+Una clase que ningún pictograma de la librería cita (ni el documento abierto) puede quitarse de la paleta: con la papelera en la paleta del editor, con "Eliminar" en el editor de estilos, o con "Quitar sin uso" para todas a la vez. Una clase en uso no se puede eliminar, y el editor lo explica. Esto vale también para las clases base: cada librería puede quedarse con un stock menor, toda librería nueva parte del conjunto base completo, y "Restaurar defaults" lo devuelve.
 
-El anfitrión (`SVGEditorModal`) instala en el store la paleta de la biblioteca (`setLibraryPalette`: guardar, quitar y saber si una clase está en uso). App calcula las clases en uso a partir de los SVG visibles de las filas (estructurado, borrador y trazado), excluida la fila abierta, cuyo documento vivo cuenta en su lugar.
+El anfitrión (`SVGEditorModal`) instala en el store la paleta de la librería (`setLibraryPalette`: guardar, quitar y saber si una clase está en uso). App calcula las clases en uso a partir de los SVG visibles de las filas (estructurado, borrador y trazado), excluida la fila abierta, cuyo documento vivo cuenta en su lugar.
 
 ## Pipeline Cleanup (on load)
 
-Los SVGs generados por VTracer llegan con atributos inline. Al abrir el editor:
+Los SVG que no pasaron por ESTRUCTURAR (trazados de VTracer, SVG nativos de PRODUCIR, archivos externos) pueden traer atributos inline. Al abrir el editor, `SVGEditorModal` los limpia antes de cargarlos:
 
 ```mermaid
 flowchart LR
@@ -122,7 +132,7 @@ flowchart LR
 3. Elimina los atributos inline del elemento
 4. Es idempotente — seguro llamarlo sobre SVGs ya limpios
 
-Los overrides `from-inline` aparecen en el panel derecho como una sección especial en amber, distinguible de las clases de biblioteca.
+Los overrides `from-inline` aparecen en el panel derecho como una sección especial en amber, distinguible de las clases de librería.
 
 ## Estructura de datos
 
@@ -147,7 +157,7 @@ type OverrideMap = Map<
 Map<string, Record<string, string>>
 ```
 
-Construido por `buildLibraryValuesMap(styleDefinitions)`. Usado por `StylePanel` para detectar drift entre el valor de biblioteca y el override local.
+Construido por `buildLibraryValuesMap(styleDefinitions)`. Usado por `StylePanel` para detectar drift entre el valor de librería y el override local.
 
 ### Detectar drift
 
@@ -156,7 +166,7 @@ const isOverridden = (elementId, className, property) =>
   overrideMap.get(elementId)?.get(className)?.[property] !== undefined;
 ```
 
-Si el override existe, el valor ha sido modificado respecto a la biblioteca. El panel derecho muestra un asterisco `*` junto a la propiedad y activa el botón "Restaurar".
+Si el override existe, el valor ha sido modificado respecto a la librería. El panel derecho muestra un asterisco `*` junto a la propiedad y activa el botón "Restaurar".
 
 ## Archivos relevantes
 
@@ -166,6 +176,8 @@ Si el override existe, el valor ha sido modificado respecto a la biblioteca. El 
 | `stores/svgEditorStore.ts` | `citeClass`, `unciteClass`, `setLocalOverride`, `restoreClassToLibrary`, `getResolvedClassValues`, `cleanupInlineAttrs`; fix en `applyUsedStylesToSvg` para preservar overrides |
 | `components/SVGEditor/StylePanel.tsx` | Panel derecho: sección A (citar/descitar), sección B (overrides locales con drift detection) |
 | `components/SVGEditor/SVGEditorModal.tsx` | Llama a `convertInlineAttrsToCssRules` antes de `loadSVG` |
+| `services/svgStyles.ts` | `SVG_STYLESHEET`: hoja canónica de respaldo cuando la librería no tiene `svgStyleDefs` |
+| `services/svgStructureService.ts` | `generateStylesheet`, `buildFilteredCSS` y reglas `#id { fill }` del SVG estructurado |
 
 ## SVG resultante esperado
 

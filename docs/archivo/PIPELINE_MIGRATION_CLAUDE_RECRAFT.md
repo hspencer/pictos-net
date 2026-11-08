@@ -1,6 +1,6 @@
 # Especificacion: Migracion del pipeline a Claude + Recraft
 
-> **Estado: Implementado.** Esta especificación está completa y el pipeline migrado está en producción desde junio 2026. Se conserva como referencia histórica de las decisiones de diseño. Para el estado actual del pipeline, ver [ARCHITECTURE.md](./ARCHITECTURE.md) y [ESTRUCTURAR.md](./ESTRUCTURAR.md).
+> **Estado: Implementado.** Esta especificación está completa y el pipeline migrado está en producción desde junio 2026. Se conserva como referencia histórica de las decisiones de diseño. Para el estado actual del pipeline, ver [ARCHITECTURE.md](../ARCHITECTURE.md) y [ESTRUCTURAR.md](../ESTRUCTURAR.md).
 
 ## Decisiones cerradas
 

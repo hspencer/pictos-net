@@ -1,7 +1,7 @@
 # vtracer-web
 
 Browser binding for the VTracer 1.0 core, built for PICTOS (plan VE2 in
-`docs/PLAN_VECTORIZAR_ESTRUCTURAR_2026-10-29.md`). Consumed through
+`docs/archivo/PLAN_VECTORIZAR_ESTRUCTURAR_2026-10-29.md`). Consumed through
 `services/vtracerWebService.ts`.
 
 ## Pinned core

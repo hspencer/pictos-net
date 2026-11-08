@@ -2,7 +2,8 @@
 > Copia y pega esto al inicio de cada sesión de Claude Code dedicada a diseño de interfaz.
 > Adapta la sección "TAREA" con tu instrucción específica.
 
----
+> Última actualización: 2026-11-08
+
 
 ## PROMPT PARA CLAUDE CODE
 
@@ -11,8 +12,11 @@ Antes de responder, lee los siguientes archivos en este orden:
 1. docs/UI_MAP.md
 2. docs/UI_CONVENTIONS.md
 
-Luego verifica los IDs existentes en App.tsx con:
-grep -n 'id="' App.tsx components/**/*.tsx styles/globals.css
+Luego verifica los IDs existentes en el código con:
+grep -rnE 'id=("|\{)' App.tsx components lib/style-editor/lib index.html
+(grep -r recorre las carpetas sin depender de globstar; el patrón cubre
+id="..." e id={`...`}. styles/globals.css no declara IDs: solo los usa
+como selectores, p. ej. #console.)
 
 ---
 
@@ -46,7 +50,6 @@ c) Aplica el cambio respetando todas las reglas anteriores
 d) Si agregas IDs nuevos, actualiza UI_MAP.md
 ```
 
----
 
 ## Ejemplos de tareas bien formuladas
 
@@ -69,21 +72,21 @@ funcionalidad ni IDs existentes.
 ### Para agregar un ID faltante
 ```
 TAREA:
-Agrega el ID #home-view al div de viewMode=home en App.tsx,
-y el ID #list-view al div de viewMode=list.
-Luego actualiza su estado a [OK] en UI_MAP.md.
+Agrega el ID #board-editor al div raíz de BoardEditor
+(components/BoardEditor.tsx) y #sequence-editor al de SequenceEditor.
+Luego quítalos de la tabla "IDs pendientes" de UI_MAP.md.
 ```
 
 ### Para refactorizar un componente visual
 ```
 TAREA:
-El área de preview del bitmap en #block-produce tiene un style inline
-`style={{ backgroundColor: '#eeeeee' }}`. Reemplázalo con la clase
-Tailwind equivalente. Identifica el ID correcto de esa área en UI_MAP.md
-(#bitmap-preview, actualmente [PENDING] sin implementar) y agrégalo al div.
+El bitmap de la fase 3 en #block-produce no tiene ID semántico
+(#bitmap-preview, [PENDING] en UI_MAP.md) y su botón de descarga solo
+tiene title. Agrega el ID al div, un aria-label con t('svg.download')
+al botón y aria-hidden="true" a su icono. Actualiza UI_MAP.md y
+WCAG_ROADMAP.md (1.4).
 ```
 
----
 
 ## Workflow recomendado: "captura → análisis → instrucción → captura"
 
