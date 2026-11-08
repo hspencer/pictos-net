@@ -124,6 +124,12 @@ export const handler = async (event, context) => {
   // a JWT itself — the Authorization header is stripped by Netlify edge).
   const grants = getStore('auth-grants');
   await grants.setJSON(`pipeline-${jobId}`, { email, roles, exp: Date.now() + GRANT_TTL_MS });
+  // Owner records: the poll endpoint returns state and row results only to
+  // whoever created the job (libraryId and jobId alone are not authorization).
+  const jobs = getStore('pipeline-jobs');
+  // units: what was charged here, so the worker never refunds more than that.
+  await jobs.setJSON(`owner/job/${jobId}`, { email, units: rows.length });
+  await jobs.setJSON(`owner/library/${libraryId}`, { email, jobId });
 
   // Determine the base URL to kick the background function. Use DEPLOY_PRIME_URL
   // on deploys (not URL which may point at production from a branch deploy) and

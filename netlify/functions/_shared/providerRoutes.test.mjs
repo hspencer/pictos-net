@@ -140,6 +140,24 @@ test('quota in composition or Recraft generation preserves accepted phases and d
   }
 });
 
+test('a Gemini image error other than 429 inside the batch refunds its unit', async () => {
+  mockVertex();
+  const nlu = { utterance: 'Beber agua', lang: 'es-419', metadata: { speech_act: 'directive', intent: 'request' },
+    frames: [{ id: 'f1', frame_name: 'Ingestion', lexical_unit: 'beber', roles: { Agent: { type: 'Agent', surface: 'persona' }, Theme: { type: 'Theme', surface: 'agua' } } }],
+    nsm_explications: { beber: 'ALGUIEN QUIERE HACER ALGO' }, logical_form: { event: 'beber(persona, agua)', modality: 'want' },
+    pragmatics: { politeness: 'neutral', formality: 'neutral', expected_response: 'compliance' },
+    visual_guidelines: { focus_actor: 'persona', action_core: 'beber', object_core: 'agua', context: '', temporal: 'immediate' } };
+  mock.method(globalThis, 'fetch', async (url, options) => {
+    if (!/api\.anthropic\.com/.test(String(url))) return Response.json({ error: { message: 'bad request' } }, { status: 400 });
+    const name = JSON.parse(options.body).tool_choice.name;
+    return Response.json({ content: [{ type: 'tool_use', id: 'tool-test', name,
+      input: name === 'analyze_utterance' ? nlu : { elements: [{ id: 'persona', concept: 'Agent' }], prompt: "'persona' bebe agua" } }] });
+  });
+  await pipeline(event({ libraryId: 'gemini-error', jobId: 'gemini-error', rows: [{ rowId: 'only', utterance: 'Beber agua' }], config: { generationModel: 'gemini-3.1-flash-lite-image' } }), {});
+  const state = await getBlobStore('pipeline-jobs').get('gemini-error/state', { type: 'json' });
+  assert.equal(state.failedCount, 1); assert.equal(state.refundedGenerationUnits, 1); assert.equal(state.state, 'failed');
+});
+
 test('batch admission checks the complete requested unit amount without changing the counter on rejection', async () => {
   const { checkAndCharge, DAILY_LIMIT } = await import('./usage.js');
   const email = 'quota-test@example.test';

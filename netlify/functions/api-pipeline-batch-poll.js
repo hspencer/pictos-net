@@ -45,9 +45,14 @@ export const handler = async (event, context) => {
   }
 
   const jobs = getStore('pipeline-jobs');
+  const email = user?.email ?? 'dev';
+  const ownedBy = async key => (await jobs.get(key, { type: 'json' }).catch(() => null))?.email === email;
 
   // Per-row result (consumed on read so the blob store stays clean).
   if (jobId && rowId) {
+    if (!(await ownedBy(`owner/job/${jobId}`))) {
+      return { statusCode: 404, headers, body: JSON.stringify({ error: 'Job not found' }) };
+    }
     const rowKey = `${jobId}/${rowId}`;
     const result = await jobs.get(rowKey, { type: 'json' }).catch(() => null);
     if (!result) {
@@ -58,7 +63,10 @@ export const handler = async (event, context) => {
     return { statusCode: 200, headers, body: JSON.stringify(result) };
   }
 
-  // Job state.
+  // Job state: another user's job (or one without an owner record) reads as none.
+  if (!(await ownedBy(`owner/library/${libraryId}`))) {
+    return { statusCode: 200, headers, body: JSON.stringify({ none: true }) };
+  }
   const state = await jobs.get(`${libraryId}/state`, { type: 'json' }).catch(() => null);
   if (!state) {
     return { statusCode: 200, headers, body: JSON.stringify({ none: true }) };

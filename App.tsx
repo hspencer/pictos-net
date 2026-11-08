@@ -1953,13 +1953,9 @@ const App: React.FC<AppProps> = ({ authUser }) => {
     );
 
     async function regenerateRow(row: RowData) {
-        updateRowById(row.id, {
-          bitmapStatus: 'processing',
-          rawSvg: undefined,
-          bitmap: undefined,
-          structuredSvg: undefined,
-          structuredSvgStatus: 'idle',
-        });
+        // The previous image stays until the new one arrives: a row skipped for
+        // quota or a failed call keeps what it had (BulkRegeneration rule).
+        updateRowById(row.id, { bitmapStatus: 'processing' });
         try {
           const p3Result = await generateImage(ensureElementsArray(row.elements), row.prompt || "", row, configWithNewModel, addLog);
           const isVector = !!p3Result.svg;
@@ -1977,9 +1973,9 @@ const App: React.FC<AppProps> = ({ authUser }) => {
         } catch (err: any) {
           if (err instanceof QuotaExceededError) {
             setQuotaModal({ units_used: err.units_used, limit: err.limit });
-            updateRowById(row.id, { bitmapStatus: 'idle' });
+            updateRowById(row.id, { bitmapStatus: 'completed' });
           } else {
-            updateRowById(row.id, { bitmapStatus: 'error' });
+            updateRowById(row.id, { bitmapStatus: 'completed' });
             addLog('error', t('messages.regenerationFailed', { utterance: row.UTTERANCE, error: formatProviderError(err) }));
           }
         }

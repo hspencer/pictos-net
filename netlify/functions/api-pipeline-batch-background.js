@@ -114,6 +114,9 @@ export const handler = async (event, context) => {
 
   const user = await consumeAuthGrant(`pipeline-${jobId}`);
   if (!user) {
+    // ponytail: no refund here. Without a grant the caller is unauthenticated, so
+    // refunding would let anyone who knows a jobId undo a running job's charge.
+    // Create kicks the worker right after writing the grant (2 min TTL).
     console.warn(`[pipeline-batch] Unauthorized for job ${jobId}`);
     await jobs.setJSON(`${libraryId}/state`, {
       id: jobId, libraryId, state: 'failed', error: 'Unauthorized',
@@ -133,6 +136,9 @@ export const handler = async (event, context) => {
 
   if (!imageProvider) {
     console.error(`[pipeline-batch] Unsupported generation model: ${genModel}`);
+    // Nothing ran: return what create charged (read from its owner record, not the body).
+    const owner = await jobs.get(`owner/job/${jobId}`, { type: 'json' }).catch(() => null);
+    if (owner?.email === email) await refundUnitsOnce(email, owner.units ?? 0, `pipeline:${jobId}:unstarted`, 'unsupported_model');
     await jobs.setJSON(`${libraryId}/state`, {
       id: jobId, libraryId, state: 'failed',
       error: `Unsupported generation model: ${genModel}`,
@@ -216,12 +222,9 @@ export const handler = async (event, context) => {
         await jobs.setJSON(`${libraryId}/state`, jobState);
         break;
       }
-      // No image was requested for failed Phase 1/2. Failed OpenAI/Recraft
-      // image jobs also release their reservation once; Gemini's existing
-      // non-429 image policy is unchanged.
-      const shouldRefund = activePhase < 3 || isOpenAI || isRecraft;
-      const refunded = shouldRefund
-        ? await refundUnitsOnce(email, 1, `pipeline:${jobId}:${rowId}:provider-error`, 'provider_error') : false;
+      // A failed row produced no image, whatever the phase or provider: release
+      // its unit once, as the interactive workers do (Gemini included).
+      const refunded = await refundUnitsOnce(email, 1, `pipeline:${jobId}:${rowId}:provider-error`, 'provider_error');
       jobState.refundedGenerationUnits = (jobState.refundedGenerationUnits ?? 0) + (refunded ? 1 : 0);
       await logCall({ email, phase: `phase${activePhase}-batch`, model: failedModel, units_charged: 0,
         ms: Date.now() - rowStartMs, tokens_in: err.usage?.input_tokens ?? null, tokens_out: err.usage?.output_tokens ?? null,

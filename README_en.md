@@ -28,34 +28,115 @@ PICTOS is a pipeline of three automatic phases and a fourth one the user starts.
 Certified pictograms are used in **sequences** (step-by-step routines), **communication boards** (grids with Fitzgerald colours and audio) and printed **PDF sheets**.
 
 ```mermaid
-flowchart TD
-    UTT["utterance"]
-    CFG["library<br>language · region · domain<br>visual style · CSS classes"]
+flowchart LR
+    subgraph BR["Browser"]
+        direction TB
+        subgraph VIEWS["Views"]
+            direction TB
+            V_HOME["LibraryHome<br>libraries + examples in the UI language"]
+            V_ROWS["Pictograms<br>rows: SmartNLUEditor · ElementsEditor ·<br>PromptRenderer · SVGGenerator + DraftChecklist"]
+            V_SEQ["Sequences<br>SequenceList · SequenceEditor"]
+            V_BRD["Boards<br>BoardList · BoardEditor · CellEditor"]
+            V_ED["SVGEditorModal<br>semantic guard"]
+            V_VEC["VectorizerModal<br>Trace only"]
+            V_SET["Library settings<br>StyleEditor · ModelPricing"]
+        end
+        ORCH["App.tsx<br>processStep · processCascade ·<br>batch · invalidation · recording"]
+        subgraph SVC["Services"]
+            direction TB
+            S_P12["claudeService<br>phases 1-2"]
+            S_P3["imageGenerationService<br>geminiService · recraftService"]
+            S_P4["svgStructureService<br>vtracerWebService · posterize ·<br>svgMergeCandidates · svgBooleanOps ·<br>svgPathPolish · regionMapping"]
+            S_CERT["svgCanonical<br>svgDraftCertification"]
+            S_USE["pdfExportService · sequencePdfService ·<br>boardPdfService · audioConvert"]
+            S_LIB["libraryService · indexedDBService ·<br>libraryTransferService · rowSerialization"]
+            S_REC["interventionRecording · attemptLog"]
+            S_AI["aiClient<br>always via proxy"]
+        end
+        WASM["WASM<br>VTracer 1.0 · VTracer 0.6"]
+        LS[("localStorage")]
+        IDB[("IndexedDB v7")]
+    end
 
-    UTT --> F1["(1) UNDERSTAND<br>Claude Haiku 5.5"]
-    CFG -.-> F1
-    F1 --> NLU["NLU<br>speech act · frames · NSM<br>pragmatics · visual guidelines"]
-    NLU --> F2["(2) COMPOSE<br>Claude Haiku 5.5"]
-    CFG -.-> F2
-    F2 --> EL["element tree<br>with its concept"]
-    F2 --> PR["spatial prompt"]
-    EL --> F3["(3) PRODUCE<br>GPT Image 2.5 Flare by default"]
-    PR --> F3
-    CFG -.->|"visual style"| F3
-    F3 --> IMG["bitmap or native SVG"]
-    IMG -->|"user starts"| F4["(4) STRUCTURE<br>Gemini 3.8 Flash detection<br>+ VTracer 1.0 regions<br>+ Claude Sonnet 4.6"]
-    EL -.->|"target tree"| F4
-    F4 --> SVG["semantic SVG<br>certified or draft"]
-    SVG --> USE["sequences · boards · prints"]
+    subgraph NF["Netlify"]
+        direction TB
+        IDN["Identity / GoTrue"]
+        subgraph FNS["Functions"]
+            direction TB
+            F_TXT["api-claude · api-openai-text<br>phases 1, 2, 5"]
+            F_DET["api-gemini-detect"]
+            F_AUTH["api-authorize"]
+            F_IMG["api-openai · api-gemini · api-recraft<br>worker-background + poll"]
+            F_BATCH["api-pipeline-batch<br>create · background · poll"]
+            F_V1["api-v1-comprender<br>api-v1-componer"]
+            F_ADM["api-usage-report · api-check"]
+        end
+        subgraph SH["_shared"]
+            direction TB
+            SH_CAT["modelCatalog"]
+            SH_CON["pipelineContracts · pipelineRunner ·<br>imagePrompts · entityDetection"]
+            SH_USE["usage · identity · vertex ·<br>httpRetry · providerError"]
+        end
+        BLOB[("Blobs<br>quota · audit ·<br>jobs · grants")]
+    end
 
-    style F1 fill:#dbeafe,stroke:#3b82f6
-    style F2 fill:#d1fae5,stroke:#10b981
-    style F3 fill:#ffedd5,stroke:#f97316
-    style F4 fill:#fce7f3,stroke:#ec4899
-    style USE fill:#fef9c3,stroke:#ca8a04
+    subgraph SCH["schemas/"]
+        direction TB
+        SC_NLU["pictos-nlu-schema 1.1.0"]
+        SC_CMP["pictos-composition-schema 0.1.0"]
+        SC_SVG["pictos-svg-schema 2.0.0-draft.1"]
+        SC_API["pictos-api-schema 1.1.0"]
+    end
+
+    subgraph PRV["Providers"]
+        direction TB
+        P_ANT["Anthropic<br>Haiku 5.5 · Sonnet 4.6"]
+        P_OAI["OpenAI<br>GPT Image 2.5 Flare · GPT-6 Luna"]
+        P_VTX["Vertex AI<br>Nano Banana 2 Lite · Gemini 3.8 Flash"]
+        P_RCR["Recraft V4.1"]
+    end
+
+    EXT["Machine client"]
+
+    VIEWS --> ORCH
+    ORCH --> S_P12 & S_P3 & S_P4 & S_LIB & S_REC
+    V_ED --> S_CERT
+    V_SEQ & V_BRD --> S_USE
+    V_VEC --> WASM
+    S_P4 --> WASM
+    S_P4 --> S_CERT
+    S_P12 & S_P3 & S_P4 --> S_AI
+    S_LIB <--> LS & IDB
+    S_REC --> LS
+    S_CERT -.-> SC_SVG & SC_NLU & SC_CMP
+
+    S_AI -->|"JWT"| F_TXT & F_DET & F_AUTH & F_IMG & F_BATCH
+    ORCH -.->|"lazy login"| IDN
+    EXT -->|"service credential"| F_V1
+
+    FNS --> SH
+    SH_CON -.-> SC_NLU & SC_CMP
+    F_V1 -.-> SC_API
+    SH_USE <--> BLOB
+    SH_USE -.->|"live roles"| IDN
+    F_IMG <--> BLOB
+    F_BATCH <--> BLOB
+
+    F_TXT --> P_ANT & P_OAI
+    F_DET --> P_VTX
+    F_IMG --> P_OAI & P_VTX & P_RCR
+    F_BATCH --> P_ANT & P_OAI & P_VTX & P_RCR
+    F_V1 --> P_ANT & P_OAI
+
+    style VIEWS fill:#f8fafc,stroke:#94a3b8
+    style SVC fill:#f0f9ff,stroke:#38bdf8
+    style FNS fill:#fefce8,stroke:#eab308
+    style SH fill:#fff7ed,stroke:#fb923c
+    style SCH fill:#f0fdf4,stroke:#22c55e
+    style PRV fill:#fdf4ff,stroke:#c084fc
 ```
 
-The full architecture, with diagrams of the server, persistence, states and data model, is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) (Spanish).
+The diagram shows the full architecture: views, orchestration, services per phase, local storage, server functions, schemas and providers. [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) (Spanish) expands each part with diagrams of the pipeline, STRUCTURE, states, data model and persistence.
 
 ## Research question
 

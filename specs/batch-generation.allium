@@ -200,6 +200,12 @@ contract PipelineBatchBoundary {
     @invariant SingleUseRowResults
         -- Each row result is read once by polling and then deleted; the job
         -- state per library stays until the next job replaces it.
+
+    @invariant OnlyTheOwnerPolls
+        -- Create records who started the job (owner/job/{jobId} with the
+        -- units charged, owner/library/{libraryId}). Poll returns job state
+        -- and row results only to that user: anyone else sees no job, and a
+        -- row request from another user is refused without consuming it.
 }
 
 ------------------------------------------------------------
@@ -539,9 +545,9 @@ rule FailPipelinePhase3 {
             )
 
     @guidance
-        -- A failed Gemini Phase 3 row (non-429, including a response without
-        -- an image) is not refunded in the pipeline batch, unlike the
-        -- interactive Gemini worker. Suspected code divergence; see report.
+        -- Every failed row is refunded once, whatever the phase or provider,
+        -- Gemini included (a non-429 error or a response without an image),
+        -- as in the interactive workers.
 }
 
 rule OpenProviderQuotaCircuit {
@@ -595,8 +601,12 @@ rule RejectUnauthorizedPipelineWorker {
 
     @guidance
         -- An expired or already consumed single-use authorization makes no
-        -- provider call. The units charged at creation are not returned
-        -- today; suspected code divergence (see report).
+        -- provider call and returns no units: without the grant the caller
+        -- is unauthenticated, and refunding would let anyone who knows a job
+        -- id undo the charge of a running job. Create kicks the worker right
+        -- after writing the grant. An unsupported model after a valid grant
+        -- returns the units recorded by create (owner record), never the
+        -- amount in the request body.
 }
 
 rule FailPipelineBatchInfrastructure {
