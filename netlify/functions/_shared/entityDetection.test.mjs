@@ -16,10 +16,12 @@ test('detections are normalized to x, y, w, h and keep only requested, well-form
   assert.deepEqual(out[0].box.map(v => +v.toFixed(3)), [0.504, 0.519, 0.084, 0.362]);
 });
 
-test('fenced or unparsable replies degrade to no detections', () => {
+test('fenced replies parse; unreadable replies are null, never "nothing drawn"', () => {
   const fenced = { candidates: [{ content: { parts: [{ text: '```json\n[{"label":"a","box_2d":[0,0,500,500]}]\n```' }] } }] };
   assert.equal(parseDetections(fenced, ['a']).length, 1);
-  assert.deepEqual(parseDetections({ candidates: [{ content: { parts: [{ text: '[{"label":' }] } }] }, ['a']), []);
+  assert.equal(parseDetections({ candidates: [{ content: { parts: [{ text: '[{"label":' }] } }] }, ['a']), null);
+  assert.equal(parseDetections({ candidates: [{ content: { parts: [{ text: '{"label":"a"}' }] } }] }, ['a']), null);
+  assert.deepEqual(parseDetections(reply([]), ['a']), []);
 });
 
 test('the request carries the image, every label verbatim and a bounded JSON answer', () => {

@@ -21,14 +21,16 @@ Output a JSON list; each entry has the tight 2D bounding box in "box_2d" ([y0, x
 
 /**
  * Detections from a Gemini response: { label, box: [x, y, w, h] } with the box
- * normalized to 0..1. Unknown labels and malformed boxes are dropped.
+ * normalized to 0..1. Unknown labels and malformed boxes are dropped. An
+ * unreadable answer returns null, not [], because [] means "nothing is drawn"
+ * and would deny every entity its regions.
  */
 export function parseDetections(geminiData, labels) {
   const text = (geminiData?.candidates?.[0]?.content?.parts ?? []).map(p => p.text ?? '').join('').trim()
     .replace(/^```(?:json)?\s*|\s*```$/g, '');
   let items;
-  try { items = JSON.parse(text); } catch { return []; }
-  if (!Array.isArray(items)) return [];
+  try { items = JSON.parse(text); } catch { return null; }
+  if (!Array.isArray(items)) return null;
   const known = new Set(labels);
   const clamp = v => Math.min(1, Math.max(0, v / 1000));
   return items.flatMap(it => {

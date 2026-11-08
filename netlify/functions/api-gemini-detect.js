@@ -58,6 +58,8 @@ export async function handler(event, context) {
     if (!res.ok) throw await providerHttpError(res, 'gemini', _requestId);
     const data = await res.json();
     const detections = parseDetections(data, labels);
+    // Unreadable answer: fail, so the client runs without boxes instead of "nothing drawn".
+    if (!detections) throw Object.assign(new Error('Detection answer was not a JSON list'), { status: 502 });
     const usage = data.usageMetadata ?? {};
     await logCall({ email, phase: 'gemini-detect', model, units_charged: 0, ms: Date.now() - startMs,
       tokens_in: usage.promptTokenCount ?? 0, tokens_out: usage.candidatesTokenCount ?? 0, ok: true });

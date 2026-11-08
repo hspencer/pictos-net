@@ -7,7 +7,7 @@ Versión 2.8.0. Actualizado: 2026-11-08. Este documento describe el código de l
 ## Contenido
 
 1. [Visión general](#1-visión-general)
-2. [Contexto del sistema](#2-contexto-del-sistema)
+2. [Arquitectura completa](#2-arquitectura-completa)
 3. [Pipeline](#3-pipeline)
 4. [ESTRUCTURAR por dentro](#4-estructurar-por-dentro)
 5. [Estados de una fila y de su SVG](#5-estados-de-una-fila-y-de-su-svg)
@@ -43,7 +43,122 @@ Principios que el código mantiene:
 | Vectorización local | VTracer 1.0 (binding propio `lib/vtracer-web`, WASM) y VTracer 0.6 legacy (`lib/vtracer-wasm`) |
 | Exportación | jsPDF, JSZip |
 
-## 2. Contexto del sistema
+## 2. Arquitectura completa
+
+Un solo diagrama con todas las piezas: vistas, orquestación, servicios por fase, almacenamiento local, funciones del servidor con sus módulos compartidos, esquemas y proveedores. Las secciones siguientes amplían cada parte.
+
+```mermaid
+flowchart LR
+    subgraph BR["Navegador"]
+        direction TB
+        subgraph VIEWS["Vistas"]
+            direction TB
+            V_HOME["LibraryHome<br>librerías + ejemplos del idioma"]
+            V_ROWS["Pictogramas<br>filas: SmartNLUEditor · ElementsEditor ·<br>PromptRenderer · SVGGenerator + DraftChecklist"]
+            V_SEQ["Secuencias<br>SequenceList · SequenceEditor"]
+            V_BRD["Tableros<br>BoardList · BoardEditor · CellEditor"]
+            V_ED["SVGEditorModal<br>guarda semántica"]
+            V_VEC["VectorizerModal<br>Solo trazar"]
+            V_SET["Ajustes de la librería<br>StyleEditor · ModelPricing"]
+        end
+        ORCH["App.tsx<br>processStep · processCascade ·<br>lote · invalidación · registro"]
+        subgraph SVC["Servicios"]
+            direction TB
+            S_P12["claudeService<br>fases 1-2"]
+            S_P3["imageGenerationService<br>geminiService · recraftService"]
+            S_P4["svgStructureService<br>vtracerWebService · posterize ·<br>svgMergeCandidates · svgBooleanOps ·<br>svgPathPolish · regionMapping"]
+            S_CERT["svgCanonical<br>svgDraftCertification"]
+            S_USE["pdfExportService · sequencePdfService ·<br>boardPdfService · audioConvert"]
+            S_LIB["libraryService · indexedDBService ·<br>libraryTransferService · rowSerialization"]
+            S_REC["interventionRecording · attemptLog"]
+            S_AI["aiClient<br>siempre vía proxy"]
+        end
+        WASM["WASM<br>VTracer 1.0 · VTracer 0.6"]
+        LS[("localStorage")]
+        IDB[("IndexedDB v7")]
+    end
+
+    subgraph NF["Netlify"]
+        direction TB
+        IDN["Identity / GoTrue"]
+        subgraph FNS["Functions"]
+            direction TB
+            F_TXT["api-claude · api-openai-text<br>fases 1, 2, 5"]
+            F_DET["api-gemini-detect"]
+            F_AUTH["api-authorize"]
+            F_IMG["api-openai · api-gemini · api-recraft<br>worker-background + poll"]
+            F_BATCH["api-pipeline-batch<br>create · background · poll"]
+            F_V1["api-v1-comprender<br>api-v1-componer"]
+            F_ADM["api-usage-report · api-check"]
+        end
+        subgraph SH["_shared"]
+            direction TB
+            SH_CAT["modelCatalog"]
+            SH_CON["pipelineContracts · pipelineRunner ·<br>imagePrompts · entityDetection"]
+            SH_USE["usage · identity · vertex ·<br>httpRetry · providerError"]
+        end
+        BLOB[("Blobs<br>cuota · auditoría ·<br>trabajos · grants")]
+    end
+
+    subgraph SCH["schemas/"]
+        direction TB
+        SC_NLU["pictos-nlu-schema 1.1.0"]
+        SC_CMP["pictos-composition-schema 0.1.0"]
+        SC_SVG["pictos-svg-schema 2.0.0-draft.1"]
+        SC_API["pictos-api-schema 1.1.0"]
+    end
+
+    subgraph PRV["Proveedores"]
+        direction TB
+        P_ANT["Anthropic<br>Haiku 5.5 · Sonnet 4.6"]
+        P_OAI["OpenAI<br>GPT Image 2.5 Flare · GPT-6 Luna"]
+        P_VTX["Vertex AI<br>Nano Banana 2 Lite · Gemini 3.8 Flash"]
+        P_RCR["Recraft V4.1"]
+    end
+
+    EXT["Cliente de máquina"]
+
+    VIEWS --> ORCH
+    ORCH --> S_P12 & S_P3 & S_P4 & S_LIB & S_REC
+    V_ED --> S_CERT
+    V_SEQ & V_BRD --> S_USE
+    V_VEC --> WASM
+    S_P4 --> WASM
+    S_P4 --> S_CERT
+    S_P12 & S_P3 & S_P4 --> S_AI
+    S_LIB <--> LS & IDB
+    S_REC --> LS
+    S_CERT -.-> SC_SVG & SC_NLU & SC_CMP
+
+    S_AI -->|"JWT"| F_TXT & F_DET & F_AUTH & F_IMG & F_BATCH
+    ORCH -.->|"login perezoso"| IDN
+    EXT -->|"credencial de servicio"| F_V1
+
+    FNS --> SH
+    SH_CON -.-> SC_NLU & SC_CMP
+    F_V1 -.-> SC_API
+    SH_USE <--> BLOB
+    SH_USE -.->|"roles en vivo"| IDN
+    F_IMG <--> BLOB
+    F_BATCH <--> BLOB
+
+    F_TXT --> P_ANT & P_OAI
+    F_DET --> P_VTX
+    F_IMG --> P_OAI & P_VTX & P_RCR
+    F_BATCH --> P_ANT & P_OAI & P_VTX & P_RCR
+    F_V1 --> P_ANT & P_OAI
+
+    style VIEWS fill:#f8fafc,stroke:#94a3b8
+    style SVC fill:#f0f9ff,stroke:#38bdf8
+    style FNS fill:#fefce8,stroke:#eab308
+    style SH fill:#fff7ed,stroke:#fb923c
+    style SCH fill:#f0fdf4,stroke:#22c55e
+    style PRV fill:#fdf4ff,stroke:#c084fc
+```
+
+### Contexto del sistema
+
+La misma arquitectura reducida a sus fronteras:
 
 ```mermaid
 flowchart LR
