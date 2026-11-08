@@ -20,7 +20,7 @@ Estado: `comprender` y `componer` implementados. `producir` y `estructurar` tien
 
 Ambos son síncronos y responden dentro del límite de 60 s de Netlify. El presupuesto de red con el proveedor es de 45 s y un reintento (`PROVIDER_BUDGET` en `_shared/apiV1.js`).
 
-`model` es opcional. Si se omite, se usa el modelo por defecto de la fase en el catálogo (`DEFAULT_MODELS` en `_shared/modelCatalog.js`), hoy `claude-haiku-5-5`. El enum de `model` en los schemas de petición 1.0.0 está congelado y lista modelos que ya se retiraron; la admisión la decide el catálogo (`modelSupportsPhase`, `_shared/apiV1.js`). Un modelo retirado o que no sirve para esa fase se rechaza con `invalid_request` e `issues: [{ path: "/model", message: "retired model" }]`, y un valor fuera del enum se rechaza en la validación del schema. Como hoy ningún valor del enum está admitido para estas fases, lo correcto es omitir `model`.
+`model` es opcional. Si se omite, se usa el modelo por defecto de la fase en el catálogo (`DEFAULT_MODELS` en `_shared/modelCatalog.js`), hoy `claude-haiku-5-5`, y la respuesta lo informa en `model.requested`. Desde los schemas de petición 1.1.0, `model` es un id libre (patrón `^[a-z0-9][a-z0-9._-]{0,63}$`) y la admisión la decide el catálogo (`modelSupportsPhase`, `_shared/apiV1.js`): un modelo retirado, desconocido o que no sirve para esa fase se rechaza con `invalid_request` e `issues: [{ path: "/model", message: "model not available" }]`. Hoy se admiten `claude-haiku-5-5` y `gpt-6-luna`. Los schemas de petición 1.0.0 siguen publicados y congelados: su enum lista modelos ya retirados.
 
 ## Contratos publicados
 
@@ -29,8 +29,9 @@ Fuente en `schemas/pictos-api-schema/`. Se publican en `https://<sitio>/schemas/
 | Schema | Rol |
 |---|---|
 | `pictos-api-common-1.0.0` | envelope común: metadatos de éxito, evidencia, cupo, errores |
-| `pictos-api-comprender-request-1.0.0` / `-response-1.0.0` | contrato de `comprender` |
-| `pictos-api-componer-request-1.0.0` / `-response-1.0.0` | contrato de `componer` |
+| `pictos-api-comprender-request-1.1.0` / `-response-1.0.0` | contrato de `comprender` |
+| `pictos-api-componer-request-1.1.0` / `-response-1.0.0` | contrato de `componer` |
+| `pictos-api-comprender-request-1.0.0`, `pictos-api-componer-request-1.0.0` | congelados; reemplazados por 1.1.0 |
 | `pictos-api-producir-0.1.0-draft` | frontera futura de `producir` (borrador) |
 | `pictos-api-estructurar-0.1.0-draft` | frontera futura de `estructurar` (borrador) |
 

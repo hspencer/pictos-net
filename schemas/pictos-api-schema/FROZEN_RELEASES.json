@@ -1,0 +1,7 @@
+{
+  "pictos-api-common-1.0.0.schema.json": "e10ebd16a7be5decbe6e22f36dfe47d18e458c2be78ab3fd2625e7b593b0b7c0",
+  "pictos-api-comprender-request-1.0.0.schema.json": "c58865f0fd7eecd2301f78298888c206b3c6999bf4d3a21259fb70a6a540e6d1",
+  "pictos-api-comprender-response-1.0.0.schema.json": "b7b9bfa23e87091d142a05d2cdff03f04b61c58728517fa67f8966aec827c45b",
+  "pictos-api-componer-request-1.0.0.schema.json": "2192f7d7bb86449bba4d0689c1329b9f6c7027f54ec493de98ff609bc4a18339",
+  "pictos-api-componer-response-1.0.0.schema.json": "f1c8dad9d6f647eec132e5f2dc79c5c8a0a3c6bed7980fb276e810a5abbc35b5"
+}

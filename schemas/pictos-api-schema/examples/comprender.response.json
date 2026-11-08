@@ -13,8 +13,8 @@
     "version": "1.1.0"
   },
   "model": {
-    "requested": "claude-haiku-4-5-20251001",
-    "actual": "claude-haiku-4-5-20251001",
+    "requested": "claude-haiku-5-5",
+    "actual": "claude-haiku-5-5",
     "provider": "anthropic"
   },
   "evidence": {

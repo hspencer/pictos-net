@@ -1,10 +1,11 @@
-import { MODEL_CATALOG } from './modelCatalog.js';
+import { MODEL_CATALOG, modelAllowed } from './modelCatalog.js';
 import { fetchWithRetry } from './httpRetry.js';
 import { providerHttpError } from './providerError.js';
 
 export function recraftImageRequest({ model = 'recraftv4_1_vector', prompt, colors, style_id }) {
-  const entry = Object.hasOwn(MODEL_CATALOG, model) ? MODEL_CATALOG[model] : null;
-  if (entry?.provider !== 'recraft' || !entry.phases.includes(3)) throw new Error('Unsupported Recraft model');
+  // Admission follows the catalog lifecycle: retired models (V4 Styles) are refused.
+  if (!modelAllowed(model, 'recraft', [3])) throw new Error('Unsupported Recraft model');
+  const entry = MODEL_CATALOG[model];
   if (typeof prompt !== 'string' || !prompt.trim() || prompt.length > 10000) throw new Error('Recraft prompt must contain 1–10000 characters');
   if (entry.requiresStyle && (typeof style_id !== 'string' || !style_id.trim())) throw new Error('Recraft Styles requires an existing style_id');
   if (style_id != null && (typeof style_id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(style_id))) throw new Error('Invalid Recraft style_id');

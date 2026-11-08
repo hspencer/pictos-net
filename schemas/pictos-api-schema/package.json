@@ -1,6 +1,6 @@
 {
   "name": "@mediafranca/pictos-api-schema",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "JSON Schemas for the PICTOS machine API v1 (UNDERSTAND and COMPOSE) and draft boundaries for PRODUCE and STRUCTURE",
   "license": "CC-BY-4.0",
   "repository": {

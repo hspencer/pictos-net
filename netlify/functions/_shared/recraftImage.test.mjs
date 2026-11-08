@@ -5,8 +5,12 @@ import { recraftImageRequest, generateRecraftImage } from './recraftImage.js';
 
 afterEach(() => mock.restoreAll());
 
-test('every Recraft catalog model has a valid request; Styles requires explicit identity', () => {
+test('every admitted Recraft model has a valid request; retired ones are refused', () => {
   for (const [model, entry] of Object.entries(MODEL_CATALOG).filter(([,m]) => m.provider === 'recraft')) {
+    if (entry.status === 'retired') {
+      assert.throws(() => recraftImageRequest({ model, prompt: 'beber agua', style_id: '11111111-1111-4111-8111-111111111111' }), /Unsupported Recraft model/);
+      continue;
+    }
     if (entry.requiresStyle) assert.throws(() => recraftImageRequest({ model, prompt: 'beber agua' }), /style_id/);
     const request = recraftImageRequest({ model, prompt: 'beber agua', style_id: '11111111-1111-4111-8111-111111111111' });
     assert.equal(request.model, model);
@@ -22,7 +26,9 @@ test('vector/raster output follows catalog and style is sent unchanged', async (
   const previous = process.env.RECRAFT_API_KEY;
   process.env.RECRAFT_API_KEY = 'fake-test-key';
   t.after(() => { if (previous === undefined) delete process.env.RECRAFT_API_KEY; else process.env.RECRAFT_API_KEY = previous; });
-  for (const model of ['recraftv4_styles_vector', 'recraftv4_1_utility_pro']) {
+  // Retired V4 Styles is refused even with a style_id, before any network call.
+  assert.throws(() => recraftImageRequest({ model: 'recraftv4_styles_vector', prompt: 'beber', style_id: '11111111-1111-4111-8111-111111111111' }), /Unsupported Recraft model/);
+  for (const model of ['recraftv4_1_utility_vector', 'recraftv4_1_utility_pro']) {
     const calls = [];
     const fetchMock = mock.method(globalThis, 'fetch', async (url, options) => {
       calls.push(url);

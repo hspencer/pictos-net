@@ -130,7 +130,7 @@ Todas son server-side. Ninguna lleva prefijo `VITE_`.
 - `X-Content-Type-Options`: `nosniff`
 - `X-XSS-Protection`: `1; mode=block`
 - `Referrer-Policy`: `strict-origin-when-cross-origin`
-- `Permissions-Policy`: `camera=(), microphone=(), geolocation=()`
+- `Permissions-Policy`: `camera=(), microphone=(self), geolocation=()`. El micrófono queda permitido solo para el propio sitio, porque los tableros graban audio por celda
 - `Content-Security-Policy`: bloquea scripts inline; `unsafe-inline` solo en `style-src` (requerido por el editor SVG); `wasm-unsafe-eval` para VTracer WASM; `connect-src` admite además Nominatim (autocompletado de lugar) y los dos dominios de PICTOS (`admin.html`)
 
 ## Configuración Local

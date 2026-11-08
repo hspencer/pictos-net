@@ -82,18 +82,24 @@ test('every published API schema compiles strictly and declares a versioned pict
   }
 });
 
-// A published request schema is frozen: its enum lists every text model the
-// phase offered at 1.0.0, retired ones included. Runtime admission is narrower
-// (modelSupportsPhase), so a retired model passes the schema but is refused.
-test('request schemas offer exactly the catalog text models for their phase', () => {
+// Request 1.1.0 leaves model open: availability is operational, so the
+// catalog decides admission at runtime. 1.0.0 stays published but frozen.
+test('request schemas accept any catalog id and the handler admits only current models', () => {
   for (const [name, phase] of [['comprender', 1], ['componer', 2]]) {
     const schema = API_SCHEMAS.find(s => s.$id === PROCESSES[name].requestSchema);
-    // Frozen at 1.0.0: every listed id keeps a catalog entry (and so a label).
-    assert.ok(schema.properties.model.enum.every(id => Object.hasOwn(MODEL_CATALOG, id) && MODEL_CATALOG[id].output === 'text'));
-    // Models added after 1.0.0 run only as the default; naming them needs a new API version.
-    const addedAfter100 = ['gemini-3.8-flash', 'gpt-6-luna', 'claude-haiku-5-5'];
-    assert.ok(modelIdsForPhase(phase).every(id => schema.properties.model.enum.includes(id) || addedAfter100.includes(id)));
-    assert.ok(!modelIdsForPhase(phase).includes('gemini-2.5-pro'));
+    assert.match(schema.$id, /-1\.1\.0\.schema\.json$/);
+    assert.equal(schema.properties.model.enum, undefined);
+    assert.equal(schema.properties.model.default, undefined);
+    const validate = ajv.getSchema(schema.$id);
+    const base = name === 'comprender' ? { utterance: 'quiero agua' } : null;
+    if (base) {
+      for (const id of [...modelIdsForPhase(phase), 'claude-haiku-4-5-20251001']) assert.ok(validate({ ...base, model: id }), id);
+      assert.ok(!validate({ ...base, model: 'Bad Id' }));
+    }
+    assert.ok(!modelIdsForPhase(phase).includes('claude-haiku-4-5-20251001'));
+  }
+  for (const frozen of ['comprender', 'componer']) {
+    assert.ok(API_SCHEMAS.some(s => s.$id.endsWith(`pictos-api-${frozen}-request-1.0.0.schema.json`)));
   }
 });
 
@@ -213,14 +219,18 @@ test('comprender rejects retired and out-of-phase models before any provider cal
   withAnthropicKey();
   const { token, handlers } = await setup();
   const { sent } = mockProvider([structuredClone(fixture)]);
-  // Listed in the frozen 1.0.0 enum, retired on 2026-11-01: a clear 400, not an internal error.
+  // Retired on 2026-11-01: a clear 400, not an internal error.
   const retired = await handlers.comprender(post(token, { utterance: fixture.utterance, model: 'claude-haiku-4-5-20251001' }));
   assert.equal(retired.statusCode, 400, retired.body);
-  assert.match(JSON.parse(retired.body).error.message, /retired; omit model/);
+  assert.match(JSON.parse(retired.body).error.message, /not available for this phase; omit model/);
   const rejected = await handlers.comprender(post(token, { utterance: fixture.utterance, model: 'gemini-3-pro-image' }));
   assert.equal(rejected.statusCode, 400);
   assert.equal(JSON.parse(rejected.body).error.code, 'invalid_request');
   assert.equal(sent.length, 0);
+  // A current model can be named explicitly since request 1.1.0.
+  const named = await handlers.comprender(post(token, { utterance: fixture.utterance, model: 'claude-haiku-5-5' }));
+  assert.equal(named.statusCode, 200, named.body);
+  assert.equal(JSON.parse(named.body).model.requested, 'claude-haiku-5-5');
 });
 
 test('componer returns the accepted composition with the deterministic root, never the provider shape', async () => {

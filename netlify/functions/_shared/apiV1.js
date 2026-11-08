@@ -27,9 +27,11 @@ import {
 import { generationSchema, documentSchema as nluDocumentSchema } from '../../../schemas/pictos-nlu-schema/index.js';
 import { documentSchema as compositionDocumentSchema, providerSchema as compositionProviderSchema } from '../../../schemas/pictos-composition-schema/index.js';
 import commonSchema from '../../../schemas/pictos-api-schema/pictos-api-common-1.0.0.schema.json' with { type: 'json' };
-import comprenderRequestSchema from '../../../schemas/pictos-api-schema/pictos-api-comprender-request-1.0.0.schema.json' with { type: 'json' };
+import comprenderRequestSchema from '../../../schemas/pictos-api-schema/pictos-api-comprender-request-1.1.0.schema.json' with { type: 'json' };
 import comprenderResponseSchema from '../../../schemas/pictos-api-schema/pictos-api-comprender-response-1.0.0.schema.json' with { type: 'json' };
-import componerRequestSchema from '../../../schemas/pictos-api-schema/pictos-api-componer-request-1.0.0.schema.json' with { type: 'json' };
+import componerRequestSchema from '../../../schemas/pictos-api-schema/pictos-api-componer-request-1.1.0.schema.json' with { type: 'json' };
+import comprenderRequestSchema100 from '../../../schemas/pictos-api-schema/pictos-api-comprender-request-1.0.0.schema.json' with { type: 'json' };
+import componerRequestSchema100 from '../../../schemas/pictos-api-schema/pictos-api-componer-request-1.0.0.schema.json' with { type: 'json' };
 import componerResponseSchema from '../../../schemas/pictos-api-schema/pictos-api-componer-response-1.0.0.schema.json' with { type: 'json' };
 import producirDraftSchema from '../../../schemas/pictos-api-schema/pictos-api-producir-0.1.0-draft.schema.json' with { type: 'json' };
 import estructurarDraftSchema from '../../../schemas/pictos-api-schema/pictos-api-estructurar-0.1.0-draft.schema.json' with { type: 'json' };
@@ -41,9 +43,11 @@ export const EXECUTOR = 'pictos.net';
 // request is one model attempt, which its idempotency-replay semantics rely on.
 export const PROVIDER_BUDGET = { retries: 1, maxTotalMs: 45_000, repair: false };
 
+// Request 1.0.0 is frozen and still published at its $id; endpoints validate against 1.1.0.
 export const API_SCHEMAS = [
   commonSchema, comprenderRequestSchema, comprenderResponseSchema,
   componerRequestSchema, componerResponseSchema, producirDraftSchema, estructurarDraftSchema,
+  comprenderRequestSchema100, componerRequestSchema100,
 ];
 
 /** A validator for API envelopes that resolves the domain contracts by $id. */
@@ -215,10 +219,10 @@ export function createV1Handler(processName, spec, deps = {}) {
         ? new ApiError('input_contract_invalid', `The ${spec.inputPath.slice(1)} input does not satisfy its contract.`, { issues })
         : new ApiError('invalid_request', `The request does not match ${definition.requestSchema}.`, { issues }));
     }
-    // The frozen 1.0.0 enum still lists retired models; admission follows the catalog.
+    // The schema leaves model open (1.1.0); admission follows the catalog.
     if (body.model !== undefined && !modelSupportsPhase(body.model, definition.phase)) {
-      return fail(new ApiError('invalid_request', `Model ${body.model} is retired; omit model to use the current default.`,
-        { issues: [{ path: '/model', message: 'retired model' }] }));
+      return fail(new ApiError('invalid_request', `Model ${body.model} is not available for this phase; omit model to use the current default.`,
+        { issues: [{ path: '/model', message: 'model not available' }] }));
     }
 
     const idempotencyKey = headerValue(event.headers, 'idempotency-key') ?? null;

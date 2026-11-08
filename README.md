@@ -98,7 +98,7 @@ Los contratos entre fases son cuatro productos independientes. **Se desarrollan 
 | `pictos-nlu-schema` | COMPRENDER: análisis NLU basado en NSM y FrameNet | 1.1.0 | [mediafranca/pictos-nlu-schema](https://github.com/mediafranca/pictos-nlu-schema) | CC BY-SA 4.0 |
 | `pictos-composition-schema` | COMPONER: composición visual independiente del proveedor de imagen | 0.1.0 | [mediafranca/pictos-composition-schema](https://github.com/mediafranca/pictos-composition-schema) | CC BY 4.0 |
 | `pictos-svg-schema` | ESTRUCTURAR: SVG semántico y autocontenido con metadatos de accesibilidad | 2.0.0-draft.1 | [mediafranca/pictos-svg-schema](https://github.com/mediafranca/pictos-svg-schema) | CC BY 4.0 |
-| `pictos-api-schema` | API de máquina v1: `comprender` y `componer` | 1.0.0 | [mediafranca/pictos-api-schema](https://github.com/mediafranca/pictos-api-schema) | CC BY 4.0 |
+| `pictos-api-schema` | API de máquina v1: `comprender` y `componer` | 1.1.0 | [mediafranca/pictos-api-schema](https://github.com/mediafranca/pictos-api-schema) | CC BY 4.0 |
 
 ```mermaid
 flowchart LR

@@ -374,7 +374,7 @@ PICTOS es la fuente canónica; los paquetes se publican en un solo sentido a `me
 | `schemas/pictos-nlu-schema` | 1.1.0 (perfil de generación aparte; 1.0.1 congelado) | `NLUData` |
 | `schemas/pictos-composition-schema` | 0.1.0 | árbol de elementos y prompt |
 | `schemas/pictos-svg-schema` | 2.0.0-draft.1 (1.0 congelado) | metadatos del SVG estructurado, vínculos, revisiones |
-| `schemas/pictos-api-schema` | 1.0.0 (producir y estructurar en 0.1.0-draft) | API de máquina v1 |
+| `schemas/pictos-api-schema` | 1.1.0 (peticiones 1.1.0, resto 1.0.0; producir y estructurar en 0.1.0-draft) | API de máquina v1 |
 
 ```mermaid
 flowchart LR

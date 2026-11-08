@@ -73,7 +73,7 @@
     Referrer-Policy = "strict-origin-when-cross-origin"
     X-XSS-Protection = "1; mode=block"
     Strict-Transport-Security = "max-age=31536000; includeSubDomains"
-    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+    Permissions-Policy = "camera=(), microphone=(self), geolocation=()"
     # CSP: blocks inline scripts (protects against SVG/XSS injection).
     # style-src 'unsafe-inline' required — SVG editor injects <style> tags dynamically.
     # wasm-unsafe-eval required — VTracer WASM (phase 4, manual vectorizer).
