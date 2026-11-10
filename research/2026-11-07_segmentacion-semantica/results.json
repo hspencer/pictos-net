@@ -1,0 +1,289 @@
+[
+  {
+    "key": "kitchen--slice-the-onion",
+    "lib": "kitchen.en",
+    "utterance": "slice the onion",
+    "labels": [
+      "person",
+      "knife",
+      "slicing_motion",
+      "onion",
+      "cutting_board",
+      "kitchen"
+    ],
+    "sam3": {
+      "ms": 5027,
+      "usd": 0.03,
+      "found": [
+        "person"
+      ]
+    },
+    "gemini": {
+      "ms": 2886,
+      "usd": 0.0014205,
+      "found": [
+        "person",
+        "knife",
+        "onion",
+        "cutting_board"
+      ]
+    }
+  },
+  {
+    "key": "kitchen--always-use-oven-gloves-to-handle-the-bak",
+    "lib": "kitchen.en",
+    "utterance": "Always use oven gloves to handle the baking tray",
+    "labels": [
+      "baking_tray",
+      "heat_waves",
+      "pair_of_hands",
+      "left_oven_glove",
+      "right_oven_glove"
+    ],
+    "sam3": {
+      "ms": 3657,
+      "usd": 0.025,
+      "found": []
+    },
+    "gemini": {
+      "ms": 2884,
+      "usd": 0.0014865,
+      "found": [
+        "baking_tray",
+        "heat_waves",
+        "left_oven_glove",
+        "right_oven_glove"
+      ]
+    }
+  },
+  {
+    "key": "kitchen--i-like-my-scrambled-eggs-runny",
+    "lib": "kitchen.en",
+    "utterance": "i like my scrambled eggs runny",
+    "labels": [
+      "diner",
+      "happy_face",
+      "plate",
+      "scrambled_eggs",
+      "liquid_yolk",
+      "fork",
+      "heart_icon"
+    ],
+    "sam3": {
+      "ms": 5564,
+      "usd": 0.035,
+      "found": [
+        "happy_face",
+        "plate",
+        "liquid_yolk",
+        "heart_icon"
+      ]
+    },
+    "gemini": {
+      "ms": 3688,
+      "usd": 0.0019905,
+      "found": [
+        "happy_face",
+        "diner",
+        "heart_icon",
+        "fork",
+        "plate",
+        "scrambled_eggs",
+        "scrambled_eggs",
+        "liquid_yolk"
+      ]
+    }
+  },
+  {
+    "key": "blake--i-got-on-the-wrong-platform-and-now-i-ca",
+    "lib": "blake.en",
+    "utterance": "I got on the wrong platform and now I can't find my train",
+    "labels": [
+      "traveller",
+      "train_ticket",
+      "train",
+      "platform",
+      "platform_sign",
+      "wrong_mark",
+      "search_gesture"
+    ],
+    "sam3": {
+      "ms": 7898,
+      "usd": 0.035,
+      "found": [
+        "train",
+        "platform_sign"
+      ]
+    },
+    "gemini": {
+      "ms": 3962,
+      "usd": 0.00184275,
+      "found": [
+        "traveller",
+        "train",
+        "platform",
+        "platform_sign",
+        "wrong_mark",
+        "train_ticket",
+        "search_gesture"
+      ]
+    }
+  },
+  {
+    "key": "blake--i-left-my-bag-on-the-bus-i-want-to-ring-",
+    "lib": "blake.en",
+    "utterance": "I left my bag on the bus, I want to ring lost property",
+    "labels": [
+      "person",
+      "bag",
+      "bus",
+      "phone_call",
+      "phone",
+      "lost_property_office"
+    ],
+    "sam3": {
+      "ms": 7048,
+      "usd": 0.03,
+      "found": [
+        "person",
+        "bag",
+        "bus",
+        "phone_call",
+        "phone"
+      ]
+    },
+    "gemini": {
+      "ms": 3797,
+      "usd": 0.001959,
+      "found": [
+        "person",
+        "person",
+        "bag",
+        "bus",
+        "phone_call",
+        "phone",
+        "phone",
+        "lost_property_office"
+      ]
+    }
+  },
+  {
+    "key": "inclusion-laboral--inspect-the-ladder-before-using-it-at-th",
+    "lib": "inclusion-laboral.en",
+    "utterance": "Inspect the ladder before using it at the start of each shift",
+    "labels": [
+      "worker",
+      "inspection_action",
+      "ladder",
+      "shift_start",
+      "clock",
+      "doorway"
+    ],
+    "sam3": {
+      "ms": 4995,
+      "usd": 0.03,
+      "found": [
+        "worker",
+        "ladder",
+        "clock"
+      ]
+    },
+    "gemini": {
+      "ms": 3071,
+      "usd": 0.0015585,
+      "found": [
+        "worker",
+        "ladder",
+        "clock",
+        "doorway",
+        "inspection_action"
+      ]
+    }
+  },
+  {
+    "key": "inclusion-laboral--wear-a-safety-harness-when-working-at-he",
+    "lib": "inclusion-laboral.en",
+    "utterance": "Wear a safety harness when working at height",
+    "labels": [
+      "worker",
+      "safety_harness",
+      "scaffold",
+      "ground"
+    ],
+    "sam3": {
+      "ms": 3207,
+      "usd": 0.02,
+      "found": [
+        "worker",
+        "safety_harness"
+      ]
+    },
+    "gemini": {
+      "ms": 2890,
+      "usd": 0.00142425,
+      "found": [
+        "worker",
+        "safety_harness",
+        "scaffold",
+        "ground"
+      ]
+    }
+  },
+  {
+    "key": "escena-descriptiva--i-need-help",
+    "lib": "escena-descriptiva.en",
+    "utterance": "I need help",
+    "labels": [
+      "person",
+      "help_gesture",
+      "help_sign"
+    ],
+    "sam3": {
+      "ms": 2652,
+      "usd": 0.015,
+      "found": [
+        "person"
+      ]
+    },
+    "gemini": {
+      "ms": 3154,
+      "usd": 0.0014235,
+      "found": [
+        "person",
+        "person",
+        "help_gesture",
+        "help_gesture"
+      ]
+    }
+  },
+  {
+    "key": "ilustracion-moderna--i-need-help",
+    "lib": "ilustracion-moderna.en",
+    "utterance": "I need help",
+    "labels": [
+      "woman",
+      "raised_hand",
+      "helping_hand",
+      "neutral_space"
+    ],
+    "sam3": {
+      "ms": 13935,
+      "usd": 0.02,
+      "found": [
+        "woman",
+        "raised_hand",
+        "helping_hand"
+      ]
+    },
+    "gemini": {
+      "ms": 2903,
+      "usd": 0.00143025,
+      "found": [
+        "woman",
+        "raised_hand",
+        "helping_hand",
+        "neutral_space"
+      ]
+    }
+  }
+]

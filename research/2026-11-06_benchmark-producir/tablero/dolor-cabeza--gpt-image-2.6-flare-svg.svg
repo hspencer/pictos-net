@@ -1,0 +1,33 @@
+<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" width="1024" height="1024">
+  <title>Me duele la cabeza</title>
+  <desc>Persona con expresión de dolor y las manos en la cabeza, acompañada de señales rojas de molestia.</desc>
+
+  <rect width="1024" height="1024" fill="#FFFFFF" />
+
+  
+  <path d="M435 590 L435 665 Q512 721 589 665 L589 590Z" fill="#FFFFFF" stroke="#111111" stroke-width="18" stroke-linejoin="round" />
+  <path d="M286 690 Q342 633 438 620 L586 620 Q682 633 738 690            L774 949 L250 949Z" fill="#1A4CFF" stroke="#111111" stroke-width="20" stroke-linejoin="round" />
+
+  
+  <path d="M306 647 Q260 651 237 702 L157 779 Q124 812 143 844            Q161 874 221 871 L290 858 L310 747" fill="#FFFFFF" stroke="#111111" stroke-width="20" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M718 647 Q764 651 787 702 L867 779 Q900 812 881 844            Q863 874 803 871 L734 858 L714 747" fill="#FFFFFF" stroke="#111111" stroke-width="20" stroke-linecap="round" stroke-linejoin="round" />
+
+  
+  <path d="M333 399 Q333 264 424 223 Q512 183 600 223            Q691 264 691 399 L678 482 Q660 598 512 611            Q364 598 346 482Z" fill="#FFFFFF" stroke="#111111" stroke-width="20" stroke-linejoin="round" />
+
+  
+  <path d="M333 409 Q319 291 385 236 Q433 194 512 194            Q590 194 639 233 Q694 277 691 409            Q668 376 652 346 Q635 369 615 376            Q594 350 585 321 Q557 367 510 382            Q465 400 425 383 Q394 413 367 428Z" fill="#111111" stroke="#111111" stroke-width="14" stroke-linejoin="round" />
+  <path d="M367 408 Q386 386 410 376 M425 383 Q467 397 510 382            M510 382 Q557 367 585 321 M615 376 Q637 372 652 346" fill="none" stroke="#111111" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" />
+
+  
+  <path d="M321 424 Q343 401 365 414 Q381 424 374 446            L356 478 Q345 498 326 491 Q305 483 306 461            Q307 440 321 424Z" fill="#FFFFFF" stroke="#111111" stroke-width="16" stroke-linejoin="round" />
+  <path d="M703 424 Q681 401 659 414 Q643 424 650 446            L668 478 Q679 498 698 491 Q719 483 718 461            Q717 440 703 424Z" fill="#FFFFFF" stroke="#111111" stroke-width="16" stroke-linejoin="round" />
+
+  
+  <path d="M403 455 L461 478 L405 499 M621 455 L563 478 L619 499" fill="none" stroke="#111111" stroke-width="15" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M455 546 Q512 499 569 546" fill="none" stroke="#111111" stroke-width="15" stroke-linecap="round" />
+
+  
+  <path d="M229 258 L294 307 L257 326 L318 379 L273 363 L280 413 L218 355 L250 337 L198 287 L239 306Z" fill="#EA0A0A" stroke="#111111" stroke-width="8" stroke-linejoin="round" />
+  <path d="M795 258 L730 307 L767 326 L706 379 L751 363 L744 413 L806 355 L774 337 L826 287 L785 306Z" fill="#EA0A0A" stroke="#111111" stroke-width="8" stroke-linejoin="round" />
+</svg>

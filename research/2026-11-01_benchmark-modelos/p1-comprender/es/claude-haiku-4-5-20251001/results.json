@@ -1,0 +1,5307 @@
+{
+  "planHash": "75b3a48274a043b36d37254960398cf92c45e94f84594ac23b67b5e2a020c807",
+  "state": "completed",
+  "estimatedExposureUsd": 0.22002100000000008,
+  "attempts": [
+    {
+      "state": "recorded",
+      "caseId": "orgullo",
+      "requestedModel": "claude-haiku-4-5-20251001",
+      "returnedModel": "claude-haiku-4-5-20251001",
+      "phase": 1,
+      "repetition": 0,
+      "requestHash": "e172956dee16f08ae10bfa02043bf82f3f6b1d6212827900c4bf5104f8213a87",
+      "milliseconds": 21342,
+      "usage": {
+        "input_tokens": 3210,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 633,
+        "service_tier": "standard",
+        "inference_geo": "not_available",
+        "speed": "standard"
+      },
+      "inputTokens": 9523,
+      "outputTokens": 2150,
+      "estimatedCostUsd": 0.020273,
+      "reservedUsd": 0.1488075,
+      "canonicalValid": false,
+      "firstCallValid": false,
+      "providerCalls": 3,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": "Phase 1 contract validation failed: /visual_guidelines/temporal must be equal to one of the allowed values",
+      "diagnostics": [
+        {
+          "instancePath": "/visual_guidelines/temporal",
+          "schemaPath": "#/$defs/VisualGuidelines/properties/temporal/enum",
+          "keyword": "enum",
+          "params": {
+            "allowedValues": [
+              "immediate",
+              "near_future",
+              "future",
+              "past",
+              "habitual",
+              "unspecified"
+            ]
+          },
+          "message": "must be equal to one of the allowed values"
+        }
+      ],
+      "output": null,
+      "rawResponse": {
+        "model": "claude-haiku-4-5-20251001",
+        "id": "msg_011Cgd5BhgT45jRj3kRtjkyF",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "toolu_015Go6tjY5MJFjmAKpntDFYH",
+            "name": "analyze_utterance",
+            "input": {
+              "utterance": "Me siento orgulloso de mí mismo",
+              "lang": "es-419",
+              "domain": "emociones",
+              "metadata": {
+                "speech_act": "expressive",
+                "intent": "inform"
+              },
+              "frames": [
+                {
+                  "frame_name": "Emotion_directed",
+                  "frame_label": "Emoción dirigida",
+                  "lexical_unit": "siento",
+                  "id": "frame1",
+                  "roles": {
+                    "Experiencer": {
+                      "type": "Speaker",
+                      "ref": "speaker"
+                    },
+                    "Emotion": {
+                      "type": "Theme",
+                      "lemma": "orgullo",
+                      "surface": "orgulloso"
+                    },
+                    "Target": {
+                      "type": "Other",
+                      "ref": "speaker",
+                      "surface": "de mí mismo"
+                    }
+                  }
+                }
+              ],
+              "logical_form": {
+                "event": "sentir",
+                "modality": "actual",
+                "tense": "present",
+                "aspect": "progressive",
+                "negation": false
+              },
+              "nsm_explications": {
+                "orgullo": "YO siento algo BUENO por MÍ MISMO ahora. YO piensa: YO HIZO ALGO BUENO, YO ES BUENO",
+                "sentir": "ALGUIEN (YO) piensa de algo de UNA MANERA BUENA en este MOMENTO"
+              },
+              "pragmatics": {
+                "politeness": "neutral",
+                "formality": "informal",
+                "expected_response": "acknowledgment",
+                "urgency": "low",
+                "speaker_stance": "satisfacción con uno mismo"
+              },
+              "visual_guidelines": {
+                "focus_actor": "el hablante (yo)",
+                "action_core": "sentir orgullo",
+                "object_core": "sí mismo / identidad propia",
+                "context": "espacio interno, emocional del hablante",
+                "temporal": "present"
+              }
+            },
+            "caller": {
+              "type": "direct"
+            }
+          }
+        ],
+        "container": null,
+        "stop_reason": "tool_use",
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 3210,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 633,
+          "service_tier": "standard",
+          "inference_geo": "not_available",
+          "speed": "standard"
+        },
+        "diagnostics": null,
+        "meta": {
+          "provider": "claude",
+          "attempts": 1
+        }
+      },
+      "rawOutput": {
+        "utterance": "Me siento orgulloso de mí mismo",
+        "lang": "es-419",
+        "domain": "emociones",
+        "metadata": {
+          "speech_act": "expressive",
+          "intent": "inform"
+        },
+        "frames": [
+          {
+            "frame_name": "Emotion_directed",
+            "frame_label": "Emoción dirigida",
+            "lexical_unit": "siento",
+            "id": "frame1",
+            "roles": {
+              "Experiencer": {
+                "type": "Speaker",
+                "ref": "speaker"
+              },
+              "Emotion": {
+                "type": "Theme",
+                "lemma": "orgullo",
+                "surface": "orgulloso"
+              },
+              "Target": {
+                "type": "Other",
+                "ref": "speaker",
+                "surface": "de mí mismo"
+              }
+            }
+          }
+        ],
+        "logical_form": {
+          "event": "sentir",
+          "modality": "actual",
+          "tense": "present",
+          "aspect": "progressive",
+          "negation": false
+        },
+        "nsm_explications": {
+          "orgullo": "YO siento algo BUENO por MÍ MISMO ahora. YO piensa: YO HIZO ALGO BUENO, YO ES BUENO",
+          "sentir": "ALGUIEN (YO) piensa de algo de UNA MANERA BUENA en este MOMENTO"
+        },
+        "pragmatics": {
+          "politeness": "neutral",
+          "formality": "informal",
+          "expected_response": "acknowledgment",
+          "urgency": "low",
+          "speaker_stance": "satisfacción con uno mismo"
+        },
+        "visual_guidelines": {
+          "focus_actor": "el hablante (yo)",
+          "action_core": "sentir orgullo",
+          "object_core": "sí mismo / identidad propia",
+          "context": "espacio interno, emocional del hablante",
+          "temporal": "present"
+        }
+      },
+      "outputHash": null
+    },
+    {
+      "state": "recorded",
+      "caseId": "micro",
+      "requestedModel": "claude-haiku-4-5-20251001",
+      "returnedModel": "claude-haiku-4-5-20251001",
+      "phase": 1,
+      "repetition": 0,
+      "requestHash": "0a0abbab90ebca3002e6e0a16772ca74f45073f09ade95eb19aa85d8a0626be2",
+      "milliseconds": 7275,
+      "usage": {
+        "input_tokens": 3101,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 786,
+        "service_tier": "standard",
+        "inference_geo": "not_available",
+        "speed": "standard"
+      },
+      "inputTokens": 3101,
+      "outputTokens": 786,
+      "estimatedCostUsd": 0.007031,
+      "reservedUsd": 0.1487325,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "utterance": "Vamos a tomar la micro",
+        "lang": "es-419",
+        "domain": "transporte",
+        "metadata": {
+          "speech_act": "directive",
+          "intent": "suggestion"
+        },
+        "frames": [
+          {
+            "frame_name": "Motion",
+            "frame_label": "Movimiento",
+            "lexical_unit": "tomar",
+            "id": "motion_1",
+            "roles": {
+              "Agent": {
+                "type": "Agent",
+                "lemma": "nosotros",
+                "surface": "Vamos"
+              },
+              "Theme": {
+                "type": "Theme",
+                "lemma": "micro",
+                "surface": "la micro",
+                "definiteness": "definite"
+              },
+              "Event": {
+                "type": "Event",
+                "lemma": "tomar"
+              }
+            }
+          },
+          {
+            "frame_name": "Vehicle",
+            "frame_label": "Vehículo",
+            "lexical_unit": "micro",
+            "id": "vehicle_1",
+            "roles": {
+              "Vehicle": {
+                "type": "Object",
+                "lemma": "micro",
+                "surface": "la micro",
+                "definiteness": "definite"
+              }
+            }
+          }
+        ],
+        "nsm_explications": {
+          "tomar": "ALGUIEN (NOSOTROS) quiere MOVER al ALGUIEN (NOSOTROS) usando ESTE VEHÍCULO (la micro) AHORA",
+          "micro": "TIPO de VEHÍCULO que TRANSPORTA a MUCHA GENTE en LUGAR~CIUDAD"
+        },
+        "logical_form": {
+          "event": "tomar(nosotros, micro)",
+          "modality": "volition",
+          "tense": "future",
+          "aspect": "inceptive",
+          "negation": false
+        },
+        "pragmatics": {
+          "politeness": "neutral",
+          "formality": "informal",
+          "urgency": "low",
+          "expected_response": "compliance",
+          "speaker_stance": "collective decision-making"
+        },
+        "visual_guidelines": {
+          "focus_actor": "nosotros (grupo de personas)",
+          "action_core": "subir/abordar",
+          "object_core": "autobús/microbus",
+          "context": "espacio público urbano, parada de transporte",
+          "temporal": "immediate",
+          "salience": {
+            "action": 0.9,
+            "transport_mode": 0.85,
+            "collective_participation": 0.8
+          }
+        }
+      },
+      "rawResponse": {
+        "model": "claude-haiku-4-5-20251001",
+        "id": "msg_011Cgd5CAjeThZaC9yntnxrG",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "toolu_016Q7LEk4HjW7YdHskAzQszq",
+            "name": "analyze_utterance",
+            "input": {
+              "utterance": "Vamos a tomar la micro",
+              "lang": "es-419",
+              "domain": "transporte",
+              "metadata": {
+                "speech_act": "directive",
+                "intent": "suggestion"
+              },
+              "frames": [
+                {
+                  "frame_name": "Motion",
+                  "frame_label": "Movimiento",
+                  "lexical_unit": "tomar",
+                  "id": "motion_1",
+                  "roles": {
+                    "Agent": {
+                      "type": "Agent",
+                      "lemma": "nosotros",
+                      "surface": "Vamos"
+                    },
+                    "Theme": {
+                      "type": "Theme",
+                      "lemma": "micro",
+                      "surface": "la micro",
+                      "definiteness": "definite"
+                    },
+                    "Event": {
+                      "type": "Event",
+                      "lemma": "tomar"
+                    }
+                  }
+                },
+                {
+                  "frame_name": "Vehicle",
+                  "frame_label": "Vehículo",
+                  "lexical_unit": "micro",
+                  "id": "vehicle_1",
+                  "roles": {
+                    "Vehicle": {
+                      "type": "Object",
+                      "lemma": "micro",
+                      "surface": "la micro",
+                      "definiteness": "definite"
+                    }
+                  }
+                }
+              ],
+              "nsm_explications": {
+                "tomar": "ALGUIEN (NOSOTROS) quiere MOVER al ALGUIEN (NOSOTROS) usando ESTE VEHÍCULO (la micro) AHORA",
+                "micro": "TIPO de VEHÍCULO que TRANSPORTA a MUCHA GENTE en LUGAR~CIUDAD"
+              },
+              "logical_form": {
+                "event": "tomar(nosotros, micro)",
+                "modality": "volition",
+                "tense": "future",
+                "aspect": "inceptive",
+                "negation": false
+              },
+              "pragmatics": {
+                "politeness": "neutral",
+                "formality": "informal",
+                "urgency": "low",
+                "expected_response": "compliance",
+                "speaker_stance": "collective decision-making"
+              },
+              "visual_guidelines": {
+                "focus_actor": "nosotros (grupo de personas)",
+                "action_core": "subir/abordar",
+                "object_core": "autobús/microbus",
+                "context": "espacio público urbano, parada de transporte",
+                "temporal": "immediate",
+                "salience": {
+                  "action": 0.9,
+                  "transport_mode": 0.85,
+                  "collective_participation": 0.8
+                }
+              }
+            },
+            "caller": {
+              "type": "direct"
+            }
+          }
+        ],
+        "container": null,
+        "stop_reason": "tool_use",
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 3101,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 786,
+          "service_tier": "standard",
+          "inference_geo": "not_available",
+          "speed": "standard"
+        },
+        "diagnostics": null,
+        "meta": {
+          "provider": "claude",
+          "attempts": 1
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "66759db680f4e60ccdbc78d4f0abf030cfecb79319a4bc92ddd3027c25b3c7ed"
+    },
+    {
+      "state": "recorded",
+      "caseId": "saludo",
+      "requestedModel": "claude-haiku-4-5-20251001",
+      "returnedModel": "claude-haiku-4-5-20251001",
+      "phase": 1,
+      "repetition": 0,
+      "requestHash": "4c9e2aef726e32a551fb3fa4eb42b1686a644f6b1938f5d1f5366d42b749dc7b",
+      "milliseconds": 7483,
+      "usage": {
+        "input_tokens": 3105,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 786,
+        "service_tier": "standard",
+        "inference_geo": "not_available",
+        "speed": "standard"
+      },
+      "inputTokens": 3105,
+      "outputTokens": 786,
+      "estimatedCostUsd": 0.007035,
+      "reservedUsd": 0.148725,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "utterance": "Hola, ¿cómo estás?",
+        "lang": "es-419",
+        "metadata": {
+          "speech_act": "interrogative",
+          "intent": "greet"
+        },
+        "frames": [
+          {
+            "frame_name": "Social_interaction",
+            "frame_label": "Interacción Social",
+            "lexical_unit": "hola",
+            "id": "frame_1",
+            "roles": {
+              "Agent": {
+                "type": "Speaker",
+                "lemma": "yo"
+              },
+              "Addressee": {
+                "type": "Addressee",
+                "lemma": "tú"
+              }
+            }
+          },
+          {
+            "frame_name": "Experiencer_focus",
+            "frame_label": "Estado Experiencial",
+            "lexical_unit": "estar",
+            "id": "frame_2",
+            "roles": {
+              "Experiencer": {
+                "type": "Experiencer",
+                "lemma": "tú"
+              },
+              "State": {
+                "type": "Other",
+                "surface": "cómo"
+              }
+            }
+          }
+        ],
+        "nsm_explications": {
+          "saludar": "YO quiero DECIR ALGO a TÚ en ESTE momento. YO quiero que TÚ SEPAS que ALGO BUENO es pasando en ESTE momento entre YO y TÚ.",
+          "estar": "ALGUIEN (TÚ) HAY en ESTE momento de CIERTA manera (NO de OTRA manera)."
+        },
+        "logical_form": {
+          "event": "greeting_and_status_inquiry",
+          "modality": "interrogative",
+          "tense": "present",
+          "aspect": "none",
+          "negation": false
+        },
+        "pragmatics": {
+          "politeness": "polite",
+          "formality": "informal",
+          "expected_response": "acknowledgment",
+          "urgency": "low",
+          "speaker_stance": "friendly"
+        },
+        "visual_guidelines": {
+          "focus_actor": "El hablante (YO) dirigiéndose al interlocutor",
+          "action_core": "Saludar y preguntar por el estado emocional/físico",
+          "object_core": "El estado presente del interlocutor",
+          "context": "Encuentro o inicio de conversación interpersonal",
+          "temporal": "immediate",
+          "salience": {
+            "greeting": 0.8,
+            "status_inquiry": 0.7
+          }
+        },
+        "domain": "vida_cotidiana"
+      },
+      "rawResponse": {
+        "model": "claude-haiku-4-5-20251001",
+        "id": "msg_011Cgd5ChnBxjThKkPLoMz6h",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "toolu_01UotfUf3DnvGcQsmCmNEkCy",
+            "name": "analyze_utterance",
+            "input": {
+              "utterance": "Hola, ¿cómo estás?",
+              "lang": "es-419",
+              "metadata": {
+                "speech_act": "interrogative",
+                "intent": "greet"
+              },
+              "frames": [
+                {
+                  "frame_name": "Social_interaction",
+                  "frame_label": "Interacción Social",
+                  "lexical_unit": "hola",
+                  "id": "frame_1",
+                  "roles": {
+                    "Agent": {
+                      "type": "Speaker",
+                      "lemma": "yo"
+                    },
+                    "Addressee": {
+                      "type": "Addressee",
+                      "lemma": "tú"
+                    }
+                  }
+                },
+                {
+                  "frame_name": "Experiencer_focus",
+                  "frame_label": "Estado Experiencial",
+                  "lexical_unit": "estar",
+                  "id": "frame_2",
+                  "roles": {
+                    "Experiencer": {
+                      "type": "Experiencer",
+                      "lemma": "tú"
+                    },
+                    "State": {
+                      "type": "Other",
+                      "surface": "cómo"
+                    }
+                  }
+                }
+              ],
+              "nsm_explications": {
+                "saludar": "YO quiero DECIR ALGO a TÚ en ESTE momento. YO quiero que TÚ SEPAS que ALGO BUENO es pasando en ESTE momento entre YO y TÚ.",
+                "estar": "ALGUIEN (TÚ) HAY en ESTE momento de CIERTA manera (NO de OTRA manera)."
+              },
+              "logical_form": {
+                "event": "greeting_and_status_inquiry",
+                "modality": "interrogative",
+                "tense": "present",
+                "aspect": "none",
+                "negation": false
+              },
+              "pragmatics": {
+                "politeness": "polite",
+                "formality": "informal",
+                "expected_response": "acknowledgment",
+                "urgency": "low",
+                "speaker_stance": "friendly"
+              },
+              "visual_guidelines": {
+                "focus_actor": "El hablante (YO) dirigiéndose al interlocutor",
+                "action_core": "Saludar y preguntar por el estado emocional/físico",
+                "object_core": "El estado presente del interlocutor",
+                "context": "Encuentro o inicio de conversación interpersonal",
+                "temporal": "immediate",
+                "salience": {
+                  "greeting": 0.8,
+                  "status_inquiry": 0.7
+                }
+              },
+              "domain": "vida_cotidiana"
+            },
+            "caller": {
+              "type": "direct"
+            }
+          }
+        ],
+        "container": null,
+        "stop_reason": "tool_use",
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 3105,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 786,
+          "service_tier": "standard",
+          "inference_geo": "not_available",
+          "speed": "standard"
+        },
+        "diagnostics": null,
+        "meta": {
+          "provider": "claude",
+          "attempts": 1
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "b010c4429e4b5bd5bf74483ef155863bd3e4d21306145e0a42c0fba56c54e6b7"
+    },
+    {
+      "state": "recorded",
+      "caseId": "revolver-sopa",
+      "requestedModel": "claude-haiku-4-5-20251001",
+      "returnedModel": "claude-haiku-4-5-20251001",
+      "phase": 1,
+      "repetition": 0,
+      "requestHash": "2e620a910ddebe2ec0cbaa855d777a6baa10a490f9c8fdf7f6688a8d6b090843",
+      "milliseconds": 6164,
+      "usage": {
+        "input_tokens": 3102,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 743,
+        "service_tier": "standard",
+        "inference_geo": "not_available",
+        "speed": "standard"
+      },
+      "inputTokens": 3102,
+      "outputTokens": 743,
+      "estimatedCostUsd": 0.006817,
+      "reservedUsd": 0.148755,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "utterance": "Revuelve la sopa despacio",
+        "lang": "es-419",
+        "domain": "alimentación",
+        "metadata": {
+          "speech_act": "directive",
+          "intent": "command"
+        },
+        "frames": [
+          {
+            "frame_name": "Intentional_action",
+            "frame_label": "Acción intencional",
+            "lexical_unit": "revolver",
+            "id": "frame1",
+            "roles": {
+              "Agent": {
+                "type": "Agent",
+                "ref": "TÚ",
+                "definiteness": "definite"
+              },
+              "Patient": {
+                "type": "Patient",
+                "surface": "la sopa",
+                "lemma": "sopa",
+                "definiteness": "definite"
+              },
+              "Manner": {
+                "type": "Other",
+                "surface": "despacio",
+                "lemma": "despacio"
+              }
+            }
+          }
+        ],
+        "nsm_explications": {
+          "revolver": "ALGUIEN (TÚ) HACE ALGO con la COSA (sopa), MOVIENDO esto de ESTE LADO a ESTE OTRO LADO muchas veces, COMO cuando se quiere MEZCLAR ALGO",
+          "despacio": "HACER ALGO no muy rápido, en POCO TIEMPO no pasada MUCHO, COMO cuando ALGUIEN no quiere HACER ALGO MUY rápido"
+        },
+        "logical_form": {
+          "event": "revolver(agente:TÚ, paciente:sopa, manera:despacio)",
+          "modality": "imperativo",
+          "tense": "present",
+          "aspect": "progressive",
+          "negation": false
+        },
+        "pragmatics": {
+          "formality": "neutral",
+          "politeness": "neutral",
+          "urgency": "low",
+          "expected_response": "compliance",
+          "speaker_stance": "instructional"
+        },
+        "visual_guidelines": {
+          "focus_actor": "TÚ (destinatario de la orden)",
+          "action_core": "revolver, mezclar circular",
+          "object_core": "sopa dentro de un recipiente",
+          "context": "cocina, preparación de alimentos",
+          "temporal": "immediate",
+          "salience": {
+            "revolver": 0.9,
+            "despacio": 0.8,
+            "sopa": 0.85
+          }
+        }
+      },
+      "rawResponse": {
+        "model": "claude-haiku-4-5-20251001",
+        "id": "msg_011Cgd5DFnXvjSHHwCNpMQhi",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "toolu_01Wv7rTh47ZGCPkGKj8QMYdX",
+            "name": "analyze_utterance",
+            "input": {
+              "utterance": "Revuelve la sopa despacio",
+              "lang": "es-419",
+              "domain": "alimentación",
+              "metadata": {
+                "speech_act": "directive",
+                "intent": "command"
+              },
+              "frames": [
+                {
+                  "frame_name": "Intentional_action",
+                  "frame_label": "Acción intencional",
+                  "lexical_unit": "revolver",
+                  "id": "frame1",
+                  "roles": {
+                    "Agent": {
+                      "type": "Agent",
+                      "ref": "TÚ",
+                      "definiteness": "definite"
+                    },
+                    "Patient": {
+                      "type": "Patient",
+                      "surface": "la sopa",
+                      "lemma": "sopa",
+                      "definiteness": "definite"
+                    },
+                    "Manner": {
+                      "type": "Other",
+                      "surface": "despacio",
+                      "lemma": "despacio"
+                    }
+                  }
+                }
+              ],
+              "nsm_explications": {
+                "revolver": "ALGUIEN (TÚ) HACE ALGO con la COSA (sopa), MOVIENDO esto de ESTE LADO a ESTE OTRO LADO muchas veces, COMO cuando se quiere MEZCLAR ALGO",
+                "despacio": "HACER ALGO no muy rápido, en POCO TIEMPO no pasada MUCHO, COMO cuando ALGUIEN no quiere HACER ALGO MUY rápido"
+              },
+              "logical_form": {
+                "event": "revolver(agente:TÚ, paciente:sopa, manera:despacio)",
+                "modality": "imperativo",
+                "tense": "present",
+                "aspect": "progressive",
+                "negation": false
+              },
+              "pragmatics": {
+                "formality": "neutral",
+                "politeness": "neutral",
+                "urgency": "low",
+                "expected_response": "compliance",
+                "speaker_stance": "instructional"
+              },
+              "visual_guidelines": {
+                "focus_actor": "TÚ (destinatario de la orden)",
+                "action_core": "revolver, mezclar circular",
+                "object_core": "sopa dentro de un recipiente",
+                "context": "cocina, preparación de alimentos",
+                "temporal": "immediate",
+                "salience": {
+                  "revolver": 0.9,
+                  "despacio": 0.8,
+                  "sopa": 0.85
+                }
+              }
+            },
+            "caller": {
+              "type": "direct"
+            }
+          }
+        ],
+        "container": null,
+        "stop_reason": "tool_use",
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 3102,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 743,
+          "service_tier": "standard",
+          "inference_geo": "not_available",
+          "speed": "standard"
+        },
+        "diagnostics": null,
+        "meta": {
+          "provider": "claude",
+          "attempts": 1
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "ffbe7557f5d1fca1507d3a20073c8479e361a48609c5faa701c68900369e17cd"
+    },
+    {
+      "state": "recorded",
+      "caseId": "sangre",
+      "requestedModel": "claude-haiku-4-5-20251001",
+      "returnedModel": "claude-haiku-4-5-20251001",
+      "phase": 1,
+      "repetition": 0,
+      "requestHash": "931078151170aa09ffa9731abbe68e022596343705dc5da0c343d12902b8d8c7",
+      "milliseconds": 16437,
+      "usage": {
+        "input_tokens": 3191,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 721,
+        "service_tier": "standard",
+        "inference_geo": "not_available",
+        "speed": "standard"
+      },
+      "inputTokens": 6294,
+      "outputTokens": 1710,
+      "estimatedCostUsd": 0.014844,
+      "reservedUsd": 0.1488,
+      "canonicalValid": true,
+      "firstCallValid": false,
+      "providerCalls": 2,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "utterance": "Me van a sacar sangre del brazo",
+        "lang": "es-419",
+        "domain": "salud",
+        "metadata": {
+          "speech_act": "assertive",
+          "intent": "inform"
+        },
+        "frames": [
+          {
+            "frame_name": "Cause_motion",
+            "frame_label": "Causa movimiento",
+            "lexical_unit": "sacar",
+            "id": "frame1",
+            "roles": {
+              "Agent": {
+                "type": "Agent",
+                "surface": "van a (alguien, implícito)"
+              },
+              "Theme": {
+                "type": "Theme",
+                "surface": "sangre",
+                "lemma": "sangre"
+              },
+              "Source": {
+                "type": "Location",
+                "surface": "del brazo",
+                "lemma": "brazo"
+              },
+              "Recipient": {
+                "type": "Addressee",
+                "surface": "Me",
+                "lemma": "yo"
+              }
+            }
+          }
+        ],
+        "logical_form": {
+          "event": "sacar",
+          "modality": "future_passive",
+          "tense": "future",
+          "aspect": "none",
+          "negation": false
+        },
+        "nsm_explications": {
+          "sacar": "ALGUIEN va a HACER algo. ESTE ALGUIEN va a MOVER sangre de la PARTE del cuerpo (brazo). ESTO va a PASAR DESPUÉS.",
+          "sangre": "ALGO que está DENTRO del cuerpo de ESTE ALGUIEN"
+        },
+        "pragmatics": {
+          "politeness": "neutral",
+          "formality": "neutral",
+          "urgency": "low",
+          "expected_response": "acknowledgment",
+          "speaker_stance": "resignado ante un procedimiento médico"
+        },
+        "visual_guidelines": {
+          "focus_actor": "persona médica o profesional sanitario",
+          "action_core": "extraer sangre mediante flebotomía",
+          "object_core": "sangre",
+          "context": "ambiente clínico o de laboratorio",
+          "temporal": "near_future",
+          "salience": {
+            "acción": 0.9,
+            "ubicación_anatómica": 0.7,
+            "aspecto_médico": 0.85
+          }
+        }
+      },
+      "rawResponse": {
+        "model": "claude-haiku-4-5-20251001",
+        "id": "msg_011Cgd5EQNjebb4wV7mMPnfK",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "toolu_01GRL74kNgJpKkP5o5xaRAu3",
+            "name": "analyze_utterance",
+            "input": {
+              "utterance": "Me van a sacar sangre del brazo",
+              "lang": "es-419",
+              "domain": "salud",
+              "metadata": {
+                "speech_act": "assertive",
+                "intent": "inform"
+              },
+              "frames": [
+                {
+                  "frame_name": "Cause_motion",
+                  "frame_label": "Causa movimiento",
+                  "lexical_unit": "sacar",
+                  "id": "frame1",
+                  "roles": {
+                    "Agent": {
+                      "type": "Agent",
+                      "surface": "van a (alguien, implícito)"
+                    },
+                    "Theme": {
+                      "type": "Theme",
+                      "surface": "sangre",
+                      "lemma": "sangre"
+                    },
+                    "Source": {
+                      "type": "Location",
+                      "surface": "del brazo",
+                      "lemma": "brazo"
+                    },
+                    "Recipient": {
+                      "type": "Addressee",
+                      "surface": "Me",
+                      "lemma": "yo"
+                    }
+                  }
+                }
+              ],
+              "logical_form": {
+                "event": "sacar",
+                "modality": "future_passive",
+                "tense": "future",
+                "aspect": "none",
+                "negation": false
+              },
+              "nsm_explications": {
+                "sacar": "ALGUIEN va a HACER algo. ESTE ALGUIEN va a MOVER sangre de la PARTE del cuerpo (brazo). ESTO va a PASAR DESPUÉS.",
+                "sangre": "ALGO que está DENTRO del cuerpo de ESTE ALGUIEN"
+              },
+              "pragmatics": {
+                "politeness": "neutral",
+                "formality": "neutral",
+                "urgency": "low",
+                "expected_response": "acknowledgment",
+                "speaker_stance": "resignado ante un procedimiento médico"
+              },
+              "visual_guidelines": {
+                "focus_actor": "persona médica o profesional sanitario",
+                "action_core": "extraer sangre mediante flebotomía",
+                "object_core": "sangre",
+                "context": "ambiente clínico o de laboratorio",
+                "temporal": "near_future",
+                "salience": {
+                  "acción": 0.9,
+                  "ubicación_anatómica": 0.7,
+                  "aspecto_médico": 0.85
+                }
+              }
+            },
+            "caller": {
+              "type": "direct"
+            }
+          }
+        ],
+        "container": null,
+        "stop_reason": "tool_use",
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 3191,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 721,
+          "service_tier": "standard",
+          "inference_geo": "not_available",
+          "speed": "standard"
+        },
+        "diagnostics": null,
+        "meta": {
+          "provider": "claude",
+          "attempts": 1
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "84187a01c6e8d8063d49af93917605ff77ac1036474da486bfb3653afae4b275"
+    },
+    {
+      "state": "recorded",
+      "caseId": "turno",
+      "requestedModel": "claude-haiku-4-5-20251001",
+      "returnedModel": "claude-haiku-4-5-20251001",
+      "phase": 1,
+      "repetition": 0,
+      "requestHash": "b99471fe2e15a349d2273338997facf24c861450320f29dac9a2f145a91d9594",
+      "milliseconds": 6676,
+      "usage": {
+        "input_tokens": 3097,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 654,
+        "service_tier": "standard",
+        "inference_geo": "not_available",
+        "speed": "standard"
+      },
+      "inputTokens": 3097,
+      "outputTokens": 654,
+      "estimatedCostUsd": 0.006367,
+      "reservedUsd": 0.14865,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "utterance": "Es mi turno",
+        "lang": "es-419",
+        "domain": "vida_cotidiana",
+        "metadata": {
+          "speech_act": "assertive",
+          "intent": "inform"
+        },
+        "frames": [
+          {
+            "frame_name": "Possession",
+            "frame_label": "Posesión",
+            "lexical_unit": "ser",
+            "id": "frame_1",
+            "roles": {
+              "Owner": {
+                "type": "Speaker",
+                "surface": "mi",
+                "lemma": "yo"
+              },
+              "Possession": {
+                "type": "Theme",
+                "surface": "turno",
+                "lemma": "turno"
+              }
+            }
+          }
+        ],
+        "logical_form": {
+          "event": "poseer(yo, turno)",
+          "tense": "present",
+          "aspect": "none",
+          "modality": "actuality",
+          "negation": false
+        },
+        "nsm_explications": {
+          "turno": "ESTE ALGUIEN (YO) SABE que AHORA es el MOMENTO para ESTE ALGUIEN HACER ALGO en la secuencia de acciones",
+          "poseer": "ESTE ALGUIEN (YO) TIENE ALGO (turno) que pertenece al MOMENTO AHORA"
+        },
+        "pragmatics": {
+          "politeness": "neutral",
+          "formality": "neutral",
+          "urgency": "medium",
+          "expected_response": "acknowledgment",
+          "speaker_stance": "Asserción de derechos o estatus en un turno secuencial"
+        },
+        "visual_guidelines": {
+          "focus_actor": "Yo (hablante)",
+          "action_core": "Tomar posición en secuencia",
+          "object_core": "Turno (oportunidad de actuar)",
+          "context": "Situación de espera o cola donde se respetan turnos",
+          "temporal": "immediate",
+          "salience": {
+            "turno": 0.9,
+            "yo": 0.8
+          }
+        }
+      },
+      "rawResponse": {
+        "model": "claude-haiku-4-5-20251001",
+        "id": "msg_011Cgd5EvYTRHEdowRftVzqC",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "toolu_01WBYchA5sst2kcN8UKechXt",
+            "name": "analyze_utterance",
+            "input": {
+              "utterance": "Es mi turno",
+              "lang": "es-419",
+              "domain": "vida_cotidiana",
+              "metadata": {
+                "speech_act": "assertive",
+                "intent": "inform"
+              },
+              "frames": [
+                {
+                  "frame_name": "Possession",
+                  "frame_label": "Posesión",
+                  "lexical_unit": "ser",
+                  "id": "frame_1",
+                  "roles": {
+                    "Owner": {
+                      "type": "Speaker",
+                      "surface": "mi",
+                      "lemma": "yo"
+                    },
+                    "Possession": {
+                      "type": "Theme",
+                      "surface": "turno",
+                      "lemma": "turno"
+                    }
+                  }
+                }
+              ],
+              "logical_form": {
+                "event": "poseer(yo, turno)",
+                "tense": "present",
+                "aspect": "none",
+                "modality": "actuality",
+                "negation": false
+              },
+              "nsm_explications": {
+                "turno": "ESTE ALGUIEN (YO) SABE que AHORA es el MOMENTO para ESTE ALGUIEN HACER ALGO en la secuencia de acciones",
+                "poseer": "ESTE ALGUIEN (YO) TIENE ALGO (turno) que pertenece al MOMENTO AHORA"
+              },
+              "pragmatics": {
+                "politeness": "neutral",
+                "formality": "neutral",
+                "urgency": "medium",
+                "expected_response": "acknowledgment",
+                "speaker_stance": "Asserción de derechos o estatus en un turno secuencial"
+              },
+              "visual_guidelines": {
+                "focus_actor": "Yo (hablante)",
+                "action_core": "Tomar posición en secuencia",
+                "object_core": "Turno (oportunidad de actuar)",
+                "context": "Situación de espera o cola donde se respetan turnos",
+                "temporal": "immediate",
+                "salience": {
+                  "turno": 0.9,
+                  "yo": 0.8
+                }
+              }
+            },
+            "caller": {
+              "type": "direct"
+            }
+          }
+        ],
+        "container": null,
+        "stop_reason": "tool_use",
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 3097,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 654,
+          "service_tier": "standard",
+          "inference_geo": "not_available",
+          "speed": "standard"
+        },
+        "diagnostics": null,
+        "meta": {
+          "provider": "claude",
+          "attempts": 1
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "88037512b7e79ca8f3da900ca965f944b6f7438794590697b3910a8a065850df"
+    },
+    {
+      "state": "recorded",
+      "caseId": "profe-cuento",
+      "requestedModel": "claude-haiku-4-5-20251001",
+      "returnedModel": "claude-haiku-4-5-20251001",
+      "phase": 1,
+      "repetition": 0,
+      "requestHash": "b3d2e5b0c8687e2b7336e0bd78ac84d869ed35e7da6893e2d08efd400e1b88f8",
+      "milliseconds": 7310,
+      "usage": {
+        "input_tokens": 3105,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 775,
+        "service_tier": "standard",
+        "inference_geo": "not_available",
+        "speed": "standard"
+      },
+      "inputTokens": 3105,
+      "outputTokens": 775,
+      "estimatedCostUsd": 0.00698,
+      "reservedUsd": 0.14889,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "utterance": "La profesora les lee un cuento a los niños",
+        "lang": "es-419",
+        "domain": "educación",
+        "metadata": {
+          "speech_act": "assertive",
+          "intent": "inform"
+        },
+        "frames": [
+          {
+            "frame_name": "Reading",
+            "frame_label": "Lectura",
+            "lexical_unit": "lee",
+            "id": "frame_1",
+            "roles": {
+              "Agent": {
+                "type": "Agent",
+                "surface": "La profesora",
+                "lemma": "profesora",
+                "definiteness": "definite"
+              },
+              "Addressee": {
+                "type": "Addressee",
+                "surface": "los niños",
+                "lemma": "niño",
+                "definiteness": "definite"
+              },
+              "Text": {
+                "type": "Theme",
+                "surface": "un cuento",
+                "lemma": "cuento",
+                "definiteness": "indefinite"
+              }
+            }
+          }
+        ],
+        "nsm_explications": {
+          "leer": "ALGUIEN (la profesora) HACE ALGO con ALGO (un cuento) de manera que ALGUIEN (los niños) puede VER las palabras en ESTO y SABER qué ALGUIEN quiso DECIR con esas palabras",
+          "cuento": "ALGO de tipo PALABRAS que ALGUIEN dijo o escribió, ALGO que habla de PERSONAS o COSAS, ALGO que no es verdad completamente pero ALGUIEN piensa que es BUENO saber"
+        },
+        "logical_form": {
+          "event": "leer",
+          "tense": "present",
+          "aspect": "habitual",
+          "modality": "indicative",
+          "negation": false
+        },
+        "pragmatics": {
+          "politeness": "neutral",
+          "formality": "neutral",
+          "expected_response": "acknowledgment",
+          "urgency": "low",
+          "speaker_stance": "descripción factual de una acción cotidiana"
+        },
+        "visual_guidelines": {
+          "focus_actor": "La profesora",
+          "action_core": "leyendo un cuento en voz alta",
+          "object_core": "un cuento (libro o narración)",
+          "context": "aula de clase o espacio educativo con niños",
+          "temporal": "habitual",
+          "salience": {
+            "profesora": 0.85,
+            "niños": 0.8,
+            "cuento": 0.75
+          }
+        }
+      },
+      "rawResponse": {
+        "model": "claude-haiku-4-5-20251001",
+        "id": "msg_011Cgd5FR6vG3jGFiUrhizBa",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "toolu_01BnyrEeBCm6eNHgqotVHzDg",
+            "name": "analyze_utterance",
+            "input": {
+              "utterance": "La profesora les lee un cuento a los niños",
+              "lang": "es-419",
+              "domain": "educación",
+              "metadata": {
+                "speech_act": "assertive",
+                "intent": "inform"
+              },
+              "frames": [
+                {
+                  "frame_name": "Reading",
+                  "frame_label": "Lectura",
+                  "lexical_unit": "lee",
+                  "id": "frame_1",
+                  "roles": {
+                    "Agent": {
+                      "type": "Agent",
+                      "surface": "La profesora",
+                      "lemma": "profesora",
+                      "definiteness": "definite"
+                    },
+                    "Addressee": {
+                      "type": "Addressee",
+                      "surface": "los niños",
+                      "lemma": "niño",
+                      "definiteness": "definite"
+                    },
+                    "Text": {
+                      "type": "Theme",
+                      "surface": "un cuento",
+                      "lemma": "cuento",
+                      "definiteness": "indefinite"
+                    }
+                  }
+                }
+              ],
+              "nsm_explications": {
+                "leer": "ALGUIEN (la profesora) HACE ALGO con ALGO (un cuento) de manera que ALGUIEN (los niños) puede VER las palabras en ESTO y SABER qué ALGUIEN quiso DECIR con esas palabras",
+                "cuento": "ALGO de tipo PALABRAS que ALGUIEN dijo o escribió, ALGO que habla de PERSONAS o COSAS, ALGO que no es verdad completamente pero ALGUIEN piensa que es BUENO saber"
+              },
+              "logical_form": {
+                "event": "leer",
+                "tense": "present",
+                "aspect": "habitual",
+                "modality": "indicative",
+                "negation": false
+              },
+              "pragmatics": {
+                "politeness": "neutral",
+                "formality": "neutral",
+                "expected_response": "acknowledgment",
+                "urgency": "low",
+                "speaker_stance": "descripción factual de una acción cotidiana"
+              },
+              "visual_guidelines": {
+                "focus_actor": "La profesora",
+                "action_core": "leyendo un cuento en voz alta",
+                "object_core": "un cuento (libro o narración)",
+                "context": "aula de clase o espacio educativo con niños",
+                "temporal": "habitual",
+                "salience": {
+                  "profesora": 0.85,
+                  "niños": 0.8,
+                  "cuento": 0.75
+                }
+              }
+            },
+            "caller": {
+              "type": "direct"
+            }
+          }
+        ],
+        "container": null,
+        "stop_reason": "tool_use",
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 3105,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 775,
+          "service_tier": "standard",
+          "inference_geo": "not_available",
+          "speed": "standard"
+        },
+        "diagnostics": null,
+        "meta": {
+          "provider": "claude",
+          "attempts": 1
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "17bcbc131c20c59c1763a1ec89c50930ba61a8ff9d71f021c2b8aed0286b3134"
+    },
+    {
+      "state": "recorded",
+      "caseId": "manana-playa",
+      "requestedModel": "claude-haiku-4-5-20251001",
+      "returnedModel": "claude-haiku-4-5-20251001",
+      "phase": 1,
+      "repetition": 0,
+      "requestHash": "b3a213f5c85fc12d346c9d6c4aa5f94db29b2f0815cb164f2b6f299df71c145d",
+      "milliseconds": 6917,
+      "usage": {
+        "input_tokens": 3103,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 710,
+        "service_tier": "standard",
+        "inference_geo": "not_available",
+        "speed": "standard"
+      },
+      "inputTokens": 3103,
+      "outputTokens": 710,
+      "estimatedCostUsd": 0.006653,
+      "reservedUsd": 0.1487475,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "utterance": "Mañana vamos a la playa",
+        "lang": "es-419",
+        "domain": "tiempo_libre",
+        "metadata": {
+          "speech_act": "assertive",
+          "intent": "inform"
+        },
+        "frames": [
+          {
+            "frame_name": "Motion",
+            "frame_label": "Movimiento",
+            "id": "motion_1",
+            "lexical_unit": "vamos",
+            "roles": {
+              "Agent": {
+                "type": "Agent",
+                "surface": "nosotros",
+                "lemma": "nosotros"
+              },
+              "Goal": {
+                "type": "Location",
+                "surface": "la playa",
+                "lemma": "playa",
+                "definiteness": "definite"
+              },
+              "Time": {
+                "type": "Time",
+                "surface": "Mañana",
+                "lemma": "mañana"
+              }
+            }
+          }
+        ],
+        "logical_form": {
+          "event": "ir",
+          "tense": "future",
+          "aspect": "none",
+          "modality": "indicative",
+          "negation": false
+        },
+        "nsm_explications": {
+          "ir": "NOSOTROS queremos MOVER-NOS hacia UN LUGAR (la playa) DESPUÉS de AHORA (mañana).",
+          "playa": "UN LUGAR donde HAY AGUA (mar o océano) y TIERRA, donde GENTE va para HACER COSAS de TIEMPO LIBRE."
+        },
+        "pragmatics": {
+          "politeness": "neutral",
+          "formality": "neutral",
+          "urgency": "low",
+          "expected_response": "acknowledgment",
+          "speaker_stance": "El hablante expresa una decisión o plan ya establecido con el grupo."
+        },
+        "visual_guidelines": {
+          "focus_actor": "nosotros (grupo que incluye al hablante)",
+          "action_core": "desplazarse hacia la playa",
+          "object_core": "la playa",
+          "context": "actividad de ocio en contexto costero",
+          "temporal": "near_future",
+          "salience": {
+            "movimiento": 0.9,
+            "destino": 0.85,
+            "tiempo_futuro": 0.8
+          }
+        }
+      },
+      "rawResponse": {
+        "model": "claude-haiku-4-5-20251001",
+        "id": "msg_011Cgd5FxEBSEy7p3WCRwYk3",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "toolu_01RvnYxL88PyTtjnv5SkEBKq",
+            "name": "analyze_utterance",
+            "input": {
+              "utterance": "Mañana vamos a la playa",
+              "lang": "es-419",
+              "domain": "tiempo_libre",
+              "metadata": {
+                "speech_act": "assertive",
+                "intent": "inform"
+              },
+              "frames": [
+                {
+                  "frame_name": "Motion",
+                  "frame_label": "Movimiento",
+                  "id": "motion_1",
+                  "lexical_unit": "vamos",
+                  "roles": {
+                    "Agent": {
+                      "type": "Agent",
+                      "surface": "nosotros",
+                      "lemma": "nosotros"
+                    },
+                    "Goal": {
+                      "type": "Location",
+                      "surface": "la playa",
+                      "lemma": "playa",
+                      "definiteness": "definite"
+                    },
+                    "Time": {
+                      "type": "Time",
+                      "surface": "Mañana",
+                      "lemma": "mañana"
+                    }
+                  }
+                }
+              ],
+              "logical_form": {
+                "event": "ir",
+                "tense": "future",
+                "aspect": "none",
+                "modality": "indicative",
+                "negation": false
+              },
+              "nsm_explications": {
+                "ir": "NOSOTROS queremos MOVER-NOS hacia UN LUGAR (la playa) DESPUÉS de AHORA (mañana).",
+                "playa": "UN LUGAR donde HAY AGUA (mar o océano) y TIERRA, donde GENTE va para HACER COSAS de TIEMPO LIBRE."
+              },
+              "pragmatics": {
+                "politeness": "neutral",
+                "formality": "neutral",
+                "urgency": "low",
+                "expected_response": "acknowledgment",
+                "speaker_stance": "El hablante expresa una decisión o plan ya establecido con el grupo."
+              },
+              "visual_guidelines": {
+                "focus_actor": "nosotros (grupo que incluye al hablante)",
+                "action_core": "desplazarse hacia la playa",
+                "object_core": "la playa",
+                "context": "actividad de ocio en contexto costero",
+                "temporal": "near_future",
+                "salience": {
+                  "movimiento": 0.9,
+                  "destino": 0.85,
+                  "tiempo_futuro": 0.8
+                }
+              }
+            },
+            "caller": {
+              "type": "direct"
+            }
+          }
+        ],
+        "container": null,
+        "stop_reason": "tool_use",
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 3103,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 710,
+          "service_tier": "standard",
+          "inference_geo": "not_available",
+          "speed": "standard"
+        },
+        "diagnostics": null,
+        "meta": {
+          "provider": "claude",
+          "attempts": 1
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "6ae6c809139dc69203176f499fd06e5213bfca1532c4cf26def342ec43288c5a"
+    },
+    {
+      "state": "recorded",
+      "caseId": "agua-1",
+      "requestedModel": "claude-haiku-4-5-20251001",
+      "returnedModel": "claude-haiku-4-5-20251001",
+      "phase": 1,
+      "repetition": 0,
+      "requestHash": "0ecd6c01c8fac19514d6380c692658caa2903b0c879a1f40249c0b7214b7a292",
+      "milliseconds": 4320,
+      "usage": {
+        "input_tokens": 3095,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 500,
+        "service_tier": "standard",
+        "inference_geo": "not_available",
+        "speed": "standard"
+      },
+      "inputTokens": 3095,
+      "outputTokens": 500,
+      "estimatedCostUsd": 0.005595,
+      "reservedUsd": 0.1485975,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "utterance": "Agua",
+        "lang": "es-419",
+        "metadata": {
+          "speech_act": "interrogative",
+          "intent": "ask_info"
+        },
+        "frames": [
+          {
+            "frame_name": "Existence",
+            "frame_label": "Existencia",
+            "lexical_unit": "agua",
+            "id": "frame-agua-1",
+            "roles": {
+              "Theme": {
+                "lemma": "agua",
+                "type": "Theme",
+                "definiteness": "indefinite"
+              }
+            }
+          }
+        ],
+        "nsm_explications": {
+          "agua": "ALGO que HAY en este LUGAR, COSA que ALGUIEN quiere AHORA"
+        },
+        "logical_form": {
+          "event": "want_or_ask",
+          "tense": "present",
+          "aspect": "none",
+          "modality": "interrogative",
+          "negation": false
+        },
+        "pragmatics": {
+          "politeness": "neutral",
+          "formality": "neutral",
+          "urgency": "high",
+          "expected_response": "compliance",
+          "speaker_stance": "seeking immediate need"
+        },
+        "visual_guidelines": {
+          "focus_actor": "speaker (YO)",
+          "action_core": "requesting or seeking",
+          "object_core": "agua",
+          "context": "immediate physical need or query",
+          "temporal": "immediate",
+          "salience": {
+            "agua": 1,
+            "urgency": 0.8
+          }
+        }
+      },
+      "rawResponse": {
+        "model": "claude-haiku-4-5-20251001",
+        "id": "msg_011Cgd5GTofxxvFjorcz5yNp",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "toolu_01Gtqo8Xyzq7S4bJuQRwfkvP",
+            "name": "analyze_utterance",
+            "input": {
+              "utterance": "Agua",
+              "lang": "es-419",
+              "metadata": {
+                "speech_act": "interrogative",
+                "intent": "ask_info"
+              },
+              "frames": [
+                {
+                  "frame_name": "Existence",
+                  "frame_label": "Existencia",
+                  "lexical_unit": "agua",
+                  "id": "frame-agua-1",
+                  "roles": {
+                    "Theme": {
+                      "lemma": "agua",
+                      "type": "Theme",
+                      "definiteness": "indefinite"
+                    }
+                  }
+                }
+              ],
+              "nsm_explications": {
+                "agua": "ALGO que HAY en este LUGAR, COSA que ALGUIEN quiere AHORA"
+              },
+              "logical_form": {
+                "event": "want_or_ask",
+                "tense": "present",
+                "aspect": "none",
+                "modality": "interrogative",
+                "negation": false
+              },
+              "pragmatics": {
+                "politeness": "neutral",
+                "formality": "neutral",
+                "urgency": "high",
+                "expected_response": "compliance",
+                "speaker_stance": "seeking immediate need"
+              },
+              "visual_guidelines": {
+                "focus_actor": "speaker (YO)",
+                "action_core": "requesting or seeking",
+                "object_core": "agua",
+                "context": "immediate physical need or query",
+                "temporal": "immediate",
+                "salience": {
+                  "agua": 1,
+                  "urgency": 0.8
+                }
+              }
+            },
+            "caller": {
+              "type": "direct"
+            }
+          }
+        ],
+        "container": null,
+        "stop_reason": "tool_use",
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 3095,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 500,
+          "service_tier": "standard",
+          "inference_geo": "not_available",
+          "speed": "standard"
+        },
+        "diagnostics": null,
+        "meta": {
+          "provider": "claude",
+          "attempts": 1
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "d16aa6ad4082010025b00f678ca4561323d154e2b2925c13024a429efc51f74d"
+    },
+    {
+      "state": "recorded",
+      "caseId": "dolor-cabeza",
+      "requestedModel": "claude-haiku-4-5-20251001",
+      "returnedModel": "claude-haiku-4-5-20251001",
+      "phase": 1,
+      "repetition": 0,
+      "requestHash": "85990eeb00883ff6c50a8befc013a5eeacd3dac89801ff90087fd4d6c049dca5",
+      "milliseconds": 6544,
+      "usage": {
+        "input_tokens": 3099,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 681,
+        "service_tier": "standard",
+        "inference_geo": "not_available",
+        "speed": "standard"
+      },
+      "inputTokens": 3099,
+      "outputTokens": 681,
+      "estimatedCostUsd": 0.006504,
+      "reservedUsd": 0.1487025,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "utterance": "Me duele la cabeza",
+        "lang": "es-419",
+        "domain": "salud",
+        "metadata": {
+          "speech_act": "assertive",
+          "intent": "inform"
+        },
+        "frames": [
+          {
+            "frame_name": "Body_part_pain",
+            "frame_label": "Dolor en parte del cuerpo",
+            "lexical_unit": "doler",
+            "id": "frame_1",
+            "roles": {
+              "Experiencer": {
+                "type": "Experiencer",
+                "ref": "speaker",
+                "surface": "Me",
+                "definiteness": "definite"
+              },
+              "Body_part": {
+                "type": "Theme",
+                "surface": "cabeza",
+                "lemma": "cabeza",
+                "definiteness": "definite"
+              },
+              "Pain": {
+                "type": "Theme",
+                "lemma": "dolor",
+                "definiteness": "indefinite"
+              }
+            }
+          }
+        ],
+        "logical_form": {
+          "event": "doler",
+          "tense": "present",
+          "aspect": "progressive",
+          "modality": "actual",
+          "negation": false
+        },
+        "nsm_explications": {
+          "doler": "YO SIENTO ALGO MALO en ESTA PARTE de MÍ (la cabeza) AHORA",
+          "cabeza": "PARTE de ESTE CUERPO (de YO) que está ARRIBA~ENCIMA"
+        },
+        "pragmatics": {
+          "politeness": "neutral",
+          "formality": "informal",
+          "urgency": "medium",
+          "expected_response": "acknowledgment",
+          "speaker_stance": "discomfort, seeking empathy or assistance"
+        },
+        "visual_guidelines": {
+          "focus_actor": "El hablante (YO)",
+          "action_core": "sentir dolor",
+          "object_core": "la cabeza",
+          "context": "contexto corporal de molestia",
+          "temporal": "immediate",
+          "salience": {
+            "pain": 0.9,
+            "body_part": 0.8,
+            "speaker": 0.7
+          }
+        }
+      },
+      "rawResponse": {
+        "model": "claude-haiku-4-5-20251001",
+        "id": "msg_011Cgd5GnJu8oCBvo57swqJZ",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "toolu_016qEMt1sduACySGD52KhRiW",
+            "name": "analyze_utterance",
+            "input": {
+              "utterance": "Me duele la cabeza",
+              "lang": "es-419",
+              "domain": "salud",
+              "metadata": {
+                "speech_act": "assertive",
+                "intent": "inform"
+              },
+              "frames": [
+                {
+                  "frame_name": "Body_part_pain",
+                  "frame_label": "Dolor en parte del cuerpo",
+                  "lexical_unit": "doler",
+                  "id": "frame_1",
+                  "roles": {
+                    "Experiencer": {
+                      "type": "Experiencer",
+                      "ref": "speaker",
+                      "surface": "Me",
+                      "definiteness": "definite"
+                    },
+                    "Body_part": {
+                      "type": "Theme",
+                      "surface": "cabeza",
+                      "lemma": "cabeza",
+                      "definiteness": "definite"
+                    },
+                    "Pain": {
+                      "type": "Theme",
+                      "lemma": "dolor",
+                      "definiteness": "indefinite"
+                    }
+                  }
+                }
+              ],
+              "logical_form": {
+                "event": "doler",
+                "tense": "present",
+                "aspect": "progressive",
+                "modality": "actual",
+                "negation": false
+              },
+              "nsm_explications": {
+                "doler": "YO SIENTO ALGO MALO en ESTA PARTE de MÍ (la cabeza) AHORA",
+                "cabeza": "PARTE de ESTE CUERPO (de YO) que está ARRIBA~ENCIMA"
+              },
+              "pragmatics": {
+                "politeness": "neutral",
+                "formality": "informal",
+                "urgency": "medium",
+                "expected_response": "acknowledgment",
+                "speaker_stance": "discomfort, seeking empathy or assistance"
+              },
+              "visual_guidelines": {
+                "focus_actor": "El hablante (YO)",
+                "action_core": "sentir dolor",
+                "object_core": "la cabeza",
+                "context": "contexto corporal de molestia",
+                "temporal": "immediate",
+                "salience": {
+                  "pain": 0.9,
+                  "body_part": 0.8,
+                  "speaker": 0.7
+                }
+              }
+            },
+            "caller": {
+              "type": "direct"
+            }
+          }
+        ],
+        "container": null,
+        "stop_reason": "tool_use",
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 3099,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 681,
+          "service_tier": "standard",
+          "inference_geo": "not_available",
+          "speed": "standard"
+        },
+        "diagnostics": null,
+        "meta": {
+          "provider": "claude",
+          "attempts": 1
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "7b3a956237bdf926a5a8c8c17e80913c04940206f28718e7a3b8721f8dc8730d"
+    },
+    {
+      "state": "recorded",
+      "caseId": "ayer-hermano",
+      "requestedModel": "claude-haiku-4-5-20251001",
+      "returnedModel": "claude-haiku-4-5-20251001",
+      "phase": 1,
+      "repetition": 0,
+      "requestHash": "58db036bc9f9f97d05929abc04320e834f3ac9b54da43654275f69198ab39d0e",
+      "milliseconds": 7057,
+      "usage": {
+        "input_tokens": 3102,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 692,
+        "service_tier": "standard",
+        "inference_geo": "not_available",
+        "speed": "standard"
+      },
+      "inputTokens": 3102,
+      "outputTokens": 692,
+      "estimatedCostUsd": 0.006562,
+      "reservedUsd": 0.1487625,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "utterance": "Ayer jugué con mi hermano",
+        "lang": "es-419",
+        "domain": "tiempo_libre",
+        "metadata": {
+          "speech_act": "assertive",
+          "intent": "inform"
+        },
+        "frames": [
+          {
+            "id": "frame1",
+            "frame_name": "Cooperation",
+            "frame_label": "Cooperación",
+            "lexical_unit": "jugar",
+            "roles": {
+              "Agent": {
+                "type": "Agent",
+                "lemma": "yo",
+                "surface": "jugué"
+              },
+              "Partner": {
+                "type": "Agent",
+                "lemma": "hermano",
+                "surface": "mi hermano"
+              },
+              "Time": {
+                "type": "Time",
+                "lemma": "ayer",
+                "surface": "ayer"
+              }
+            }
+          }
+        ],
+        "nsm_explications": {
+          "jugar": "Antes de ahora, YO hizo ALGO con ESTE ALGUIEN (mi hermano), ALGO como lo que GENTE joven quiere hacer muchas veces, porque ESTO es bueno.",
+          "hermano": "ESTE ALGUIEN es ALGUIEN del tipo - nacido de el MISMO padre y el MISMO madre como YO"
+        },
+        "logical_form": {
+          "event": "jugar",
+          "tense": "past",
+          "aspect": "perfective",
+          "modality": "realis",
+          "negation": false
+        },
+        "pragmatics": {
+          "politeness": "neutral",
+          "formality": "neutral",
+          "urgency": "low",
+          "expected_response": "acknowledgment",
+          "speaker_stance": "Narración de un evento personal de ocio compartido"
+        },
+        "visual_guidelines": {
+          "focus_actor": "Yo (el hablante)",
+          "action_core": "Jugar",
+          "object_core": "Actividad lúdica compartida",
+          "context": "Relación familiar; tiempo de ocio",
+          "temporal": "past",
+          "salience": {
+            "participantes": 0.9,
+            "actividad": 0.95,
+            "tiempo": 0.8
+          }
+        }
+      },
+      "rawResponse": {
+        "model": "claude-haiku-4-5-20251001",
+        "id": "msg_011Cgd5HGL8DCus2KrePXabv",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "toolu_018GV824hWZBDTTrY5mF6ATP",
+            "name": "analyze_utterance",
+            "input": {
+              "utterance": "Ayer jugué con mi hermano",
+              "lang": "es-419",
+              "domain": "tiempo_libre",
+              "metadata": {
+                "speech_act": "assertive",
+                "intent": "inform"
+              },
+              "frames": [
+                {
+                  "id": "frame1",
+                  "frame_name": "Cooperation",
+                  "frame_label": "Cooperación",
+                  "lexical_unit": "jugar",
+                  "roles": {
+                    "Agent": {
+                      "type": "Agent",
+                      "lemma": "yo",
+                      "surface": "jugué"
+                    },
+                    "Partner": {
+                      "type": "Agent",
+                      "lemma": "hermano",
+                      "surface": "mi hermano"
+                    },
+                    "Time": {
+                      "type": "Time",
+                      "lemma": "ayer",
+                      "surface": "ayer"
+                    }
+                  }
+                }
+              ],
+              "nsm_explications": {
+                "jugar": "Antes de ahora, YO hizo ALGO con ESTE ALGUIEN (mi hermano), ALGO como lo que GENTE joven quiere hacer muchas veces, porque ESTO es bueno.",
+                "hermano": "ESTE ALGUIEN es ALGUIEN del tipo - nacido de el MISMO padre y el MISMO madre como YO"
+              },
+              "logical_form": {
+                "event": "jugar",
+                "tense": "past",
+                "aspect": "perfective",
+                "modality": "realis",
+                "negation": false
+              },
+              "pragmatics": {
+                "politeness": "neutral",
+                "formality": "neutral",
+                "urgency": "low",
+                "expected_response": "acknowledgment",
+                "speaker_stance": "Narración de un evento personal de ocio compartido"
+              },
+              "visual_guidelines": {
+                "focus_actor": "Yo (el hablante)",
+                "action_core": "Jugar",
+                "object_core": "Actividad lúdica compartida",
+                "context": "Relación familiar; tiempo de ocio",
+                "temporal": "past",
+                "salience": {
+                  "participantes": 0.9,
+                  "actividad": 0.95,
+                  "tiempo": 0.8
+                }
+              }
+            },
+            "caller": {
+              "type": "direct"
+            }
+          }
+        ],
+        "container": null,
+        "stop_reason": "tool_use",
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 3102,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 692,
+          "service_tier": "standard",
+          "inference_geo": "not_available",
+          "speed": "standard"
+        },
+        "diagnostics": null,
+        "meta": {
+          "provider": "claude",
+          "attempts": 1
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "8e651f30e66dda05976efdca6c009adbd02d88c37127453070bc43bddcace45d"
+    },
+    {
+      "state": "recorded",
+      "caseId": "donde-mama",
+      "requestedModel": "claude-haiku-4-5-20251001",
+      "returnedModel": "claude-haiku-4-5-20251001",
+      "phase": 1,
+      "repetition": 0,
+      "requestHash": "ef9c1e590f39a8851937397500d5f2aceb0d3798a4460b057823d74d5ffe2abf",
+      "milliseconds": 17070,
+      "usage": {
+        "input_tokens": 3209,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 529,
+        "service_tier": "standard",
+        "inference_geo": "not_available",
+        "speed": "standard"
+      },
+      "inputTokens": 9578,
+      "outputTokens": 1758,
+      "estimatedCostUsd": 0.018368000000000002,
+      "reservedUsd": 0.148725,
+      "canonicalValid": false,
+      "firstCallValid": false,
+      "providerCalls": 3,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": "Phase 1 contract validation failed: /frames/0/roles/Location must have required property 'ref'; /frames/0/roles/Location must have required property 'surface'; /frames/0/roles/Location must have required property 'lemma'; /frames/0/roles/Location must have required property 'ref_frame'; /frames/0/roles/Location must match a schema in anyOf",
+      "diagnostics": [
+        {
+          "instancePath": "/frames/0/roles/Location",
+          "schemaPath": "#/$defs/RoleFiller/anyOf/0/required",
+          "keyword": "required",
+          "params": {
+            "missingProperty": "ref"
+          },
+          "message": "must have required property 'ref'"
+        },
+        {
+          "instancePath": "/frames/0/roles/Location",
+          "schemaPath": "#/$defs/RoleFiller/anyOf/1/required",
+          "keyword": "required",
+          "params": {
+            "missingProperty": "surface"
+          },
+          "message": "must have required property 'surface'"
+        },
+        {
+          "instancePath": "/frames/0/roles/Location",
+          "schemaPath": "#/$defs/RoleFiller/anyOf/2/required",
+          "keyword": "required",
+          "params": {
+            "missingProperty": "lemma"
+          },
+          "message": "must have required property 'lemma'"
+        },
+        {
+          "instancePath": "/frames/0/roles/Location",
+          "schemaPath": "#/$defs/RoleFiller/anyOf/3/required",
+          "keyword": "required",
+          "params": {
+            "missingProperty": "ref_frame"
+          },
+          "message": "must have required property 'ref_frame'"
+        },
+        {
+          "instancePath": "/frames/0/roles/Location",
+          "schemaPath": "#/$defs/RoleFiller/anyOf",
+          "keyword": "anyOf",
+          "params": {},
+          "message": "must match a schema in anyOf"
+        }
+      ],
+      "output": null,
+      "rawResponse": {
+        "model": "claude-haiku-4-5-20251001",
+        "id": "msg_011Cgd5JfVCPMt3TRyNfXgnf",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "toolu_01TFnaHXxtbVHvqsMAq2HZeB",
+            "name": "analyze_utterance",
+            "input": {
+              "utterance": "¿Dónde está mamá?",
+              "lang": "es-419",
+              "domain": "vida_cotidiana",
+              "metadata": {
+                "speech_act": "interrogative",
+                "intent": "ask_info"
+              },
+              "frames": [
+                {
+                  "frame_name": "Locating",
+                  "frame_label": "Localización",
+                  "lexical_unit": "estar",
+                  "id": "locating_1",
+                  "roles": {
+                    "Theme": {
+                      "surface": "mamá",
+                      "type": "Theme",
+                      "definiteness": "definite"
+                    },
+                    "Location": {
+                      "type": "Location",
+                      "definiteness": "unspecified"
+                    }
+                  }
+                }
+              ],
+              "nsm_explications": {
+                "ubicación": "YO quiero SABER DÓNDE está ALGUIEN (mamá) AHORA"
+              },
+              "logical_form": {
+                "event": "estar",
+                "modality": "interrogative",
+                "tense": "present",
+                "aspect": "none",
+                "negation": false
+              },
+              "pragmatics": {
+                "politeness": "neutral",
+                "formality": "neutral",
+                "urgency": "medium",
+                "expected_response": "question",
+                "speaker_stance": "searching for information"
+              },
+              "visual_guidelines": {
+                "focus_actor": "mamá",
+                "action_core": "localizar",
+                "object_core": "posición actual de mamá",
+                "context": "entorno doméstico o familiar",
+                "temporal": "immediate"
+              }
+            },
+            "caller": {
+              "type": "direct"
+            }
+          }
+        ],
+        "container": null,
+        "stop_reason": "tool_use",
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 3209,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 529,
+          "service_tier": "standard",
+          "inference_geo": "not_available",
+          "speed": "standard"
+        },
+        "diagnostics": null,
+        "meta": {
+          "provider": "claude",
+          "attempts": 1
+        }
+      },
+      "rawOutput": {
+        "utterance": "¿Dónde está mamá?",
+        "lang": "es-419",
+        "domain": "vida_cotidiana",
+        "metadata": {
+          "speech_act": "interrogative",
+          "intent": "ask_info"
+        },
+        "frames": [
+          {
+            "frame_name": "Locating",
+            "frame_label": "Localización",
+            "lexical_unit": "estar",
+            "id": "locating_1",
+            "roles": {
+              "Theme": {
+                "surface": "mamá",
+                "type": "Theme",
+                "definiteness": "definite"
+              },
+              "Location": {
+                "type": "Location",
+                "definiteness": "unspecified"
+              }
+            }
+          }
+        ],
+        "nsm_explications": {
+          "ubicación": "YO quiero SABER DÓNDE está ALGUIEN (mamá) AHORA"
+        },
+        "logical_form": {
+          "event": "estar",
+          "modality": "interrogative",
+          "tense": "present",
+          "aspect": "none",
+          "negation": false
+        },
+        "pragmatics": {
+          "politeness": "neutral",
+          "formality": "neutral",
+          "urgency": "medium",
+          "expected_response": "question",
+          "speaker_stance": "searching for information"
+        },
+        "visual_guidelines": {
+          "focus_actor": "mamá",
+          "action_core": "localizar",
+          "object_core": "posición actual de mamá",
+          "context": "entorno doméstico o familiar",
+          "temporal": "immediate"
+        }
+      },
+      "outputHash": null
+    },
+    {
+      "state": "recorded",
+      "caseId": "para-auto",
+      "requestedModel": "claude-haiku-4-5-20251001",
+      "returnedModel": "claude-haiku-4-5-20251001",
+      "phase": 1,
+      "repetition": 0,
+      "requestHash": "c588fbe975d41e35cd5fe535c003556ce9f47233bf4bacce53252c63572962dc",
+      "milliseconds": 5949,
+      "usage": {
+        "input_tokens": 3101,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 727,
+        "service_tier": "standard",
+        "inference_geo": "not_available",
+        "speed": "standard"
+      },
+      "inputTokens": 3101,
+      "outputTokens": 727,
+      "estimatedCostUsd": 0.006736,
+      "reservedUsd": 0.148725,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "utterance": "¡Para! Viene un auto",
+        "lang": "es-419",
+        "domain": "transporte",
+        "metadata": {
+          "speech_act": "directive",
+          "intent": "warning"
+        },
+        "frames": [
+          {
+            "frame_name": "Stop",
+            "frame_label": "Detener",
+            "lexical_unit": "parar",
+            "id": "frame_1",
+            "roles": {
+              "Agent": {
+                "type": "Agent",
+                "ref": "tú"
+              }
+            }
+          },
+          {
+            "frame_name": "Arriving",
+            "frame_label": "Llegada",
+            "lexical_unit": "venir",
+            "id": "frame_2",
+            "roles": {
+              "Theme": {
+                "type": "Theme",
+                "surface": "un auto",
+                "lemma": "auto"
+              },
+              "Time": {
+                "type": "Time",
+                "lemma": "ahora"
+              }
+            }
+          }
+        ],
+        "logical_form": {
+          "event": "parar",
+          "tense": "present",
+          "aspect": "inceptive",
+          "modality": "imperative",
+          "negation": false
+        },
+        "nsm_explications": {
+          "parar": "YO piensa: ALGO MALO puede pasar AHORA. YO quiere que TÚ HAGAS NADA más. YO dice esto a TÚ AHORA.",
+          "venir": "ALGO~COSA (un auto) se MUEVE HACIA AQUÍ. ESTO ocurre AHORA~ESTE MOMENTO."
+        },
+        "pragmatics": {
+          "politeness": "neutral",
+          "formality": "informal",
+          "urgency": "high",
+          "expected_response": "compliance",
+          "speaker_stance": "alarmado ante peligro inmediato"
+        },
+        "visual_guidelines": {
+          "focus_actor": "tú (destinatario)",
+          "action_core": "detenerse inmediatamente",
+          "object_core": "auto en movimiento",
+          "context": "vía o espacio donde circulan vehículos",
+          "temporal": "immediate",
+          "salience": {
+            "danger": 0.95,
+            "urgency": 0.95,
+            "movement": 0.8
+          }
+        }
+      },
+      "rawResponse": {
+        "model": "claude-haiku-4-5-20251001",
+        "id": "msg_011Cgd5K3V25smuAbzf5E2LB",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "toolu_01UxNmGzop6L1YFskPE1Szp5",
+            "name": "analyze_utterance",
+            "input": {
+              "utterance": "¡Para! Viene un auto",
+              "lang": "es-419",
+              "domain": "transporte",
+              "metadata": {
+                "speech_act": "directive",
+                "intent": "warning"
+              },
+              "frames": [
+                {
+                  "frame_name": "Stop",
+                  "frame_label": "Detener",
+                  "lexical_unit": "parar",
+                  "id": "frame_1",
+                  "roles": {
+                    "Agent": {
+                      "type": "Agent",
+                      "ref": "tú"
+                    }
+                  }
+                },
+                {
+                  "frame_name": "Arriving",
+                  "frame_label": "Llegada",
+                  "lexical_unit": "venir",
+                  "id": "frame_2",
+                  "roles": {
+                    "Theme": {
+                      "type": "Theme",
+                      "surface": "un auto",
+                      "lemma": "auto"
+                    },
+                    "Time": {
+                      "type": "Time",
+                      "lemma": "ahora"
+                    }
+                  }
+                }
+              ],
+              "logical_form": {
+                "event": "parar",
+                "tense": "present",
+                "aspect": "inceptive",
+                "modality": "imperative",
+                "negation": false
+              },
+              "nsm_explications": {
+                "parar": "YO piensa: ALGO MALO puede pasar AHORA. YO quiere que TÚ HAGAS NADA más. YO dice esto a TÚ AHORA.",
+                "venir": "ALGO~COSA (un auto) se MUEVE HACIA AQUÍ. ESTO ocurre AHORA~ESTE MOMENTO."
+              },
+              "pragmatics": {
+                "politeness": "neutral",
+                "formality": "informal",
+                "urgency": "high",
+                "expected_response": "compliance",
+                "speaker_stance": "alarmado ante peligro inmediato"
+              },
+              "visual_guidelines": {
+                "focus_actor": "tú (destinatario)",
+                "action_core": "detenerse inmediatamente",
+                "object_core": "auto en movimiento",
+                "context": "vía o espacio donde circulan vehículos",
+                "temporal": "immediate",
+                "salience": {
+                  "danger": 0.95,
+                  "urgency": 0.95,
+                  "movement": 0.8
+                }
+              }
+            },
+            "caller": {
+              "type": "direct"
+            }
+          }
+        ],
+        "container": null,
+        "stop_reason": "tool_use",
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 3101,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 727,
+          "service_tier": "standard",
+          "inference_geo": "not_available",
+          "speed": "standard"
+        },
+        "diagnostics": null,
+        "meta": {
+          "provider": "claude",
+          "attempts": 1
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "ce6387cc6ea7d185be474468de63bfbb0e5cdcafe64f7371edd673a04158833e"
+    },
+    {
+      "state": "recorded",
+      "caseId": "no-verduras",
+      "requestedModel": "claude-haiku-4-5-20251001",
+      "returnedModel": "claude-haiku-4-5-20251001",
+      "phase": 1,
+      "repetition": 0,
+      "requestHash": "d19a1f0882543e330bc0bd41635ba778c3c1230b09d517650b6c144c3760f08c",
+      "milliseconds": 8105,
+      "usage": {
+        "input_tokens": 3100,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 812,
+        "service_tier": "standard",
+        "inference_geo": "not_available",
+        "speed": "standard"
+      },
+      "inputTokens": 3100,
+      "outputTokens": 812,
+      "estimatedCostUsd": 0.00716,
+      "reservedUsd": 0.1487475,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "utterance": "No quiero comer verduras",
+        "lang": "es-419",
+        "domain": "alimentación",
+        "metadata": {
+          "speech_act": "expressive",
+          "intent": "deny"
+        },
+        "frames": [
+          {
+            "frame_name": "Desirability",
+            "frame_label": "Deseabilidad",
+            "id": "frame-desire-1",
+            "lexical_unit": "quiero",
+            "roles": {
+              "Experiencer": {
+                "type": "Speaker",
+                "lemma": "yo"
+              },
+              "Event": {
+                "type": "Event",
+                "ref_frame": "frame-action-1"
+              }
+            }
+          },
+          {
+            "frame_name": "Ingestion",
+            "frame_label": "Ingestión",
+            "id": "frame-action-1",
+            "lexical_unit": "comer",
+            "roles": {
+              "Agent": {
+                "type": "Agent",
+                "lemma": "yo"
+              },
+              "Ingestible": {
+                "type": "Theme",
+                "surface": "verduras",
+                "lemma": "verdura"
+              }
+            }
+          }
+        ],
+        "nsm_explications": {
+          "no_querer": "YO siento algo MALO ahora / YO piensa: si YO HACE ESTO, pasará algo MALO / por eso YO NO QUIERE HACER ESTO",
+          "comer": "ALGUIEN (YO) HACE ALGO con la boca / ESTA COSA (verduras) entra DENTRO del cuerpo de ESTE ALGUIEN",
+          "verduras": "ESTAS COSAS son tipo de COMIDA / son de las PLANTAS / son BUENO para el CUERPO"
+        },
+        "logical_form": {
+          "event": "comer(verduras)",
+          "modality": "negation+desire",
+          "negation": true,
+          "tense": "present",
+          "aspect": "none"
+        },
+        "pragmatics": {
+          "politeness": "neutral",
+          "formality": "informal",
+          "expected_response": "acknowledgment",
+          "urgency": "low",
+          "speaker_stance": "resistant"
+        },
+        "visual_guidelines": {
+          "focus_actor": "Hablante (yo)",
+          "action_core": "Rechazo de ingestión",
+          "object_core": "Verduras",
+          "context": "Situación de alimentación / mesa / comida",
+          "temporal": "immediate",
+          "salience": {
+            "negation": 0.95,
+            "desire": 0.85,
+            "object": 0.7
+          }
+        }
+      },
+      "rawResponse": {
+        "model": "claude-haiku-4-5-20251001",
+        "id": "msg_011Cgd5KVGZipEmyH3qtVv5C",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "toolu_01E1Gmym8WPutaSJeC3J6BZA",
+            "name": "analyze_utterance",
+            "input": {
+              "utterance": "No quiero comer verduras",
+              "lang": "es-419",
+              "domain": "alimentación",
+              "metadata": {
+                "speech_act": "expressive",
+                "intent": "deny"
+              },
+              "frames": [
+                {
+                  "frame_name": "Desirability",
+                  "frame_label": "Deseabilidad",
+                  "id": "frame-desire-1",
+                  "lexical_unit": "quiero",
+                  "roles": {
+                    "Experiencer": {
+                      "type": "Speaker",
+                      "lemma": "yo"
+                    },
+                    "Event": {
+                      "type": "Event",
+                      "ref_frame": "frame-action-1"
+                    }
+                  }
+                },
+                {
+                  "frame_name": "Ingestion",
+                  "frame_label": "Ingestión",
+                  "id": "frame-action-1",
+                  "lexical_unit": "comer",
+                  "roles": {
+                    "Agent": {
+                      "type": "Agent",
+                      "lemma": "yo"
+                    },
+                    "Ingestible": {
+                      "type": "Theme",
+                      "surface": "verduras",
+                      "lemma": "verdura"
+                    }
+                  }
+                }
+              ],
+              "nsm_explications": {
+                "no_querer": "YO siento algo MALO ahora / YO piensa: si YO HACE ESTO, pasará algo MALO / por eso YO NO QUIERE HACER ESTO",
+                "comer": "ALGUIEN (YO) HACE ALGO con la boca / ESTA COSA (verduras) entra DENTRO del cuerpo de ESTE ALGUIEN",
+                "verduras": "ESTAS COSAS son tipo de COMIDA / son de las PLANTAS / son BUENO para el CUERPO"
+              },
+              "logical_form": {
+                "event": "comer(verduras)",
+                "modality": "negation+desire",
+                "negation": true,
+                "tense": "present",
+                "aspect": "none"
+              },
+              "pragmatics": {
+                "politeness": "neutral",
+                "formality": "informal",
+                "expected_response": "acknowledgment",
+                "urgency": "low",
+                "speaker_stance": "resistant"
+              },
+              "visual_guidelines": {
+                "focus_actor": "Hablante (yo)",
+                "action_core": "Rechazo de ingestión",
+                "object_core": "Verduras",
+                "context": "Situación de alimentación / mesa / comida",
+                "temporal": "immediate",
+                "salience": {
+                  "negation": 0.95,
+                  "desire": 0.85,
+                  "object": 0.7
+                }
+              }
+            },
+            "caller": {
+              "type": "direct"
+            }
+          }
+        ],
+        "container": null,
+        "stop_reason": "tool_use",
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 3100,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 812,
+          "service_tier": "standard",
+          "inference_geo": "not_available",
+          "speed": "standard"
+        },
+        "diagnostics": null,
+        "meta": {
+          "provider": "claude",
+          "attempts": 1
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "c681066121edac2016f3c9147821369dfee26b6e43c02f57a958ac71107f04a9"
+    },
+    {
+      "state": "recorded",
+      "caseId": "bano",
+      "requestedModel": "claude-haiku-4-5-20251001",
+      "returnedModel": "claude-haiku-4-5-20251001",
+      "phase": 1,
+      "repetition": 0,
+      "requestHash": "023384e9fc20a2e16b598ae2615eba46434fdfbd8b662fa627810995f3351cb5",
+      "milliseconds": 7196,
+      "usage": {
+        "input_tokens": 3100,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 750,
+        "service_tier": "standard",
+        "inference_geo": "not_available",
+        "speed": "standard"
+      },
+      "inputTokens": 3100,
+      "outputTokens": 750,
+      "estimatedCostUsd": 0.00685,
+      "reservedUsd": 0.1487175,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "utterance": "Necesito ir al baño",
+        "lang": "es-419",
+        "domain": "vida_cotidiana",
+        "metadata": {
+          "speech_act": "assertive",
+          "intent": "inform"
+        },
+        "frames": [
+          {
+            "frame_name": "Directed_action",
+            "frame_label": "Acción Dirigida",
+            "id": "frame-1",
+            "lexical_unit": "ir",
+            "roles": {
+              "Agent": {
+                "type": "Agent",
+                "ref": "speaker"
+              },
+              "Goal": {
+                "type": "Location",
+                "surface": "baño"
+              }
+            }
+          },
+          {
+            "frame_name": "Desire",
+            "frame_label": "Deseo",
+            "id": "frame-2",
+            "lexical_unit": "necesitar",
+            "roles": {
+              "Experiencer": {
+                "type": "Experiencer",
+                "ref": "speaker"
+              },
+              "Event": {
+                "type": "Event",
+                "ref_frame": "frame-1"
+              }
+            }
+          }
+        ],
+        "nsm_explications": {
+          "necesitar": "YO quiero HACER ALGO ahora. ESTE ALGUIEN (YO) piensa: es bueno para MÍ HACER ESTO.",
+          "ir": "YO QUIERO MOVER a MÍ MISMO a ESTE lugar (baño). DESPUÉS de un poco de tiempo YO ESTAR en ESTE lugar."
+        },
+        "logical_form": {
+          "event": "ir(YO, baño)",
+          "modality": "need",
+          "tense": "present",
+          "aspect": "inceptive",
+          "negation": false
+        },
+        "pragmatics": {
+          "politeness": "neutral",
+          "formality": "neutral",
+          "urgency": "medium",
+          "expected_response": "acknowledgment",
+          "speaker_stance": "necesidad fisiológica urgente"
+        },
+        "visual_guidelines": {
+          "focus_actor": "YO (hablante)",
+          "action_core": "desplazarse/moverse hacia",
+          "object_core": "baño",
+          "context": "espacio interior con facilidades sanitarias",
+          "temporal": "immediate",
+          "salience": {
+            "actor": 0.9,
+            "action": 0.8,
+            "urgency": 0.7
+          }
+        }
+      },
+      "rawResponse": {
+        "model": "claude-haiku-4-5-20251001",
+        "id": "msg_011Cgd5L5b4VMsDbBfUEsexS",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "toolu_01Q2cv89YQwRzfqY8EdDY727",
+            "name": "analyze_utterance",
+            "input": {
+              "utterance": "Necesito ir al baño",
+              "lang": "es-419",
+              "domain": "vida_cotidiana",
+              "metadata": {
+                "speech_act": "assertive",
+                "intent": "inform"
+              },
+              "frames": [
+                {
+                  "frame_name": "Directed_action",
+                  "frame_label": "Acción Dirigida",
+                  "id": "frame-1",
+                  "lexical_unit": "ir",
+                  "roles": {
+                    "Agent": {
+                      "type": "Agent",
+                      "ref": "speaker"
+                    },
+                    "Goal": {
+                      "type": "Location",
+                      "surface": "baño"
+                    }
+                  }
+                },
+                {
+                  "frame_name": "Desire",
+                  "frame_label": "Deseo",
+                  "id": "frame-2",
+                  "lexical_unit": "necesitar",
+                  "roles": {
+                    "Experiencer": {
+                      "type": "Experiencer",
+                      "ref": "speaker"
+                    },
+                    "Event": {
+                      "type": "Event",
+                      "ref_frame": "frame-1"
+                    }
+                  }
+                }
+              ],
+              "nsm_explications": {
+                "necesitar": "YO quiero HACER ALGO ahora. ESTE ALGUIEN (YO) piensa: es bueno para MÍ HACER ESTO.",
+                "ir": "YO QUIERO MOVER a MÍ MISMO a ESTE lugar (baño). DESPUÉS de un poco de tiempo YO ESTAR en ESTE lugar."
+              },
+              "logical_form": {
+                "event": "ir(YO, baño)",
+                "modality": "need",
+                "tense": "present",
+                "aspect": "inceptive",
+                "negation": false
+              },
+              "pragmatics": {
+                "politeness": "neutral",
+                "formality": "neutral",
+                "urgency": "medium",
+                "expected_response": "acknowledgment",
+                "speaker_stance": "necesidad fisiológica urgente"
+              },
+              "visual_guidelines": {
+                "focus_actor": "YO (hablante)",
+                "action_core": "desplazarse/moverse hacia",
+                "object_core": "baño",
+                "context": "espacio interior con facilidades sanitarias",
+                "temporal": "immediate",
+                "salience": {
+                  "actor": 0.9,
+                  "action": 0.8,
+                  "urgency": 0.7
+                }
+              }
+            },
+            "caller": {
+              "type": "direct"
+            }
+          }
+        ],
+        "container": null,
+        "stop_reason": "tool_use",
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 3100,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 750,
+          "service_tier": "standard",
+          "inference_geo": "not_available",
+          "speed": "standard"
+        },
+        "diagnostics": null,
+        "meta": {
+          "provider": "claude",
+          "attempts": 1
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "aec768efe7415544988cb44eac464d23c2b1cccb9180c017819a163bcf32d585"
+    },
+    {
+      "state": "recorded",
+      "caseId": "miedo-tormenta",
+      "requestedModel": "claude-haiku-4-5-20251001",
+      "returnedModel": "claude-haiku-4-5-20251001",
+      "phase": 1,
+      "repetition": 0,
+      "requestHash": "ba5196902da7cc816b0ab7cabb930050f27afd9fd6de867bcecd9043c17991c7",
+      "milliseconds": 18807,
+      "usage": {
+        "input_tokens": 3210,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 597,
+        "service_tier": "standard",
+        "inference_geo": "not_available",
+        "speed": "standard"
+      },
+      "inputTokens": 9583,
+      "outputTokens": 1922,
+      "estimatedCostUsd": 0.019192999999999998,
+      "reservedUsd": 0.1487625,
+      "canonicalValid": false,
+      "firstCallValid": false,
+      "providerCalls": 3,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": "Phase 1 contract validation failed: /frames/0/roles/Stimulus/type must be equal to one of the allowed values; /visual_guidelines/temporal must be equal to one of the allowed values",
+      "diagnostics": [
+        {
+          "instancePath": "/frames/0/roles/Stimulus/type",
+          "schemaPath": "#/$defs/RoleFiller/properties/type/enum",
+          "keyword": "enum",
+          "params": {
+            "allowedValues": [
+              "Agent",
+              "Addressee",
+              "Speaker",
+              "Experiencer",
+              "Patient",
+              "Theme",
+              "Beneficiary",
+              "Instrument",
+              "Object",
+              "Event",
+              "Location",
+              "Time",
+              "Other"
+            ]
+          },
+          "message": "must be equal to one of the allowed values"
+        },
+        {
+          "instancePath": "/visual_guidelines/temporal",
+          "schemaPath": "#/$defs/VisualGuidelines/properties/temporal/enum",
+          "keyword": "enum",
+          "params": {
+            "allowedValues": [
+              "immediate",
+              "near_future",
+              "future",
+              "past",
+              "habitual",
+              "unspecified"
+            ]
+          },
+          "message": "must be equal to one of the allowed values"
+        }
+      ],
+      "output": null,
+      "rawResponse": {
+        "model": "claude-haiku-4-5-20251001",
+        "id": "msg_011Cgd5MZhXMgsJyTBzQeByT",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "toolu_01LS5wr7GKbn6MCwa1hxix8W",
+            "name": "analyze_utterance",
+            "input": {
+              "utterance": "Tengo miedo de la tormenta",
+              "lang": "es-419",
+              "metadata": {
+                "speech_act": "expressive",
+                "intent": "inform"
+              },
+              "frames": [
+                {
+                  "frame_name": "Fear",
+                  "frame_label": "Miedo",
+                  "lexical_unit": "miedo",
+                  "id": "fear-1",
+                  "roles": {
+                    "Experiencer": {
+                      "type": "Experiencer",
+                      "ref": "speaker",
+                      "definiteness": "definite"
+                    },
+                    "Stimulus": {
+                      "type": "Stimulus",
+                      "surface": "la tormenta",
+                      "definiteness": "definite"
+                    }
+                  }
+                }
+              ],
+              "nsm_explications": {
+                "miedo": "YO siento algo malo. YO piensa que ALGO malo puede pasar en este momento. YO quiere que ESTO no pase.",
+                "tormenta": "HAY un evento natural. MUCHO viento y agua caen del cielo. ESTO es muy fuerte. ESTO puede hacer cosas malas."
+              },
+              "logical_form": {
+                "event": "SENTIR(miedo)",
+                "modality": "epistemic",
+                "tense": "present",
+                "aspect": "none",
+                "negation": false
+              },
+              "pragmatics": {
+                "politeness": "neutral",
+                "formality": "informal",
+                "expected_response": "acknowledgment",
+                "urgency": "medium",
+                "speaker_stance": "vulnerable"
+              },
+              "visual_guidelines": {
+                "focus_actor": "yo (hablante)",
+                "action_core": "experimentar miedo",
+                "object_core": "la tormenta",
+                "context": "evento meteorológico amenazante",
+                "temporal": "present"
+              },
+              "domain": "emociones"
+            },
+            "caller": {
+              "type": "direct"
+            }
+          }
+        ],
+        "container": null,
+        "stop_reason": "tool_use",
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 3210,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 597,
+          "service_tier": "standard",
+          "inference_geo": "not_available",
+          "speed": "standard"
+        },
+        "diagnostics": null,
+        "meta": {
+          "provider": "claude",
+          "attempts": 1
+        }
+      },
+      "rawOutput": {
+        "utterance": "Tengo miedo de la tormenta",
+        "lang": "es-419",
+        "metadata": {
+          "speech_act": "expressive",
+          "intent": "inform"
+        },
+        "frames": [
+          {
+            "frame_name": "Fear",
+            "frame_label": "Miedo",
+            "lexical_unit": "miedo",
+            "id": "fear-1",
+            "roles": {
+              "Experiencer": {
+                "type": "Experiencer",
+                "ref": "speaker",
+                "definiteness": "definite"
+              },
+              "Stimulus": {
+                "type": "Stimulus",
+                "surface": "la tormenta",
+                "definiteness": "definite"
+              }
+            }
+          }
+        ],
+        "nsm_explications": {
+          "miedo": "YO siento algo malo. YO piensa que ALGO malo puede pasar en este momento. YO quiere que ESTO no pase.",
+          "tormenta": "HAY un evento natural. MUCHO viento y agua caen del cielo. ESTO es muy fuerte. ESTO puede hacer cosas malas."
+        },
+        "logical_form": {
+          "event": "SENTIR(miedo)",
+          "modality": "epistemic",
+          "tense": "present",
+          "aspect": "none",
+          "negation": false
+        },
+        "pragmatics": {
+          "politeness": "neutral",
+          "formality": "informal",
+          "expected_response": "acknowledgment",
+          "urgency": "medium",
+          "speaker_stance": "vulnerable"
+        },
+        "visual_guidelines": {
+          "focus_actor": "yo (hablante)",
+          "action_core": "experimentar miedo",
+          "object_core": "la tormenta",
+          "context": "evento meteorológico amenazante",
+          "temporal": "present"
+        },
+        "domain": "emociones"
+      },
+      "outputHash": null
+    },
+    {
+      "state": "recorded",
+      "caseId": "once",
+      "requestedModel": "claude-haiku-4-5-20251001",
+      "returnedModel": "claude-haiku-4-5-20251001",
+      "phase": 1,
+      "repetition": 0,
+      "requestHash": "dd5e6e199631a4f09304cff3d9f92524b87fa96e0f9cc4f4ca48a827ea9236df",
+      "milliseconds": 9115,
+      "usage": {
+        "input_tokens": 3104,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 1003,
+        "service_tier": "standard",
+        "inference_geo": "not_available",
+        "speed": "standard"
+      },
+      "inputTokens": 3104,
+      "outputTokens": 1003,
+      "estimatedCostUsd": 0.008119,
+      "reservedUsd": 0.148815,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "utterance": "Quiero tomar once con pan amasado",
+        "lang": "es-419",
+        "domain": "alimentación",
+        "metadata": {
+          "speech_act": "assertive",
+          "intent": "inform"
+        },
+        "frames": [
+          {
+            "frame_name": "Desire",
+            "frame_label": "Deseo",
+            "lexical_unit": "quiero",
+            "id": "desire_1",
+            "roles": {
+              "Experiencer": {
+                "type": "Speaker",
+                "lemma": "yo"
+              },
+              "Event": {
+                "type": "Event",
+                "ref_frame": "consumption_1"
+              }
+            }
+          },
+          {
+            "frame_name": "Ingestion",
+            "frame_label": "Ingesta",
+            "lexical_unit": "tomar",
+            "id": "consumption_1",
+            "roles": {
+              "Ingestor": {
+                "type": "Agent",
+                "lemma": "yo"
+              },
+              "Ingestibles": {
+                "type": "Patient",
+                "surface": "once con pan amasado"
+              }
+            }
+          },
+          {
+            "frame_name": "Food",
+            "frame_label": "Alimento",
+            "lexical_unit": "once",
+            "id": "food_once",
+            "roles": {
+              "Food": {
+                "type": "Theme",
+                "surface": "once"
+              }
+            }
+          },
+          {
+            "frame_name": "Food",
+            "frame_label": "Alimento",
+            "lexical_unit": "pan amasado",
+            "id": "food_bread",
+            "roles": {
+              "Food": {
+                "type": "Theme",
+                "surface": "pan amasado"
+              }
+            }
+          }
+        ],
+        "nsm_explications": {
+          "quiero": "YO QUIERE AHORA HACER ALGO: TOMAR COMIDA",
+          "tomar": "YO MUEVO ESTO (ONCE CON PAN) ADENTRO YO (CUERPO) AHORA",
+          "once": "COMIDA TIPO COSA QUE GENTE COME EN UN TIEMPO DEL DÍA",
+          "pan amasado": "COMIDA HECHA CON COSAS PEQUEÑAS MOVIDAS JUNTAS, DE TIPO PAN"
+        },
+        "logical_form": {
+          "event": "tomar(YO, once_con_pan_amasado)",
+          "tense": "future",
+          "aspect": "none",
+          "modality": "want",
+          "negation": false
+        },
+        "pragmatics": {
+          "politeness": "neutral",
+          "formality": "informal",
+          "urgency": "low",
+          "expected_response": "acknowledgment",
+          "speaker_stance": "Expresión de preferencia personal respecto a qué consumir; actitud casual y familiar."
+        },
+        "visual_guidelines": {
+          "focus_actor": "Yo (el hablante)",
+          "action_core": "Tomar/consumir",
+          "object_core": "Once con pan amasado (comida tradicional)",
+          "context": "Momento de comida o merienda",
+          "temporal": "near_future",
+          "salience": {
+            "desire": 0.9,
+            "consumption": 0.85,
+            "food": 0.8
+          }
+        }
+      },
+      "rawResponse": {
+        "model": "claude-haiku-4-5-20251001",
+        "id": "msg_011Cgd5MzjAmVjvX5tW9tzZD",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "toolu_01RGJ9yhuswFPazG7ZrLQQve",
+            "name": "analyze_utterance",
+            "input": {
+              "utterance": "Quiero tomar once con pan amasado",
+              "lang": "es-419",
+              "domain": "alimentación",
+              "metadata": {
+                "speech_act": "assertive",
+                "intent": "inform"
+              },
+              "frames": [
+                {
+                  "frame_name": "Desire",
+                  "frame_label": "Deseo",
+                  "lexical_unit": "quiero",
+                  "id": "desire_1",
+                  "roles": {
+                    "Experiencer": {
+                      "type": "Speaker",
+                      "lemma": "yo"
+                    },
+                    "Event": {
+                      "type": "Event",
+                      "ref_frame": "consumption_1"
+                    }
+                  }
+                },
+                {
+                  "frame_name": "Ingestion",
+                  "frame_label": "Ingesta",
+                  "lexical_unit": "tomar",
+                  "id": "consumption_1",
+                  "roles": {
+                    "Ingestor": {
+                      "type": "Agent",
+                      "lemma": "yo"
+                    },
+                    "Ingestibles": {
+                      "type": "Patient",
+                      "surface": "once con pan amasado"
+                    }
+                  }
+                },
+                {
+                  "frame_name": "Food",
+                  "frame_label": "Alimento",
+                  "lexical_unit": "once",
+                  "id": "food_once",
+                  "roles": {
+                    "Food": {
+                      "type": "Theme",
+                      "surface": "once"
+                    }
+                  }
+                },
+                {
+                  "frame_name": "Food",
+                  "frame_label": "Alimento",
+                  "lexical_unit": "pan amasado",
+                  "id": "food_bread",
+                  "roles": {
+                    "Food": {
+                      "type": "Theme",
+                      "surface": "pan amasado"
+                    }
+                  }
+                }
+              ],
+              "nsm_explications": {
+                "quiero": "YO QUIERE AHORA HACER ALGO: TOMAR COMIDA",
+                "tomar": "YO MUEVO ESTO (ONCE CON PAN) ADENTRO YO (CUERPO) AHORA",
+                "once": "COMIDA TIPO COSA QUE GENTE COME EN UN TIEMPO DEL DÍA",
+                "pan amasado": "COMIDA HECHA CON COSAS PEQUEÑAS MOVIDAS JUNTAS, DE TIPO PAN"
+              },
+              "logical_form": {
+                "event": "tomar(YO, once_con_pan_amasado)",
+                "tense": "future",
+                "aspect": "none",
+                "modality": "want",
+                "negation": false
+              },
+              "pragmatics": {
+                "politeness": "neutral",
+                "formality": "informal",
+                "urgency": "low",
+                "expected_response": "acknowledgment",
+                "speaker_stance": "Expresión de preferencia personal respecto a qué consumir; actitud casual y familiar."
+              },
+              "visual_guidelines": {
+                "focus_actor": "Yo (el hablante)",
+                "action_core": "Tomar/consumir",
+                "object_core": "Once con pan amasado (comida tradicional)",
+                "context": "Momento de comida o merienda",
+                "temporal": "near_future",
+                "salience": {
+                  "desire": 0.9,
+                  "consumption": 0.85,
+                  "food": 0.8
+                }
+              }
+            },
+            "caller": {
+              "type": "direct"
+            }
+          }
+        ],
+        "container": null,
+        "stop_reason": "tool_use",
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 3104,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 1003,
+          "service_tier": "standard",
+          "inference_geo": "not_available",
+          "speed": "standard"
+        },
+        "diagnostics": null,
+        "meta": {
+          "provider": "claude",
+          "attempts": 1
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "1faa3ccf31ca7ef0d9c9580fa5e67e0ea02f9d30ac73c2c411cecf113d5f3136"
+    },
+    {
+      "state": "recorded",
+      "caseId": "peticion-agua",
+      "requestedModel": "claude-haiku-4-5-20251001",
+      "returnedModel": "claude-haiku-4-5-20251001",
+      "phase": 1,
+      "repetition": 0,
+      "requestHash": "14c5a1d6fd6adf03914c2c2700c63bc999032fb1a7a623eeba767b7e6a2b7aac",
+      "milliseconds": 8047,
+      "usage": {
+        "input_tokens": 3101,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 827,
+        "service_tier": "standard",
+        "inference_geo": "not_available",
+        "speed": "standard"
+      },
+      "inputTokens": 3101,
+      "outputTokens": 827,
+      "estimatedCostUsd": 0.007236,
+      "reservedUsd": 0.1487325,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "utterance": "Quiero un vaso de agua",
+        "lang": "es-419",
+        "domain": "alimentación",
+        "metadata": {
+          "speech_act": "directive",
+          "intent": "request"
+        },
+        "frames": [
+          {
+            "frame_name": "Desire",
+            "id": "desire_01",
+            "lexical_unit": "quiero",
+            "frame_label": "Deseo",
+            "roles": {
+              "Experiencer": {
+                "type": "Speaker",
+                "lemma": "yo"
+              },
+              "Theme": {
+                "type": "Theme",
+                "surface": "un vaso de agua",
+                "lemma": "agua"
+              }
+            }
+          },
+          {
+            "frame_name": "Containers_and_contents",
+            "id": "container_01",
+            "lexical_unit": "vaso",
+            "frame_label": "Recipiente y contenido",
+            "roles": {
+              "Container": {
+                "type": "Object",
+                "lemma": "vaso",
+                "surface": "vaso"
+              },
+              "Contents": {
+                "type": "Theme",
+                "lemma": "agua",
+                "surface": "agua"
+              }
+            }
+          }
+        ],
+        "nsm_explications": {
+          "querer": "YO siento algo bueno hacia ESTO ahora. YO pienso: sería bueno si YO TUVIERA ESTO ahora.",
+          "agua": "ALGO que existe. LA GENTE necesita ESTO para VIVIR. ES como LÍQUIDO.",
+          "vaso": "UN OBJETO. TIENE FORMA. PARTE de ESTE OBJETO ES DENTRO. LA GENTE PUEDE PONER ALGO DENTRO de ESTO. LA GENTE USA ESTO PARA sostener BEBIDAS."
+        },
+        "logical_form": {
+          "event": "querer",
+          "tense": "present",
+          "aspect": "none",
+          "modality": "desire",
+          "negation": false
+        },
+        "pragmatics": {
+          "politeness": "polite",
+          "formality": "informal",
+          "urgency": "medium",
+          "expected_response": "compliance",
+          "speaker_stance": "Hablante expresa necesidad/deseo de obtener agua en un recipiente."
+        },
+        "visual_guidelines": {
+          "focus_actor": "yo (el hablante)",
+          "action_core": "querer obtener",
+          "object_core": "vaso de agua",
+          "context": "Situación cotidiana de solicitud de bebida",
+          "temporal": "immediate",
+          "salience": {
+            "vaso": 0.7,
+            "agua": 0.8,
+            "quiero": 0.9
+          }
+        }
+      },
+      "rawResponse": {
+        "model": "claude-haiku-4-5-20251001",
+        "id": "msg_011Cgd5NfhhXXWWdChDD7iN5",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "toolu_018tLRj1AvJNsuSoVxeq2gNA",
+            "name": "analyze_utterance",
+            "input": {
+              "utterance": "Quiero un vaso de agua",
+              "lang": "es-419",
+              "domain": "alimentación",
+              "metadata": {
+                "speech_act": "directive",
+                "intent": "request"
+              },
+              "frames": [
+                {
+                  "frame_name": "Desire",
+                  "id": "desire_01",
+                  "lexical_unit": "quiero",
+                  "frame_label": "Deseo",
+                  "roles": {
+                    "Experiencer": {
+                      "type": "Speaker",
+                      "lemma": "yo"
+                    },
+                    "Theme": {
+                      "type": "Theme",
+                      "surface": "un vaso de agua",
+                      "lemma": "agua"
+                    }
+                  }
+                },
+                {
+                  "frame_name": "Containers_and_contents",
+                  "id": "container_01",
+                  "lexical_unit": "vaso",
+                  "frame_label": "Recipiente y contenido",
+                  "roles": {
+                    "Container": {
+                      "type": "Object",
+                      "lemma": "vaso",
+                      "surface": "vaso"
+                    },
+                    "Contents": {
+                      "type": "Theme",
+                      "lemma": "agua",
+                      "surface": "agua"
+                    }
+                  }
+                }
+              ],
+              "nsm_explications": {
+                "querer": "YO siento algo bueno hacia ESTO ahora. YO pienso: sería bueno si YO TUVIERA ESTO ahora.",
+                "agua": "ALGO que existe. LA GENTE necesita ESTO para VIVIR. ES como LÍQUIDO.",
+                "vaso": "UN OBJETO. TIENE FORMA. PARTE de ESTE OBJETO ES DENTRO. LA GENTE PUEDE PONER ALGO DENTRO de ESTO. LA GENTE USA ESTO PARA sostener BEBIDAS."
+              },
+              "logical_form": {
+                "event": "querer",
+                "tense": "present",
+                "aspect": "none",
+                "modality": "desire",
+                "negation": false
+              },
+              "pragmatics": {
+                "politeness": "polite",
+                "formality": "informal",
+                "urgency": "medium",
+                "expected_response": "compliance",
+                "speaker_stance": "Hablante expresa necesidad/deseo de obtener agua en un recipiente."
+              },
+              "visual_guidelines": {
+                "focus_actor": "yo (el hablante)",
+                "action_core": "querer obtener",
+                "object_core": "vaso de agua",
+                "context": "Situación cotidiana de solicitud de bebida",
+                "temporal": "immediate",
+                "salience": {
+                  "vaso": 0.7,
+                  "agua": 0.8,
+                  "quiero": 0.9
+                }
+              }
+            },
+            "caller": {
+              "type": "direct"
+            }
+          }
+        ],
+        "container": null,
+        "stop_reason": "tool_use",
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 3101,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 827,
+          "service_tier": "standard",
+          "inference_geo": "not_available",
+          "speed": "standard"
+        },
+        "diagnostics": null,
+        "meta": {
+          "provider": "claude",
+          "attempts": 1
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "dab63a3552650144a29fb2a5cbf4b323248c8e4bc1b1530997bc96ded80f1292"
+    },
+    {
+      "state": "recorded",
+      "caseId": "cansado",
+      "requestedModel": "claude-haiku-4-5-20251001",
+      "returnedModel": "claude-haiku-4-5-20251001",
+      "phase": 1,
+      "repetition": 0,
+      "requestHash": "abd67f4cef13a1f9f97de4083efa8cfafd13817669786536344e5c4ab9b3e6de",
+      "milliseconds": 6622,
+      "usage": {
+        "input_tokens": 3100,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 667,
+        "service_tier": "standard",
+        "inference_geo": "not_available",
+        "speed": "standard"
+      },
+      "inputTokens": 3100,
+      "outputTokens": 667,
+      "estimatedCostUsd": 0.006435,
+      "reservedUsd": 0.148695,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "utterance": "Estoy muy cansado",
+        "lang": "es-419",
+        "metadata": {
+          "speech_act": "expressive",
+          "intent": "inform"
+        },
+        "frames": [
+          {
+            "id": "f1",
+            "frame_name": "Experiencer_obj",
+            "frame_label": "Experimentador",
+            "lexical_unit": "cansado",
+            "roles": {
+              "Experiencer": {
+                "type": "Speaker",
+                "lemma": "yo",
+                "definiteness": "definite"
+              },
+              "Event": {
+                "type": "Event",
+                "lemma": "cansancio",
+                "surface": "cansado"
+              },
+              "Degree": {
+                "type": "Other",
+                "lemma": "muy",
+                "surface": "muy"
+              }
+            }
+          }
+        ],
+        "nsm_explications": {
+          "cansado": "YO SIENTO ALGO MALO EN EL CUERPO. ESTE ALGO MALO es de un TIPO que hace que YO NO QUIERA HACER MUCHAS COSAS AHORA. ESTO ha estado pasando POR UN TIEMPO.",
+          "muy": "MÁS de lo normal"
+        },
+        "logical_form": {
+          "event": "estar_cansado",
+          "tense": "present",
+          "aspect": "none",
+          "modality": "actual",
+          "negation": false
+        },
+        "pragmatics": {
+          "politeness": "neutral",
+          "formality": "informal",
+          "urgency": "low",
+          "expected_response": "acknowledgment",
+          "speaker_stance": "expressing fatigue or low energy state"
+        },
+        "visual_guidelines": {
+          "focus_actor": "yo (el hablante)",
+          "action_core": "estar en estado de cansancio",
+          "object_core": "cansancio intenso",
+          "context": "estado emocional o físico presente del hablante",
+          "temporal": "immediate",
+          "salience": {
+            "cansancio": 0.9,
+            "intensidad": 0.8,
+            "yo": 0.95
+          }
+        }
+      },
+      "rawResponse": {
+        "model": "claude-haiku-4-5-20251001",
+        "id": "msg_011Cgd5PG9dRM2oAve8YDNdM",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "toolu_011wDvKtrKXLnsMMyFkssn98",
+            "name": "analyze_utterance",
+            "input": {
+              "utterance": "Estoy muy cansado",
+              "lang": "es-419",
+              "metadata": {
+                "speech_act": "expressive",
+                "intent": "inform"
+              },
+              "frames": [
+                {
+                  "id": "f1",
+                  "frame_name": "Experiencer_obj",
+                  "frame_label": "Experimentador",
+                  "lexical_unit": "cansado",
+                  "roles": {
+                    "Experiencer": {
+                      "type": "Speaker",
+                      "lemma": "yo",
+                      "definiteness": "definite"
+                    },
+                    "Event": {
+                      "type": "Event",
+                      "lemma": "cansancio",
+                      "surface": "cansado"
+                    },
+                    "Degree": {
+                      "type": "Other",
+                      "lemma": "muy",
+                      "surface": "muy"
+                    }
+                  }
+                }
+              ],
+              "nsm_explications": {
+                "cansado": "YO SIENTO ALGO MALO EN EL CUERPO. ESTE ALGO MALO es de un TIPO que hace que YO NO QUIERA HACER MUCHAS COSAS AHORA. ESTO ha estado pasando POR UN TIEMPO.",
+                "muy": "MÁS de lo normal"
+              },
+              "logical_form": {
+                "event": "estar_cansado",
+                "tense": "present",
+                "aspect": "none",
+                "modality": "actual",
+                "negation": false
+              },
+              "pragmatics": {
+                "politeness": "neutral",
+                "formality": "informal",
+                "urgency": "low",
+                "expected_response": "acknowledgment",
+                "speaker_stance": "expressing fatigue or low energy state"
+              },
+              "visual_guidelines": {
+                "focus_actor": "yo (el hablante)",
+                "action_core": "estar en estado de cansancio",
+                "object_core": "cansancio intenso",
+                "context": "estado emocional o físico presente del hablante",
+                "temporal": "immediate",
+                "salience": {
+                  "cansancio": 0.9,
+                  "intensidad": 0.8,
+                  "yo": 0.95
+                }
+              }
+            },
+            "caller": {
+              "type": "direct"
+            }
+          }
+        ],
+        "container": null,
+        "stop_reason": "tool_use",
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 3100,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 667,
+          "service_tier": "standard",
+          "inference_geo": "not_available",
+          "speed": "standard"
+        },
+        "diagnostics": null,
+        "meta": {
+          "provider": "claude",
+          "attempts": 1
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "10165ff32d8bda234c3ef0689fbcc3cb035ce675c342c0c4518ae9c7d18f07bc"
+    },
+    {
+      "state": "recorded",
+      "caseId": "ayuda-1",
+      "requestedModel": "claude-haiku-4-5-20251001",
+      "returnedModel": "claude-haiku-4-5-20251001",
+      "phase": 1,
+      "repetition": 0,
+      "requestHash": "3817844c41f71c8dfbfcb82db98e5c06fd9bb372a8d0d20fceedb0710665a743",
+      "milliseconds": 11924,
+      "usage": {
+        "input_tokens": 3368,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 652,
+        "service_tier": "standard",
+        "inference_geo": "not_available",
+        "speed": "standard"
+      },
+      "inputTokens": 6464,
+      "outputTokens": 1243,
+      "estimatedCostUsd": 0.012679,
+      "reservedUsd": 0.148605,
+      "canonicalValid": true,
+      "firstCallValid": false,
+      "providerCalls": 2,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "utterance": "Ayuda",
+        "lang": "es-419",
+        "domain": "vida_cotidiana",
+        "metadata": {
+          "speech_act": "directive",
+          "intent": "request"
+        },
+        "frames": [
+          {
+            "frame_name": "Assistance",
+            "frame_label": "Asistencia",
+            "id": "assistance-1",
+            "lexical_unit": "ayudar",
+            "roles": {
+              "Agent": {
+                "type": "Agent",
+                "surface": "ayudar",
+                "ref": "implicit_addressee"
+              },
+              "Beneficiary": {
+                "type": "Beneficiary",
+                "surface": "ayuda",
+                "ref": "implicit_speaker"
+              },
+              "Event": {
+                "type": "Event",
+                "surface": "ayuda",
+                "lemma": "ayudar"
+              }
+            }
+          }
+        ],
+        "nsm_explications": {
+          "ayudar": "ALGUIEN (TÚ) puede HACER ALGO bueno para ESTE ALGUIEN (YO) ahora. YO quiero que ESTO pase."
+        },
+        "logical_form": {
+          "event": "assist",
+          "modality": "volition",
+          "tense": "present",
+          "aspect": "inceptive",
+          "negation": false
+        },
+        "pragmatics": {
+          "politeness": "polite",
+          "formality": "neutral",
+          "urgency": "high",
+          "expected_response": "compliance",
+          "speaker_stance": "necesitado"
+        },
+        "visual_guidelines": {
+          "focus_actor": "TÚ (destinatario implícito)",
+          "action_core": "proporcionar asistencia",
+          "object_core": "solución o apoyo a un problema no especificado",
+          "context": "situación de dificultad o necesidad",
+          "temporal": "immediate",
+          "salience": {
+            "urgency": 0.9,
+            "emotion": 0.8,
+            "implicitness": 0.7
+          }
+        }
+      },
+      "rawResponse": {
+        "model": "claude-haiku-4-5-20251001",
+        "id": "msg_011Cgd5QB4L1wtLZykq6FEeV",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "toolu_015egY9bsNpa3nKG7vYUjqNX",
+            "name": "analyze_utterance",
+            "input": {
+              "utterance": "Ayuda",
+              "lang": "es-419",
+              "domain": "vida_cotidiana",
+              "metadata": {
+                "speech_act": "directive",
+                "intent": "request"
+              },
+              "frames": [
+                {
+                  "frame_name": "Assistance",
+                  "frame_label": "Asistencia",
+                  "id": "assistance-1",
+                  "lexical_unit": "ayudar",
+                  "roles": {
+                    "Agent": {
+                      "type": "Agent",
+                      "surface": "ayudar",
+                      "ref": "implicit_addressee"
+                    },
+                    "Beneficiary": {
+                      "type": "Beneficiary",
+                      "surface": "ayuda",
+                      "ref": "implicit_speaker"
+                    },
+                    "Event": {
+                      "type": "Event",
+                      "surface": "ayuda",
+                      "lemma": "ayudar"
+                    }
+                  }
+                }
+              ],
+              "nsm_explications": {
+                "ayudar": "ALGUIEN (TÚ) puede HACER ALGO bueno para ESTE ALGUIEN (YO) ahora. YO quiero que ESTO pase."
+              },
+              "logical_form": {
+                "event": "assist",
+                "modality": "volition",
+                "tense": "present",
+                "aspect": "inceptive",
+                "negation": false
+              },
+              "pragmatics": {
+                "politeness": "polite",
+                "formality": "neutral",
+                "urgency": "high",
+                "expected_response": "compliance",
+                "speaker_stance": "necesitado"
+              },
+              "visual_guidelines": {
+                "focus_actor": "TÚ (destinatario implícito)",
+                "action_core": "proporcionar asistencia",
+                "object_core": "solución o apoyo a un problema no especificado",
+                "context": "situación de dificultad o necesidad",
+                "temporal": "immediate",
+                "salience": {
+                  "urgency": 0.9,
+                  "emotion": 0.8,
+                  "implicitness": 0.7
+                }
+              }
+            },
+            "caller": {
+              "type": "direct"
+            }
+          }
+        ],
+        "container": null,
+        "stop_reason": "tool_use",
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 3368,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 652,
+          "service_tier": "standard",
+          "inference_geo": "not_available",
+          "speed": "standard"
+        },
+        "diagnostics": null,
+        "meta": {
+          "provider": "claude",
+          "attempts": 1
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "d27d92d8dd6997351f107e23218cdd21d4364c40fd415920bf205057bb3cdc11"
+    },
+    {
+      "state": "recorded",
+      "caseId": "silla-ruedas",
+      "requestedModel": "claude-haiku-4-5-20251001",
+      "returnedModel": "claude-haiku-4-5-20251001",
+      "phase": 1,
+      "repetition": 0,
+      "requestHash": "e8b39a5e07af0f666cab8eec03079f4cd60ae3978376f3873c19514ff05b7577",
+      "milliseconds": 9613,
+      "usage": {
+        "input_tokens": 3112,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 1064,
+        "service_tier": "standard",
+        "inference_geo": "not_available",
+        "speed": "standard"
+      },
+      "inputTokens": 3112,
+      "outputTokens": 1064,
+      "estimatedCostUsd": 0.008432,
+      "reservedUsd": 0.1489275,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "utterance": "Ayúdame a subir la rampa con la silla de ruedas",
+        "lang": "es-419",
+        "domain": "vida_cotidiana",
+        "metadata": {
+          "speech_act": "directive",
+          "intent": "request"
+        },
+        "frames": [
+          {
+            "frame_name": "Assistance",
+            "frame_label": "Asistencia",
+            "lexical_unit": "ayudar",
+            "id": "frame1",
+            "roles": {
+              "Agent": {
+                "type": "Agent",
+                "ref": "addressee"
+              },
+              "Beneficiary": {
+                "type": "Beneficiary",
+                "surface": "me",
+                "lemma": "yo"
+              },
+              "Event": {
+                "type": "Event",
+                "ref_frame": "frame2"
+              }
+            }
+          },
+          {
+            "frame_name": "Self_motion",
+            "frame_label": "Movimiento autónomo",
+            "lexical_unit": "subir",
+            "id": "frame2",
+            "roles": {
+              "Theme": {
+                "type": "Theme",
+                "surface": "yo",
+                "lemma": "yo"
+              },
+              "Path": {
+                "type": "Location",
+                "surface": "rampa",
+                "lemma": "rampa"
+              },
+              "Instrument": {
+                "type": "Instrument",
+                "surface": "silla de ruedas",
+                "lemma": "silla de ruedas"
+              }
+            }
+          }
+        ],
+        "logical_form": {
+          "event": "subir",
+          "tense": "present",
+          "aspect": "inceptive",
+          "modality": "request",
+          "negation": false
+        },
+        "nsm_explications": {
+          "ayudar": "ALGUIEN (TÚ) sabe: ALGO MALO está pasando para ALGUIEN (YO) ahora. ESTE ALGUIEN (TÚ) quiere que ALGO BUENO pase para ALGUIEN (YO). ESTE ALGUIEN (TÚ) quiere HACER ALGO ahora para que ESTO pase.",
+          "subir": "ALGUIEN (YO) quiere MOVER su CUERPO HACIA ARRIBA en ESTE LUGAR (rampa) usando ESTO (silla de ruedas). ESTE ALGUIEN (YO) quiere que TÚ HAGAS ALGO para que YO pueda HACER ESTO.",
+          "rampa": "HAY un LUGAR que es PARTE de ALGO. ESTE LUGAR es LARGO y va DESDE ABAJO HACIA ARRIBA. ALGUIEN puede MOVER ALGO en ESTE LUGAR desde ABAJO HACIA ARRIBA."
+        },
+        "pragmatics": {
+          "politeness": "polite",
+          "formality": "neutral",
+          "urgency": "medium",
+          "expected_response": "compliance",
+          "speaker_stance": "solicitante en situación de necesidad de apoyo físico"
+        },
+        "visual_guidelines": {
+          "focus_actor": "Yo (persona en silla de ruedas)",
+          "action_core": "subir con asistencia",
+          "object_core": "rampa inclinada",
+          "secondary_actor": "Persona que asiste",
+          "context": "Entorno con accesibilidad limitada, acceso mediante rampa",
+          "temporal": "immediate",
+          "salience": {
+            "ayudar": 0.95,
+            "subir": 0.9,
+            "rampa": 0.85,
+            "silla de ruedas": 0.8
+          }
+        }
+      },
+      "rawResponse": {
+        "model": "claude-haiku-4-5-20251001",
+        "id": "msg_011Cgd5QdRbJpwU2ikoAXbCS",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "toolu_0163CaYMKsh2jsUtReX1MAd5",
+            "name": "analyze_utterance",
+            "input": {
+              "utterance": "Ayúdame a subir la rampa con la silla de ruedas",
+              "lang": "es-419",
+              "domain": "vida_cotidiana",
+              "metadata": {
+                "speech_act": "directive",
+                "intent": "request"
+              },
+              "frames": [
+                {
+                  "frame_name": "Assistance",
+                  "frame_label": "Asistencia",
+                  "lexical_unit": "ayudar",
+                  "id": "frame1",
+                  "roles": {
+                    "Agent": {
+                      "type": "Agent",
+                      "ref": "addressee"
+                    },
+                    "Beneficiary": {
+                      "type": "Beneficiary",
+                      "surface": "me",
+                      "lemma": "yo"
+                    },
+                    "Event": {
+                      "type": "Event",
+                      "ref_frame": "frame2"
+                    }
+                  }
+                },
+                {
+                  "frame_name": "Self_motion",
+                  "frame_label": "Movimiento autónomo",
+                  "lexical_unit": "subir",
+                  "id": "frame2",
+                  "roles": {
+                    "Theme": {
+                      "type": "Theme",
+                      "surface": "yo",
+                      "lemma": "yo"
+                    },
+                    "Path": {
+                      "type": "Location",
+                      "surface": "rampa",
+                      "lemma": "rampa"
+                    },
+                    "Instrument": {
+                      "type": "Instrument",
+                      "surface": "silla de ruedas",
+                      "lemma": "silla de ruedas"
+                    }
+                  }
+                }
+              ],
+              "logical_form": {
+                "event": "subir",
+                "tense": "present",
+                "aspect": "inceptive",
+                "modality": "request",
+                "negation": false
+              },
+              "nsm_explications": {
+                "ayudar": "ALGUIEN (TÚ) sabe: ALGO MALO está pasando para ALGUIEN (YO) ahora. ESTE ALGUIEN (TÚ) quiere que ALGO BUENO pase para ALGUIEN (YO). ESTE ALGUIEN (TÚ) quiere HACER ALGO ahora para que ESTO pase.",
+                "subir": "ALGUIEN (YO) quiere MOVER su CUERPO HACIA ARRIBA en ESTE LUGAR (rampa) usando ESTO (silla de ruedas). ESTE ALGUIEN (YO) quiere que TÚ HAGAS ALGO para que YO pueda HACER ESTO.",
+                "rampa": "HAY un LUGAR que es PARTE de ALGO. ESTE LUGAR es LARGO y va DESDE ABAJO HACIA ARRIBA. ALGUIEN puede MOVER ALGO en ESTE LUGAR desde ABAJO HACIA ARRIBA."
+              },
+              "pragmatics": {
+                "politeness": "polite",
+                "formality": "neutral",
+                "urgency": "medium",
+                "expected_response": "compliance",
+                "speaker_stance": "solicitante en situación de necesidad de apoyo físico"
+              },
+              "visual_guidelines": {
+                "focus_actor": "Yo (persona en silla de ruedas)",
+                "action_core": "subir con asistencia",
+                "object_core": "rampa inclinada",
+                "secondary_actor": "Persona que asiste",
+                "context": "Entorno con accesibilidad limitada, acceso mediante rampa",
+                "temporal": "immediate",
+                "salience": {
+                  "ayudar": 0.95,
+                  "subir": 0.9,
+                  "rampa": 0.85,
+                  "silla de ruedas": 0.8
+                }
+              }
+            },
+            "caller": {
+              "type": "direct"
+            }
+          }
+        ],
+        "container": null,
+        "stop_reason": "tool_use",
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 3112,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 1064,
+          "service_tier": "standard",
+          "inference_geo": "not_available",
+          "speed": "standard"
+        },
+        "diagnostics": null,
+        "meta": {
+          "provider": "claude",
+          "attempts": 1
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "66f4483411523428d58400635e2d321889baeb125927e9b0ae9c3d770e17a6de"
+    },
+    {
+      "state": "recorded",
+      "caseId": "hora-colegio",
+      "requestedModel": "claude-haiku-4-5-20251001",
+      "returnedModel": "claude-haiku-4-5-20251001",
+      "phase": 1,
+      "repetition": 0,
+      "requestHash": "d6b003ca91c0754e81d41b33e762ee3c1d691424d2de75367d778a1bb93c0b6f",
+      "milliseconds": 7428,
+      "usage": {
+        "input_tokens": 3105,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 888,
+        "service_tier": "standard",
+        "inference_geo": "not_available",
+        "speed": "standard"
+      },
+      "inputTokens": 3105,
+      "outputTokens": 888,
+      "estimatedCostUsd": 0.007545,
+      "reservedUsd": 0.1488,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "utterance": "¿A qué hora vamos al colegio?",
+        "lang": "es-419",
+        "domain": "educación",
+        "metadata": {
+          "speech_act": "interrogative",
+          "intent": "ask_info"
+        },
+        "frames": [
+          {
+            "id": "motion_frame",
+            "frame_name": "Motion",
+            "frame_label": "Movimiento",
+            "lexical_unit": "ir",
+            "roles": {
+              "Agents": {
+                "type": "Agent",
+                "lemma": "nosotros",
+                "surface": "vamos",
+                "definiteness": "definite"
+              },
+              "Goal": {
+                "type": "Location",
+                "lemma": "colegio",
+                "surface": "colegio",
+                "definiteness": "definite"
+              }
+            }
+          },
+          {
+            "id": "time_frame",
+            "frame_name": "Questioning_surface",
+            "frame_label": "Interrogación temporal",
+            "lexical_unit": "hora",
+            "roles": {
+              "Experiencer": {
+                "type": "Speaker",
+                "lemma": "yo",
+                "surface": "¿",
+                "definiteness": "unspecified"
+              },
+              "Topic": {
+                "type": "Time",
+                "lemma": "hora",
+                "surface": "¿A qué hora",
+                "definiteness": "unspecified"
+              },
+              "Sought_information": {
+                "type": "Other",
+                "ref_frame": "motion_frame",
+                "surface": "vamos al colegio"
+              }
+            }
+          }
+        ],
+        "logical_form": {
+          "event": "ir(nosotros, colegio)",
+          "tense": "present",
+          "aspect": "none",
+          "modality": "interrogative",
+          "negation": false
+        },
+        "nsm_explications": {
+          "ir": "YO quiero saber: CUÁNDO nosotros (YO y OTROS) vamos a MOVERNOS hacia ESTE lugar (colegio) en ESTE momento o DESPUÉS",
+          "colegio": "ESTE lugar es un tipo de lugar donde los niños y niñas van para APRENDER cosas muchas veces"
+        },
+        "pragmatics": {
+          "politeness": "neutral",
+          "formality": "informal",
+          "urgency": "medium",
+          "expected_response": "question",
+          "speaker_stance": "seeking temporal coordination information"
+        },
+        "visual_guidelines": {
+          "focus_actor": "nosotros (grupo que incluye al hablante)",
+          "action_core": "ir/desplazarse",
+          "object_core": "colegio",
+          "context": "contexto educativo, probablemente escolar matutino",
+          "temporal": "immediate",
+          "salience": {
+            "hora": 0.9,
+            "colegio": 0.8,
+            "nosotros": 0.7
+          }
+        }
+      },
+      "rawResponse": {
+        "model": "claude-haiku-4-5-20251001",
+        "id": "msg_011Cgd5RLWP4kXjmyns4ewhe",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "toolu_019qM4HX7LvCm6UtbFaig4sK",
+            "name": "analyze_utterance",
+            "input": {
+              "utterance": "¿A qué hora vamos al colegio?",
+              "lang": "es-419",
+              "domain": "educación",
+              "metadata": {
+                "speech_act": "interrogative",
+                "intent": "ask_info"
+              },
+              "frames": [
+                {
+                  "id": "motion_frame",
+                  "frame_name": "Motion",
+                  "frame_label": "Movimiento",
+                  "lexical_unit": "ir",
+                  "roles": {
+                    "Agents": {
+                      "type": "Agent",
+                      "lemma": "nosotros",
+                      "surface": "vamos",
+                      "definiteness": "definite"
+                    },
+                    "Goal": {
+                      "type": "Location",
+                      "lemma": "colegio",
+                      "surface": "colegio",
+                      "definiteness": "definite"
+                    }
+                  }
+                },
+                {
+                  "id": "time_frame",
+                  "frame_name": "Questioning_surface",
+                  "frame_label": "Interrogación temporal",
+                  "lexical_unit": "hora",
+                  "roles": {
+                    "Experiencer": {
+                      "type": "Speaker",
+                      "lemma": "yo",
+                      "surface": "¿",
+                      "definiteness": "unspecified"
+                    },
+                    "Topic": {
+                      "type": "Time",
+                      "lemma": "hora",
+                      "surface": "¿A qué hora",
+                      "definiteness": "unspecified"
+                    },
+                    "Sought_information": {
+                      "type": "Other",
+                      "ref_frame": "motion_frame",
+                      "surface": "vamos al colegio"
+                    }
+                  }
+                }
+              ],
+              "logical_form": {
+                "event": "ir(nosotros, colegio)",
+                "tense": "present",
+                "aspect": "none",
+                "modality": "interrogative",
+                "negation": false
+              },
+              "nsm_explications": {
+                "ir": "YO quiero saber: CUÁNDO nosotros (YO y OTROS) vamos a MOVERNOS hacia ESTE lugar (colegio) en ESTE momento o DESPUÉS",
+                "colegio": "ESTE lugar es un tipo de lugar donde los niños y niñas van para APRENDER cosas muchas veces"
+              },
+              "pragmatics": {
+                "politeness": "neutral",
+                "formality": "informal",
+                "urgency": "medium",
+                "expected_response": "question",
+                "speaker_stance": "seeking temporal coordination information"
+              },
+              "visual_guidelines": {
+                "focus_actor": "nosotros (grupo que incluye al hablante)",
+                "action_core": "ir/desplazarse",
+                "object_core": "colegio",
+                "context": "contexto educativo, probablemente escolar matutino",
+                "temporal": "immediate",
+                "salience": {
+                  "hora": 0.9,
+                  "colegio": 0.8,
+                  "nosotros": 0.7
+                }
+              }
+            },
+            "caller": {
+              "type": "direct"
+            }
+          }
+        ],
+        "container": null,
+        "stop_reason": "tool_use",
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 3105,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 888,
+          "service_tier": "standard",
+          "inference_geo": "not_available",
+          "speed": "standard"
+        },
+        "diagnostics": null,
+        "meta": {
+          "provider": "claude",
+          "attempts": 1
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "da4f0bd240eb402b26ebcfcdab10911df5ed579c712e658c7f9b024cee385e21"
+    },
+    {
+      "state": "recorded",
+      "caseId": "gracias",
+      "requestedModel": "claude-haiku-4-5-20251001",
+      "returnedModel": "claude-haiku-4-5-20251001",
+      "phase": 1,
+      "repetition": 0,
+      "requestHash": "e878c9e86296a7f237717333fedc4edf07d2e8971268685cc31ec24d283d1528",
+      "milliseconds": 8152,
+      "usage": {
+        "input_tokens": 3101,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 892,
+        "service_tier": "standard",
+        "inference_geo": "not_available",
+        "speed": "standard"
+      },
+      "inputTokens": 3101,
+      "outputTokens": 892,
+      "estimatedCostUsd": 0.007561,
+      "reservedUsd": 0.1487175,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "utterance": "Gracias por ayudarme",
+        "lang": "es-419",
+        "domain": "vida_cotidiana",
+        "metadata": {
+          "speech_act": "expressive",
+          "intent": "greet"
+        },
+        "frames": [
+          {
+            "frame_name": "Gratitude",
+            "frame_label": "Gratitud",
+            "lexical_unit": "gracias",
+            "id": "frame_1",
+            "roles": {
+              "Experiencer": {
+                "type": "Speaker",
+                "lemma": "yo"
+              },
+              "Beneficiary": {
+                "type": "Agent",
+                "surface": "tú",
+                "definiteness": "definite"
+              },
+              "Event": {
+                "type": "Event",
+                "lemma": "ayudar"
+              }
+            }
+          },
+          {
+            "frame_name": "Assistance",
+            "frame_label": "Asistencia",
+            "lexical_unit": "ayudar",
+            "id": "frame_2",
+            "roles": {
+              "Agent": {
+                "type": "Agent",
+                "surface": "tú",
+                "definiteness": "definite"
+              },
+              "Beneficiary": {
+                "type": "Experiencer",
+                "lemma": "yo"
+              },
+              "Event": {
+                "type": "Event",
+                "lemma": "ayudar"
+              }
+            }
+          }
+        ],
+        "logical_form": {
+          "event": "ayudar",
+          "modality": "real",
+          "tense": "past",
+          "aspect": "perfective",
+          "negation": false
+        },
+        "nsm_explications": {
+          "gracias": "YO piensa: ALGUIEN (TÚ) hizo ALGO bueno para MÍ. YO siente ALGO bueno por esto. YO dice esto porque quiero que TÚ sepas esto.",
+          "ayudar": "ALGUIEN (TÚ) piensa: ALGO MALO está pasando para MÍ (o para ALGUIEN que YO quiero). ESTE ALGUIEN quiere que YO haga ALGO bueno para ESTE ALGUIEN. YO hace ALGO bueno para ESTE ALGUIEN porque quiero esto."
+        },
+        "pragmatics": {
+          "politeness": "polite",
+          "formality": "neutral",
+          "urgency": "low",
+          "expected_response": "acknowledgment",
+          "speaker_stance": "gratitud y reconocimiento"
+        },
+        "visual_guidelines": {
+          "focus_actor": "el hablante (yo)",
+          "action_core": "expresar gratitud",
+          "object_core": "la ayuda recibida",
+          "context": "interacción interpersonal de reciprocidad",
+          "temporal": "past",
+          "salience": {
+            "speaker": 0.8,
+            "addressee": 0.7,
+            "action_of_helping": 0.9
+          }
+        }
+      },
+      "rawResponse": {
+        "model": "claude-haiku-4-5-20251001",
+        "id": "msg_011Cgd5RtJK6xp6pgsFTniw8",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "toolu_01Kw6rv1KWhae7jyAn8SthSS",
+            "name": "analyze_utterance",
+            "input": {
+              "utterance": "Gracias por ayudarme",
+              "lang": "es-419",
+              "domain": "vida_cotidiana",
+              "metadata": {
+                "speech_act": "expressive",
+                "intent": "greet"
+              },
+              "frames": [
+                {
+                  "frame_name": "Gratitude",
+                  "frame_label": "Gratitud",
+                  "lexical_unit": "gracias",
+                  "id": "frame_1",
+                  "roles": {
+                    "Experiencer": {
+                      "type": "Speaker",
+                      "lemma": "yo"
+                    },
+                    "Beneficiary": {
+                      "type": "Agent",
+                      "surface": "tú",
+                      "definiteness": "definite"
+                    },
+                    "Event": {
+                      "type": "Event",
+                      "lemma": "ayudar"
+                    }
+                  }
+                },
+                {
+                  "frame_name": "Assistance",
+                  "frame_label": "Asistencia",
+                  "lexical_unit": "ayudar",
+                  "id": "frame_2",
+                  "roles": {
+                    "Agent": {
+                      "type": "Agent",
+                      "surface": "tú",
+                      "definiteness": "definite"
+                    },
+                    "Beneficiary": {
+                      "type": "Experiencer",
+                      "lemma": "yo"
+                    },
+                    "Event": {
+                      "type": "Event",
+                      "lemma": "ayudar"
+                    }
+                  }
+                }
+              ],
+              "logical_form": {
+                "event": "ayudar",
+                "modality": "real",
+                "tense": "past",
+                "aspect": "perfective",
+                "negation": false
+              },
+              "nsm_explications": {
+                "gracias": "YO piensa: ALGUIEN (TÚ) hizo ALGO bueno para MÍ. YO siente ALGO bueno por esto. YO dice esto porque quiero que TÚ sepas esto.",
+                "ayudar": "ALGUIEN (TÚ) piensa: ALGO MALO está pasando para MÍ (o para ALGUIEN que YO quiero). ESTE ALGUIEN quiere que YO haga ALGO bueno para ESTE ALGUIEN. YO hace ALGO bueno para ESTE ALGUIEN porque quiero esto."
+              },
+              "pragmatics": {
+                "politeness": "polite",
+                "formality": "neutral",
+                "urgency": "low",
+                "expected_response": "acknowledgment",
+                "speaker_stance": "gratitud y reconocimiento"
+              },
+              "visual_guidelines": {
+                "focus_actor": "el hablante (yo)",
+                "action_core": "expresar gratitud",
+                "object_core": "la ayuda recibida",
+                "context": "interacción interpersonal de reciprocidad",
+                "temporal": "past",
+                "salience": {
+                  "speaker": 0.8,
+                  "addressee": 0.7,
+                  "action_of_helping": 0.9
+                }
+              }
+            },
+            "caller": {
+              "type": "direct"
+            }
+          }
+        ],
+        "container": null,
+        "stop_reason": "tool_use",
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 3101,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 892,
+          "service_tier": "standard",
+          "inference_geo": "not_available",
+          "speed": "standard"
+        },
+        "diagnostics": null,
+        "meta": {
+          "provider": "claude",
+          "attempts": 1
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "eba28f93198e755c3e0c4560e545dbbe9b4ed366bc573de36b25ca3d2b168bf5"
+    },
+    {
+      "state": "recorded",
+      "caseId": "tarea-dibujos",
+      "requestedModel": "claude-haiku-4-5-20251001",
+      "returnedModel": "claude-haiku-4-5-20251001",
+      "phase": 1,
+      "repetition": 0,
+      "requestHash": "3b3ef498a0ae09045559f82aa093e881b5824832891896f03187eda321b013de",
+      "milliseconds": 10655,
+      "usage": {
+        "input_tokens": 3111,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 1187,
+        "service_tier": "standard",
+        "inference_geo": "not_available",
+        "speed": "standard"
+      },
+      "inputTokens": 3111,
+      "outputTokens": 1187,
+      "estimatedCostUsd": 0.009046,
+      "reservedUsd": 0.1489725,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "utterance": "Cuando termine la tarea, ¿puedo ver dibujos animados?",
+        "lang": "es-419",
+        "domain": "tiempo_libre",
+        "metadata": {
+          "speech_act": "interrogative",
+          "intent": "request"
+        },
+        "frames": [
+          {
+            "id": "frame_1",
+            "frame_name": "Conditional_execution",
+            "frame_label": "Ejecución condicional",
+            "lexical_unit": "cuando",
+            "roles": {
+              "Condition": {
+                "type": "Event",
+                "lemma": "terminar",
+                "surface": "termine la tarea"
+              },
+              "Event": {
+                "type": "Event",
+                "lemma": "ver",
+                "surface": "puedo ver dibujos animados",
+                "ref_frame": "frame_2"
+              }
+            }
+          },
+          {
+            "id": "frame_2",
+            "frame_name": "Possibility",
+            "frame_label": "Posibilidad",
+            "lexical_unit": "poder",
+            "roles": {
+              "Agent": {
+                "type": "Speaker",
+                "lemma": "yo",
+                "surface": "puedo"
+              },
+              "Event": {
+                "type": "Event",
+                "lemma": "ver",
+                "surface": "ver dibujos animados"
+              }
+            }
+          },
+          {
+            "id": "frame_3",
+            "frame_name": "Perception_active",
+            "frame_label": "Percepción activa",
+            "lexical_unit": "ver",
+            "roles": {
+              "Perceiver": {
+                "type": "Experiencer",
+                "lemma": "yo",
+                "surface": "puedo ver"
+              },
+              "Phenomenon": {
+                "type": "Theme",
+                "lemma": "dibujos_animados",
+                "surface": "dibujos animados"
+              }
+            }
+          },
+          {
+            "id": "frame_4",
+            "frame_name": "Activity_finish",
+            "frame_label": "Finalización de actividad",
+            "lexical_unit": "terminar",
+            "roles": {
+              "Agent": {
+                "type": "Agent",
+                "lemma": "yo",
+                "surface": "termine"
+              },
+              "Activity": {
+                "type": "Theme",
+                "lemma": "tarea",
+                "surface": "la tarea"
+              }
+            }
+          }
+        ],
+        "logical_form": {
+          "event": "poder(yo, ver(dibujos_animados))",
+          "tense": "present",
+          "aspect": "none",
+          "modality": "possibility",
+          "negation": false
+        },
+        "nsm_explications": {
+          "terminar": "YO HACE ALGO (tarea) durante MUCHO TIEMPO. DESPUÉS ESTE ALGO no hay más.",
+          "poder": "YO quiero HACER ALGO (ver dibujos animados). PUEDE SER que YO HAGA ESTO. PUEDE PASAR.",
+          "ver": "YO HACE ALGO. ESTE ALGO ACONTECE AQUÍ. YO percibe ESTO a través de los OJOS.",
+          "tarea": "ALGO que ALGUIEN QUIERE que YO HAGA. ESTE ALGO es BUENO."
+        },
+        "pragmatics": {
+          "politeness": "polite",
+          "formality": "neutral",
+          "urgency": "low",
+          "expected_response": "compliance",
+          "speaker_stance": "respectful; seeking permission contingent on task completion"
+        },
+        "visual_guidelines": {
+          "focus_actor": "Yo (el niño/niña que habla)",
+          "action_core": "Ver, disfrutar",
+          "object_core": "Dibujos animados",
+          "context": "Después de completar una tarea escolar u obligación",
+          "temporal": "near_future",
+          "salience": {
+            "tarea": 0.6,
+            "dibujos_animados": 0.8,
+            "condición_temporal": 0.7
+          }
+        }
+      },
+      "rawResponse": {
+        "model": "claude-haiku-4-5-20251001",
+        "id": "msg_011Cgd5SV8pHmUHJf7AHrCcS",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "toolu_0151cYg6LwS9Pxd5hiPLoYM8",
+            "name": "analyze_utterance",
+            "input": {
+              "utterance": "Cuando termine la tarea, ¿puedo ver dibujos animados?",
+              "lang": "es-419",
+              "domain": "tiempo_libre",
+              "metadata": {
+                "speech_act": "interrogative",
+                "intent": "request"
+              },
+              "frames": [
+                {
+                  "id": "frame_1",
+                  "frame_name": "Conditional_execution",
+                  "frame_label": "Ejecución condicional",
+                  "lexical_unit": "cuando",
+                  "roles": {
+                    "Condition": {
+                      "type": "Event",
+                      "lemma": "terminar",
+                      "surface": "termine la tarea"
+                    },
+                    "Event": {
+                      "type": "Event",
+                      "lemma": "ver",
+                      "surface": "puedo ver dibujos animados",
+                      "ref_frame": "frame_2"
+                    }
+                  }
+                },
+                {
+                  "id": "frame_2",
+                  "frame_name": "Possibility",
+                  "frame_label": "Posibilidad",
+                  "lexical_unit": "poder",
+                  "roles": {
+                    "Agent": {
+                      "type": "Speaker",
+                      "lemma": "yo",
+                      "surface": "puedo"
+                    },
+                    "Event": {
+                      "type": "Event",
+                      "lemma": "ver",
+                      "surface": "ver dibujos animados"
+                    }
+                  }
+                },
+                {
+                  "id": "frame_3",
+                  "frame_name": "Perception_active",
+                  "frame_label": "Percepción activa",
+                  "lexical_unit": "ver",
+                  "roles": {
+                    "Perceiver": {
+                      "type": "Experiencer",
+                      "lemma": "yo",
+                      "surface": "puedo ver"
+                    },
+                    "Phenomenon": {
+                      "type": "Theme",
+                      "lemma": "dibujos_animados",
+                      "surface": "dibujos animados"
+                    }
+                  }
+                },
+                {
+                  "id": "frame_4",
+                  "frame_name": "Activity_finish",
+                  "frame_label": "Finalización de actividad",
+                  "lexical_unit": "terminar",
+                  "roles": {
+                    "Agent": {
+                      "type": "Agent",
+                      "lemma": "yo",
+                      "surface": "termine"
+                    },
+                    "Activity": {
+                      "type": "Theme",
+                      "lemma": "tarea",
+                      "surface": "la tarea"
+                    }
+                  }
+                }
+              ],
+              "logical_form": {
+                "event": "poder(yo, ver(dibujos_animados))",
+                "tense": "present",
+                "aspect": "none",
+                "modality": "possibility",
+                "negation": false
+              },
+              "nsm_explications": {
+                "terminar": "YO HACE ALGO (tarea) durante MUCHO TIEMPO. DESPUÉS ESTE ALGO no hay más.",
+                "poder": "YO quiero HACER ALGO (ver dibujos animados). PUEDE SER que YO HAGA ESTO. PUEDE PASAR.",
+                "ver": "YO HACE ALGO. ESTE ALGO ACONTECE AQUÍ. YO percibe ESTO a través de los OJOS.",
+                "tarea": "ALGO que ALGUIEN QUIERE que YO HAGA. ESTE ALGO es BUENO."
+              },
+              "pragmatics": {
+                "politeness": "polite",
+                "formality": "neutral",
+                "urgency": "low",
+                "expected_response": "compliance",
+                "speaker_stance": "respectful; seeking permission contingent on task completion"
+              },
+              "visual_guidelines": {
+                "focus_actor": "Yo (el niño/niña que habla)",
+                "action_core": "Ver, disfrutar",
+                "object_core": "Dibujos animados",
+                "context": "Después de completar una tarea escolar u obligación",
+                "temporal": "near_future",
+                "salience": {
+                  "tarea": 0.6,
+                  "dibujos_animados": 0.8,
+                  "condición_temporal": 0.7
+                }
+              }
+            },
+            "caller": {
+              "type": "direct"
+            }
+          }
+        ],
+        "container": null,
+        "stop_reason": "tool_use",
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 3111,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 1187,
+          "service_tier": "standard",
+          "inference_geo": "not_available",
+          "speed": "standard"
+        },
+        "diagnostics": null,
+        "meta": {
+          "provider": "claude",
+          "attempts": 1
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "2c4b3edb35259774f3b418b0542c371f657b4c8e458c7e2c3ef87218584983c7"
+    }
+  ],
+  "warning": "Costs are estimates, not invoice ceilings. Structural validation does not establish semantic or AAC effectiveness."
+}

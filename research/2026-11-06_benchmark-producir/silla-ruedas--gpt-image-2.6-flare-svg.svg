@@ -1,0 +1,52 @@
+<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" width="1024" height="1024">
+  <title>Ayúdame a subir la rampa con la silla de ruedas</title>
+  <desc>Una persona ayuda a impulsar hacia arriba por una rampa a una persona usuaria de silla de ruedas.</desc>
+  <rect width="1024" height="1024" fill="#FFFFFF" />
+  <g stroke="#183244" stroke-width="18" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M166 884 L773 397 L847 489 L240 976 Z" fill="#DCE8EC" />
+    <path d="M203 875 L792 404" fill="none" stroke="#183244" stroke-width="14" />
+    <path d="M247 948 L834 477" fill="none" stroke="#183244" stroke-width="14" />
+    <path d="M295 839 L371 779" fill="none" stroke="#2C8190" stroke-width="17" />
+    <path d="M357 788 L433 727" fill="none" stroke="#2C8190" stroke-width="17" />
+    <path d="M419 738 L495 677" fill="none" stroke="#2C8190" stroke-width="17" />
+  </g>
+
+  <g stroke="#183244" stroke-width="18" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="517" cy="716" r="105" fill="#FFFFFF" />
+    <circle cx="517" cy="716" r="12" fill="#183244" stroke="none" />
+    <path d="M517 623 L517 809 M424 716 L610 716 M451 650 L583 782 M583 650 L451 782" fill="none" stroke-width="10" />
+    <circle cx="688" cy="626" r="30" fill="#FFFFFF" />
+    <path d="M688 626 L729 588 L754 578" fill="none" />
+    <path d="M488 540 L488 622 L626 622 L626 653" fill="none" />
+    <path d="M626 622 L688 626" fill="none" />
+    <path d="M627 652 L677 652" fill="none" />
+    <path d="M488 540 L455 540 L455 625" fill="none" />
+    <path d="M448 515 L448 488 Q448 474 462 474 L498 474" fill="none" />
+    <path d="M474 486 L474 526" fill="none" />
+  </g>
+
+  <g stroke="#183244" stroke-width="18" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M499 425 Q528 410 559 426 L606 490 L579 557 Q542 580 489 548 L468 493 Z" fill="#2C8190" />
+    <circle cx="542" cy="372" r="46" fill="#E7B58E" />
+    <path d="M508 357 Q515 315 555 323 Q583 331 587 362 L569 351 L548 358 L529 346 Z" fill="#183244" />
+    <path d="M506 440 L469 484 L449 509" fill="none" />
+    <path d="M559 436 L592 476 L624 492" fill="none" />
+    <path d="M490 548 L542 566 L603 593" fill="none" />
+    <path d="M603 593 L646 595" fill="none" />
+    <path d="M510 556 L492 594 L536 616" fill="none" />
+  </g>
+
+  <g stroke="#183244" stroke-width="18" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="355" cy="315" r="45" fill="#E7B58E" />
+    <path d="M320 305 Q324 261 360 265 Q389 268 399 301 L378 288 L351 295 L332 285 Z" fill="#183244" />
+    <path d="M324 373 Q352 354 383 373 L412 461 L389 529 L316 513 L301 447 Z" fill="#D9A441" />
+    <path d="M326 390 L294 456 L270 500 L454 492 L484 474" fill="none" />
+    <path d="M484 474 L501 479" fill="none" />
+    <path d="M383 389 L412 444 L446 470" fill="none" />
+    <path d="M446 470 L472 484" fill="none" />
+    <path d="M319 507 L288 572 L262 637" fill="none" />
+    <path d="M392 514 L422 568 L390 630" fill="none" />
+    <path d="M262 637 L230 650" fill="none" />
+    <path d="M390 630 L421 641" fill="none" />
+  </g>
+</svg>

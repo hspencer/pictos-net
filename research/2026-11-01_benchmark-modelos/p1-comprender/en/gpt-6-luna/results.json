@@ -1,0 +1,1764 @@
+{
+  "planHash": "fca768e9574ca8c985cb8107f1f98699726e5691e8e09d3e731fe7413f128476",
+  "state": "completed",
+  "estimatedExposureUsd": 0.0019764599999999976,
+  "attempts": [
+    {
+      "state": "recorded",
+      "caseId": "tummy",
+      "requestedModel": "gpt-6-luna",
+      "returnedModel": "gpt-6-luna",
+      "phase": 1,
+      "repetition": 1,
+      "requestHash": "0ae8827f96de2ab0ffe162aa813842b4875ee9046963845e0d89f63cc9001ec1",
+      "milliseconds": 5932,
+      "usage": {
+        "input_tokens": 1849,
+        "input_tokens_details": {
+          "cache_write_tokens": 127,
+          "cached_tokens": 1587
+        },
+        "output_tokens": 257,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 2106
+      },
+      "inputTokens": 3584,
+      "outputTokens": 532,
+      "estimatedCostUsd": 0.00048157,
+      "reservedUsd": 0.01317,
+      "canonicalValid": true,
+      "firstCallValid": false,
+      "providerCalls": 2,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 1587,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "utterance": "My tummy hurts",
+        "lang": "en-GB",
+        "domain": "salud",
+        "metadata": {
+          "speech_act": "assertive",
+          "intent": "inform"
+        },
+        "frames": [
+          {
+            "frame_name": "Experiencer_focus",
+            "frame_label": "Experiencer focus",
+            "lexical_unit": "hurt",
+            "roles": {
+              "Experiencer": {
+                "type": "Experiencer",
+                "surface": "My"
+              },
+              "Body_part": {
+                "type": "Patient",
+                "surface": "tummy",
+                "lemma": "tummy"
+              }
+            }
+          }
+        ],
+        "nsm_explications": {
+          "hurt": "SOMETHING BAD is happening to SOMEONE'S BODY now. THIS SOMEONE feels something bad."
+        },
+        "logical_form": {
+          "event": "hurt",
+          "modality": "actual",
+          "negation": false,
+          "aspect": "none",
+          "tense": "present"
+        },
+        "pragmatics": {
+          "politeness": "neutral",
+          "formality": "informal",
+          "expected_response": "acknowledgment",
+          "urgency": "medium",
+          "speaker_stance": "reporting physical discomfort"
+        },
+        "visual_guidelines": {
+          "focus_actor": "speaker",
+          "action_core": "experiencing pain",
+          "object_core": "tummy",
+          "context": "person indicating abdominal discomfort",
+          "temporal": "immediate",
+          "salience": {
+            "tummy": 0.9,
+            "face": 0.6
+          }
+        }
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "analyze_utterance",
+            "input": {
+              "utterance": "My tummy hurts",
+              "lang": "en-GB",
+              "domain": "salud",
+              "metadata": {
+                "speech_act": "assertive",
+                "intent": "inform"
+              },
+              "frames": [
+                {
+                  "frame_name": "Experiencer_focus",
+                  "frame_label": "Experiencer focus",
+                  "lexical_unit": "hurt",
+                  "roles": {
+                    "Experiencer": {
+                      "type": "Experiencer",
+                      "surface": "My"
+                    },
+                    "Body_part": {
+                      "type": "Patient",
+                      "surface": "tummy",
+                      "lemma": "tummy"
+                    }
+                  }
+                }
+              ],
+              "nsm_explications": {
+                "hurt": "SOMETHING BAD is happening to SOMEONE'S BODY now. THIS SOMEONE feels something bad."
+              },
+              "logical_form": {
+                "event": "hurt",
+                "modality": "actual",
+                "negation": false,
+                "aspect": "none",
+                "tense": "present"
+              },
+              "pragmatics": {
+                "politeness": "neutral",
+                "formality": "informal",
+                "expected_response": "acknowledgment",
+                "urgency": "medium",
+                "speaker_stance": "reporting physical discomfort"
+              },
+              "visual_guidelines": {
+                "focus_actor": "speaker",
+                "action_core": "experiencing pain",
+                "object_core": "tummy",
+                "context": "person indicating abdominal discomfort",
+                "temporal": "immediate",
+                "salience": {
+                  "tummy": 0.9,
+                  "face": 0.6
+                }
+              }
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gpt-6-luna",
+        "usage": {
+          "input_tokens": 1849,
+          "input_tokens_details": {
+            "cache_write_tokens": 127,
+            "cached_tokens": 1587
+          },
+          "output_tokens": 257,
+          "output_tokens_details": {
+            "reasoning_tokens": 0
+          },
+          "total_tokens": 2106
+        },
+        "meta": {
+          "provider": "openai",
+          "requestId": "req_1fb44924f98144b79cd97f584d6b2562",
+          "attempts": 1,
+          "requestedModel": "gpt-6-luna",
+          "actualModel": "gpt-6-luna",
+          "reasoningEffort": "low",
+          "durationMs": 2728
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "fc703bb895139e173c353ac7e714496d9d00eff18d8e5d6e07c95494e54ac411"
+    },
+    {
+      "state": "recorded",
+      "caseId": "go-outside",
+      "requestedModel": "gpt-6-luna",
+      "returnedModel": "gpt-6-luna",
+      "phase": 1,
+      "repetition": 0,
+      "requestHash": "0fddd17c4fda13acbfa8861dd9b6fffc4d92b3060eae8f0569d67b3ee9e1ff5a",
+      "milliseconds": 3500,
+      "usage": {
+        "input_tokens": 1737,
+        "input_tokens_details": {
+          "cache_write_tokens": 15,
+          "cached_tokens": 1587
+        },
+        "output_tokens": 388,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 2125
+      },
+      "inputTokens": 1737,
+      "outputTokens": 388,
+      "estimatedCostUsd": 0.00022487,
+      "reservedUsd": 0.013173600000000002,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 1587,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "utterance": "I want to go outside",
+        "lang": "en-GB",
+        "domain": "vida_cotidiana",
+        "metadata": {
+          "speech_act": "assertive",
+          "intent": "inform"
+        },
+        "frames": [
+          {
+            "frame_name": "Desiring",
+            "frame_label": "Desiring",
+            "lexical_unit": "want",
+            "roles": {
+              "Experiencer": {
+                "type": "Experiencer",
+                "surface": "I",
+                "lemma": "I"
+              },
+              "Event": {
+                "type": "Event",
+                "surface": "to go outside",
+                "lemma": "go outside"
+              }
+            },
+            "id": "desire"
+          },
+          {
+            "frame_name": "Motion",
+            "frame_label": "Motion",
+            "lexical_unit": "go",
+            "roles": {
+              "Agent": {
+                "type": "Agent",
+                "surface": "I",
+                "lemma": "I"
+              },
+              "Theme": {
+                "type": "Theme",
+                "surface": "I",
+                "lemma": "I"
+              },
+              "Goal": {
+                "type": "Location",
+                "surface": "outside",
+                "lemma": "outside"
+              }
+            },
+            "id": "motion"
+          }
+        ],
+        "nsm_explications": {
+          "want": "I THINK: I WANT TO DO SOMETHING. I WANT THIS.",
+          "go": "SOMEONE MOVES FROM HERE TO ANOTHER PLACE."
+        },
+        "logical_form": {
+          "event": "want(I, go_outside(I))",
+          "modality": "desire",
+          "negation": false,
+          "aspect": "none",
+          "tense": "present"
+        },
+        "pragmatics": {
+          "politeness": "neutral",
+          "formality": "neutral",
+          "expected_response": "acknowledgment",
+          "urgency": "low",
+          "speaker_stance": "Expresses a personal desire to leave the current indoor or enclosed place and go outdoors; not necessarily a direct request."
+        },
+        "visual_guidelines": {
+          "focus_actor": "the speaker",
+          "action_core": "expressing a desire to move outdoors",
+          "object_core": "going outside",
+          "context": "an everyday setting, with an exterior area visible beyond a doorway",
+          "temporal": "near_future",
+          "salience": {
+            "person": 0.9,
+            "outdoor_destination": 0.8,
+            "desire": 0.7
+          }
+        }
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "analyze_utterance",
+            "input": {
+              "utterance": "I want to go outside",
+              "lang": "en-GB",
+              "domain": "vida_cotidiana",
+              "metadata": {
+                "speech_act": "assertive",
+                "intent": "inform"
+              },
+              "frames": [
+                {
+                  "frame_name": "Desiring",
+                  "frame_label": "Desiring",
+                  "lexical_unit": "want",
+                  "roles": {
+                    "Experiencer": {
+                      "type": "Experiencer",
+                      "surface": "I",
+                      "lemma": "I"
+                    },
+                    "Event": {
+                      "type": "Event",
+                      "surface": "to go outside",
+                      "lemma": "go outside"
+                    }
+                  },
+                  "id": "desire"
+                },
+                {
+                  "frame_name": "Motion",
+                  "frame_label": "Motion",
+                  "lexical_unit": "go",
+                  "roles": {
+                    "Agent": {
+                      "type": "Agent",
+                      "surface": "I",
+                      "lemma": "I"
+                    },
+                    "Theme": {
+                      "type": "Theme",
+                      "surface": "I",
+                      "lemma": "I"
+                    },
+                    "Goal": {
+                      "type": "Location",
+                      "surface": "outside",
+                      "lemma": "outside"
+                    }
+                  },
+                  "id": "motion"
+                }
+              ],
+              "nsm_explications": {
+                "want": "I THINK: I WANT TO DO SOMETHING. I WANT THIS.",
+                "go": "SOMEONE MOVES FROM HERE TO ANOTHER PLACE."
+              },
+              "logical_form": {
+                "event": "want(I, go_outside(I))",
+                "modality": "desire",
+                "negation": false,
+                "aspect": "none",
+                "tense": "present"
+              },
+              "pragmatics": {
+                "politeness": "neutral",
+                "formality": "neutral",
+                "expected_response": "acknowledgment",
+                "urgency": "low",
+                "speaker_stance": "Expresses a personal desire to leave the current indoor or enclosed place and go outdoors; not necessarily a direct request."
+              },
+              "visual_guidelines": {
+                "focus_actor": "the speaker",
+                "action_core": "expressing a desire to move outdoors",
+                "object_core": "going outside",
+                "context": "an everyday setting, with an exterior area visible beyond a doorway",
+                "temporal": "near_future",
+                "salience": {
+                  "person": 0.9,
+                  "outdoor_destination": 0.8,
+                  "desire": 0.7
+                }
+              }
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gpt-6-luna",
+        "usage": {
+          "input_tokens": 1737,
+          "input_tokens_details": {
+            "cache_write_tokens": 15,
+            "cached_tokens": 1587
+          },
+          "output_tokens": 388,
+          "output_tokens_details": {
+            "reasoning_tokens": 0
+          },
+          "total_tokens": 2125
+        },
+        "meta": {
+          "provider": "openai",
+          "requestId": "req_01c0c134c6e74b31853af25163b842d6",
+          "attempts": 1,
+          "requestedModel": "gpt-6-luna",
+          "actualModel": "gpt-6-luna",
+          "reasoningEffort": "low",
+          "durationMs": 3499
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "852eed17450752e9f9e6f02ccfc9ea385fbe9e919f35bb1888f40298fd5e27d2"
+    },
+    {
+      "state": "recorded",
+      "caseId": "go-outside",
+      "requestedModel": "gpt-6-luna",
+      "returnedModel": "gpt-6-luna",
+      "phase": 1,
+      "repetition": 1,
+      "requestHash": "0fddd17c4fda13acbfa8861dd9b6fffc4d92b3060eae8f0569d67b3ee9e1ff5a",
+      "milliseconds": 3513,
+      "usage": {
+        "input_tokens": 1737,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 1602
+        },
+        "output_tokens": 342,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 2079
+      },
+      "inputTokens": 1737,
+      "outputTokens": 342,
+      "estimatedCostUsd": 0.00020052,
+      "reservedUsd": 0.013173600000000002,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 1602,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "utterance": "I want to go outside",
+        "lang": "en-GB",
+        "domain": "vida_cotidiana",
+        "metadata": {
+          "speech_act": "assertive",
+          "intent": "inform"
+        },
+        "frames": [
+          {
+            "frame_name": "Desiring",
+            "frame_label": "Desiring",
+            "lexical_unit": "want",
+            "id": "f1",
+            "roles": {
+              "Experiencer": {
+                "type": "Experiencer",
+                "surface": "I",
+                "lemma": "I"
+              },
+              "Event": {
+                "type": "Event",
+                "surface": "to go outside",
+                "lemma": "go",
+                "ref_frame": "f2"
+              }
+            }
+          },
+          {
+            "frame_name": "Self_motion",
+            "frame_label": "Self-motion",
+            "lexical_unit": "go",
+            "id": "f2",
+            "roles": {
+              "Agent": {
+                "type": "Agent",
+                "surface": "I",
+                "lemma": "I"
+              },
+              "Goal": {
+                "type": "Location",
+                "surface": "outside",
+                "lemma": "outside"
+              }
+            }
+          }
+        ],
+        "nsm_explications": {
+          "want": "I THINK: I WANT SOMETHING TO HAPPEN. I WANT TO DO THIS."
+        },
+        "logical_form": {
+          "event": "go outside",
+          "modality": "want",
+          "aspect": "none",
+          "tense": "present"
+        },
+        "pragmatics": {
+          "politeness": "neutral",
+          "formality": "neutral",
+          "expected_response": "other",
+          "speaker_stance": "expresses a personal desire to leave the current indoor or enclosed place for an exterior location."
+        },
+        "visual_guidelines": {
+          "focus_actor": "I",
+          "action_core": "go outside",
+          "object_core": "outside",
+          "context": "A person expressing a desire to move from an indoor or enclosed place to an exterior location.",
+          "temporal": "near_future",
+          "salience": {
+            "actor": 0.8,
+            "movement": 0.7,
+            "exterior_location": 0.6
+          }
+        }
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "analyze_utterance",
+            "input": {
+              "utterance": "I want to go outside",
+              "lang": "en-GB",
+              "domain": "vida_cotidiana",
+              "metadata": {
+                "speech_act": "assertive",
+                "intent": "inform"
+              },
+              "frames": [
+                {
+                  "frame_name": "Desiring",
+                  "frame_label": "Desiring",
+                  "lexical_unit": "want",
+                  "id": "f1",
+                  "roles": {
+                    "Experiencer": {
+                      "type": "Experiencer",
+                      "surface": "I",
+                      "lemma": "I"
+                    },
+                    "Event": {
+                      "type": "Event",
+                      "surface": "to go outside",
+                      "lemma": "go",
+                      "ref_frame": "f2"
+                    }
+                  }
+                },
+                {
+                  "frame_name": "Self_motion",
+                  "frame_label": "Self-motion",
+                  "lexical_unit": "go",
+                  "id": "f2",
+                  "roles": {
+                    "Agent": {
+                      "type": "Agent",
+                      "surface": "I",
+                      "lemma": "I"
+                    },
+                    "Goal": {
+                      "type": "Location",
+                      "surface": "outside",
+                      "lemma": "outside"
+                    }
+                  }
+                }
+              ],
+              "nsm_explications": {
+                "want": "I THINK: I WANT SOMETHING TO HAPPEN. I WANT TO DO THIS."
+              },
+              "logical_form": {
+                "event": "go outside",
+                "modality": "want",
+                "aspect": "none",
+                "tense": "present"
+              },
+              "pragmatics": {
+                "politeness": "neutral",
+                "formality": "neutral",
+                "expected_response": "other",
+                "speaker_stance": "expresses a personal desire to leave the current indoor or enclosed place for an exterior location."
+              },
+              "visual_guidelines": {
+                "focus_actor": "I",
+                "action_core": "go outside",
+                "object_core": "outside",
+                "context": "A person expressing a desire to move from an indoor or enclosed place to an exterior location.",
+                "temporal": "near_future",
+                "salience": {
+                  "actor": 0.8,
+                  "movement": 0.7,
+                  "exterior_location": 0.6
+                }
+              }
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gpt-6-luna",
+        "usage": {
+          "input_tokens": 1737,
+          "input_tokens_details": {
+            "cache_write_tokens": 0,
+            "cached_tokens": 1602
+          },
+          "output_tokens": 342,
+          "output_tokens_details": {
+            "reasoning_tokens": 0
+          },
+          "total_tokens": 2079
+        },
+        "meta": {
+          "provider": "openai",
+          "requestId": "req_980e05e2c4a5491ba0087d8958a45875",
+          "attempts": 1,
+          "requestedModel": "gpt-6-luna",
+          "actualModel": "gpt-6-luna",
+          "reasoningEffort": "low",
+          "durationMs": 3512
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "91e149f457ffa7cb63ebc452bee4fcd299a745f43c8bcc5a1bfe1e4830d3a76e"
+    },
+    {
+      "state": "recorded",
+      "caseId": "whos-coming",
+      "requestedModel": "gpt-6-luna",
+      "returnedModel": "gpt-6-luna",
+      "phase": 1,
+      "repetition": 0,
+      "requestHash": "a55efec68fc209645cb4cfd91b70b53fb84caede382e8fd7d7e9c99ccb880c57",
+      "milliseconds": 3319,
+      "usage": {
+        "input_tokens": 1739,
+        "input_tokens_details": {
+          "cache_write_tokens": 17,
+          "cached_tokens": 1587
+        },
+        "output_tokens": 372,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 2111
+      },
+      "inputTokens": 1739,
+      "outputTokens": 372,
+      "estimatedCostUsd": 0.00021706999999999998,
+      "reservedUsd": 0.013178400000000002,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 1587,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "utterance": "Who is coming to pick me up?",
+        "lang": "en-GB",
+        "domain": "transporte",
+        "metadata": {
+          "speech_act": "interrogative",
+          "intent": "ask_info"
+        },
+        "frames": [
+          {
+            "frame_name": "Motion",
+            "frame_label": "Motion",
+            "lexical_unit": "coming",
+            "roles": {
+              "Theme": {
+                "type": "Agent",
+                "surface": "Who",
+                "lemma": "someone"
+              },
+              "Goal": {
+                "type": "Location",
+                "surface": "here",
+                "lemma": "here"
+              },
+              "Time": {
+                "type": "Time",
+                "surface": "now",
+                "lemma": "now"
+              }
+            },
+            "id": "motion1"
+          },
+          {
+            "frame_name": "Assistance",
+            "frame_label": "Assistance",
+            "lexical_unit": "pick me up",
+            "roles": {
+              "Agent": {
+                "type": "Agent",
+                "surface": "Who",
+                "lemma": "someone"
+              },
+              "Beneficiary": {
+                "type": "Beneficiary",
+                "surface": "me",
+                "lemma": "I"
+              },
+              "Theme": {
+                "type": "Patient",
+                "surface": "me",
+                "lemma": "I"
+              }
+            },
+            "id": "pickup1"
+          }
+        ],
+        "nsm_explications": {
+          "come": "SOMEONE MOVES TO A PLACE NEAR HERE NOW.",
+          "pick_up": "SOMEONE DOES SOMETHING, BECAUSE SOMEONE WANTS ME TO MOVE WITH THIS SOMEONE."
+        },
+        "logical_form": {
+          "event": "Someone comes to pick the speaker up.",
+          "modality": "possible identity queried",
+          "tense": "present",
+          "aspect": "progressive",
+          "negation": false
+        },
+        "pragmatics": {
+          "politeness": "neutral",
+          "formality": "neutral",
+          "expected_response": "question",
+          "urgency": "low",
+          "speaker_stance": "Seeks the identity of the person expected to arrive and collect the speaker."
+        },
+        "visual_guidelines": {
+          "focus_actor": "unknown person coming to collect the speaker",
+          "action_core": "arrive and collect the speaker",
+          "object_core": "speaker",
+          "context": "a pickup or journey starting point",
+          "temporal": "immediate"
+        }
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "analyze_utterance",
+            "input": {
+              "utterance": "Who is coming to pick me up?",
+              "lang": "en-GB",
+              "domain": "transporte",
+              "metadata": {
+                "speech_act": "interrogative",
+                "intent": "ask_info"
+              },
+              "frames": [
+                {
+                  "frame_name": "Motion",
+                  "frame_label": "Motion",
+                  "lexical_unit": "coming",
+                  "roles": {
+                    "Theme": {
+                      "type": "Agent",
+                      "surface": "Who",
+                      "lemma": "someone"
+                    },
+                    "Goal": {
+                      "type": "Location",
+                      "surface": "here",
+                      "lemma": "here"
+                    },
+                    "Time": {
+                      "type": "Time",
+                      "surface": "now",
+                      "lemma": "now"
+                    }
+                  },
+                  "id": "motion1"
+                },
+                {
+                  "frame_name": "Assistance",
+                  "frame_label": "Assistance",
+                  "lexical_unit": "pick me up",
+                  "roles": {
+                    "Agent": {
+                      "type": "Agent",
+                      "surface": "Who",
+                      "lemma": "someone"
+                    },
+                    "Beneficiary": {
+                      "type": "Beneficiary",
+                      "surface": "me",
+                      "lemma": "I"
+                    },
+                    "Theme": {
+                      "type": "Patient",
+                      "surface": "me",
+                      "lemma": "I"
+                    }
+                  },
+                  "id": "pickup1"
+                }
+              ],
+              "nsm_explications": {
+                "come": "SOMEONE MOVES TO A PLACE NEAR HERE NOW.",
+                "pick_up": "SOMEONE DOES SOMETHING, BECAUSE SOMEONE WANTS ME TO MOVE WITH THIS SOMEONE."
+              },
+              "logical_form": {
+                "event": "Someone comes to pick the speaker up.",
+                "modality": "possible identity queried",
+                "tense": "present",
+                "aspect": "progressive",
+                "negation": false
+              },
+              "pragmatics": {
+                "politeness": "neutral",
+                "formality": "neutral",
+                "expected_response": "question",
+                "urgency": "low",
+                "speaker_stance": "Seeks the identity of the person expected to arrive and collect the speaker."
+              },
+              "visual_guidelines": {
+                "focus_actor": "unknown person coming to collect the speaker",
+                "action_core": "arrive and collect the speaker",
+                "object_core": "speaker",
+                "context": "a pickup or journey starting point",
+                "temporal": "immediate"
+              }
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gpt-6-luna",
+        "usage": {
+          "input_tokens": 1739,
+          "input_tokens_details": {
+            "cache_write_tokens": 17,
+            "cached_tokens": 1587
+          },
+          "output_tokens": 372,
+          "output_tokens_details": {
+            "reasoning_tokens": 0
+          },
+          "total_tokens": 2111
+        },
+        "meta": {
+          "provider": "openai",
+          "requestId": "req_dfa9d46bdf3d4f9996eb92eb41c7d27a",
+          "attempts": 1,
+          "requestedModel": "gpt-6-luna",
+          "actualModel": "gpt-6-luna",
+          "reasoningEffort": "low",
+          "durationMs": 3319
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "eed27b5c292b19158d1a2b8f484e4ec1364e826942382adb7fa666c656690b66"
+    },
+    {
+      "state": "recorded",
+      "caseId": "tummy",
+      "requestedModel": "gpt-6-luna",
+      "returnedModel": "gpt-6-luna",
+      "phase": 1,
+      "repetition": 0,
+      "requestHash": "0ae8827f96de2ab0ffe162aa813842b4875ee9046963845e0d89f63cc9001ec1",
+      "milliseconds": 3457,
+      "usage": {
+        "input_tokens": 1735,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 1600
+        },
+        "output_tokens": 326,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 2061
+      },
+      "inputTokens": 1735,
+      "outputTokens": 326,
+      "estimatedCostUsd": 0.0001925,
+      "reservedUsd": 0.01317,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 1600,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "utterance": "My tummy hurts",
+        "lang": "en-GB",
+        "domain": "salud",
+        "metadata": {
+          "speech_act": "assertive",
+          "intent": "inform"
+        },
+        "frames": [
+          {
+            "frame_name": "Experiencer_obj",
+            "frame_label": "Experiencer_obj",
+            "lexical_unit": "hurts",
+            "roles": {
+              "Experiencer": {
+                "type": "Experiencer",
+                "surface": "My",
+                "lemma": "I"
+              },
+              "Body_part": {
+                "type": "Patient",
+                "surface": "tummy",
+                "lemma": "tummy"
+              }
+            }
+          },
+          {
+            "frame_name": "Cause_harm",
+            "frame_label": "Cause_harm",
+            "lexical_unit": "hurts",
+            "roles": {
+              "Patient": {
+                "type": "Patient",
+                "surface": "tummy",
+                "lemma": "tummy"
+              },
+              "Experiencer": {
+                "type": "Experiencer",
+                "surface": "My",
+                "lemma": "I"
+              }
+            }
+          }
+        ],
+        "nsm_explications": {
+          "hurt": "SOMEONE FEELS SOMETHING BAD IN ONE PART OF THIS SOMEONE'S BODY."
+        },
+        "logical_form": {
+          "event": "feel_pain",
+          "modality": "actual",
+          "aspect": "progressive",
+          "tense": "present"
+        },
+        "pragmatics": {
+          "politeness": "neutral",
+          "formality": "informal",
+          "expected_response": "acknowledgment",
+          "urgency": "medium",
+          "speaker_stance": "reports current physical discomfort"
+        },
+        "visual_guidelines": {
+          "focus_actor": "speaker",
+          "action_core": "experiencing pain",
+          "object_core": "tummy",
+          "context": "person indicating their abdomen to communicate discomfort",
+          "temporal": "immediate",
+          "salience": {
+            "speaker": 0.8,
+            "tummy": 1,
+            "pain": 0.9
+          }
+        }
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "analyze_utterance",
+            "input": {
+              "utterance": "My tummy hurts",
+              "lang": "en-GB",
+              "domain": "salud",
+              "metadata": {
+                "speech_act": "assertive",
+                "intent": "inform"
+              },
+              "frames": [
+                {
+                  "frame_name": "Experiencer_obj",
+                  "frame_label": "Experiencer_obj",
+                  "lexical_unit": "hurts",
+                  "roles": {
+                    "Experiencer": {
+                      "type": "Experiencer",
+                      "surface": "My",
+                      "lemma": "I"
+                    },
+                    "Body_part": {
+                      "type": "Patient",
+                      "surface": "tummy",
+                      "lemma": "tummy"
+                    }
+                  }
+                },
+                {
+                  "frame_name": "Cause_harm",
+                  "frame_label": "Cause_harm",
+                  "lexical_unit": "hurts",
+                  "roles": {
+                    "Patient": {
+                      "type": "Patient",
+                      "surface": "tummy",
+                      "lemma": "tummy"
+                    },
+                    "Experiencer": {
+                      "type": "Experiencer",
+                      "surface": "My",
+                      "lemma": "I"
+                    }
+                  }
+                }
+              ],
+              "nsm_explications": {
+                "hurt": "SOMEONE FEELS SOMETHING BAD IN ONE PART OF THIS SOMEONE'S BODY."
+              },
+              "logical_form": {
+                "event": "feel_pain",
+                "modality": "actual",
+                "aspect": "progressive",
+                "tense": "present"
+              },
+              "pragmatics": {
+                "politeness": "neutral",
+                "formality": "informal",
+                "expected_response": "acknowledgment",
+                "urgency": "medium",
+                "speaker_stance": "reports current physical discomfort"
+              },
+              "visual_guidelines": {
+                "focus_actor": "speaker",
+                "action_core": "experiencing pain",
+                "object_core": "tummy",
+                "context": "person indicating their abdomen to communicate discomfort",
+                "temporal": "immediate",
+                "salience": {
+                  "speaker": 0.8,
+                  "tummy": 1,
+                  "pain": 0.9
+                }
+              }
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gpt-6-luna",
+        "usage": {
+          "input_tokens": 1735,
+          "input_tokens_details": {
+            "cache_write_tokens": 0,
+            "cached_tokens": 1600
+          },
+          "output_tokens": 326,
+          "output_tokens_details": {
+            "reasoning_tokens": 0
+          },
+          "total_tokens": 2061
+        },
+        "meta": {
+          "provider": "openai",
+          "requestId": "req_9271bf480aec4de1acca23ba54273c98",
+          "attempts": 1,
+          "requestedModel": "gpt-6-luna",
+          "actualModel": "gpt-6-luna",
+          "reasoningEffort": "low",
+          "durationMs": 3457
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "8ba9533bf56d3d63adb7ec2e81895b590f1d52baa615dcb4cb73b1414d24a6ed"
+    },
+    {
+      "state": "recorded",
+      "caseId": "whos-coming",
+      "requestedModel": "gpt-6-luna",
+      "returnedModel": "gpt-6-luna",
+      "phase": 1,
+      "repetition": 1,
+      "requestHash": "a55efec68fc209645cb4cfd91b70b53fb84caede382e8fd7d7e9c99ccb880c57",
+      "milliseconds": 3895,
+      "usage": {
+        "input_tokens": 1739,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 1604
+        },
+        "output_tokens": 436,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 2175
+      },
+      "inputTokens": 1739,
+      "outputTokens": 436,
+      "estimatedCostUsd": 0.00024754,
+      "reservedUsd": 0.013178400000000002,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 1604,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "utterance": "Who is coming to pick me up?",
+        "lang": "en-GB",
+        "domain": "transporte",
+        "metadata": {
+          "speech_act": "interrogative",
+          "intent": "ask_info"
+        },
+        "frames": [
+          {
+            "frame_name": "Motion",
+            "frame_label": "Motion",
+            "lexical_unit": "coming",
+            "roles": {
+              "Theme": {
+                "type": "Agent",
+                "surface": "Who"
+              },
+              "Goal": {
+                "type": "Location",
+                "surface": "here"
+              }
+            },
+            "id": "f1"
+          },
+          {
+            "frame_name": "Being_in_motion",
+            "frame_label": "Being in motion",
+            "lexical_unit": "coming",
+            "roles": {
+              "Self_mover": {
+                "type": "Agent",
+                "surface": "Who"
+              },
+              "Path": {
+                "type": "Other",
+                "surface": "to pick me up",
+                "ref_frame": "f2"
+              }
+            },
+            "id": "f2"
+          },
+          {
+            "frame_name": "Picking_up",
+            "frame_label": "Picking up",
+            "lexical_unit": "pick up",
+            "roles": {
+              "Agent": {
+                "type": "Agent",
+                "surface": "Who",
+                "ref": "unknown_person"
+              },
+              "Theme": {
+                "type": "Patient",
+                "surface": "me",
+                "ref": "speaker"
+              },
+              "Purpose": {
+                "type": "Event",
+                "surface": "coming"
+              }
+            },
+            "id": "f3"
+          }
+        ],
+        "nsm_explications": {
+          "come": "SOMEONE moves from somewhere OTHER to HERE.",
+          "pick_up": "SOMEONE does something to make SOMEONE ELSE move with THIS SOMEONE."
+        },
+        "logical_form": {
+          "event": "identify the person who will come to collect the speaker",
+          "modality": "actuality question",
+          "tense": "future",
+          "aspect": "none"
+        },
+        "pragmatics": {
+          "politeness": "neutral",
+          "formality": "neutral",
+          "expected_response": "question",
+          "urgency": "low",
+          "speaker_stance": "The speaker seeks to know the identity of the person expected to collect them."
+        },
+        "visual_guidelines": {
+          "focus_actor": "the person coming to collect the speaker, identity unknown",
+          "secondary_actor": "the speaker",
+          "action_core": "come to collect the speaker",
+          "object_core": "the speaker",
+          "context": "a transport or meeting arrangement; the speaker asks who will arrive to pick them up",
+          "temporal": "near_future",
+          "salience": {
+            "approaching_person": 0.9,
+            "speaker": 0.7,
+            "pickup_action": 0.9
+          }
+        }
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "analyze_utterance",
+            "input": {
+              "utterance": "Who is coming to pick me up?",
+              "lang": "en-GB",
+              "domain": "transporte",
+              "metadata": {
+                "speech_act": "interrogative",
+                "intent": "ask_info"
+              },
+              "frames": [
+                {
+                  "frame_name": "Motion",
+                  "frame_label": "Motion",
+                  "lexical_unit": "coming",
+                  "roles": {
+                    "Theme": {
+                      "type": "Agent",
+                      "surface": "Who"
+                    },
+                    "Goal": {
+                      "type": "Location",
+                      "surface": "here"
+                    }
+                  },
+                  "id": "f1"
+                },
+                {
+                  "frame_name": "Being_in_motion",
+                  "frame_label": "Being in motion",
+                  "lexical_unit": "coming",
+                  "roles": {
+                    "Self_mover": {
+                      "type": "Agent",
+                      "surface": "Who"
+                    },
+                    "Path": {
+                      "type": "Other",
+                      "surface": "to pick me up",
+                      "ref_frame": "f2"
+                    }
+                  },
+                  "id": "f2"
+                },
+                {
+                  "frame_name": "Picking_up",
+                  "frame_label": "Picking up",
+                  "lexical_unit": "pick up",
+                  "roles": {
+                    "Agent": {
+                      "type": "Agent",
+                      "surface": "Who",
+                      "ref": "unknown_person"
+                    },
+                    "Theme": {
+                      "type": "Patient",
+                      "surface": "me",
+                      "ref": "speaker"
+                    },
+                    "Purpose": {
+                      "type": "Event",
+                      "surface": "coming"
+                    }
+                  },
+                  "id": "f3"
+                }
+              ],
+              "nsm_explications": {
+                "come": "SOMEONE moves from somewhere OTHER to HERE.",
+                "pick_up": "SOMEONE does something to make SOMEONE ELSE move with THIS SOMEONE."
+              },
+              "logical_form": {
+                "event": "identify the person who will come to collect the speaker",
+                "modality": "actuality question",
+                "tense": "future",
+                "aspect": "none"
+              },
+              "pragmatics": {
+                "politeness": "neutral",
+                "formality": "neutral",
+                "expected_response": "question",
+                "urgency": "low",
+                "speaker_stance": "The speaker seeks to know the identity of the person expected to collect them."
+              },
+              "visual_guidelines": {
+                "focus_actor": "the person coming to collect the speaker, identity unknown",
+                "secondary_actor": "the speaker",
+                "action_core": "come to collect the speaker",
+                "object_core": "the speaker",
+                "context": "a transport or meeting arrangement; the speaker asks who will arrive to pick them up",
+                "temporal": "near_future",
+                "salience": {
+                  "approaching_person": 0.9,
+                  "speaker": 0.7,
+                  "pickup_action": 0.9
+                }
+              }
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gpt-6-luna",
+        "usage": {
+          "input_tokens": 1739,
+          "input_tokens_details": {
+            "cache_write_tokens": 0,
+            "cached_tokens": 1604
+          },
+          "output_tokens": 436,
+          "output_tokens_details": {
+            "reasoning_tokens": 0
+          },
+          "total_tokens": 2175
+        },
+        "meta": {
+          "provider": "openai",
+          "requestId": "req_72d9ef1f4c344cd9b9ec1fb289d559b0",
+          "attempts": 1,
+          "requestedModel": "gpt-6-luna",
+          "actualModel": "gpt-6-luna",
+          "reasoningEffort": "low",
+          "durationMs": 3895
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "889a5d35a40e94d1905035d1a5dbcbca47bae33e5714bdbaf1fc180c61ec0de5"
+    },
+    {
+      "state": "recorded",
+      "caseId": "dont-like-noise",
+      "requestedModel": "gpt-6-luna",
+      "returnedModel": "gpt-6-luna",
+      "phase": 1,
+      "repetition": 1,
+      "requestHash": "4f89e1ad22e0274b835d84ae0a802fdb56c4f1734ba7ebb29d6cbbca4435407d",
+      "milliseconds": 3132,
+      "usage": {
+        "input_tokens": 1737,
+        "input_tokens_details": {
+          "cache_write_tokens": 15,
+          "cached_tokens": 1587
+        },
+        "output_tokens": 362,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 2099
+      },
+      "inputTokens": 1737,
+      "outputTokens": 362,
+      "estimatedCostUsd": 0.00021187000000000002,
+      "reservedUsd": 0.013176,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 1587,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "utterance": "I don't like loud noises",
+        "lang": "en-GB",
+        "domain": "emociones",
+        "metadata": {
+          "speech_act": "assertive",
+          "intent": "inform"
+        },
+        "frames": [
+          {
+            "frame_name": "Experiencer_focus",
+            "frame_label": "Experiencer focus",
+            "lexical_unit": "like",
+            "roles": {
+              "Experiencer": {
+                "type": "Experiencer",
+                "surface": "I",
+                "lemma": "I"
+              },
+              "Stimulus": {
+                "type": "Theme",
+                "surface": "loud noises",
+                "lemma": "noise",
+                "definiteness": "unspecified"
+              }
+            },
+            "id": "f1"
+          },
+          {
+            "frame_name": "Sound_level",
+            "frame_label": "Sound level",
+            "lexical_unit": "loud",
+            "roles": {
+              "Sound": {
+                "type": "Theme",
+                "surface": "noises",
+                "lemma": "noise",
+                "ref_frame": "f1"
+              },
+              "Degree": {
+                "type": "Other",
+                "surface": "loud",
+                "lemma": "loud"
+              }
+            }
+          }
+        ],
+        "nsm_explications": {
+          "like": "I DON'T WANT THIS: I FEEL SOMETHING BAD WHEN I HEAR THIS KIND OF THING.",
+          "loud": "SOMEONE CAN HEAR THIS THING VERY MUCH."
+        },
+        "logical_form": {
+          "event": "not_like",
+          "modality": "none",
+          "negation": true,
+          "aspect": "habitual",
+          "tense": "present"
+        },
+        "pragmatics": {
+          "politeness": "neutral",
+          "formality": "neutral",
+          "expected_response": "acknowledgment",
+          "urgency": "low",
+          "speaker_stance": "The speaker expresses a general aversion to loud sounds."
+        },
+        "visual_guidelines": {
+          "focus_actor": "speaker",
+          "action_core": "express dislike",
+          "object_core": "loud noises",
+          "context": "A person reacting negatively to loud sounds.",
+          "temporal": "habitual",
+          "salience": {
+            "speaker": 0.8,
+            "loud_noises": 1
+          }
+        }
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "analyze_utterance",
+            "input": {
+              "utterance": "I don't like loud noises",
+              "lang": "en-GB",
+              "domain": "emociones",
+              "metadata": {
+                "speech_act": "assertive",
+                "intent": "inform"
+              },
+              "frames": [
+                {
+                  "frame_name": "Experiencer_focus",
+                  "frame_label": "Experiencer focus",
+                  "lexical_unit": "like",
+                  "roles": {
+                    "Experiencer": {
+                      "type": "Experiencer",
+                      "surface": "I",
+                      "lemma": "I"
+                    },
+                    "Stimulus": {
+                      "type": "Theme",
+                      "surface": "loud noises",
+                      "lemma": "noise",
+                      "definiteness": "unspecified"
+                    }
+                  },
+                  "id": "f1"
+                },
+                {
+                  "frame_name": "Sound_level",
+                  "frame_label": "Sound level",
+                  "lexical_unit": "loud",
+                  "roles": {
+                    "Sound": {
+                      "type": "Theme",
+                      "surface": "noises",
+                      "lemma": "noise",
+                      "ref_frame": "f1"
+                    },
+                    "Degree": {
+                      "type": "Other",
+                      "surface": "loud",
+                      "lemma": "loud"
+                    }
+                  }
+                }
+              ],
+              "nsm_explications": {
+                "like": "I DON'T WANT THIS: I FEEL SOMETHING BAD WHEN I HEAR THIS KIND OF THING.",
+                "loud": "SOMEONE CAN HEAR THIS THING VERY MUCH."
+              },
+              "logical_form": {
+                "event": "not_like",
+                "modality": "none",
+                "negation": true,
+                "aspect": "habitual",
+                "tense": "present"
+              },
+              "pragmatics": {
+                "politeness": "neutral",
+                "formality": "neutral",
+                "expected_response": "acknowledgment",
+                "urgency": "low",
+                "speaker_stance": "The speaker expresses a general aversion to loud sounds."
+              },
+              "visual_guidelines": {
+                "focus_actor": "speaker",
+                "action_core": "express dislike",
+                "object_core": "loud noises",
+                "context": "A person reacting negatively to loud sounds.",
+                "temporal": "habitual",
+                "salience": {
+                  "speaker": 0.8,
+                  "loud_noises": 1
+                }
+              }
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gpt-6-luna",
+        "usage": {
+          "input_tokens": 1737,
+          "input_tokens_details": {
+            "cache_write_tokens": 15,
+            "cached_tokens": 1587
+          },
+          "output_tokens": 362,
+          "output_tokens_details": {
+            "reasoning_tokens": 0
+          },
+          "total_tokens": 2099
+        },
+        "meta": {
+          "provider": "openai",
+          "requestId": "req_79eee224d4b0470e9be41ec14702d794",
+          "attempts": 1,
+          "requestedModel": "gpt-6-luna",
+          "actualModel": "gpt-6-luna",
+          "reasoningEffort": "low",
+          "durationMs": 3132
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "5e3a49cd319fb44178060bff9827c0ce4a16c066401a187ddfbd8c3dbcf6c7db"
+    },
+    {
+      "state": "recorded",
+      "caseId": "dont-like-noise",
+      "requestedModel": "gpt-6-luna",
+      "returnedModel": "gpt-6-luna",
+      "phase": 1,
+      "repetition": 0,
+      "requestHash": "4f89e1ad22e0274b835d84ae0a802fdb56c4f1734ba7ebb29d6cbbca4435407d",
+      "milliseconds": 6766,
+      "usage": {
+        "input_tokens": 1737,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 1602
+        },
+        "output_tokens": 342,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 2079
+      },
+      "inputTokens": 1737,
+      "outputTokens": 342,
+      "estimatedCostUsd": 0.00020052,
+      "reservedUsd": 0.013176,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 1602,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "utterance": "I don't like loud noises",
+        "lang": "en-GB",
+        "domain": "emociones",
+        "metadata": {
+          "speech_act": "assertive",
+          "intent": "inform"
+        },
+        "frames": [
+          {
+            "frame_name": "Experiencer_obj",
+            "frame_label": "Experiencer_obj",
+            "lexical_unit": "like",
+            "roles": {
+              "Experiencer": {
+                "type": "Experiencer",
+                "surface": "I",
+                "lemma": "I"
+              },
+              "Stimulus": {
+                "type": "Theme",
+                "surface": "loud noises",
+                "lemma": "noise"
+              }
+            }
+          },
+          {
+            "frame_name": "Sound_level",
+            "frame_label": "Sound_level",
+            "lexical_unit": "loud",
+            "roles": {
+              "Sound": {
+                "type": "Object",
+                "surface": "noises",
+                "lemma": "noise"
+              },
+              "Degree": {
+                "type": "Other",
+                "surface": "loud",
+                "lemma": "loud"
+              }
+            }
+          }
+        ],
+        "nsm_explications": {
+          "like": "I DON'T WANT THIS: I FEEL SOMETHING BAD WHEN I HEAR THIS THING.",
+          "loud": "SOME THING IS VERY BIG IN SOUND"
+        },
+        "logical_form": {
+          "event": "not like",
+          "modality": "actual",
+          "negation": true,
+          "aspect": "none",
+          "tense": "present"
+        },
+        "pragmatics": {
+          "politeness": "neutral",
+          "formality": "neutral",
+          "expected_response": "acknowledgment",
+          "urgency": "low",
+          "speaker_stance": "Expresses a negative preference or aversion to loud noises."
+        },
+        "visual_guidelines": {
+          "focus_actor": "speaker",
+          "action_core": "dislike",
+          "object_core": "loud noises",
+          "context": "The speaker communicates an aversion to loud sounds.",
+          "temporal": "immediate",
+          "salience": {
+            "speaker": 0.7,
+            "loud_noises": 0.9
+          }
+        }
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "analyze_utterance",
+            "input": {
+              "utterance": "I don't like loud noises",
+              "lang": "en-GB",
+              "domain": "emociones",
+              "metadata": {
+                "speech_act": "assertive",
+                "intent": "inform"
+              },
+              "frames": [
+                {
+                  "frame_name": "Experiencer_obj",
+                  "frame_label": "Experiencer_obj",
+                  "lexical_unit": "like",
+                  "roles": {
+                    "Experiencer": {
+                      "type": "Experiencer",
+                      "surface": "I",
+                      "lemma": "I"
+                    },
+                    "Stimulus": {
+                      "type": "Theme",
+                      "surface": "loud noises",
+                      "lemma": "noise"
+                    }
+                  }
+                },
+                {
+                  "frame_name": "Sound_level",
+                  "frame_label": "Sound_level",
+                  "lexical_unit": "loud",
+                  "roles": {
+                    "Sound": {
+                      "type": "Object",
+                      "surface": "noises",
+                      "lemma": "noise"
+                    },
+                    "Degree": {
+                      "type": "Other",
+                      "surface": "loud",
+                      "lemma": "loud"
+                    }
+                  }
+                }
+              ],
+              "nsm_explications": {
+                "like": "I DON'T WANT THIS: I FEEL SOMETHING BAD WHEN I HEAR THIS THING.",
+                "loud": "SOME THING IS VERY BIG IN SOUND"
+              },
+              "logical_form": {
+                "event": "not like",
+                "modality": "actual",
+                "negation": true,
+                "aspect": "none",
+                "tense": "present"
+              },
+              "pragmatics": {
+                "politeness": "neutral",
+                "formality": "neutral",
+                "expected_response": "acknowledgment",
+                "urgency": "low",
+                "speaker_stance": "Expresses a negative preference or aversion to loud noises."
+              },
+              "visual_guidelines": {
+                "focus_actor": "speaker",
+                "action_core": "dislike",
+                "object_core": "loud noises",
+                "context": "The speaker communicates an aversion to loud sounds.",
+                "temporal": "immediate",
+                "salience": {
+                  "speaker": 0.7,
+                  "loud_noises": 0.9
+                }
+              }
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gpt-6-luna",
+        "usage": {
+          "input_tokens": 1737,
+          "input_tokens_details": {
+            "cache_write_tokens": 0,
+            "cached_tokens": 1602
+          },
+          "output_tokens": 342,
+          "output_tokens_details": {
+            "reasoning_tokens": 0
+          },
+          "total_tokens": 2079
+        },
+        "meta": {
+          "provider": "openai",
+          "requestId": "req_46857c25ad2c4c5a93c8eb3f2b50ad2e",
+          "attempts": 1,
+          "requestedModel": "gpt-6-luna",
+          "actualModel": "gpt-6-luna",
+          "reasoningEffort": "low",
+          "durationMs": 6764
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "61654aaeec4a385e6a57d071ba8ed58b3108014586072d11d58b591187025177"
+    }
+  ],
+  "warning": "Costs are estimates, not invoice ceilings. Structural validation does not establish semantic or AAC effectiveness."
+}

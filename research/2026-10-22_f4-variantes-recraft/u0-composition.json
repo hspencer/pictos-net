@@ -1,0 +1,41 @@
+{
+  "utterance": "Quiero un vaso de agua",
+  "composition": {
+    "elements": [
+      {
+        "id": "pictograma",
+        "concept": "Root",
+        "children": [
+          {
+            "id": "hablante",
+            "concept": "Agent",
+            "children": [
+              {
+                "id": "deseo",
+                "concept": "Action",
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "vaso",
+            "concept": "Object",
+            "children": [
+              {
+                "id": "agua",
+                "concept": "Object",
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "interaccion_cotidiana",
+            "concept": "Context",
+            "children": []
+          }
+        ]
+      }
+    ],
+    "prompt": "'hablante' está en el centro-izquierda expresando 'deseo' mediante una flecha o gesto dirigido hacia 'vaso'. 'vaso' contiene 'agua' y se posiciona a la derecha o enfrente del 'hablante'. 'interaccion_cotidiana' proporciona el fondo contextual como escenario de un hogar o comedor. La composición enfatiza la relación entre el agente solicitante y el objeto deseado."
+  }
+}

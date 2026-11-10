@@ -1,0 +1,56 @@
+{
+  "rowsWithNlu": 829,
+  "documentValid": 3,
+  "generationValid": 3,
+  "compositionValid": 114,
+  "topInvalidPaths": [
+    [
+      "/metadata/intent",
+      825
+    ],
+    [
+      "/visual_guidelines/temporal",
+      819
+    ],
+    [
+      "/pragmatics/expected_response",
+      811
+    ],
+    [
+      "/metadata/speech_act",
+      777
+    ],
+    [
+      "/pragmatics/politeness",
+      677
+    ],
+    [
+      "/pragmatics/formality",
+      480
+    ],
+    [
+      "/frames/0/roles/Agent/type",
+      135
+    ],
+    [
+      "/frames/0/roles/Experiencer/type",
+      128
+    ],
+    [
+      "/frames/0/roles/Theme/type",
+      77
+    ],
+    [
+      "/frames/0/roles/Cognizer/type",
+      58
+    ],
+    [
+      "/nsm_explications",
+      54
+    ],
+    [
+      "/frames/0/roles/Content/type",
+      45
+    ]
+  ]
+}

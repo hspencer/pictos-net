@@ -1,0 +1,29 @@
+{
+  "utterance": "Vamos al parque",
+  "composition": {
+    "elements": [
+      {
+        "id": "pictograma",
+        "concept": "Root",
+        "children": [
+          {
+            "id": "nosotros",
+            "concept": "Agent",
+            "children": []
+          },
+          {
+            "id": "desplazarse",
+            "concept": "Action",
+            "children": []
+          },
+          {
+            "id": "parque",
+            "concept": "Context",
+            "children": []
+          }
+        ]
+      }
+    ],
+    "prompt": "'nosotros' se posiciona a la izquierda, con 'desplazarse' representado por líneas de movimiento dinámicas dirigidas hacia la derecha. 'parque' se sitúa al lado derecho como el destino final, con mayor tamaño para enfatizar la salencia del objetivo. El grupo central conecta el origen con el destino a través de la acción de desplazamiento."
+  }
+}

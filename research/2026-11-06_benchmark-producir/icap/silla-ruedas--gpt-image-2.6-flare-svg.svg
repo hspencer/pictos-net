@@ -1,0 +1,43 @@
+<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" width="1024" height="1024">
+  <title>Persona usuaria de silla de ruedas acompañada al subir una rampa</title>
+  <desc>Una persona ayuda desde detrás a impulsar una silla de ruedas hacia una rampa ascendente.</desc>
+  <rect width="1024" height="1024" fill="#f7f6f2" />
+  <g id="entorno">
+    <path d="M42 812H978" fill="none" stroke="#d5d2cc" stroke-width="10" stroke-linecap="round" />
+    <path d="M405 812 816 536 970 536V812Z" fill="#d8d4ce" stroke="#b7b3ad" stroke-width="12" stroke-linejoin="round" />
+    <path d="M816 536V176Q816 166 827 163L972 132Q984 130 984 143V536" fill="#e7e6df" stroke="#d0cec7" stroke-width="8" stroke-linejoin="round" />
+    <path d="M837 520V190L962 162V520" fill="#f0efe9" />
+  </g>
+  <g id="ayudante" stroke="#343633" stroke-width="14" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="177" cy="292" rx="43" ry="49" fill="#343633" stroke="none" />
+    <path d="M145 358Q165 344 192 352Q215 359 223 388L240 459 291 477Q309 484 302 499Q296 512 279 506L217 493Q203 490 198 476L179 424" />
+    <path d="M151 369Q127 372 118 401L89 509Q83 530 99 546L141 586 135 690 80 786Q72 801 89 805L146 807Q160 806 156 793L130 778 174 692Q182 675 178 654L156 567 188 480" />
+    <path d="M174 441 207 493Q216 507 231 508L270 503" fill="none" />
+    <path d="M145 586 178 640Q187 654 185 675L181 785Q180 804 196 805L249 804Q264 801 254 790L214 777 224 671Q227 648 215 625L187 576" />
+    <path d="M267 503Q284 508 296 500" fill="none" />
+  </g>
+  <g id="silla" stroke="#343633" stroke-width="14" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="327" cy="700" r="101" fill="#f7f6f2" />
+    <circle cx="327" cy="700" r="14" fill="#343633" stroke="none" />
+    <circle cx="484" cy="770" r="33" fill="#f7f6f2" />
+    <path d="M303 588 411 586 437 682 493 675" fill="none" />
+    <path d="M409 586 442 681 483 681" fill="none" />
+    <path d="M360 594 338 550 312 486" fill="none" />
+    <path d="M312 486 286 474" fill="none" />
+    <path d="M434 682 497 674" fill="none" />
+    <path d="M411 586 451 585" fill="none" />
+    <path d="M389 600 419 655 463 653" fill="none" />
+  </g>
+  <g id="persona-usuaria" stroke="#343633" stroke-width="14" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="315" cy="406" rx="42" ry="48" fill="#343633" stroke="none" />
+    <path d="M284 468Q301 454 325 461Q347 467 354 491L369 543 411 547Q429 550 428 565Q426 580 409 579L354 578Q337 577 331 561L313 514" />
+    <path d="M283 475Q263 483 265 507L278 568Q282 586 301 590L356 587" fill="none" />
+    <path d="M354 578 389 621 431 674" fill="none" />
+    <path d="M357 587 405 589Q424 592 430 613L445 671" fill="none" />
+    <path d="M431 674 489 670Q503 670 503 681Q503 692 489 694L426 704" fill="none" />
+  </g>
+  <g id="contacto" fill="#343633">
+    <circle cx="297" cy="500" r="9" />
+    <circle cx="284" cy="475" r="8" />
+  </g>
+</svg>

@@ -1,0 +1,28 @@
+<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" width="1024" height="1024">
+  <title>Persona con dolor de cabeza</title>
+  <desc>Figura adulta con las manos en las sienes; una cruz médica tenue ocupa el fondo a la derecha.</desc>
+  <rect width="1024" height="1024" fill="#f6f4ef" />
+  <g fill="#d9ddd2">
+    <path d="M726 302h116a25 25 0 0 1 25 25v98h98a25 25 0 0 1 25 25v116a25 25 0 0 1-25 25h-98v98a25 25 0 0 1-25 25H726a25 25 0 0 1-25-25v-98h-98a25 25 0 0 1-25-25V450a25 25 0 0 1 25-25h98v-98a25 25 0 0 1 25-25z" />
+  </g>
+  <line x1="64" y1="922" x2="960" y2="922" stroke="#dedbd4" stroke-width="8" stroke-linecap="round" />
+  <g stroke="#343532" stroke-width="13" stroke-linecap="round" stroke-linejoin="round">
+    <path fill="#777873" d="M262 913V680c0-76 52-124 133-137l48-9h107l48 9c81 13 133 61 133 137v233z" />
+    <path fill="#e7e3db" d="M377 535c10 60 41 96 119 96s109-36 119-96l-41-12H418z" />
+    <path fill="#d2c2b8" d="M306 351c0-112 69-188 190-188s190 76 190 188v94c0 113-78 199-190 199s-190-86-190-199z" />
+    <path fill="#343532" d="M302 370c-13-120 58-222 190-222 116 0 190 83 190 201v50c-24-30-44-57-54-99-42 66-115 104-220 108-35 1-71-4-103-16z" />
+    <path fill="none" d="M302 367c-25-1-42 22-48 49l-7 99c-2 23-14 40-29 62l-88 131c-22 34-26 73-2 96 21 20 54 16 82-1l67-42c12-8 23-15 33-26" />
+    <path fill="none" d="M690 367c25-1 42 22 48 49l7 99c2 23 14 40 29 62l88 131c22 34 26 73 2 96-21 20-54 16-82-1l-67-42c-12-8-23-15-33-26" />
+    <path fill="none" d="M303 369c-17 20-31 44-40 70" />
+    <path fill="none" d="M689 369c17 20 31 44 40 70" />
+    <path fill="none" d="M319 367c-22 25-39 54-48 86" />
+    <path fill="none" d="M673 367c22 25 39 54 48 86" />
+    <path fill="none" d="M218 710c-16 29-29 58-42 86" />
+    <path fill="none" d="M774 710c16 29 29 58 42 86" />
+  </g>
+  <g fill="#c98170">
+    <path d="M312 380c-19 14-29 36-35 61-4 17 4 30 18 27 12-3 20-17 26-32 6-16 14-29 24-41z" />
+    <path d="M678 380c19 14 29 36 35 61 4 17-4 30-18 27-12-3-20-17-26-32-6-16-14-29-24-41z" />
+  </g>
+  <path d="M262 913V680c0-76 52-124 133-137l48-9h107l48 9c81 13 133 61 133 137v233z" fill="none" stroke="#343532" stroke-width="13" stroke-linejoin="round" />
+</svg>

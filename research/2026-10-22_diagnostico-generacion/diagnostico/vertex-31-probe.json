@@ -1,0 +1,40 @@
+{
+  "checkedAt": "2026-10-22T18:12:47.934Z",
+  "model": "gemini-3.1-flash-image",
+  "httpStatus": 200,
+  "durationMs": 9468,
+  "modelVersion": "gemini-3.1-flash-image",
+  "usageMetadata": {
+    "promptTokenCount": 30,
+    "candidatesTokenCount": 1120,
+    "totalTokenCount": 1150,
+    "trafficType": "ON_DEMAND",
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 30
+      }
+    ],
+    "candidatesTokensDetails": [
+      {
+        "modality": "IMAGE",
+        "tokenCount": 1120
+      }
+    ]
+  },
+  "candidates": [
+    {
+      "finishReason": "STOP",
+      "parts": [
+        {
+          "keys": [
+            "inlineData",
+            "thoughtSignature"
+          ],
+          "mimeType": "image/png",
+          "bytes": 217844
+        }
+      ]
+    }
+  ]
+}

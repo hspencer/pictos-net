@@ -1,0 +1,94 @@
+<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" width="1024" height="1024">
+  <title>Ayuda para subir una rampa en silla de ruedas</title>
+  <defs>
+    <linearGradient id="rampWash" x1="0" y1="0" x2="0.2" y2="1">
+      <stop offset="0" stop-color="#f5eadb" />
+      <stop offset="1" stop-color="#fffdf8" />
+    </linearGradient>
+    <linearGradient id="greenWash" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#65ad43" />
+      <stop offset="1" stop-color="#348c32" />
+    </linearGradient>
+    <linearGradient id="shirtGreen" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#91ce64" />
+      <stop offset="1" stop-color="#55a946" />
+    </linearGradient>
+    <linearGradient id="blueWash" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#5795c8" />
+      <stop offset="1" stop-color="#3379b3" />
+    </linearGradient>
+    <linearGradient id="skinWash" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffe0b4" />
+      <stop offset="1" stop-color="#f5b879" />
+    </linearGradient>
+    <linearGradient id="purpleWash" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ad83ca" />
+      <stop offset="1" stop-color="#8060a9" />
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="1024" height="1024" fill="#fff" />
+  <g stroke="#29231f" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M72 920 L997 596 L998 913 L72 920Z" fill="url(#rampWash)" />
+    <path d="M83 915 Q455 790 995 599 M89 922 L996 913" fill="none" stroke-width="2" />
+  </g>
+  <path d="M657 842 L850 756 L842 727 Q839 718 851 718 L950 723 Q960 724 955 735 L911 798 Q904 809 898 799 L888 780 L670 877 Q656 882 657 866Z" fill="url(#greenWash)" stroke="#428f37" stroke-width="3" stroke-linejoin="round" />
+  <g stroke="#29231f" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    
+    <path d="M91 506 Q77 546 96 590 L121 669 L49 814 Q42 826 56 833 L99 844 Q110 845 119 833 L190 724 Q198 713 193 700 L163 606 L221 550Z" fill="url(#blueWash)" />
+    <path d="M137 598 Q158 643 179 685 L249 797 L226 826 Q218 837 232 842 L286 833 Q299 831 294 817 L260 691 Q256 677 247 665 L197 594Z" fill="url(#blueWash)" />
+    <path d="M52 813 Q79 823 104 835 L151 853 Q169 861 173 876 Q174 883 163 888 L47 879 Q28 877 29 864Z" fill="#d95a51" />
+    <path d="M226 797 Q252 807 279 809 Q300 810 312 823 Q318 831 306 838 L244 855 Q226 861 221 847Z" fill="#db514a" />
+    <path d="M30 867 Q91 880 167 884 M224 843 Q271 841 307 828" fill="none" stroke-width="6" />
+    
+    <path d="M183 312 Q146 338 121 386 L53 505 Q96 533 163 550 L207 475 L250 403 L231 331Z" fill="url(#shirtGreen)" />
+    <path d="M204 374 Q226 421 258 441 Q294 463 343 455 L361 468 Q372 478 364 488 Q359 495 345 490 L327 483 Q283 490 247 476 Q211 462 191 426Z" fill="url(#skinWash)" />
+    
+    <path d="M202 153 Q221 113 268 119 Q320 126 332 170 Q351 224 322 273 Q300 309 259 310 L224 297 Q206 277 190 249 Q164 205 202 153Z" fill="url(#skinWash)" />
+    <path d="M210 161 Q184 187 168 217 L147 185 L158 230 L126 221 L150 244 L117 258 L154 260 L135 283 L169 271 L162 302 L189 279 L202 301 L210 269 Q193 236 194 205Z" fill="#9a5429" />
+    <path d="M217 164 Q224 125 265 105 L241 137 Q277 103 322 104 L284 131 Q329 119 360 136 L316 146 Q350 149 380 174 L335 164 Q365 183 382 205 L338 185 Q352 208 366 225 L327 197 Q314 224 304 247 L299 189 L281 225 L277 170 L255 208 L250 160 L230 204Z" fill="#a75b2d" />
+    <path d="M190 237 Q205 226 219 241 Q224 251 212 262 Q198 266 187 255Z" fill="url(#skinWash)" />
+    <path d="M282 204 Q285 197 289 204 M311 198 Q315 192 319 200 M300 218 Q314 226 323 218 M285 253 Q302 272 321 260" fill="none" stroke-width="5" />
+    
+    <path d="M183 315 Q202 324 230 341 L255 401 L214 425 L190 381 M207 474 L166 548" fill="none" />
+  </g>
+  <g stroke="#29231f" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    
+    <path d="M368 477 L401 474 L428 624 L598 590 L623 720 M383 482 L427 623 L418 640 M425 638 L591 610" fill="none" stroke="#504239" stroke-width="12" />
+    <path d="M371 476 L341 478 Q329 479 326 487 Q325 496 337 499 L378 492" fill="#55483f" />
+    <path d="M401 473 L395 445" fill="none" stroke-width="9" />
+    
+    <circle cx="463" cy="702" r="119" fill="#554940" stroke-width="5" />
+    <circle cx="463" cy="702" r="99" fill="#f6f0e6" stroke-width="5" />
+    <circle cx="463" cy="702" r="18" fill="#766253" />
+    <g fill="none" stroke="#443a34" stroke-width="4">
+      <path d="M463 603 L463 684 M463 720 L463 801 M364 702 L445 702 M481 702 L562 702" />
+      <path d="M393 632 L450 689 M476 715 L533 773 M533 632 L476 689 M450 715 L393 773" />
+      <path d="M414 610 L451 685 M475 719 L512 794 M555 653 L480 693 M446 711 L371 751" />
+    </g>
+    
+    <circle cx="638" cy="718" r="35" fill="#67564a" />
+    <circle cx="638" cy="718" r="20" fill="#b6a18c" />
+    <circle cx="638" cy="718" r="7" fill="#51443a" />
+    
+    <path d="M480 529 Q520 540 564 562 L626 598 L665 658 Q677 673 664 685 L635 697 Q621 701 612 687 L569 641 L508 620 L462 590Z" fill="url(#blueWash)" />
+    <path d="M608 643 L655 658 Q674 665 695 654 L741 638 Q759 632 770 644 Q778 653 765 662 L710 691 Q694 700 672 696 L626 683Z" fill="#ee8b35" />
+    <path d="M676 661 L684 646 M696 659 L703 644 M717 655 L723 642" fill="none" stroke-width="3" />
+    
+    <path d="M438 432 Q468 423 493 435 L527 494 L552 552 L510 581 L451 568 L413 532Z" fill="url(#purpleWash)" />
+    <path d="M462 473 L473 525 L507 512 M436 439 L417 484" fill="none" />
+    
+    <path d="M458 284 Q487 256 525 277 Q563 296 566 337 Q570 379 535 408 L521 442 L480 435 L472 406 Q440 393 432 362 Q423 321 458 284Z" fill="url(#skinWash)" />
+    <path d="M452 298 Q424 311 404 338 L421 305 L384 321 L414 293 L371 297 L414 276 L377 269 L423 265 L398 245 L437 260 L426 229 L456 253 L464 220 L478 256 Q506 231 525 215 L511 250 Q545 230 572 237 L539 260 Q572 258 591 272 L552 276 Q573 290 587 310 L552 300 L560 328 L533 301 L518 282 L503 316 L486 277 L476 316 L462 286Z" fill="#50372d" />
+    <path d="M437 355 Q423 347 411 359 Q406 371 419 382 Q432 388 444 378Z" fill="url(#skinWash)" />
+    <path d="M489 291 Q485 297 488 304 M514 301 Q519 299 523 307 M510 327 Q524 339 540 330 M502 354 Q520 374 541 356" fill="none" stroke-width="5" />
+    
+    <path d="M469 492 Q496 515 534 519 L591 506 Q606 504 615 515 Q623 527 611 535 L552 553 Q529 560 506 552 L473 536Z" fill="url(#skinWash)" />
+    <path d="M608 514 Q619 526 614 541 Q611 550 603 548 L597 529" fill="none" />
+  </g>
+  <g fill="none" stroke="#29231f" stroke-width="3" stroke-linecap="round">
+    <path d="M229 319 Q237 328 250 330 M360 487 Q367 481 372 489" />
+    <path d="M404 349 Q388 365 381 388 M427 377 Q416 402 407 416 M446 390 Q436 414 428 428" />
+    <path d="M185 340 Q163 372 148 402 M232 345 L248 394 M80 519 Q113 537 150 541" />
+    <path d="M356 696 Q350 742 371 774 M561 694 Q570 740 550 769" />
+  </g>
+</svg>

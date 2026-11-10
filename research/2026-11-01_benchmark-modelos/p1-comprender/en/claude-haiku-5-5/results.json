@@ -1,0 +1,1724 @@
+{
+  "planHash": "62c4db0fa9a0f04a8882b5ec69f7e755ea2014f5138f3cd61048a05a143fb4ce",
+  "state": "completed",
+  "estimatedExposureUsd": 0.0036063249999999988,
+  "attempts": [
+    {
+      "state": "recorded",
+      "caseId": "dont-like-noise",
+      "requestedModel": "claude-haiku-5-5",
+      "returnedModel": "claude-haiku-5-5",
+      "phase": 1,
+      "repetition": 0,
+      "requestHash": "cc0218fa6bf3efa8d7c56caa735e3dfe014762cb098070cc0ae8d2286e4e7d11",
+      "milliseconds": 3192,
+      "usage": {
+        "input_tokens": 223,
+        "cache_creation_input_tokens": 1167,
+        "cache_read_input_tokens": 2342,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 1167,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 699,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "inputTokens": 3732,
+      "outputTokens": 699,
+      "estimatedCostUsd": 0.000541095,
+      "reservedUsd": 0.0149025,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 1167,
+      "cacheReadTokens": 2342,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "utterance": "I don't like loud noises",
+        "lang": "en-GB",
+        "metadata": {
+          "speech_act": "expressive",
+          "intent": "inform"
+        },
+        "frames": [
+          {
+            "frame_name": "Desirability",
+            "lexical_unit": "like",
+            "id": "f1",
+            "roles": {
+              "Experiencer": {
+                "type": "Experiencer",
+                "surface": "I",
+                "lemma": "I"
+              },
+              "Event": {
+                "type": "Theme",
+                "surface": "loud noises",
+                "lemma": "loud noise"
+              }
+            }
+          },
+          {
+            "frame_name": "Sound",
+            "lexical_unit": "noises",
+            "id": "f2",
+            "roles": {
+              "Theme": {
+                "type": "Theme",
+                "surface": "loud noises",
+                "lemma": "noise",
+                "definiteness": "unspecified"
+              }
+            }
+          }
+        ],
+        "nsm_explications": {
+          "like": "SOMEONE (I) FEEL something; I DON'T WANT this; THIS is BAD for ME when I HEAR it",
+          "loud noise": "SOMETHING happens; it is BIG in SOUND; PEOPLE HEAR it; IT CAN BE BAD for SOMEONE"
+        },
+        "logical_form": {
+          "event": "dislike loud noises",
+          "modality": "none",
+          "negation": true,
+          "tense": "present",
+          "aspect": "none"
+        },
+        "pragmatics": {
+          "politeness": "neutral",
+          "formality": "neutral",
+          "expected_response": "acknowledgment",
+          "urgency": "low",
+          "speaker_stance": "negative evaluation of loud sounds"
+        },
+        "visual_guidelines": {
+          "focus_actor": "I",
+          "action_core": "dislike",
+          "object_core": "loud noises",
+          "context": "speaker expresses aversion to loud sounds",
+          "temporal": "immediate"
+        }
+      },
+      "rawResponse": {
+        "model": "claude-haiku-5-5",
+        "id": "msg_011Cgd5gesLoCgrFWjxq2Ap7",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "toolu_01XiZgXHhzhsET5X78288hbr",
+            "name": "analyze_utterance",
+            "input": {
+              "utterance": "I don't like loud noises",
+              "lang": "en-GB",
+              "metadata": {
+                "speech_act": "expressive",
+                "intent": "inform"
+              },
+              "frames": [
+                {
+                  "frame_name": "Desirability",
+                  "lexical_unit": "like",
+                  "id": "f1",
+                  "roles": {
+                    "Experiencer": {
+                      "type": "Experiencer",
+                      "surface": "I",
+                      "lemma": "I"
+                    },
+                    "Event": {
+                      "type": "Theme",
+                      "surface": "loud noises",
+                      "lemma": "loud noise"
+                    }
+                  }
+                },
+                {
+                  "frame_name": "Sound",
+                  "lexical_unit": "noises",
+                  "id": "f2",
+                  "roles": {
+                    "Theme": {
+                      "type": "Theme",
+                      "surface": "loud noises",
+                      "lemma": "noise",
+                      "definiteness": "unspecified"
+                    }
+                  }
+                }
+              ],
+              "nsm_explications": {
+                "like": "SOMEONE (I) FEEL something; I DON'T WANT this; THIS is BAD for ME when I HEAR it",
+                "loud noise": "SOMETHING happens; it is BIG in SOUND; PEOPLE HEAR it; IT CAN BE BAD for SOMEONE"
+              },
+              "logical_form": {
+                "event": "dislike loud noises",
+                "modality": "none",
+                "negation": true,
+                "tense": "present",
+                "aspect": "none"
+              },
+              "pragmatics": {
+                "politeness": "neutral",
+                "formality": "neutral",
+                "expected_response": "acknowledgment",
+                "urgency": "low",
+                "speaker_stance": "negative evaluation of loud sounds"
+              },
+              "visual_guidelines": {
+                "focus_actor": "I",
+                "action_core": "dislike",
+                "object_core": "loud noises",
+                "context": "speaker expresses aversion to loud sounds",
+                "temporal": "immediate"
+              }
+            },
+            "caller": {
+              "type": "direct"
+            }
+          }
+        ],
+        "container": null,
+        "stop_reason": "tool_use",
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 223,
+          "cache_creation_input_tokens": 1167,
+          "cache_read_input_tokens": 2342,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 1167,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 699,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global",
+          "speed": "standard"
+        },
+        "diagnostics": null,
+        "meta": {
+          "provider": "claude",
+          "attempts": 1
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "c57d3ef901c874341ddb250b7e6874ceb16dc19b0cea1d16f4afc61c6db87e1a"
+    },
+    {
+      "state": "recorded",
+      "caseId": "tummy",
+      "requestedModel": "claude-haiku-5-5",
+      "returnedModel": "claude-haiku-5-5",
+      "phase": 1,
+      "repetition": 1,
+      "requestHash": "bcf10c2cbdb697dfa6c52660d10e32cfdf7fa27fa8998f264edf1df9f6368b8b",
+      "milliseconds": 2890,
+      "usage": {
+        "input_tokens": 222,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 3509,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 680,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "inputTokens": 3731,
+      "outputTokens": 680,
+      "estimatedCostUsd": 0.00039729,
+      "reservedUsd": 0.014895,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 3509,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "utterance": "My tummy hurts",
+        "lang": "en-GB",
+        "metadata": {
+          "speech_act": "expressive",
+          "intent": "inform"
+        },
+        "domain": "salud",
+        "frames": [
+          {
+            "id": "pain_1",
+            "frame_name": "Body_pain",
+            "lexical_unit": "hurt",
+            "roles": {
+              "Experiencer": {
+                "type": "Experiencer",
+                "surface": "My tummy",
+                "lemma": "tummy",
+                "definiteness": "unspecified"
+              },
+              "Body_part": {
+                "type": "Patient",
+                "surface": "tummy",
+                "lemma": "stomach",
+                "definiteness": "unspecified"
+              }
+            }
+          }
+        ],
+        "nsm_explications": {
+          "hurt": "SOMETHING in BODY of SOMEONE (I) is BAD. I feel BAD now.",
+          "stomach": "PART of BODY of I, inside, under the chest",
+          "I": "I"
+        },
+        "logical_form": {
+          "event": "hurt",
+          "modality": "none",
+          "aspect": "progressive",
+          "tense": "present",
+          "negation": false
+        },
+        "pragmatics": {
+          "politeness": "neutral",
+          "formality": "informal",
+          "expected_response": "acknowledgment",
+          "urgency": "medium",
+          "speaker_stance": "Speaker reports physical discomfort in the stomach area and implicitly seeks care or attention."
+        },
+        "visual_guidelines": {
+          "focus_actor": "I (speaker)",
+          "action_core": "hurt",
+          "object_core": "stomach",
+          "context": "Speaker reports stomach pain",
+          "temporal": "immediate"
+        },
+        "schemaVersion": "1.1.0"
+      },
+      "rawResponse": {
+        "model": "claude-haiku-5-5",
+        "id": "msg_011Cgd5gsVd5SRRuH92u9nM3",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "toolu_0127hFeNCetdixnvMG7NgB1w",
+            "name": "analyze_utterance",
+            "input": {
+              "utterance": "My tummy hurts",
+              "lang": "en-GB",
+              "metadata": {
+                "speech_act": "expressive",
+                "intent": "inform"
+              },
+              "domain": "salud",
+              "frames": [
+                {
+                  "id": "pain_1",
+                  "frame_name": "Body_pain",
+                  "lexical_unit": "hurt",
+                  "roles": {
+                    "Experiencer": {
+                      "type": "Experiencer",
+                      "surface": "My tummy",
+                      "lemma": "tummy",
+                      "definiteness": "unspecified"
+                    },
+                    "Body_part": {
+                      "type": "Patient",
+                      "surface": "tummy",
+                      "lemma": "stomach",
+                      "definiteness": "unspecified"
+                    }
+                  }
+                }
+              ],
+              "nsm_explications": {
+                "hurt": "SOMETHING in BODY of SOMEONE (I) is BAD. I feel BAD now.",
+                "stomach": "PART of BODY of I, inside, under the chest",
+                "I": "I"
+              },
+              "logical_form": {
+                "event": "hurt",
+                "modality": "none",
+                "aspect": "progressive",
+                "tense": "present",
+                "negation": false
+              },
+              "pragmatics": {
+                "politeness": "neutral",
+                "formality": "informal",
+                "expected_response": "acknowledgment",
+                "urgency": "medium",
+                "speaker_stance": "Speaker reports physical discomfort in the stomach area and implicitly seeks care or attention."
+              },
+              "visual_guidelines": {
+                "focus_actor": "I (speaker)",
+                "action_core": "hurt",
+                "object_core": "stomach",
+                "context": "Speaker reports stomach pain",
+                "temporal": "immediate"
+              },
+              "schemaVersion": "1.1.0"
+            },
+            "caller": {
+              "type": "direct"
+            }
+          }
+        ],
+        "container": null,
+        "stop_reason": "tool_use",
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 222,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 3509,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 680,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global",
+          "speed": "standard"
+        },
+        "diagnostics": null,
+        "meta": {
+          "provider": "claude",
+          "attempts": 1
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "52b08be78c2a5a171925d17687f663a82600dedb1a21f55981f21309819f65a5"
+    },
+    {
+      "state": "recorded",
+      "caseId": "go-outside",
+      "requestedModel": "claude-haiku-5-5",
+      "returnedModel": "claude-haiku-5-5",
+      "phase": 1,
+      "repetition": 0,
+      "requestHash": "8e10e8661a9fff676f0e72005b955f5e8342f8fe8cedf4ba65bb0c8121637ede",
+      "milliseconds": 3604,
+      "usage": {
+        "input_tokens": 221,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 3509,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 843,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "inputTokens": 3730,
+      "outputTokens": 843,
+      "estimatedCostUsd": 0.00047869,
+      "reservedUsd": 0.0148995,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 3509,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "utterance": "I want to go outside",
+        "lang": "en-GB",
+        "metadata": {
+          "speech_act": "directive",
+          "intent": "request"
+        },
+        "frames": [
+          {
+            "id": "desire_1",
+            "frame_name": "Desirability",
+            "lexical_unit": "want",
+            "frame_label": "Desire",
+            "roles": {
+              "Experiencer": {
+                "type": "Experiencer",
+                "surface": "I",
+                "lemma": "I"
+              },
+              "Event": {
+                "type": "Event",
+                "surface": "to go outside",
+                "lemma": "go outside",
+                "ref_frame": "motion_1"
+              }
+            }
+          },
+          {
+            "id": "motion_1",
+            "frame_name": "Self_motion",
+            "lexical_unit": "go",
+            "frame_label": "Self-motion",
+            "roles": {
+              "Theme": {
+                "type": "Agent",
+                "surface": "I",
+                "lemma": "I"
+              },
+              "Goal": {
+                "type": "Location",
+                "surface": "outside",
+                "lemma": "outside"
+              }
+            }
+          }
+        ],
+        "nsm_explications": {
+          "want": "SOMEONE (I) thinks: I want this. I can't do it here now. I want to be somewhere else.",
+          "go outside": "I MOVE from INSIDE to OUTSIDE; I am not INSIDE here now"
+        },
+        "logical_form": {
+          "event": "I move from inside a place to outside",
+          "modality": "want",
+          "tense": "present",
+          "aspect": "none",
+          "negation": false
+        },
+        "pragmatics": {
+          "politeness": "neutral",
+          "formality": "neutral",
+          "expected_response": "compliance",
+          "speaker_stance": "The speaker wants to leave an enclosed space and go outdoors.",
+          "urgency": "low"
+        },
+        "visual_guidelines": {
+          "focus_actor": "I (speaker)",
+          "action_core": "move outside",
+          "object_core": "outside area",
+          "context": "Speaker is indoors and wants to go outdoors",
+          "temporal": "immediate",
+          "salience": {
+            "I": 1,
+            "outside": 0.9
+          }
+        },
+        "domain": "lugar",
+        "schemaVersion": "1.1.0"
+      },
+      "rawResponse": {
+        "model": "claude-haiku-5-5",
+        "id": "msg_011Cgd5h5tzTguUtLVm6DeQT",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "toolu_015yfWQYjRnLdLEBqNW8E75h",
+            "name": "analyze_utterance",
+            "input": {
+              "utterance": "I want to go outside",
+              "lang": "en-GB",
+              "metadata": {
+                "speech_act": "directive",
+                "intent": "request"
+              },
+              "frames": [
+                {
+                  "id": "desire_1",
+                  "frame_name": "Desirability",
+                  "lexical_unit": "want",
+                  "frame_label": "Desire",
+                  "roles": {
+                    "Experiencer": {
+                      "type": "Experiencer",
+                      "surface": "I",
+                      "lemma": "I"
+                    },
+                    "Event": {
+                      "type": "Event",
+                      "surface": "to go outside",
+                      "lemma": "go outside",
+                      "ref_frame": "motion_1"
+                    }
+                  }
+                },
+                {
+                  "id": "motion_1",
+                  "frame_name": "Self_motion",
+                  "lexical_unit": "go",
+                  "frame_label": "Self-motion",
+                  "roles": {
+                    "Theme": {
+                      "type": "Agent",
+                      "surface": "I",
+                      "lemma": "I"
+                    },
+                    "Goal": {
+                      "type": "Location",
+                      "surface": "outside",
+                      "lemma": "outside"
+                    }
+                  }
+                }
+              ],
+              "nsm_explications": {
+                "want": "SOMEONE (I) thinks: I want this. I can't do it here now. I want to be somewhere else.",
+                "go outside": "I MOVE from INSIDE to OUTSIDE; I am not INSIDE here now"
+              },
+              "logical_form": {
+                "event": "I move from inside a place to outside",
+                "modality": "want",
+                "tense": "present",
+                "aspect": "none",
+                "negation": false
+              },
+              "pragmatics": {
+                "politeness": "neutral",
+                "formality": "neutral",
+                "expected_response": "compliance",
+                "speaker_stance": "The speaker wants to leave an enclosed space and go outdoors.",
+                "urgency": "low"
+              },
+              "visual_guidelines": {
+                "focus_actor": "I (speaker)",
+                "action_core": "move outside",
+                "object_core": "outside area",
+                "context": "Speaker is indoors and wants to go outdoors",
+                "temporal": "immediate",
+                "salience": {
+                  "I": 1,
+                  "outside": 0.9
+                }
+              },
+              "domain": "lugar",
+              "schemaVersion": "1.1.0"
+            },
+            "caller": {
+              "type": "direct"
+            }
+          }
+        ],
+        "container": null,
+        "stop_reason": "tool_use",
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 221,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 3509,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 843,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global",
+          "speed": "standard"
+        },
+        "diagnostics": null,
+        "meta": {
+          "provider": "claude",
+          "attempts": 1
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "51a19b938a1efd72304260f70928fb31310ce615196972fb99b3b3d69a3c2c84"
+    },
+    {
+      "state": "recorded",
+      "caseId": "go-outside",
+      "requestedModel": "claude-haiku-5-5",
+      "returnedModel": "claude-haiku-5-5",
+      "phase": 1,
+      "repetition": 1,
+      "requestHash": "8e10e8661a9fff676f0e72005b955f5e8342f8fe8cedf4ba65bb0c8121637ede",
+      "milliseconds": 3575,
+      "usage": {
+        "input_tokens": 221,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 3509,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 851,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "inputTokens": 3730,
+      "outputTokens": 851,
+      "estimatedCostUsd": 0.00048269,
+      "reservedUsd": 0.0148995,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 3509,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "utterance": "I want to go outside",
+        "lang": "en-GB",
+        "metadata": {
+          "speech_act": "directive",
+          "intent": "request"
+        },
+        "domain": "vida_cotidiana",
+        "frames": [
+          {
+            "id": "want_1",
+            "frame_name": "Desiring",
+            "lexical_unit": "want",
+            "roles": {
+              "Experiencer": {
+                "type": "Experiencer",
+                "surface": "I",
+                "lemma": "I"
+              },
+              "Event": {
+                "type": "Event",
+                "surface": "to go outside",
+                "lemma": "go outside"
+              }
+            },
+            "frame_label": "Desiring"
+          },
+          {
+            "id": "motion_1",
+            "frame_name": "Self_motion",
+            "lexical_unit": "go",
+            "roles": {
+              "Theme": {
+                "type": "Theme",
+                "surface": "I",
+                "lemma": "I"
+              },
+              "Goal": {
+                "type": "Location",
+                "surface": "outside",
+                "lemma": "outside"
+              }
+            },
+            "frame_label": "Self-motion"
+          }
+        ],
+        "nsm_explications": {
+          "want": "I think: SOMETHING GOOD would happen if I DO SOMETHING. I WANT this. I want to MOVE to a place OUTSIDE.",
+          "go outside": "I MOVE from HERE to a place OUTSIDE (not INSIDE)."
+        },
+        "logical_form": {
+          "event": "SPEAKER moves to outside location",
+          "modality": "want (desire)",
+          "negation": false,
+          "tense": "present",
+          "aspect": "none"
+        },
+        "pragmatics": {
+          "politeness": "neutral",
+          "formality": "neutral",
+          "expected_response": "compliance",
+          "speaker_stance": "Speaker expresses a wish to leave the indoor space and go outside; a request for assistance or permission is implied.",
+          "urgency": "low"
+        },
+        "visual_guidelines": {
+          "focus_actor": "person (speaker)",
+          "action_core": "walk/move outdoors",
+          "object_core": "door / exit",
+          "context": "indoor space wanting to go outside",
+          "temporal": "immediate",
+          "salience": {
+            "person": 0.9,
+            "outside": 0.8,
+            "door": 0.6
+          }
+        },
+        "schemaVersion": "1.1.0"
+      },
+      "rawResponse": {
+        "model": "claude-haiku-5-5",
+        "id": "msg_011Cgd5hMJgxnpSxwag1Kr9R",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "toolu_015HL6DgDwdqPa2usntoAn48",
+            "name": "analyze_utterance",
+            "input": {
+              "utterance": "I want to go outside",
+              "lang": "en-GB",
+              "metadata": {
+                "speech_act": "directive",
+                "intent": "request"
+              },
+              "domain": "vida_cotidiana",
+              "frames": [
+                {
+                  "id": "want_1",
+                  "frame_name": "Desiring",
+                  "lexical_unit": "want",
+                  "roles": {
+                    "Experiencer": {
+                      "type": "Experiencer",
+                      "surface": "I",
+                      "lemma": "I"
+                    },
+                    "Event": {
+                      "type": "Event",
+                      "surface": "to go outside",
+                      "lemma": "go outside"
+                    }
+                  },
+                  "frame_label": "Desiring"
+                },
+                {
+                  "id": "motion_1",
+                  "frame_name": "Self_motion",
+                  "lexical_unit": "go",
+                  "roles": {
+                    "Theme": {
+                      "type": "Theme",
+                      "surface": "I",
+                      "lemma": "I"
+                    },
+                    "Goal": {
+                      "type": "Location",
+                      "surface": "outside",
+                      "lemma": "outside"
+                    }
+                  },
+                  "frame_label": "Self-motion"
+                }
+              ],
+              "nsm_explications": {
+                "want": "I think: SOMETHING GOOD would happen if I DO SOMETHING. I WANT this. I want to MOVE to a place OUTSIDE.",
+                "go outside": "I MOVE from HERE to a place OUTSIDE (not INSIDE)."
+              },
+              "logical_form": {
+                "event": "SPEAKER moves to outside location",
+                "modality": "want (desire)",
+                "negation": false,
+                "tense": "present",
+                "aspect": "none"
+              },
+              "pragmatics": {
+                "politeness": "neutral",
+                "formality": "neutral",
+                "expected_response": "compliance",
+                "speaker_stance": "Speaker expresses a wish to leave the indoor space and go outside; a request for assistance or permission is implied.",
+                "urgency": "low"
+              },
+              "visual_guidelines": {
+                "focus_actor": "person (speaker)",
+                "action_core": "walk/move outdoors",
+                "object_core": "door / exit",
+                "context": "indoor space wanting to go outside",
+                "temporal": "immediate",
+                "salience": {
+                  "person": 0.9,
+                  "outside": 0.8,
+                  "door": 0.6
+                }
+              },
+              "schemaVersion": "1.1.0"
+            },
+            "caller": {
+              "type": "direct"
+            }
+          }
+        ],
+        "container": null,
+        "stop_reason": "tool_use",
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 221,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 3509,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 851,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global",
+          "speed": "standard"
+        },
+        "diagnostics": null,
+        "meta": {
+          "provider": "claude",
+          "attempts": 1
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "2735d466045052232983f02337883105e0fdbb887b1d136b9591253f6c174e27"
+    },
+    {
+      "state": "recorded",
+      "caseId": "whos-coming",
+      "requestedModel": "claude-haiku-5-5",
+      "returnedModel": "claude-haiku-5-5",
+      "phase": 1,
+      "repetition": 0,
+      "requestHash": "2756a1b295292fdf1da4e6559d7495b8b33ec8fc3875cd6844b94b2fb217d75d",
+      "milliseconds": 3297,
+      "usage": {
+        "input_tokens": 226,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 3509,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 752,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "inputTokens": 3735,
+      "outputTokens": 752,
+      "estimatedCostUsd": 0.00043369,
+      "reservedUsd": 0.0149055,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 3509,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "utterance": "Who is coming to pick me up?",
+        "lang": "en-GB",
+        "metadata": {
+          "speech_act": "interrogative",
+          "intent": "ask_info"
+        },
+        "domain": "transporte",
+        "frames": [
+          {
+            "id": "f1",
+            "frame_name": "Arriving",
+            "lexical_unit": "coming",
+            "roles": {
+              "Theme": {
+                "type": "Theme",
+                "surface": "Who",
+                "lemma": "someone"
+              },
+              "Goal": {
+                "type": "Location",
+                "surface": "pick me up",
+                "lemma": "pick up"
+              }
+            }
+          },
+          {
+            "id": "f2",
+            "frame_name": "Transportation_pickup",
+            "lexical_unit": "pick up",
+            "roles": {
+              "Agent": {
+                "type": "Agent",
+                "surface": "Who",
+                "lemma": "someone"
+              },
+              "Patient": {
+                "type": "Patient",
+                "surface": "me",
+                "ref": "speaker"
+              }
+            }
+          }
+        ],
+        "nsm_explications": {
+          "pick up": "SOMEONE (YOU) wants to MOVE to where I am. SOMEONE (I) want to MOVE with YOU to another PLACE.",
+          "come": "SOMEONE MOVE to where I am now"
+        },
+        "logical_form": {
+          "event": "someone comes to pick the speaker up",
+          "modality": "question",
+          "tense": "present",
+          "aspect": "progressive"
+        },
+        "pragmatics": {
+          "politeness": "neutral",
+          "formality": "neutral",
+          "expected_response": "other",
+          "speaker_stance": "Speaker is waiting and wants to know who will collect them.",
+          "urgency": "medium"
+        },
+        "visual_guidelines": {
+          "focus_actor": "someone approaching vehicle",
+          "action_core": "coming to pick up",
+          "object_core": "speaker",
+          "context": "waiting for a pickup",
+          "temporal": "future",
+          "salience": {
+            "someone": 0.9,
+            "speaker": 0.8
+          }
+        }
+      },
+      "rawResponse": {
+        "model": "claude-haiku-5-5",
+        "id": "msg_011Cgd5hcaD83otCa2qLV2uk",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "toolu_01N6uUipQWuFV8opeE9f5aJQ",
+            "name": "analyze_utterance",
+            "input": {
+              "utterance": "Who is coming to pick me up?",
+              "lang": "en-GB",
+              "metadata": {
+                "speech_act": "interrogative",
+                "intent": "ask_info"
+              },
+              "domain": "transporte",
+              "frames": [
+                {
+                  "id": "f1",
+                  "frame_name": "Arriving",
+                  "lexical_unit": "coming",
+                  "roles": {
+                    "Theme": {
+                      "type": "Theme",
+                      "surface": "Who",
+                      "lemma": "someone"
+                    },
+                    "Goal": {
+                      "type": "Location",
+                      "surface": "pick me up",
+                      "lemma": "pick up"
+                    }
+                  }
+                },
+                {
+                  "id": "f2",
+                  "frame_name": "Transportation_pickup",
+                  "lexical_unit": "pick up",
+                  "roles": {
+                    "Agent": {
+                      "type": "Agent",
+                      "surface": "Who",
+                      "lemma": "someone"
+                    },
+                    "Patient": {
+                      "type": "Patient",
+                      "surface": "me",
+                      "ref": "speaker"
+                    }
+                  }
+                }
+              ],
+              "nsm_explications": {
+                "pick up": "SOMEONE (YOU) wants to MOVE to where I am. SOMEONE (I) want to MOVE with YOU to another PLACE.",
+                "come": "SOMEONE MOVE to where I am now"
+              },
+              "logical_form": {
+                "event": "someone comes to pick the speaker up",
+                "modality": "question",
+                "tense": "present",
+                "aspect": "progressive"
+              },
+              "pragmatics": {
+                "politeness": "neutral",
+                "formality": "neutral",
+                "expected_response": "other",
+                "speaker_stance": "Speaker is waiting and wants to know who will collect them.",
+                "urgency": "medium"
+              },
+              "visual_guidelines": {
+                "focus_actor": "someone approaching vehicle",
+                "action_core": "coming to pick up",
+                "object_core": "speaker",
+                "context": "waiting for a pickup",
+                "temporal": "future",
+                "salience": {
+                  "someone": 0.9,
+                  "speaker": 0.8
+                }
+              }
+            },
+            "caller": {
+              "type": "direct"
+            }
+          }
+        ],
+        "container": null,
+        "stop_reason": "tool_use",
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 226,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 3509,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 752,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global",
+          "speed": "standard"
+        },
+        "diagnostics": null,
+        "meta": {
+          "provider": "claude",
+          "attempts": 1
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "a643712a59c93c7ee6d138ce9a40f068b9ffbd8f3fbf562401606e1be1c756f7"
+    },
+    {
+      "state": "recorded",
+      "caseId": "tummy",
+      "requestedModel": "claude-haiku-5-5",
+      "returnedModel": "claude-haiku-5-5",
+      "phase": 1,
+      "repetition": 0,
+      "requestHash": "bcf10c2cbdb697dfa6c52660d10e32cfdf7fa27fa8998f264edf1df9f6368b8b",
+      "milliseconds": 2994,
+      "usage": {
+        "input_tokens": 222,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 3509,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 706,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "inputTokens": 3731,
+      "outputTokens": 706,
+      "estimatedCostUsd": 0.00041029,
+      "reservedUsd": 0.014895,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 3509,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "utterance": "My tummy hurts",
+        "lang": "en-GB",
+        "metadata": {
+          "speech_act": "expressive",
+          "intent": "inform"
+        },
+        "domain": "salud",
+        "frames": [
+          {
+            "id": "pain_1",
+            "frame_name": "Experiencer_focus",
+            "lexical_unit": "hurt",
+            "roles": {
+              "Experiencer": {
+                "type": "Experiencer",
+                "surface": "My tummy",
+                "lemma": "tummy"
+              },
+              "Content": {
+                "type": "Theme",
+                "surface": "tummy hurts",
+                "lemma": "hurt"
+              }
+            }
+          }
+        ],
+        "nsm_explications": {
+          "hurt": "SOMETHING BAD is happening to SOMEONE's BODY now. SOMEONE feels BAD because of it.",
+          "tummy": "PART of BODY (I) is BELOW the chest; SOMEONE (I) feels BAD in this PART now."
+        },
+        "logical_form": {
+          "event": "pain in stomach",
+          "modality": "none",
+          "tense": "present",
+          "aspect": "progressive"
+        },
+        "pragmatics": {
+          "politeness": "neutral",
+          "formality": "neutral",
+          "expected_response": "acknowledgment",
+          "speaker_stance": "Speaker reports physical discomfort and implicitly needs help or attention.",
+          "urgency": "medium"
+        },
+        "visual_guidelines": {
+          "focus_actor": "speaker",
+          "action_core": "hurt",
+          "object_core": "stomach",
+          "context": "health discomfort, stomach pain",
+          "temporal": "immediate",
+          "salience": {
+            "stomach": 0.9,
+            "speaker": 0.8,
+            "pain": 0.7
+          }
+        },
+        "schemaVersion": "1.1.0"
+      },
+      "rawResponse": {
+        "model": "claude-haiku-5-5",
+        "id": "msg_011Cgd5hreYPxsJPxxjfoqYw",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "toolu_01UqhMYXD7t3MQPNSmr4zxLn",
+            "name": "analyze_utterance",
+            "input": {
+              "utterance": "My tummy hurts",
+              "lang": "en-GB",
+              "metadata": {
+                "speech_act": "expressive",
+                "intent": "inform"
+              },
+              "domain": "salud",
+              "frames": [
+                {
+                  "id": "pain_1",
+                  "frame_name": "Experiencer_focus",
+                  "lexical_unit": "hurt",
+                  "roles": {
+                    "Experiencer": {
+                      "type": "Experiencer",
+                      "surface": "My tummy",
+                      "lemma": "tummy"
+                    },
+                    "Content": {
+                      "type": "Theme",
+                      "surface": "tummy hurts",
+                      "lemma": "hurt"
+                    }
+                  }
+                }
+              ],
+              "nsm_explications": {
+                "hurt": "SOMETHING BAD is happening to SOMEONE's BODY now. SOMEONE feels BAD because of it.",
+                "tummy": "PART of BODY (I) is BELOW the chest; SOMEONE (I) feels BAD in this PART now."
+              },
+              "logical_form": {
+                "event": "pain in stomach",
+                "modality": "none",
+                "tense": "present",
+                "aspect": "progressive"
+              },
+              "pragmatics": {
+                "politeness": "neutral",
+                "formality": "neutral",
+                "expected_response": "acknowledgment",
+                "speaker_stance": "Speaker reports physical discomfort and implicitly needs help or attention.",
+                "urgency": "medium"
+              },
+              "visual_guidelines": {
+                "focus_actor": "speaker",
+                "action_core": "hurt",
+                "object_core": "stomach",
+                "context": "health discomfort, stomach pain",
+                "temporal": "immediate",
+                "salience": {
+                  "stomach": 0.9,
+                  "speaker": 0.8,
+                  "pain": 0.7
+                }
+              },
+              "schemaVersion": "1.1.0"
+            },
+            "caller": {
+              "type": "direct"
+            }
+          }
+        ],
+        "container": null,
+        "stop_reason": "tool_use",
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 222,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 3509,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 706,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global",
+          "speed": "standard"
+        },
+        "diagnostics": null,
+        "meta": {
+          "provider": "claude",
+          "attempts": 1
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "e057e056e15779cc994b2fdd189626b4bc49652b45a8d93fb1feba73f4dfcf34"
+    },
+    {
+      "state": "recorded",
+      "caseId": "dont-like-noise",
+      "requestedModel": "claude-haiku-5-5",
+      "returnedModel": "claude-haiku-5-5",
+      "phase": 1,
+      "repetition": 1,
+      "requestHash": "cc0218fa6bf3efa8d7c56caa735e3dfe014762cb098070cc0ae8d2286e4e7d11",
+      "milliseconds": 2944,
+      "usage": {
+        "input_tokens": 223,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 3509,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 695,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "inputTokens": 3732,
+      "outputTokens": 695,
+      "estimatedCostUsd": 0.00040489,
+      "reservedUsd": 0.0149025,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 3509,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "utterance": "I don't like loud noises",
+        "lang": "en-GB",
+        "metadata": {
+          "speech_act": "expressive",
+          "intent": "inform"
+        },
+        "frames": [
+          {
+            "frame_name": "Experiencer_focus",
+            "lexical_unit": "like",
+            "id": "f1",
+            "roles": {
+              "Experiencer": {
+                "type": "Experiencer",
+                "surface": "I",
+                "lemma": "I",
+                "definiteness": "definite"
+              },
+              "Content": {
+                "type": "Theme",
+                "surface": "loud noises",
+                "lemma": "loud noise",
+                "definiteness": "indefinite"
+              }
+            }
+          }
+        ],
+        "nsm_explications": {
+          "like": "SOMEONE (I) FEEL something about SOMETHING (loud noises): it is BAD for ME; I DON'T WANT it",
+          "loud noise": "SOMETHING (noise) happens that is very BIG for HEARING; people can HEAR it"
+        },
+        "logical_form": {
+          "event": "I dislike loud noises",
+          "modality": "negated preference",
+          "tense": "present",
+          "aspect": "none",
+          "negation": true
+        },
+        "pragmatics": {
+          "politeness": "neutral",
+          "formality": "neutral",
+          "expected_response": "acknowledgment",
+          "speaker_stance": "Speaker expresses a negative preference toward loud sounds",
+          "urgency": "low"
+        },
+        "visual_guidelines": {
+          "focus_actor": "I",
+          "action_core": "dislike",
+          "object_core": "loud noises",
+          "context": "Speaker expresses aversion to loud sounds",
+          "temporal": "immediate"
+        },
+        "domain": "vida_cotidiana",
+        "schemaVersion": "1.1.0"
+      },
+      "rawResponse": {
+        "model": "claude-haiku-5-5",
+        "id": "msg_011Cgd5i5UirceKWF2pAho2L",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "toolu_01BiCKg1aRCBFT7QberNa2cY",
+            "name": "analyze_utterance",
+            "input": {
+              "utterance": "I don't like loud noises",
+              "lang": "en-GB",
+              "metadata": {
+                "speech_act": "expressive",
+                "intent": "inform"
+              },
+              "frames": [
+                {
+                  "frame_name": "Experiencer_focus",
+                  "lexical_unit": "like",
+                  "id": "f1",
+                  "roles": {
+                    "Experiencer": {
+                      "type": "Experiencer",
+                      "surface": "I",
+                      "lemma": "I",
+                      "definiteness": "definite"
+                    },
+                    "Content": {
+                      "type": "Theme",
+                      "surface": "loud noises",
+                      "lemma": "loud noise",
+                      "definiteness": "indefinite"
+                    }
+                  }
+                }
+              ],
+              "nsm_explications": {
+                "like": "SOMEONE (I) FEEL something about SOMETHING (loud noises): it is BAD for ME; I DON'T WANT it",
+                "loud noise": "SOMETHING (noise) happens that is very BIG for HEARING; people can HEAR it"
+              },
+              "logical_form": {
+                "event": "I dislike loud noises",
+                "modality": "negated preference",
+                "tense": "present",
+                "aspect": "none",
+                "negation": true
+              },
+              "pragmatics": {
+                "politeness": "neutral",
+                "formality": "neutral",
+                "expected_response": "acknowledgment",
+                "speaker_stance": "Speaker expresses a negative preference toward loud sounds",
+                "urgency": "low"
+              },
+              "visual_guidelines": {
+                "focus_actor": "I",
+                "action_core": "dislike",
+                "object_core": "loud noises",
+                "context": "Speaker expresses aversion to loud sounds",
+                "temporal": "immediate"
+              },
+              "domain": "vida_cotidiana",
+              "schemaVersion": "1.1.0"
+            },
+            "caller": {
+              "type": "direct"
+            }
+          }
+        ],
+        "container": null,
+        "stop_reason": "tool_use",
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 223,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 3509,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 695,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global",
+          "speed": "standard"
+        },
+        "diagnostics": null,
+        "meta": {
+          "provider": "claude",
+          "attempts": 1
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "aa46a9fa826ff289119a0e4dff362581194ab8ffdd6124767c8055c2613a572d"
+    },
+    {
+      "state": "recorded",
+      "caseId": "whos-coming",
+      "requestedModel": "claude-haiku-5-5",
+      "returnedModel": "claude-haiku-5-5",
+      "phase": 1,
+      "repetition": 1,
+      "requestHash": "2756a1b295292fdf1da4e6559d7495b8b33ec8fc3875cd6844b94b2fb217d75d",
+      "milliseconds": 3440,
+      "usage": {
+        "input_tokens": 226,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 3509,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 800,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "inputTokens": 3735,
+      "outputTokens": 800,
+      "estimatedCostUsd": 0.00045769,
+      "reservedUsd": 0.0149055,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 3509,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "utterance": "Who is coming to pick me up?",
+        "lang": "en-GB",
+        "metadata": {
+          "speech_act": "interrogative",
+          "intent": "ask_info"
+        },
+        "domain": "transporte",
+        "frames": [
+          {
+            "id": "f1",
+            "frame_name": "Arriving",
+            "lexical_unit": "coming",
+            "frame_label": "Arrival",
+            "roles": {
+              "Theme": {
+                "type": "Agent",
+                "surface": "Who",
+                "lemma": "who"
+              },
+              "Goal": {
+                "type": "Location",
+                "surface": "to pick me up",
+                "lemma": "pick up"
+              }
+            }
+          },
+          {
+            "id": "f2",
+            "frame_name": "Transport_person",
+            "lexical_unit": "pick up",
+            "frame_label": "Transporte de persona",
+            "roles": {
+              "Agent": {
+                "type": "Agent",
+                "surface": "Who",
+                "lemma": "who"
+              },
+              "Theme": {
+                "type": "Patient",
+                "surface": "me",
+                "lemma": "I",
+                "ref": "speaker"
+              }
+            }
+          }
+        ],
+        "nsm_explications": {
+          "pick up": "SOMEONE (I) want SOMEONE (YOU) to MOVE to a PLACE where I am and then MOVE with ME in a vehicle",
+          "know": "I want to KNOW SOMETHING"
+        },
+        "logical_form": {
+          "event": "SOMEONE comes to pick the speaker up",
+          "modality": "question about identity of the future agent",
+          "tense": "present",
+          "aspect": "progressive"
+        },
+        "pragmatics": {
+          "politeness": "neutral",
+          "formality": "neutral",
+          "expected_response": "acknowledgment",
+          "speaker_stance": "Speaker wants to know who will collect them",
+          "urgency": "medium"
+        },
+        "visual_guidelines": {
+          "focus_actor": "unknown person (driver or pickup agent)",
+          "action_core": "coming to pick up",
+          "object_core": "speaker",
+          "context": "waiting for a ride, asking identity of the person collecting them",
+          "temporal": "near_future",
+          "secondary_actor": "speaker"
+        }
+      },
+      "rawResponse": {
+        "model": "claude-haiku-5-5",
+        "id": "msg_011Cgd5iJ2X5FUoybmWDqf7i",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "toolu_01KL2S3FMehdHbt3yuTmhpRL",
+            "name": "analyze_utterance",
+            "input": {
+              "utterance": "Who is coming to pick me up?",
+              "lang": "en-GB",
+              "metadata": {
+                "speech_act": "interrogative",
+                "intent": "ask_info"
+              },
+              "domain": "transporte",
+              "frames": [
+                {
+                  "id": "f1",
+                  "frame_name": "Arriving",
+                  "lexical_unit": "coming",
+                  "frame_label": "Arrival",
+                  "roles": {
+                    "Theme": {
+                      "type": "Agent",
+                      "surface": "Who",
+                      "lemma": "who"
+                    },
+                    "Goal": {
+                      "type": "Location",
+                      "surface": "to pick me up",
+                      "lemma": "pick up"
+                    }
+                  }
+                },
+                {
+                  "id": "f2",
+                  "frame_name": "Transport_person",
+                  "lexical_unit": "pick up",
+                  "frame_label": "Transporte de persona",
+                  "roles": {
+                    "Agent": {
+                      "type": "Agent",
+                      "surface": "Who",
+                      "lemma": "who"
+                    },
+                    "Theme": {
+                      "type": "Patient",
+                      "surface": "me",
+                      "lemma": "I",
+                      "ref": "speaker"
+                    }
+                  }
+                }
+              ],
+              "nsm_explications": {
+                "pick up": "SOMEONE (I) want SOMEONE (YOU) to MOVE to a PLACE where I am and then MOVE with ME in a vehicle",
+                "know": "I want to KNOW SOMETHING"
+              },
+              "logical_form": {
+                "event": "SOMEONE comes to pick the speaker up",
+                "modality": "question about identity of the future agent",
+                "tense": "present",
+                "aspect": "progressive"
+              },
+              "pragmatics": {
+                "politeness": "neutral",
+                "formality": "neutral",
+                "expected_response": "acknowledgment",
+                "speaker_stance": "Speaker wants to know who will collect them",
+                "urgency": "medium"
+              },
+              "visual_guidelines": {
+                "focus_actor": "unknown person (driver or pickup agent)",
+                "action_core": "coming to pick up",
+                "object_core": "speaker",
+                "context": "waiting for a ride, asking identity of the person collecting them",
+                "temporal": "near_future",
+                "secondary_actor": "speaker"
+              }
+            },
+            "caller": {
+              "type": "direct"
+            }
+          }
+        ],
+        "container": null,
+        "stop_reason": "tool_use",
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 226,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 3509,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 800,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global",
+          "speed": "standard"
+        },
+        "diagnostics": null,
+        "meta": {
+          "provider": "claude",
+          "attempts": 1
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "9fdf5adc60690a78c41a5f5280f09d962a3f22f91e70e2a79acf750338fbea41"
+    }
+  ],
+  "warning": "Costs are estimates, not invoice ceilings. Structural validation does not establish semantic or AAC effectiveness."
+}

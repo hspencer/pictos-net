@@ -1,0 +1,25 @@
+<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" width="1024" height="1024">
+  <title>Pictograma de una persona tomando once</title>
+  <desc>Una persona lleva una taza a la boca junto a una mesa con pan amasado.</desc>
+  <rect width="1024" height="1024" fill="#F5F3EE" />
+  <g stroke="#454541" stroke-width="10" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M70 946H954" fill="none" stroke="#D5D1C9" stroke-width="5" />
+    <g id="person">
+      <path d="M209 520 C169 538 148 575 141 628 L126 767 C123 797 131 816 148 818 C165 820 171 804 176 779 L195 658 L191 819 L180 946 L278 946 L302 818 L314 946 L408 946 L397 817 L392 658 L416 779 C421 804 428 820 445 818 C462 816 470 797 467 767 L452 628 C446 575 424 538 384 520 L347 505 L242 505 Z" fill="#454541" />
+      <path d="M313 278 C270 278 235 312 235 356 C235 401 269 434 313 434 C357 434 391 401 391 356 C391 312 357 278 313 278 Z" fill="#454541" />
+      <path d="M250 533 C286 550 337 552 374 533" fill="none" stroke="#F5F3EE" stroke-width="5" />
+      <path d="M234 522 C221 568 219 608 224 645 L283 679 L371 679 L414 644 C419 605 414 563 394 522" fill="#454541" />
+      <path d="M373 546 C414 526 445 495 475 464 C492 447 508 439 524 445 C538 450 542 466 531 479 L487 524 C518 522 544 513 565 503 L579 545 C545 562 503 574 461 580 C421 586 391 575 373 562 Z" fill="#454541" />
+      <path d="M525 447 C537 431 546 420 558 413" fill="none" stroke="#454541" stroke-width="24" />
+      <path d="M516 443 C505 438 499 429 500 419 C502 407 511 400 523 402 L544 408 L557 423 L546 443 Z" fill="#454541" />
+      <path d="M548 390 L599 390 L599 438 C599 449 590 457 578 457 C566 457 557 449 557 438 L557 422" fill="#6F9F99" />
+      <path d="M599 398 C617 398 619 428 599 430" fill="none" stroke="#6F9F99" stroke-width="10" />
+    </g>
+    <g id="table">
+      <path d="M513 710 L941 710 L978 758 L978 794 L492 794 L492 758 Z" fill="#D9D6D0" />
+      <path d="M518 794 L518 946 M950 794 L950 946" fill="none" stroke="#A7A39B" stroke-width="12" />
+      <path d="M740 677 C752 642 777 623 814 621 C852 619 885 642 897 676 C903 695 890 710 870 716 C840 725 783 725 755 714 C739 708 733 694 740 677 Z" fill="#D8C5A6" />
+      <path d="M763 674 C768 656 779 645 789 637 M797 673 C804 652 817 640 829 634 M833 674 C841 653 853 645 864 642" fill="none" stroke="#A58D6C" stroke-width="8" />
+    </g>
+  </g>
+</svg>

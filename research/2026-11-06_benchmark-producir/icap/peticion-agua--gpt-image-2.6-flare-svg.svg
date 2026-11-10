@@ -1,0 +1,39 @@
+<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" width="1024" height="1024">
+  <title>Persona solicita un vaso de agua</title>
+  <desc>Una persona sentada extiende la mano hacia un vaso con agua mientras otra persona está de pie cerca.</desc>
+  <rect x="0" y="0" width="1024" height="1024" fill="#f7f5f0" />
+  <g id="setting">
+    <path d="M54 799H970" fill="none" stroke="#d9d5ce" stroke-width="7" stroke-linecap="round" />
+    <path d="M45 721H217V836Q217 844 208 844H167Q159 844 159 836V741H62V836Q62 844 53 844H44Q35 844 35 835V732Q35 721 45 721Z" fill="#c9c4bc" />
+    <path d="M177 721H217V741H177Z" fill="#bdb8b0" />
+  </g>
+
+  <g id="recipient" fill="#aaa59e" stroke="#aaa59e" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="888" cy="211" rx="53" ry="63" />
+    <path d="M858 270L855 291Q820 296 808 328L785 414Q777 440 749 451L718 465Q706 471 710 484Q714 498 730 495L784 478Q813 470 827 441L846 389L846 797L817 817Q804 826 815 835Q832 844 889 832L891 808L911 601L937 806L916 821Q901 831 914 838Q934 845 976 832Q987 828 983 816L960 605L962 431Q962 402 947 344Q936 300 911 291L915 270Z" />
+    <path d="M910 358Q925 410 930 455L925 524Q924 542 940 555" fill="none" stroke="#f7f5f0" stroke-width="5" />
+  </g>
+
+  <g id="speaker" fill="#454240" stroke="#454240" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="168" cy="300" rx="70" ry="78" />
+    <path d="M129 370L123 396Q81 401 65 437L39 548Q32 579 54 592Q75 605 102 586L157 548L137 631L72 631Q54 631 54 650V682Q54 711 83 711H215L186 844H248L282 697Q290 663 268 648Q245 631 192 631L214 545L257 563Q281 574 308 577L394 582Q414 583 430 571L463 556Q478 549 470 538Q464 528 448 533L414 543L357 541L291 523L251 456Q227 410 193 397L178 390L177 370Z" />
+    <path d="M209 437Q229 445 245 470L278 520Q290 538 311 541L386 548Q402 550 419 540L449 527Q462 522 468 533Q474 545 461 553L428 573Q413 582 392 581L307 575Q276 572 253 559L216 540Z" stroke="none" />
+    <path d="M109 458L83 558L137 522" fill="none" stroke="#f7f5f0" stroke-width="5" />
+    <path d="M137 522Q134 500 139 473Q141 461 147 461Q153 462 152 476L149 495L163 465Q168 454 174 457Q181 460 175 473L166 494L182 468Q188 459 193 464Q198 468 190 481L178 501L194 481Q201 473 206 479Q210 484 203 496Q187 524 166 540L137 522Z" fill="#454240" stroke="#f7f5f0" stroke-width="5" />
+    <path d="M138 635H214Q258 637 278 654Q294 669 285 700L264 800" fill="none" stroke="#f7f5f0" stroke-width="5" />
+    <path d="M73 592Q104 580 137 550L164 527" fill="none" stroke="#f7f5f0" stroke-width="5" />
+  </g>
+
+  <g id="request-flow" fill="none" stroke="#789f9b" stroke-width="15" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M309 523Q373 493 465 487" />
+    <path d="M465 465L493 487L465 509Z" fill="#789f9b" />
+  </g>
+
+  <g id="glass">
+    <path d="M527 422Q607 405 689 422L675 644Q672 660 607 663Q543 660 541 644Z" fill="#f7f5f0" stroke="#454240" stroke-width="9" stroke-linejoin="round" />
+    <path d="M536 484Q607 459 680 484L669 638Q607 655 547 638Z" fill="#83b4b0" />
+    <path d="M536 484Q607 459 680 484Q607 512 536 484Z" fill="#a5cbc7" />
+    <path d="M527 422Q607 402 689 422Q607 443 527 422Z" fill="none" stroke="#454240" stroke-width="9" stroke-linejoin="round" />
+    <path d="M546 644Q607 663 670 644" fill="none" stroke="#454240" stroke-width="8" stroke-linecap="round" />
+  </g>
+</svg>

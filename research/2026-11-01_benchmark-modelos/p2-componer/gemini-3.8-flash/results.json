@@ -1,0 +1,1231 @@
+{
+  "planHash": "83cdc650f3af3dd3bdd5f665659849ecc874151f10cfd5a6b6d3f821201c2af4",
+  "state": "stopped",
+  "estimatedExposureUsd": 0.10097775,
+  "attempts": [
+    {
+      "state": "recorded",
+      "caseId": "profe-cuento",
+      "requestedModel": "gemini-3.8-flash",
+      "returnedModel": "gemini-3.8-flash",
+      "phase": 2,
+      "repetition": 0,
+      "requestHash": "f06c93d6ebec9ade0873ba099ccc204bc376ec456270285dc39ead638beaddac",
+      "milliseconds": 7653,
+      "usage": {
+        "input_tokens": 1084,
+        "output_tokens": 180,
+        "input_tokens_details": {
+          "cached_tokens": null
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": null
+        },
+        "provider_usage": {
+          "promptTokenCount": 1084,
+          "candidatesTokenCount": 180,
+          "totalTokenCount": 1264,
+          "trafficType": "ON_DEMAND",
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 1084
+            }
+          ],
+          "candidatesTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 180
+            }
+          ]
+        }
+      },
+      "inputTokens": 1084,
+      "outputTokens": 180,
+      "estimatedCostUsd": 0.001488,
+      "reservedUsd": 0.090243,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "elements": [
+          {
+            "id": "pictograma",
+            "concept": "Root",
+            "children": [
+              {
+                "id": "profesora",
+                "concept": "Agent"
+              },
+              {
+                "id": "cuento",
+                "concept": "Object"
+              },
+              {
+                "concept": "Action",
+                "id": "lectura_en_voz_alta"
+              },
+              {
+                "concept": "Agent",
+                "id": "ninos"
+              }
+            ]
+          }
+        ],
+        "prompt": "A la izquierda se ubica la 'profesora', representada en postura sentada o de pie sosteniendo el 'cuento' abierto frente a ella. Entre la cabeza de la 'profesora' y el 'cuento' surge la 'lectura_en_voz_alta', que se orienta en dirección hacia la derecha. A la derecha, frente a la 'profesora', se sitúa el grupo de 'ninos' atentos y orientados hacia el 'cuento'."
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "compose_pictogram",
+            "input": {
+              "elements": [
+                {
+                  "id": "profesora",
+                  "concept": "Agent"
+                },
+                {
+                  "id": "cuento",
+                  "concept": "Object"
+                },
+                {
+                  "concept": "Action",
+                  "id": "lectura_en_voz_alta"
+                },
+                {
+                  "concept": "Agent",
+                  "id": "ninos"
+                }
+              ],
+              "prompt": "A la izquierda se ubica la 'profesora', representada en postura sentada o de pie sosteniendo el 'cuento' abierto frente a ella. Entre la cabeza de la 'profesora' y el 'cuento' surge la 'lectura_en_voz_alta', que se orienta en dirección hacia la derecha. A la derecha, frente a la 'profesora', se sitúa el grupo de 'ninos' atentos y orientados hacia el 'cuento'."
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gemini-3.8-flash",
+        "usage": {
+          "input_tokens": 1084,
+          "output_tokens": 180,
+          "input_tokens_details": {
+            "cached_tokens": null
+          },
+          "output_tokens_details": {
+            "reasoning_tokens": null
+          },
+          "provider_usage": {
+            "promptTokenCount": 1084,
+            "candidatesTokenCount": 180,
+            "totalTokenCount": 1264,
+            "trafficType": "ON_DEMAND",
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 1084
+              }
+            ],
+            "candidatesTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 180
+              }
+            ]
+          }
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "cd7cef24625473b131ef2b68358bb142fef225ab5531b9f9d0b665b0690be815"
+    },
+    {
+      "state": "recorded",
+      "caseId": "hora-colegio",
+      "requestedModel": "gemini-3.8-flash",
+      "returnedModel": "gemini-3.8-flash",
+      "phase": 2,
+      "repetition": 0,
+      "requestHash": "8d2949fcafdf9ccc8037dff84499daf2ff7213af91d10f5e178b00afbe2e303b",
+      "milliseconds": 3588,
+      "usage": {
+        "input_tokens": 1081,
+        "output_tokens": 185,
+        "input_tokens_details": {
+          "cached_tokens": null
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": null
+        },
+        "provider_usage": {
+          "promptTokenCount": 1081,
+          "candidatesTokenCount": 185,
+          "totalTokenCount": 1266,
+          "trafficType": "ON_DEMAND",
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 1081
+            }
+          ],
+          "candidatesTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 185
+            }
+          ]
+        }
+      },
+      "inputTokens": 1081,
+      "outputTokens": 185,
+      "estimatedCostUsd": 0.0015045,
+      "reservedUsd": 0.0901035,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "elements": [
+          {
+            "id": "pictograma",
+            "concept": "Root",
+            "children": [
+              {
+                "id": "estudiantes",
+                "concept": "Agent"
+              },
+              {
+                "id": "flecha_desplazamiento",
+                "concept": "Action"
+              },
+              {
+                "id": "colegio",
+                "concept": "Context"
+              },
+              {
+                "concept": "Context",
+                "id": "reloj"
+              },
+              {
+                "concept": "Element",
+                "id": "signo_pregunta"
+              }
+            ]
+          }
+        ],
+        "prompt": "En el centro superior se sitúa 'reloj' acompañado de un 'signo_pregunta' justo a su lado para enfatizar la consulta de tiempo. En la parte inferior izquierda se encuentra 'estudiantes' caminando orientados hacia la derecha. Conectando a 'estudiantes' con 'colegio' en la parte inferior derecha, se ubica 'flecha_desplazamiento' marcando el rumbo hacia el edificio escolar."
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "compose_pictogram",
+            "input": {
+              "prompt": "En el centro superior se sitúa 'reloj' acompañado de un 'signo_pregunta' justo a su lado para enfatizar la consulta de tiempo. En la parte inferior izquierda se encuentra 'estudiantes' caminando orientados hacia la derecha. Conectando a 'estudiantes' con 'colegio' en la parte inferior derecha, se ubica 'flecha_desplazamiento' marcando el rumbo hacia el edificio escolar.",
+              "elements": [
+                {
+                  "id": "estudiantes",
+                  "concept": "Agent"
+                },
+                {
+                  "id": "flecha_desplazamiento",
+                  "concept": "Action"
+                },
+                {
+                  "id": "colegio",
+                  "concept": "Context"
+                },
+                {
+                  "concept": "Context",
+                  "id": "reloj"
+                },
+                {
+                  "concept": "Element",
+                  "id": "signo_pregunta"
+                }
+              ]
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gemini-3.8-flash",
+        "usage": {
+          "input_tokens": 1081,
+          "output_tokens": 185,
+          "input_tokens_details": {
+            "cached_tokens": null
+          },
+          "output_tokens_details": {
+            "reasoning_tokens": null
+          },
+          "provider_usage": {
+            "promptTokenCount": 1081,
+            "candidatesTokenCount": 185,
+            "totalTokenCount": 1266,
+            "trafficType": "ON_DEMAND",
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 1081
+              }
+            ],
+            "candidatesTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 185
+              }
+            ]
+          }
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "71bdfdc73e371525e10063692be0d81c9e0fe92f493eabeb650b3047fc3cbb21"
+    },
+    {
+      "state": "recorded",
+      "caseId": "sangre",
+      "requestedModel": "gemini-3.8-flash",
+      "returnedModel": "gemini-3.8-flash",
+      "phase": 2,
+      "repetition": 0,
+      "requestHash": "82d3cf67af08898ea73ef2d702ee8aa4b75cc34a7431703763a5f4d32d47465c",
+      "milliseconds": 3099,
+      "usage": {
+        "input_tokens": 1192,
+        "output_tokens": 198,
+        "input_tokens_details": {
+          "cached_tokens": null
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": null
+        },
+        "provider_usage": {
+          "promptTokenCount": 1192,
+          "candidatesTokenCount": 198,
+          "totalTokenCount": 1390,
+          "trafficType": "ON_DEMAND",
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 1192
+            }
+          ],
+          "candidatesTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 198
+            }
+          ]
+        }
+      },
+      "inputTokens": 1192,
+      "outputTokens": 198,
+      "estimatedCostUsd": 0.0016365,
+      "reservedUsd": 0.0924345,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "elements": [
+          {
+            "id": "pictograma",
+            "concept": "Root",
+            "children": [
+              {
+                "id": "paciente",
+                "concept": "Agent"
+              },
+              {
+                "id": "brazo",
+                "concept": "Object"
+              },
+              {
+                "id": "personal_salud",
+                "concept": "Agent"
+              },
+              {
+                "concept": "Object",
+                "id": "jeringa"
+              },
+              {
+                "concept": "Action",
+                "id": "extraccion"
+              },
+              {
+                "concept": "Object",
+                "id": "sangre"
+              }
+            ]
+          }
+        ],
+        "prompt": "El 'paciente' se sitúa a la izquierda extendiendo horizontalmente su 'brazo' hacia el centro. A la derecha, el 'personal_salud' sostiene la 'jeringa', cuya aguja apunta hacia la vena del antebrazo. En el punto de contacto entre la 'jeringa' y el 'brazo', se manifiesta la 'extraccion' mediante una gota visible de 'sangre' que asciende hacia el cilindro del instrumento."
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "compose_pictogram",
+            "input": {
+              "elements": [
+                {
+                  "id": "paciente",
+                  "concept": "Agent"
+                },
+                {
+                  "id": "brazo",
+                  "concept": "Object"
+                },
+                {
+                  "id": "personal_salud",
+                  "concept": "Agent"
+                },
+                {
+                  "concept": "Object",
+                  "id": "jeringa"
+                },
+                {
+                  "concept": "Action",
+                  "id": "extraccion"
+                },
+                {
+                  "concept": "Object",
+                  "id": "sangre"
+                }
+              ],
+              "prompt": "El 'paciente' se sitúa a la izquierda extendiendo horizontalmente su 'brazo' hacia el centro. A la derecha, el 'personal_salud' sostiene la 'jeringa', cuya aguja apunta hacia la vena del antebrazo. En el punto de contacto entre la 'jeringa' y el 'brazo', se manifiesta la 'extraccion' mediante una gota visible de 'sangre' que asciende hacia el cilindro del instrumento."
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gemini-3.8-flash",
+        "usage": {
+          "input_tokens": 1192,
+          "output_tokens": 198,
+          "input_tokens_details": {
+            "cached_tokens": null
+          },
+          "output_tokens_details": {
+            "reasoning_tokens": null
+          },
+          "provider_usage": {
+            "promptTokenCount": 1192,
+            "candidatesTokenCount": 198,
+            "totalTokenCount": 1390,
+            "trafficType": "ON_DEMAND",
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 1192
+              }
+            ],
+            "candidatesTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 198
+              }
+            ]
+          }
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "fd40de7ab0aae897924063734946bf9a50d9f2bddb185e9d59839a442601de39"
+    },
+    {
+      "state": "recorded",
+      "caseId": "turno",
+      "requestedModel": "gemini-3.8-flash",
+      "returnedModel": "gemini-3.8-flash",
+      "phase": 2,
+      "repetition": 0,
+      "requestHash": "8ef8e5699fee087b782a6e6536d454ad9048f8687a97bebd7748e61195fe17b2",
+      "milliseconds": 5785,
+      "usage": {
+        "input_tokens": 974,
+        "output_tokens": 335,
+        "input_tokens_details": {
+          "cached_tokens": null
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": null
+        },
+        "provider_usage": {
+          "promptTokenCount": 974,
+          "candidatesTokenCount": 335,
+          "totalTokenCount": 1309,
+          "trafficType": "ON_DEMAND",
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 974
+            }
+          ],
+          "candidatesTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 335
+            }
+          ]
+        }
+      },
+      "inputTokens": 974,
+      "outputTokens": 335,
+      "estimatedCostUsd": 0.00198675,
+      "reservedUsd": 0.0886995,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "elements": [
+          {
+            "id": "pictograma",
+            "concept": "Root",
+            "children": [
+              {
+                "id": "hablante",
+                "concept": "Agent",
+                "children": [
+                  {
+                    "id": "cabeza_hablante",
+                    "concept": "Element"
+                  },
+                  {
+                    "concept": "Element",
+                    "id": "cuerpo_hablante"
+                  },
+                  {
+                    "id": "mano_pecho",
+                    "concept": "Action"
+                  }
+                ]
+              },
+              {
+                "id": "companero",
+                "children": [
+                  {
+                    "id": "cabeza_companero",
+                    "concept": "Element"
+                  },
+                  {
+                    "concept": "Element",
+                    "id": "cuerpo_companero"
+                  }
+                ],
+                "concept": "Agent"
+              },
+              {
+                "children": [
+                  {
+                    "id": "flecha_turno",
+                    "concept": "Element"
+                  }
+                ],
+                "concept": "Action",
+                "id": "turno"
+              },
+              {
+                "concept": "Context",
+                "children": [
+                  {
+                    "concept": "Element",
+                    "id": "marca_posicion"
+                  }
+                ],
+                "id": "secuencia"
+              }
+            ]
+          }
+        ],
+        "prompt": "En el primer plano a la izquierda se ubica 'hablante', destacándose en tamaño y llevando su 'mano_pecho' hacia su 'cuerpo_hablante' bajo la 'cabeza_hablante'. A la derecha y ligeramente desplazado hacia atrás se encuentra 'companero', compuesto por 'cabeza_companero' y 'cuerpo_companero' en postura de espera. Entre ambos participantes, 'secuencia' define la línea de avance mediante 'marca_posicion'. Por encima de 'hablante', 'turno' se manifiesta con 'flecha_turno' señalando directamente hacia él para indicar la prioridad de acción."
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "compose_pictogram",
+            "input": {
+              "elements": [
+                {
+                  "id": "hablante",
+                  "concept": "Agent",
+                  "children": [
+                    {
+                      "id": "cabeza_hablante",
+                      "concept": "Element"
+                    },
+                    {
+                      "concept": "Element",
+                      "id": "cuerpo_hablante"
+                    },
+                    {
+                      "id": "mano_pecho",
+                      "concept": "Action"
+                    }
+                  ]
+                },
+                {
+                  "id": "companero",
+                  "children": [
+                    {
+                      "id": "cabeza_companero",
+                      "concept": "Element"
+                    },
+                    {
+                      "concept": "Element",
+                      "id": "cuerpo_companero"
+                    }
+                  ],
+                  "concept": "Agent"
+                },
+                {
+                  "children": [
+                    {
+                      "id": "flecha_turno",
+                      "concept": "Element"
+                    }
+                  ],
+                  "concept": "Action",
+                  "id": "turno"
+                },
+                {
+                  "concept": "Context",
+                  "children": [
+                    {
+                      "concept": "Element",
+                      "id": "marca_posicion"
+                    }
+                  ],
+                  "id": "secuencia"
+                }
+              ],
+              "prompt": "En el primer plano a la izquierda se ubica 'hablante', destacándose en tamaño y llevando su 'mano_pecho' hacia su 'cuerpo_hablante' bajo la 'cabeza_hablante'. A la derecha y ligeramente desplazado hacia atrás se encuentra 'companero', compuesto por 'cabeza_companero' y 'cuerpo_companero' en postura de espera. Entre ambos participantes, 'secuencia' define la línea de avance mediante 'marca_posicion'. Por encima de 'hablante', 'turno' se manifiesta con 'flecha_turno' señalando directamente hacia él para indicar la prioridad de acción."
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gemini-3.8-flash",
+        "usage": {
+          "input_tokens": 974,
+          "output_tokens": 335,
+          "input_tokens_details": {
+            "cached_tokens": null
+          },
+          "output_tokens_details": {
+            "reasoning_tokens": null
+          },
+          "provider_usage": {
+            "promptTokenCount": 974,
+            "candidatesTokenCount": 335,
+            "totalTokenCount": 1309,
+            "trafficType": "ON_DEMAND",
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 974
+              }
+            ],
+            "candidatesTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 335
+              }
+            ]
+          }
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "38bc9b2522a5be825e025d5d89ec3c5230069d50c9a9f07fade3eb61f5cce182"
+    },
+    {
+      "state": "recorded",
+      "caseId": "micro",
+      "requestedModel": "gemini-3.8-flash",
+      "returnedModel": "gemini-3.8-flash",
+      "phase": 2,
+      "repetition": 0,
+      "requestHash": "976913f6221ff88b7fee636858e51e5be6909090a8aaa1be034cebf59d29c282",
+      "milliseconds": 3309,
+      "usage": {
+        "input_tokens": 1089,
+        "output_tokens": 149,
+        "input_tokens_details": {
+          "cached_tokens": null
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": null
+        },
+        "provider_usage": {
+          "promptTokenCount": 1089,
+          "candidatesTokenCount": 149,
+          "totalTokenCount": 1238,
+          "trafficType": "ON_DEMAND",
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 1089
+            }
+          ],
+          "candidatesTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 149
+            }
+          ]
+        }
+      },
+      "inputTokens": 1089,
+      "outputTokens": 149,
+      "estimatedCostUsd": 0.0013755,
+      "reservedUsd": 0.0905175,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "elements": [
+          {
+            "id": "pictograma",
+            "concept": "Root",
+            "children": [
+              {
+                "concept": "Agent",
+                "id": "pasajeros"
+              },
+              {
+                "id": "micro",
+                "concept": "Object"
+              },
+              {
+                "concept": "Action",
+                "id": "flecha_abordaje"
+              },
+              {
+                "concept": "Context",
+                "id": "parada"
+              }
+            ]
+          }
+        ],
+        "prompt": "La 'micro' ocupa el centro y la derecha de la escena como elemento principal. Los 'pasajeros' se sitúan a la izquierda en la 'parada', orientados hacia la puerta del vehículo. La 'flecha_abordaje' conecta a los 'pasajeros' con la entrada de la 'micro', señalando el movimiento de subir juntos."
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "compose_pictogram",
+            "input": {
+              "elements": [
+                {
+                  "concept": "Agent",
+                  "id": "pasajeros"
+                },
+                {
+                  "id": "micro",
+                  "concept": "Object"
+                },
+                {
+                  "concept": "Action",
+                  "id": "flecha_abordaje"
+                },
+                {
+                  "concept": "Context",
+                  "id": "parada"
+                }
+              ],
+              "prompt": "La 'micro' ocupa el centro y la derecha de la escena como elemento principal. Los 'pasajeros' se sitúan a la izquierda en la 'parada', orientados hacia la puerta del vehículo. La 'flecha_abordaje' conecta a los 'pasajeros' con la entrada de la 'micro', señalando el movimiento de subir juntos."
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gemini-3.8-flash",
+        "usage": {
+          "input_tokens": 1089,
+          "output_tokens": 149,
+          "input_tokens_details": {
+            "cached_tokens": null
+          },
+          "output_tokens_details": {
+            "reasoning_tokens": null
+          },
+          "provider_usage": {
+            "promptTokenCount": 1089,
+            "candidatesTokenCount": 149,
+            "totalTokenCount": 1238,
+            "trafficType": "ON_DEMAND",
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 1089
+              }
+            ],
+            "candidatesTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 149
+              }
+            ]
+          }
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "364a5db0090813b7f6c0d974be2a7bda94a65df4e6fc4f3f232d3f5dce0da406"
+    },
+    {
+      "state": "recorded",
+      "caseId": "no-verduras",
+      "requestedModel": "gemini-3.8-flash",
+      "returnedModel": "gemini-3.8-flash",
+      "phase": 2,
+      "repetition": 0,
+      "requestHash": "a061133dec74eb97b784c1746235a39b517de4e12fa5326289473e54f0ccffa8",
+      "milliseconds": 3082,
+      "usage": {
+        "input_tokens": 1069,
+        "output_tokens": 155,
+        "input_tokens_details": {
+          "cached_tokens": null
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": null
+        },
+        "provider_usage": {
+          "promptTokenCount": 1069,
+          "candidatesTokenCount": 155,
+          "totalTokenCount": 1224,
+          "trafficType": "ON_DEMAND",
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 1069
+            }
+          ],
+          "candidatesTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 155
+            }
+          ]
+        }
+      },
+      "inputTokens": 1069,
+      "outputTokens": 155,
+      "estimatedCostUsd": 0.001383,
+      "reservedUsd": 0.0900585,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "elements": [
+          {
+            "id": "pictograma",
+            "concept": "Root",
+            "children": [
+              {
+                "concept": "Agent",
+                "id": "persona"
+              },
+              {
+                "id": "rechazo",
+                "concept": "Action"
+              },
+              {
+                "concept": "Object",
+                "id": "plato_de_verduras"
+              }
+            ]
+          }
+        ],
+        "prompt": "A la izquierda se ubica la 'persona' con la cabeza orientada hacia un lado en señal de desaprobación. Al frente y a la derecha de la 'persona' se sitúa el 'plato_de_verduras'. Entre la 'persona' y el 'plato_de_verduras', superpuesto de forma prominente, se ubica el 'rechazo' que bloquea la acción de ingerir el alimento."
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "compose_pictogram",
+            "input": {
+              "prompt": "A la izquierda se ubica la 'persona' con la cabeza orientada hacia un lado en señal de desaprobación. Al frente y a la derecha de la 'persona' se sitúa el 'plato_de_verduras'. Entre la 'persona' y el 'plato_de_verduras', superpuesto de forma prominente, se ubica el 'rechazo' que bloquea la acción de ingerir el alimento.",
+              "elements": [
+                {
+                  "concept": "Agent",
+                  "id": "persona"
+                },
+                {
+                  "id": "rechazo",
+                  "concept": "Action"
+                },
+                {
+                  "concept": "Object",
+                  "id": "plato_de_verduras"
+                }
+              ]
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gemini-3.8-flash",
+        "usage": {
+          "input_tokens": 1069,
+          "output_tokens": 155,
+          "input_tokens_details": {
+            "cached_tokens": null
+          },
+          "output_tokens_details": {
+            "reasoning_tokens": null
+          },
+          "provider_usage": {
+            "promptTokenCount": 1069,
+            "candidatesTokenCount": 155,
+            "totalTokenCount": 1224,
+            "trafficType": "ON_DEMAND",
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 1069
+              }
+            ],
+            "candidatesTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 155
+              }
+            ]
+          }
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "8b76906c040309eba585c3f95f33a1862d126243972a4fa4ff0e2c47e85352a7"
+    },
+    {
+      "state": "recorded",
+      "caseId": "ayuda-1",
+      "requestedModel": "gemini-3.8-flash",
+      "returnedModel": "gemini-3.8-flash",
+      "phase": 2,
+      "repetition": 0,
+      "requestHash": "c8ab1b650ee010ebd32b97e8f6e9cd8a09f4d14014b4efca77058e3f94a6bfba",
+      "milliseconds": 3576,
+      "usage": {
+        "input_tokens": 1046,
+        "output_tokens": 208,
+        "input_tokens_details": {
+          "cached_tokens": null
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": null
+        },
+        "provider_usage": {
+          "promptTokenCount": 1046,
+          "candidatesTokenCount": 208,
+          "totalTokenCount": 1254,
+          "trafficType": "ON_DEMAND",
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 1046
+            }
+          ],
+          "candidatesTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 208
+            }
+          ]
+        }
+      },
+      "inputTokens": 1046,
+      "outputTokens": 208,
+      "estimatedCostUsd": 0.0015645,
+      "reservedUsd": 0.0895995,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "elements": [
+          {
+            "id": "pictograma",
+            "concept": "Root",
+            "children": [
+              {
+                "concept": "Agent",
+                "id": "solicitante"
+              },
+              {
+                "id": "auxiliador",
+                "concept": "Agent"
+              },
+              {
+                "concept": "Action",
+                "children": [
+                  {
+                    "id": "mano_receptora",
+                    "concept": "Element"
+                  },
+                  {
+                    "id": "mano_auxilio",
+                    "concept": "Element"
+                  }
+                ],
+                "id": "apoyo"
+              },
+              {
+                "concept": "Object",
+                "id": "signo_auxilio"
+              }
+            ]
+          }
+        ],
+        "prompt": "El 'solicitante' se sitúa a la izquierda extendiendo la 'mano_receptora' hacia el centro. Frente a él, a la derecha, se ubica el 'auxiliador' extendiendo la 'mano_auxilio' hacia abajo para sostenerla, formando el 'apoyo' mutuo entre ambas manos en el área central. Directamente sobre el 'apoyo' y entre ambas figuras se ubica el 'signo_auxilio'."
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "compose_pictogram",
+            "input": {
+              "prompt": "El 'solicitante' se sitúa a la izquierda extendiendo la 'mano_receptora' hacia el centro. Frente a él, a la derecha, se ubica el 'auxiliador' extendiendo la 'mano_auxilio' hacia abajo para sostenerla, formando el 'apoyo' mutuo entre ambas manos en el área central. Directamente sobre el 'apoyo' y entre ambas figuras se ubica el 'signo_auxilio'.",
+              "elements": [
+                {
+                  "concept": "Agent",
+                  "id": "solicitante"
+                },
+                {
+                  "id": "auxiliador",
+                  "concept": "Agent"
+                },
+                {
+                  "concept": "Action",
+                  "children": [
+                    {
+                      "id": "mano_receptora",
+                      "concept": "Element"
+                    },
+                    {
+                      "id": "mano_auxilio",
+                      "concept": "Element"
+                    }
+                  ],
+                  "id": "apoyo"
+                },
+                {
+                  "concept": "Object",
+                  "id": "signo_auxilio"
+                }
+              ]
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gemini-3.8-flash",
+        "usage": {
+          "input_tokens": 1046,
+          "output_tokens": 208,
+          "input_tokens_details": {
+            "cached_tokens": null
+          },
+          "output_tokens_details": {
+            "reasoning_tokens": null
+          },
+          "provider_usage": {
+            "promptTokenCount": 1046,
+            "candidatesTokenCount": 208,
+            "totalTokenCount": 1254,
+            "trafficType": "ON_DEMAND",
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 1046
+              }
+            ],
+            "candidatesTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 208
+              }
+            ]
+          }
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "4b79e6d0784ad26938de6e608cba2b067b68fbec30bbaf5dd177ffe3cd91791b"
+    },
+    {
+      "state": "recorded",
+      "caseId": "bano",
+      "requestedModel": "gemini-3.8-flash",
+      "returnedModel": "gemini-3.8-flash",
+      "phase": 2,
+      "repetition": 0,
+      "requestHash": "1314156b0f737dd37716b5e94b237979882ebc673ae7724099a9299bf89cefda",
+      "milliseconds": 3482,
+      "usage": {
+        "input_tokens": 1157,
+        "output_tokens": 121,
+        "input_tokens_details": {
+          "cached_tokens": null
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": null
+        },
+        "provider_usage": {
+          "promptTokenCount": 1157,
+          "candidatesTokenCount": 121,
+          "totalTokenCount": 1278,
+          "trafficType": "ON_DEMAND",
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 1157
+            }
+          ],
+          "candidatesTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 121
+            }
+          ]
+        }
+      },
+      "inputTokens": 1157,
+      "outputTokens": 121,
+      "estimatedCostUsd": 0.0013215,
+      "reservedUsd": 0.0915435,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "elements": [
+          {
+            "id": "pictograma",
+            "concept": "Root",
+            "children": [
+              {
+                "id": "persona",
+                "concept": "Agent"
+              },
+              {
+                "concept": "Action",
+                "id": "flecha_desplazamiento"
+              },
+              {
+                "id": "bano",
+                "concept": "Context"
+              }
+            ]
+          }
+        ],
+        "prompt": "A la izquierda se ubica la 'persona' orientada hacia el lado derecho. En el centro, una 'flecha_desplazamiento' conecta a la 'persona' con el 'bano'. A la derecha se sitúa el 'bano' como destino del desplazamiento."
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "compose_pictogram",
+            "input": {
+              "prompt": "A la izquierda se ubica la 'persona' orientada hacia el lado derecho. En el centro, una 'flecha_desplazamiento' conecta a la 'persona' con el 'bano'. A la derecha se sitúa el 'bano' como destino del desplazamiento.",
+              "elements": [
+                {
+                  "id": "persona",
+                  "concept": "Agent"
+                },
+                {
+                  "concept": "Action",
+                  "id": "flecha_desplazamiento"
+                },
+                {
+                  "id": "bano",
+                  "concept": "Context"
+                }
+              ]
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gemini-3.8-flash",
+        "usage": {
+          "input_tokens": 1157,
+          "output_tokens": 121,
+          "input_tokens_details": {
+            "cached_tokens": null
+          },
+          "output_tokens_details": {
+            "reasoning_tokens": null
+          },
+          "provider_usage": {
+            "promptTokenCount": 1157,
+            "candidatesTokenCount": 121,
+            "totalTokenCount": 1278,
+            "trafficType": "ON_DEMAND",
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 1157
+              }
+            ],
+            "candidatesTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 121
+              }
+            ]
+          }
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "3877783342bf7cf5aac7313ba7976785c13c39d3952bb32104474b4b948fad08"
+    },
+    {
+      "state": "recorded",
+      "caseId": "donde-mama",
+      "requestedModel": "gemini-3.8-flash",
+      "returnedModel": null,
+      "phase": 2,
+      "repetition": 0,
+      "requestHash": "97de7defe1042df47bf436a8cf996ced48766085954ef28c06b41ef59bd27b7e",
+      "milliseconds": 75003,
+      "usage": null,
+      "inputTokens": null,
+      "outputTokens": null,
+      "estimatedCostUsd": null,
+      "reservedUsd": 0.0887175,
+      "canonicalValid": false,
+      "firstCallValid": false,
+      "providerCalls": 1,
+      "cacheWriteTokens": null,
+      "cacheReadTokens": null,
+      "failure": "Provider request deadline exceeded",
+      "diagnostics": null,
+      "output": null,
+      "rawResponse": null,
+      "rawOutput": null,
+      "outputHash": null
+    }
+  ],
+  "warning": "Costs are estimates, not invoice ceilings. Structural validation does not establish semantic or AAC effectiveness.",
+  "stopReason": "usage_uncertain"
+}

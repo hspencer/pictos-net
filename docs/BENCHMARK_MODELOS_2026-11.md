@@ -32,7 +32,7 @@ Es 7,5 veces más barato y unos 4,6 s más rápido, con igual o mejor validez. E
 - **Fase 4**: harness del navegador `scripts/eval/vectorizarEstructurarEval.ts`, variante D (Estructurar desde el bitmap), sobre el piloto ICAP de 10 casos (`docs/eval/icap-pilot-10.json`), cambiando solo el modelo.
 - **Ruta real**: una frase nueva ("¿Puedo ir al patio a jugar?") recorrió COMPRENDER, COMPONER y PRODUCIR por los servicios del cliente y las funciones de Netlify, sin modelos fijados en la configuración.
 
-Gasto total del ensayo: unos US$10 (US$2,56 en 537 llamadas de texto, US$6,10 en 69 imágenes y cerca de US$1 en Estructurar). Los datos crudos están en `research/2026-11-01_benchmark-modelos/` (fuera de Git; una subcarpeta por fase y modelo). La ronda del 06-11-2026 sobre PRODUCIR está en `research/2026-11-06_benchmark-producir/`.
+Gasto total del ensayo: unos US$10 (US$2,56 en 537 llamadas de texto, US$6,10 en 69 imágenes y cerca de US$1 en Estructurar). Los datos crudos están en `research/2026-11-01_benchmark-modelos/` (una subcarpeta por fase y modelo). Portada de todos los estudios y cómo verlos y repetirlos: [research/README.md](../research/README.md). La ronda del 06-11-2026 sobre PRODUCIR está en `research/2026-11-06_benchmark-producir/`.
 
 ## Resultados
 

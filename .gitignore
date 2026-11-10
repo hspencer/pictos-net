@@ -51,8 +51,10 @@ pictos-vertex-38ff5ecd7e32.json
 # Vertex AI (gmail account) credentials — never commit
 vertex-gmail/
 
-# Local research notes and protocols (not versioned)
-/research/
+# Research is versioned except heavy or third-party material (see research/README.md)
+/research/**/librerias/
+/research/2026-10-23_f5-rescate-nlu/
+/research/references/
 
 # Tutorial source documents (kept on disk, not versioned; only the PDFs ship)
 public/tutorial/*.docx

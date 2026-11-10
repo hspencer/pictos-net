@@ -1,0 +1,5 @@
+Browser tab: 1324285785, Title: "PICTOS · generative pictograms for AAC", URL: "https://pictos.net/#".
+The following is a diff from the previous accessibility tree with ~ and + representing changed and added elements, respectively. Removed elements are summarized by ID range.
+Removed element IDs: 314, 359
++						359 image Estoy enojado, quiero estar solo, ID: vtracer-svg-hidden, Help: El 'pictograma' principal muestra una 'persona' en el centro. La 'persona' está envuelta por una 'expresion_enojo' que irradia desde ella. Toda la 'persona' y su 'expresion_enojo' están contenidas dentro de un 'espacio_personal' que la aísla del exterior, sugiriendo el deseo de estar solo.
+The focused UI element is 26 button (collapsed) CONFIGURACIÓN AVANZADA, Secondary Actions: Expand

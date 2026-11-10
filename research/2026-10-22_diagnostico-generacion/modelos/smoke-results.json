@@ -1,0 +1,459 @@
+{
+  "checkedAt": "2026-10-22T18:34:36.688Z",
+  "scope": "direct provider calls with local credentials, not production routes",
+  "utterance": "Quiero una taza de agua",
+  "results": [
+    {
+      "model": "claude-sonnet-5-5",
+      "phase": 1,
+      "variant": "current forced-tool request; count_tokens only",
+      "http": 400,
+      "durationMs": 506,
+      "error": {
+        "type": "invalid_request_error",
+        "message": "tool_choice: type \"tool\" and \"any\" are not supported for this model."
+      }
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-haiku-5-5",
+      "phase": 1,
+      "variant": "existing request format, new model id",
+      "http": 200,
+      "durationMs": 3180,
+      "requestId": "req_011CgHkmLcrH3pF3c3MZA5Yu",
+      "actualModel": "claude-haiku-5-5",
+      "validated": false,
+      "issues": [
+        {
+          "instancePath": "/visual_guidelines/temporal",
+          "schemaPath": "#/$defs/VisualGuidelines/properties/temporal/enum",
+          "keyword": "enum",
+          "params": {
+            "allowedValues": [
+              "immediate",
+              "near_future",
+              "future",
+              "past",
+              "habitual",
+              "unspecified"
+            ]
+          },
+          "message": "must be equal to one of the allowed values"
+        }
+      ],
+      "stopReason": "tool_use",
+      "usage": {
+        "input_tokens": 225,
+        "cache_creation_input_tokens": 3597,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 3597,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 719,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      }
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-6-luna",
+      "phase": 1,
+      "variant": "existing request format, new model id",
+      "http": 200,
+      "durationMs": 9624,
+      "requestId": "req_8cdc00b7538d4271addc3775c1fc7463",
+      "actualModel": "gpt-6-luna",
+      "validated": true,
+      "error": null,
+      "stopReason": "completed",
+      "usage": {
+        "input_tokens": 1815,
+        "input_tokens_details": {
+          "cache_write_tokens": 1680,
+          "cached_tokens": 0
+        },
+        "output_tokens": 368,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 2183
+      },
+      "output": {
+        "utterance": "Quiero una taza de agua",
+        "lang": "es-419",
+        "domain": "alimentación",
+        "metadata": {
+          "speech_act": "directive",
+          "intent": "request"
+        },
+        "frames": [
+          {
+            "frame_name": "Desiring",
+            "frame_label": "Deseo",
+            "lexical_unit": "quiero",
+            "roles": {
+              "Experiencer": {
+                "type": "Speaker",
+                "surface": "(yo)",
+                "lemma": "yo"
+              },
+              "Event": {
+                "type": "Theme",
+                "surface": "una taza de agua",
+                "lemma": "tener agua"
+              }
+            }
+          },
+          {
+            "frame_name": "Ingestion",
+            "frame_label": "Ingestión",
+            "lexical_unit": "taza de agua",
+            "roles": {
+              "Agent": {
+                "type": "Experiencer",
+                "surface": "(yo)",
+                "lemma": "yo"
+              },
+              "Theme": {
+                "type": "Patient",
+                "surface": "agua",
+                "lemma": "agua"
+              },
+              "Instrument": {
+                "type": "Object",
+                "surface": "taza",
+                "lemma": "taza"
+              }
+            }
+          }
+        ],
+        "nsm_explications": {
+          "querer": "YO piensa: YO quiero ALGO ahora.",
+          "agua": "ALGO que GENTE puede beber; este ALGO puede estar DENTRO de una taza."
+        },
+        "logical_form": {
+          "event": "querer",
+          "modality": "desire",
+          "aspect": "none",
+          "tense": "present"
+        },
+        "pragmatics": {
+          "politeness": "neutral",
+          "formality": "neutral",
+          "expected_response": "compliance",
+          "urgency": "low",
+          "speaker_stance": "Expresa deseo de que le proporcionen una taza con agua; funciona pragmáticamente como petición."
+        },
+        "visual_guidelines": {
+          "focus_actor": "persona que habla",
+          "action_core": "pedir agua",
+          "object_core": "una taza con agua",
+          "context": "situación cotidiana de pedir una bebida",
+          "temporal": "immediate",
+          "salience": {
+            "persona": 0.7,
+            "taza": 0.8,
+            "agua": 1
+          }
+        }
+      }
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-6-luna",
+      "phase": 2,
+      "variant": "existing request format, new model id",
+      "http": 200,
+      "durationMs": 4205,
+      "requestId": "req_fa662e62452148dd9f6ad15f5f172222",
+      "actualModel": "gpt-6-luna",
+      "validated": true,
+      "error": null,
+      "stopReason": "completed",
+      "usage": {
+        "input_tokens": 1247,
+        "input_tokens_details": {
+          "cache_write_tokens": 1113,
+          "cached_tokens": 0
+        },
+        "output_tokens": 181,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 1428
+      },
+      "output": {
+        "elements": [
+          {
+            "id": "pictograma",
+            "concept": "Root",
+            "children": [
+              {
+                "id": "persona",
+                "concept": "Agent"
+              },
+              {
+                "id": "pedir",
+                "concept": "Action",
+                "children": [
+                  {
+                    "id": "querer",
+                    "concept": "Action"
+                  }
+                ]
+              },
+              {
+                "id": "taza",
+                "concept": "Object",
+                "children": [
+                  {
+                    "id": "agua",
+                    "concept": "Object"
+                  }
+                ]
+              },
+              {
+                "id": "situacion_cotidiana",
+                "concept": "Context"
+              }
+            ]
+          }
+        ],
+        "prompt": "Coloca 'persona' a la izquierda de 'taza', de tamaño destacado. Sitúa 'agua' dentro de 'taza', ocupando la parte inferior de su interior. Pon 'pedir' entre 'persona' y 'taza', conectando visualmente a la persona con la taza; integra 'querer' junto a 'pedir'. Ubica 'situacion_cotidiana' detrás de los demás elementos, como fondo."
+      }
+    },
+    {
+      "provider": "gemini",
+      "model": "gemini-3.8-flash",
+      "phase": 1,
+      "variant": "thinkingLevel LOW",
+      "http": 200,
+      "durationMs": 13406,
+      "requestId": null,
+      "actualModel": "gemini-3.8-flash",
+      "validated": true,
+      "stopReason": "STOP",
+      "usage": {
+        "promptTokenCount": 1588,
+        "candidatesTokenCount": 483,
+        "totalTokenCount": 2071,
+        "trafficType": "ON_DEMAND",
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 1588
+          }
+        ],
+        "candidatesTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 483
+          }
+        ]
+      },
+      "output": {
+        "utterance": "Quiero una taza de agua",
+        "schemaVersion": "1.1.0",
+        "metadata": {
+          "speech_act": "directive",
+          "intent": "request"
+        },
+        "pragmatics": {
+          "expected_response": "compliance",
+          "politeness": "neutral",
+          "formality": "neutral",
+          "speaker_stance": "expressing a direct personal physical or comfort need",
+          "urgency": "medium"
+        },
+        "nsm_explications": {
+          "querer": "YO DIGO: YO QUIERO ESTO AHORA",
+          "taza de agua": "ALGO; ALGUIEN PUEDE TENER ESTA COSA DENTRO DE OTRA COSA PEQUEÑA; ALGUIEN PUEDE BEBER ESTA COSA PORQUE QUIERE"
+        },
+        "frames": [
+          {
+            "id": "frame_desire",
+            "roles": {
+              "Experiencer": {
+                "type": "Experiencer",
+                "lemma": "yo",
+                "definiteness": "definite"
+              },
+              "Event": {
+                "type": "Event",
+                "ref_frame": "frame_ingestion"
+              }
+            },
+            "lexical_unit": "querer",
+            "frame_label": "Deseo",
+            "frame_name": "Desiring"
+          },
+          {
+            "frame_label": "Ingestión",
+            "lexical_unit": "taza de agua",
+            "frame_name": "Ingestion",
+            "roles": {
+              "Ingestibles": {
+                "type": "Object",
+                "surface": "una taza de agua",
+                "lemma": "taza de agua",
+                "definiteness": "indefinite"
+              }
+            },
+            "id": "frame_ingestion"
+          }
+        ],
+        "logical_form": {
+          "tense": "present",
+          "aspect": "none",
+          "modality": "volitive",
+          "event": "desire(speaker, drink(speaker, water_cup))",
+          "negation": false
+        },
+        "domain": "alimentación",
+        "visual_guidelines": {
+          "focus_actor": "hablante",
+          "context": "hogar o comedor",
+          "secondary_actor": "interlocutor / asistente",
+          "action_core": "pedir / beber",
+          "salience": {
+            "hablante": 0.7,
+            "taza con agua": 0.95
+          },
+          "temporal": "immediate",
+          "object_core": "taza con agua"
+        },
+        "lang": "es-419"
+      }
+    },
+    {
+      "provider": "gemini",
+      "model": "gemini-3.8-flash",
+      "phase": 2,
+      "variant": "thinkingLevel LOW",
+      "http": 200,
+      "durationMs": 25185,
+      "requestId": null,
+      "actualModel": "gemini-3.8-flash",
+      "validated": true,
+      "stopReason": "STOP",
+      "usage": {
+        "promptTokenCount": 1069,
+        "candidatesTokenCount": 197,
+        "totalTokenCount": 1266,
+        "trafficType": "ON_DEMAND",
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 1069
+          }
+        ],
+        "candidatesTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 197
+          }
+        ]
+      },
+      "output": {
+        "elements": [
+          {
+            "id": "pictograma",
+            "concept": "Root",
+            "children": [
+              {
+                "id": "persona",
+                "concept": "Agent"
+              },
+              {
+                "id": "taza",
+                "children": [
+                  {
+                    "concept": "Object",
+                    "id": "asa"
+                  },
+                  {
+                    "concept": "Object",
+                    "children": [
+                      {
+                        "id": "gota",
+                        "concept": "Object"
+                      }
+                    ],
+                    "id": "agua"
+                  }
+                ],
+                "concept": "Object"
+              },
+              {
+                "concept": "Action",
+                "id": "gesto_peticion"
+              }
+            ]
+          }
+        ],
+        "prompt": "A la izquierda se ubica la 'persona' de perfil orientada hacia el centro. En la parte central derecha se encuentra la 'taza', destacada en tamaño, con su 'asa' en el costado derecho y conteniendo 'agua' visible en su interior con una 'gota' cayendo o suspendida. Desde la 'persona' hacia la 'taza' se extiende el 'gesto_peticion', marcando la dirección del deseo."
+      }
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-image-2.5-flare",
+      "phase": 3,
+      "variant": "synthetic short prompt; low quality or 1K",
+      "http": 200,
+      "durationMs": 8501,
+      "requestId": "req_99ee8944d6eb463886815d615058df41",
+      "imagePresent": true,
+      "imageBytes": 811600,
+      "usage": {
+        "input_tokens": 60,
+        "input_tokens_details": {
+          "image_tokens": 0,
+          "text_tokens": 60
+        },
+        "output_tokens": 196,
+        "output_tokens_details": {
+          "image_tokens": 196,
+          "text_tokens": 0
+        },
+        "total_tokens": 256
+      }
+    },
+    {
+      "provider": "gemini",
+      "model": "gemini-nano-banana-2.1",
+      "phase": 3,
+      "variant": "synthetic short prompt; low quality or 1K",
+      "http": 200,
+      "durationMs": 14561,
+      "requestId": null,
+      "imagePresent": true,
+      "imageBytes": 223860,
+      "finishReason": "STOP",
+      "usage": {
+        "promptTokenCount": 53,
+        "candidatesTokenCount": 1120,
+        "totalTokenCount": 2133,
+        "trafficType": "ON_DEMAND",
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 53
+          }
+        ],
+        "candidatesTokensDetails": [
+          {
+            "modality": "IMAGE",
+            "tokenCount": 1120
+          }
+        ],
+        "thoughtsTokenCount": 960
+      }
+    }
+  ]
+}

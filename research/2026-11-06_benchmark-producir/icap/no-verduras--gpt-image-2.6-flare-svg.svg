@@ -1,0 +1,38 @@
+<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" width="1024" height="1024">
+  <title>Pictograma de rechazo a comer verduras</title>
+  <desc>Una persona levanta la mano para rechazar un plato de verduras sobre una mesa.</desc>
+  <rect width="1024" height="1024" fill="#f7f5f0" />
+  <path d="M70 770H954" fill="none" stroke="#d8d4cc" stroke-width="3" stroke-linecap="round" />
+  <g stroke="#454542" stroke-width="5" stroke-linejoin="round">
+    <path d="M169 427c-54 8-78 44-88 102l-22 128c-3 18 7 29 25 31l104 10 31-114 10 185h203l-8-233c-3-64-24-97-73-109l-50-12H220z" fill="#484846" />
+    <path d="M188 432c11 27 33 42 65 42 34 0 57-15 68-42" fill="none" stroke="#f2f0eb" stroke-width="8" stroke-linecap="round" />
+    <ellipse cx="267" cy="273" rx="109" ry="132" fill="#484846" />
+    <path d="M179 539l-31 147c-5 23 1 43 20 53l87 35c21 8 39 2 44-11 4-13-7-22-24-29l-65-27 28-138" fill="#484846" />
+    <path d="M406 522c-1 42 0 80 8 110l-1 128" fill="none" stroke="#373735" stroke-width="8" stroke-linecap="round" />
+    <path d="M430 524c-4-18 0-48 7-72 4-13 13-19 22-15 10 4 12 14 10 26l-2 44 10 18 13-105c2-14 9-22 19-20 10 2 13 10 11 24l-7 96 11 3 11-111c1-13 8-20 18-18 11 2 14 10 12 24l-8 108 11 3 14-88c2-13 10-19 19-16 10 3 12 11 10 24l-9 87 12-24c6-12 15-15 23-10 8 5 8 15 3 27l-21 64c-8 24-21 41-41 54l-28 18c-16 10-34 11-52 3l-37-17c-18-8-32-23-39-42l-22-61c-5-13-2-22 6-26 9-4 17 2 22 15l15 33z" fill="#484846" />
+  </g>
+  <path d="M465 551c11 29 21 52 33 68 8 11 20 17 35 20" fill="none" stroke="#f2f0eb" stroke-width="7" stroke-linecap="round" />
+  <g stroke="#77756e" stroke-width="5" stroke-linejoin="round">
+    <path d="M520 769c5-39 54-58 110-58h225c55 0 104 19 109 58" fill="#ebe8e1" />
+    <ellipse cx="738" cy="777" rx="215" ry="53" fill="#f7f5f0" />
+    <ellipse cx="738" cy="780" rx="158" ry="32" fill="#d8d4cc" stroke="none" />
+    <path d="M523 778c6 29 86 51 215 51s209-22 215-51" fill="none" stroke="#77756e" stroke-width="8" />
+  </g>
+  <g stroke="#5e755e" stroke-width="7" stroke-linejoin="round">
+    <path d="M644 790c-31-9-56-23-69-45-19-32-1-66 29-69 1-31 29-49 56-34 17-28 55-26 67 5 31-8 54 17 44 43 27 16 26 49 0 64-28 16-73 31-127 36z" fill="#789479" />
+    <path d="M735 781c-20-30-25-56-13-82-15-24-2-51 22-52 7-29 35-38 55-18 20-15 46-5 48 20 28 2 39 29 22 50 20 24 9 51-18 59-32 10-72 19-116 23z" fill="#789479" />
+    <path d="M802 790c-9-22-4-45 13-59-4-24 15-39 36-30 16-19 42-14 48 8 23 4 29 27 13 43 12 22-1 42-25 41z" fill="#789479" />
+    <path d="M661 784c-22-23-31-45-32-72m6 43-34-19m65 57 19-61m-19 19-25-25m79 46 27-60m-16 31 32-24m-15 33 31-21m-12 50 18-33" fill="none" stroke="#a5b79c" stroke-width="8" stroke-linecap="round" />
+  </g>
+  <g fill="#719087" stroke="#5e755e" stroke-width="4" stroke-linejoin="round">
+    <path d="M669 819c22-26 50-54 82-74 30-19 50-12 48 5-2 13-23 26-45 39-26 15-44 27-57 39z" />
+    <path d="M730 823c24-25 52-46 83-61 27-13 46-5 41 11-4 12-25 22-46 32-26 12-43 22-55 30z" />
+  </g>
+  <g fill="none" stroke="#607a71" stroke-width="5" stroke-linecap="round">
+    <path d="M701 802l-10-12m35-15-3-18m62 40-7-15m34-17 2-15" />
+  </g>
+  <g>
+    <path d="M74 784h876c17 0 30 13 30 30v72c0 17-13 30-30 30H74c-17 0-30-13-30-30v-72c0-17 13-30 30-30z" fill="#e8e5de" stroke="#d5d1c9" stroke-width="3" />
+    <path d="M74 784h876c17 0 30 13 30 30v6H44v-6c0-17 13-30 30-30z" fill="#efede7" />
+  </g>
+</svg>

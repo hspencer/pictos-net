@@ -1,0 +1,1021 @@
+[
+  {
+    "id": "peticion-agua",
+    "utterance": "Quiero un vaso de agua",
+    "nlu": {
+      "utterance": "Quiero un vaso de agua",
+      "lang": "es-419",
+      "domain": "alimentación",
+      "metadata": {
+        "speech_act": "assertive",
+        "intent": "request"
+      },
+      "frames": [
+        {
+          "id": "f_desire_1",
+          "frame_name": "Desire",
+          "frame_label": "Deseo",
+          "lexical_unit": "querer",
+          "roles": {
+            "Experiencer": {
+              "type": "Speaker",
+              "surface": "[sujeto tácito: yo]",
+              "lemma": "yo",
+              "definiteness": "definite"
+            },
+            "Theme": {
+              "type": "Object",
+              "surface": "un vaso de agua",
+              "lemma": "vaso de agua",
+              "definiteness": "indefinite",
+              "ref_frame": "f_container_1"
+            }
+          }
+        },
+        {
+          "id": "f_container_1",
+          "frame_name": "Containing",
+          "frame_label": "Contención",
+          "lexical_unit": "vaso de",
+          "roles": {
+            "Object": {
+              "type": "Object",
+              "surface": "agua",
+              "lemma": "agua",
+              "definiteness": "unspecified"
+            },
+            "Instrument": {
+              "type": "Object",
+              "surface": "un vaso",
+              "lemma": "vaso",
+              "definiteness": "indefinite"
+            }
+          }
+        }
+      ],
+      "nsm_explications": {
+        "querer": "YO QUIERO TENER ALGO AHORA",
+        "vaso de agua": "ALGO ESTÁ DENTRO DE OTRA COSA; ESTE ALGO ES ALGO QUE LA GENTE PUEDE TENER DENTRO DEL CUERPO"
+      },
+      "logical_form": {
+        "event": "want(SPEAKER, glass_of_water)",
+        "modality": "desiderative",
+        "negation": false,
+        "aspect": "none",
+        "tense": "present"
+      },
+      "pragmatics": {
+        "politeness": "neutral",
+        "formality": "neutral",
+        "expected_response": "compliance",
+        "urgency": "low",
+        "speaker_stance": "El hablante expresa un deseo que funciona pragmáticamente como petición indirecta de recibir un vaso con agua."
+      },
+      "visual_guidelines": {
+        "focus_actor": "hablante",
+        "secondary_actor": "interlocutor implícito",
+        "action_core": "querer y solicitar recibir",
+        "object_core": "un vaso con agua",
+        "context": "situación cotidiana de petición de una bebida",
+        "temporal": "immediate",
+        "salience": {
+          "hablante": 0.8,
+          "vaso": 0.9,
+          "agua": 1,
+          "interlocutor": 0.5
+        }
+      },
+      "schemaVersion": "1.1.0"
+    },
+    "composition": {
+      "elements": [
+        {
+          "id": "pictograma",
+          "concept": "Root",
+          "children": [
+            {
+              "id": "hablante",
+              "concept": "Agent",
+              "children": [
+                {
+                  "id": "deseo",
+                  "concept": "Action",
+                  "children": []
+                },
+                {
+                  "id": "vaso",
+                  "concept": "Object",
+                  "children": [
+                    {
+                      "id": "agua",
+                      "concept": "Object",
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "interlocutor",
+              "concept": "Agent",
+              "children": []
+            },
+            {
+              "id": "situacion_cotidiana",
+              "concept": "Context",
+              "children": []
+            }
+          ]
+        }
+      ],
+      "prompt": "'hablante' se ubica en primer plano a la izquierda, con 'deseo' como gesto de querer junto a su cuerpo. 'vaso' es un objeto de tamaño mediano frente al 'hablante', y 'agua' queda contenida dentro de 'vaso' ocupando la mayor parte de su interior. 'deseo' conecta con 'vaso' mediante una línea de flujo que indica que el hablante quiere recibirlo. 'interlocutor' aparece en segundo plano a la derecha, orientado hacia 'hablante' como destinatario implícito de la petición. 'situacion_cotidiana' envuelve a todos los elementos como escenario de fondo."
+    }
+  },
+  {
+    "id": "dolor-cabeza",
+    "utterance": "Me duele la cabeza",
+    "nlu": {
+      "utterance": "Me duele la cabeza",
+      "lang": "es-419",
+      "domain": "salud",
+      "metadata": {
+        "speech_act": "assertive",
+        "intent": "inform"
+      },
+      "frames": [
+        {
+          "id": "pain_1",
+          "frame_name": "Pain",
+          "frame_label": "Dolor",
+          "lexical_unit": "doler",
+          "roles": {
+            "Experiencer": {
+              "type": "Speaker",
+              "surface": "Me",
+              "lemma": "yo",
+              "definiteness": "definite"
+            },
+            "Body_part": {
+              "type": "Object",
+              "surface": "la cabeza",
+              "lemma": "cabeza",
+              "definiteness": "definite"
+            }
+          }
+        }
+      ],
+      "nsm_explications": {
+        "doler": "YO SIENTO ALGO MALO EN UNA PARTE DEL CUERPO AHORA."
+      },
+      "logical_form": {
+        "event": "doler(la_cabeza, yo)",
+        "modality": "actual",
+        "negation": false,
+        "aspect": "none",
+        "tense": "present"
+      },
+      "pragmatics": {
+        "politeness": "neutral",
+        "formality": "neutral",
+        "expected_response": "acknowledgment",
+        "urgency": "medium",
+        "speaker_stance": "El hablante informa de una sensación física negativa presente, posiblemente para obtener atención, empatía o ayuda."
+      },
+      "visual_guidelines": {
+        "focus_actor": "persona que habla",
+        "secondary_actor": "cabeza de la persona",
+        "action_core": "sentir dolor",
+        "object_core": "cabeza",
+        "context": "situación de salud con énfasis visual en la zona de la cabeza",
+        "temporal": "immediate",
+        "salience": {
+          "persona que habla": 0.8,
+          "cabeza": 1,
+          "dolor": 1
+        }
+      },
+      "schemaVersion": "1.1.0"
+    },
+    "composition": {
+      "elements": [
+        {
+          "id": "pictograma",
+          "concept": "Root",
+          "children": [
+            {
+              "id": "persona",
+              "concept": "Agent"
+            },
+            {
+              "id": "cabeza",
+              "concept": "Object"
+            },
+            {
+              "id": "dolor",
+              "concept": "Action"
+            },
+            {
+              "id": "contexto_salud",
+              "concept": "Context"
+            }
+          ]
+        }
+      ],
+      "prompt": "'persona' ocupa el centro de la composición como protagonista que habla. 'cabeza' se ubica en la parte superior de 'persona', con mayor tamaño relativo para enfatizar la zona afectada. 'dolor' se sitúa directamente junto a 'cabeza', conectado a ella como la acción de sentir molestia. 'contexto_salud' envuelve el conjunto como fondo, sin ocupar el primer plano."
+    }
+  },
+  {
+    "id": "donde-mama",
+    "utterance": "¿Dónde está mamá?",
+    "nlu": {
+      "utterance": "¿Dónde está mamá?",
+      "lang": "es-419",
+      "domain": "lugar",
+      "metadata": {
+        "speech_act": "interrogative",
+        "intent": "ask_info"
+      },
+      "frames": [
+        {
+          "id": "f1",
+          "frame_name": "Being_located",
+          "frame_label": "Estar ubicado",
+          "lexical_unit": "estar",
+          "roles": {
+            "Theme": {
+              "type": "Other",
+              "surface": "mamá",
+              "lemma": "mamá",
+              "definiteness": "definite"
+            },
+            "Location": {
+              "type": "Location",
+              "surface": "Dónde",
+              "lemma": "dónde",
+              "definiteness": "unspecified"
+            }
+          }
+        }
+      ],
+      "nsm_explications": {
+        "estar_ubicado": "ALGUIEN (YO) QUIERE SABER: ¿EN QUÉ LUGAR ESTÁ ALGUIEN (MAMÁ) AHORA?"
+      },
+      "logical_form": {
+        "event": "estar(mamá, lugar_desconocido)",
+        "modality": "interrogative",
+        "negation": false,
+        "aspect": "none",
+        "tense": "present"
+      },
+      "pragmatics": {
+        "politeness": "neutral",
+        "formality": "informal",
+        "expected_response": "question",
+        "urgency": "low",
+        "speaker_stance": "búsqueda de información sobre la ubicación actual de mamá"
+      },
+      "visual_guidelines": {
+        "focus_actor": "mamá",
+        "secondary_actor": "persona que pregunta",
+        "action_core": "estar ubicada",
+        "object_core": "ubicación desconocida",
+        "context": "búsqueda de la ubicación actual de mamá",
+        "temporal": "immediate",
+        "salience": {
+          "mamá": 1,
+          "ubicación": 1,
+          "interrogación": 0.9
+        }
+      },
+      "schemaVersion": "1.1.0"
+    },
+    "composition": {
+      "elements": [
+        {
+          "id": "pictograma",
+          "concept": "Root",
+          "children": [
+            {
+              "id": "persona_que_pregunta",
+              "concept": "Agent",
+              "children": [
+                {
+                  "id": "interrogacion",
+                  "concept": "Element"
+                }
+              ]
+            },
+            {
+              "id": "mamá",
+              "concept": "Object",
+              "children": []
+            },
+            {
+              "id": "ubicacion_desconocida",
+              "concept": "Context",
+              "children": []
+            },
+            {
+              "id": "estar_ubicada",
+              "concept": "Action",
+              "children": []
+            }
+          ]
+        }
+      ],
+      "prompt": "'persona_que_pregunta' se ubica en el lado izquierdo y dirige su atención hacia 'mamá', que aparece en el centro como figura principal de mayor tamaño. 'estar_ubicada' se representa como un vínculo que conecta a 'persona_que_pregunta' con 'mamá' mediante una línea de búsqueda. 'ubicacion_desconocida' rodea a 'mamá' como un contexto de fondo que enmarca el espacio incierto. 'interrogacion' se sitúa encima de 'persona_que_pregunta', conectada a ella, indicando la pregunta."
+    }
+  },
+  {
+    "id": "no-verduras",
+    "utterance": "No quiero comer verduras",
+    "nlu": {
+      "utterance": "No quiero comer verduras",
+      "lang": "es-419",
+      "domain": "alimentación",
+      "metadata": {
+        "speech_act": "assertive",
+        "intent": "inform"
+      },
+      "frames": [
+        {
+          "id": "desire_1",
+          "frame_name": "Desire",
+          "frame_label": "Deseo",
+          "lexical_unit": "querer",
+          "roles": {
+            "Experiencer": {
+              "type": "Speaker",
+              "surface": "(yo)",
+              "lemma": "yo",
+              "definiteness": "definite"
+            },
+            "Event": {
+              "type": "Event",
+              "surface": "comer verduras",
+              "ref_frame": "ingestion_1"
+            }
+          }
+        },
+        {
+          "id": "ingestion_1",
+          "frame_name": "Ingestion",
+          "frame_label": "Ingestión",
+          "lexical_unit": "comer",
+          "roles": {
+            "Ingestor": {
+              "type": "Speaker",
+              "surface": "(yo)",
+              "lemma": "yo",
+              "definiteness": "definite"
+            },
+            "Ingestibles": {
+              "type": "Object",
+              "surface": "verduras",
+              "lemma": "verdura",
+              "definiteness": "unspecified"
+            }
+          }
+        }
+      ],
+      "nsm_explications": {
+        "querer": "YO NO QUIERO HACER ESTO",
+        "comer": "YO NO QUIERO HACER ALGO CON ESTAS COSAS; DESPUÉS DE ESTO, ESTAS COSAS PUEDEN ESTAR DENTRO DE MI CUERPO"
+      },
+      "logical_form": {
+        "event": "comer(yo, verduras)",
+        "modality": "desire",
+        "negation": true,
+        "tense": "present",
+        "aspect": "none"
+      },
+      "pragmatics": {
+        "politeness": "neutral",
+        "formality": "neutral",
+        "expected_response": "acknowledgment",
+        "urgency": "low",
+        "speaker_stance": "rechazo o falta de deseo respecto de comer verduras"
+      },
+      "visual_guidelines": {
+        "focus_actor": "hablante",
+        "action_core": "rechazar comer",
+        "object_core": "verduras",
+        "context": "situación de comida o alimentación",
+        "temporal": "immediate",
+        "salience": {
+          "hablante": 0.8,
+          "rechazo": 1,
+          "verduras": 0.9
+        }
+      },
+      "schemaVersion": "1.1.0"
+    },
+    "composition": {
+      "elements": [
+        {
+          "id": "pictograma",
+          "concept": "Root",
+          "children": [
+            {
+              "id": "persona",
+              "concept": "Agent",
+              "children": [
+                {
+                  "id": "rechazo",
+                  "concept": "Action",
+                  "children": []
+                },
+                {
+                  "id": "verduras",
+                  "concept": "Object",
+                  "children": []
+                },
+                {
+                  "id": "contexto_comida",
+                  "concept": "Context",
+                  "children": []
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "prompt": "'persona' es el elemento central y ocupa la mayor parte de la composición. 'rechazo' se sitúa junto a 'persona', en posición frontal, representando la negación de comer. 'verduras' aparece en un lugar destacado frente a 'persona', con tamaño grande y conectado al gesto de 'rechazo'. 'contexto_comida' rodea el conjunto como fondo de menor tamaño, ubicando la escena en una situación de alimentación."
+    }
+  },
+  {
+    "id": "profe-cuento",
+    "utterance": "La profesora les lee un cuento a los niños",
+    "nlu": {
+      "utterance": "La profesora les lee un cuento a los niños",
+      "lang": "es-419",
+      "domain": "educación",
+      "metadata": {
+        "speech_act": "assertive",
+        "intent": "inform"
+      },
+      "frames": [
+        {
+          "id": "reading_1",
+          "frame_name": "Reading_aloud",
+          "frame_label": "Lectura en voz alta",
+          "lexical_unit": "leer",
+          "roles": {
+            "Reader": {
+              "type": "Agent",
+              "surface": "La profesora",
+              "lemma": "profesora",
+              "definiteness": "definite"
+            },
+            "Text": {
+              "type": "Theme",
+              "surface": "un cuento",
+              "lemma": "cuento",
+              "definiteness": "indefinite"
+            },
+            "Addressees": {
+              "type": "Addressee",
+              "surface": "les / a los niños",
+              "lemma": "niño",
+              "definiteness": "definite"
+            }
+          }
+        }
+      ],
+      "nsm_explications": {
+        "leer": "ALGUIEN DICE PALABRAS PORQUE ESTE ALGUIEN VE ESTAS PALABRAS EN ALGO; ESTE ALGUIEN QUIERE QUE OTRAS PERSONAS OIGAN ESTAS PALABRAS",
+        "cuento": "ALGO CON PALABRAS; ALGUIEN DICE QUE ALGUNAS COSAS PASARON A ALGUNAS PERSONAS; ESTAS COSAS PUEDEN NO HABER PASADO DE VERDAD"
+      },
+      "logical_form": {
+        "event": "leer_en_voz_alta(profesora, cuento, niños)",
+        "modality": "declarative",
+        "negation": false,
+        "aspect": "habitual",
+        "tense": "present"
+      },
+      "pragmatics": {
+        "politeness": "neutral",
+        "formality": "neutral",
+        "expected_response": "acknowledgment",
+        "urgency": "low",
+        "speaker_stance": "informativo"
+      },
+      "visual_guidelines": {
+        "focus_actor": "la profesora",
+        "secondary_actor": "los niños",
+        "action_core": "leer en voz alta",
+        "object_core": "un cuento",
+        "context": "una profesora lee un cuento a un grupo de niños, probablemente en un entorno educativo",
+        "temporal": "habitual",
+        "salience": {
+          "profesora": 1,
+          "cuento": 0.9,
+          "niños": 0.9,
+          "acción_de_leer": 1
+        }
+      }
+    },
+    "composition": {
+      "elements": [
+        {
+          "id": "pictograma",
+          "concept": "Root",
+          "children": [
+            {
+              "id": "profesora",
+              "concept": "Agent",
+              "children": []
+            },
+            {
+              "id": "niños",
+              "concept": "Agent",
+              "children": []
+            },
+            {
+              "id": "cuento",
+              "concept": "Object",
+              "children": []
+            },
+            {
+              "id": "acción_de_leer",
+              "concept": "Action",
+              "children": []
+            },
+            {
+              "id": "aula",
+              "concept": "Context",
+              "children": []
+            }
+          ]
+        }
+      ],
+      "prompt": "'profesora' se sitúa en el centro de la escena, sosteniendo 'cuento' frente a ella y conectada con 'acción_de_leer' a la altura de su rostro. 'niños' forman un grupo más pequeño ubicado frente a 'profesora', orientados hacia ella. 'acción_de_leer' conecta visualmente a 'profesora' con 'cuento' y con 'niños' como flujo de palabras. 'aula' envuelve toda la escena como fondo, con 'profesora' y 'niños' dentro de su espacio."
+    }
+  },
+  {
+    "id": "para-auto",
+    "utterance": "¡Para! Viene un auto",
+    "nlu": {
+      "utterance": "¡Para! Viene un auto",
+      "lang": "es-419",
+      "domain": "seguridad",
+      "metadata": {
+        "speech_act": "directive",
+        "intent": "warning"
+      },
+      "frames": [
+        {
+          "id": "f_stop_1",
+          "frame_name": "Stopping",
+          "frame_label": "Detención",
+          "lexical_unit": "parar",
+          "roles": {
+            "Agent": {
+              "type": "Addressee",
+              "surface": "tú",
+              "lemma": "tú",
+              "definiteness": "definite"
+            },
+            "Event": {
+              "type": "Event",
+              "surface": "¡Para!",
+              "lemma": "parar"
+            }
+          }
+        },
+        {
+          "id": "f_approach_1",
+          "frame_name": "Motion_directional",
+          "frame_label": "Movimiento direccional",
+          "lexical_unit": "venir",
+          "roles": {
+            "Theme": {
+              "type": "Object",
+              "surface": "un auto",
+              "lemma": "auto",
+              "definiteness": "indefinite"
+            },
+            "Location": {
+              "type": "Location",
+              "surface": "aquí",
+              "lemma": "aquí",
+              "definiteness": "definite"
+            }
+          }
+        },
+        {
+          "id": "f_warning_1",
+          "frame_name": "Warning",
+          "frame_label": "Advertencia",
+          "lexical_unit": "¡Para! Viene un auto",
+          "roles": {
+            "Speaker": {
+              "type": "Speaker",
+              "surface": "yo",
+              "lemma": "yo",
+              "definiteness": "definite"
+            },
+            "Addressee": {
+              "type": "Addressee",
+              "surface": "tú",
+              "lemma": "tú",
+              "definiteness": "definite"
+            },
+            "Event": {
+              "type": "Event",
+              "ref_frame": "f_approach_1"
+            },
+            "Theme": {
+              "type": "Event",
+              "ref_frame": "f_stop_1"
+            }
+          }
+        }
+      ],
+      "nsm_explications": {
+        "parar": "YO DECIR A TÚ: YO QUERER QUE TÚ NO MOVERSE AHORA",
+        "venir": "ALGO MOVERSE CERCA DE AQUÍ AHORA",
+        "advertir": "YO SABER QUE ALGO MALO PUEDE PASAR A TÚ AHORA; PORQUE YO QUERER QUE ESTO NO PASE, YO DECIR ESTAS PALABRAS A TÚ AHORA"
+      },
+      "logical_form": {
+        "event": "stop(addressee) because approach(auto, here)",
+        "modality": "imperative with urgent warning",
+        "negation": false,
+        "aspect": "progressive",
+        "tense": "present"
+      },
+      "pragmatics": {
+        "politeness": "neutral",
+        "formality": "informal",
+        "expected_response": "compliance",
+        "urgency": "high",
+        "speaker_stance": "alarma y protección ante un peligro inmediato"
+      },
+      "visual_guidelines": {
+        "focus_actor": "persona destinataria que debe detenerse",
+        "secondary_actor": "auto que se aproxima",
+        "action_core": "detenerse inmediatamente",
+        "object_core": "auto en movimiento",
+        "context": "situación de tránsito con peligro de colisión",
+        "temporal": "immediate",
+        "salience": {
+          "detención": 1,
+          "auto": 0.95,
+          "peligro": 0.9,
+          "movimiento": 0.85
+        }
+      },
+      "schemaVersion": "1.1.0"
+    },
+    "composition": {
+      "elements": [
+        {
+          "id": "pictograma",
+          "concept": "Root",
+          "children": [
+            {
+              "id": "persona",
+              "concept": "Agent",
+              "children": []
+            },
+            {
+              "id": "gesto_alto",
+              "concept": "Action",
+              "children": []
+            },
+            {
+              "id": "auto",
+              "concept": "Object",
+              "children": []
+            },
+            {
+              "id": "movimiento",
+              "concept": "Action",
+              "children": []
+            },
+            {
+              "id": "calle",
+              "concept": "Context",
+              "children": []
+            },
+            {
+              "id": "peligro",
+              "concept": "Element",
+              "children": []
+            }
+          ]
+        }
+      ],
+      "prompt": "En la escena de tránsito, la 'persona' ocupa el primer plano a la izquierda, de tamaño grande, orientada hacia el espacio central. El 'gesto_alto' sale del brazo de la 'persona' y se extiende frente a ella, conectado directamente con su figura. El 'auto' se ubica a la derecha, en la misma 'calle', acercándose en dirección a la 'persona' con las líneas de 'movimiento' detrás de él. El 'peligro' aparece como un símbolo entre el 'auto' y la 'persona', en el punto donde ambos quedarían en contacto. La 'calle' sirve de fondo que enmarca toda la composición."
+    }
+  },
+  {
+    "id": "once",
+    "utterance": "Quiero tomar once con pan amasado",
+    "nlu": {
+      "utterance": "Quiero tomar once con pan amasado",
+      "lang": "es-419",
+      "domain": "alimentación",
+      "metadata": {
+        "speech_act": "assertive",
+        "intent": "inform"
+      },
+      "frames": [
+        {
+          "id": "desire_1",
+          "frame_name": "Desire",
+          "frame_label": "Deseo",
+          "lexical_unit": "querer",
+          "roles": {
+            "Experiencer": {
+              "type": "Speaker",
+              "surface": "yo",
+              "lemma": "yo",
+              "definiteness": "definite"
+            },
+            "Event": {
+              "type": "Event",
+              "surface": "tomar once con pan amasado",
+              "ref_frame": "ingestion_1"
+            }
+          }
+        },
+        {
+          "id": "ingestion_1",
+          "frame_name": "Ingestion",
+          "frame_label": "Ingesta",
+          "lexical_unit": "tomar once",
+          "roles": {
+            "Agent": {
+              "type": "Speaker",
+              "surface": "yo",
+              "lemma": "yo",
+              "definiteness": "definite"
+            },
+            "Theme": {
+              "type": "Object",
+              "surface": "once con pan amasado",
+              "lemma": "once con pan amasado",
+              "definiteness": "unspecified"
+            }
+          }
+        },
+        {
+          "id": "food_1",
+          "frame_name": "Food",
+          "frame_label": "Alimento",
+          "lexical_unit": "pan amasado",
+          "roles": {
+            "Object": {
+              "type": "Object",
+              "surface": "pan amasado",
+              "lemma": "pan amasado",
+              "definiteness": "unspecified"
+            }
+          }
+        }
+      ],
+      "nsm_explications": {
+        "querer": "YO QUIERO QUE ESTO PASE DESPUÉS: YO HAGO ALGO CON ALGO; ESTE ALGO ESTÁ DENTRO DE MI CUERPO DESPUÉS",
+        "tomar_once": "YO QUIERO HACER ESTO DESPUÉS: ALGO ESTÁ CERCA DE MÍ; YO HAGO ALGO CON ESTE ALGO; DESPUÉS ESTE ALGO ESTÁ DENTRO DE MI CUERPO",
+        "pan_amasado": "ALGO DE UN TIPO; GENTE HACE ESTE ALGO; DESPUÉS GENTE PUEDE HACER ALGO CON ESTE ALGO; ESTE ALGO PUEDE ESTAR DENTRO DEL CUERPO"
+      },
+      "logical_form": {
+        "event": "want(Speaker, ingest(Speaker, once_with_kneaded_bread))",
+        "modality": "desiderative",
+        "negation": false,
+        "aspect": "none",
+        "tense": "present"
+      },
+      "pragmatics": {
+        "politeness": "neutral",
+        "formality": "informal",
+        "expected_response": "acknowledgment",
+        "urgency": "low",
+        "speaker_stance": "El hablante expresa un deseo actual de consumir una comida ligera denominada «once», acompañada de pan amasado."
+      },
+      "visual_guidelines": {
+        "focus_actor": "hablante",
+        "secondary_actor": "ninguno",
+        "action_core": "expresar el deseo de tomar once",
+        "object_core": "once con pan amasado",
+        "context": "situación cotidiana de alimentación, idealmente una mesa con una bebida y pan amasado",
+        "temporal": "near_future",
+        "salience": {
+          "deseo": 0.9,
+          "tomar_once": 1,
+          "pan_amasado": 0.95
+        }
+      },
+      "schemaVersion": "1.1.0"
+    },
+    "composition": {
+      "elements": [
+        {
+          "id": "pictograma",
+          "concept": "Root",
+          "children": [
+            {
+              "id": "yo",
+              "concept": "Agent",
+              "children": [
+                {
+                  "id": "deseo",
+                  "concept": "Element"
+                }
+              ]
+            },
+            {
+              "id": "accion_tomar",
+              "concept": "Action",
+              "children": [
+                {
+                  "id": "once",
+                  "concept": "Object"
+                },
+                {
+                  "id": "pan_amasado",
+                  "concept": "Object"
+                }
+              ]
+            },
+            {
+              "id": "mesa",
+              "concept": "Context",
+              "children": [
+                {
+                  "id": "bebida",
+                  "concept": "Element"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "prompt": "'yo' está a la izquierda, con 'deseo' flotando encima de su cabeza como burbuja de pensamiento. 'accion_tomar' se ubica al centro, conectando a 'yo' con 'once' y 'pan_amasado' a su derecha. 'once' y 'pan_amasado' son de tamaño similar y están juntos sobre 'mesa'. 'mesa' ocupa la parte inferior y contiene 'bebida' junto a 'pan_amasado'."
+    }
+  },
+  {
+    "id": "silla-ruedas",
+    "utterance": "Ayúdame a subir la rampa con la silla de ruedas",
+    "nlu": {
+      "utterance": "Ayúdame a subir la rampa con la silla de ruedas",
+      "lang": "es-419",
+      "domain": "transporte",
+      "metadata": {
+        "speech_act": "directive",
+        "intent": "request"
+      },
+      "frames": [
+        {
+          "id": "f_help_1",
+          "frame_name": "Assistance",
+          "frame_label": "Asistencia",
+          "lexical_unit": "ayudar",
+          "roles": {
+            "Beneficiary": {
+              "type": "Speaker",
+              "surface": "me",
+              "lemma": "yo",
+              "definiteness": "definite"
+            },
+            "Addressee": {
+              "type": "Addressee",
+              "surface": "tú",
+              "lemma": "tú",
+              "definiteness": "definite"
+            },
+            "Event": {
+              "type": "Event",
+              "surface": "subir la rampa con la silla de ruedas",
+              "ref_frame": "f_motion_1"
+            }
+          }
+        },
+        {
+          "id": "f_motion_1",
+          "frame_name": "Traversing",
+          "frame_label": "Recorrido",
+          "lexical_unit": "subir",
+          "roles": {
+            "Agent": {
+              "type": "Speaker",
+              "surface": "me",
+              "lemma": "yo",
+              "definiteness": "definite"
+            },
+            "Location": {
+              "type": "Location",
+              "surface": "la rampa",
+              "lemma": "rampa",
+              "definiteness": "definite"
+            },
+            "Instrument": {
+              "type": "Instrument",
+              "surface": "la silla de ruedas",
+              "lemma": "silla de ruedas",
+              "definiteness": "definite"
+            }
+          }
+        },
+        {
+          "id": "f_use_1",
+          "frame_name": "Using",
+          "frame_label": "Uso",
+          "lexical_unit": "con",
+          "roles": {
+            "Agent": {
+              "type": "Speaker",
+              "surface": "me",
+              "lemma": "yo",
+              "definiteness": "definite"
+            },
+            "Instrument": {
+              "type": "Instrument",
+              "surface": "la silla de ruedas",
+              "lemma": "silla de ruedas",
+              "definiteness": "definite"
+            },
+            "Event": {
+              "type": "Event",
+              "surface": "subir la rampa",
+              "ref_frame": "f_motion_1"
+            }
+          }
+        }
+      ],
+      "nsm_explications": {
+        "ayudar": "ALGUIEN (YO) QUIERE QUE ALGUIEN (TÚ) HAGA ALGO; PORQUE ESTE ALGUIEN (TÚ) HACE ESTO, ALGO BUENO PUEDE PASAR PARA ESTE ALGUIEN (YO).",
+        "subir": "ALGUIEN (YO) QUIERE MOVERSE ARRIBA POR UN LUGAR; ESTE ALGUIEN QUIERE HACER ESTO CON ALGO."
+      },
+      "logical_form": {
+        "event": "ayudar(TÚ, YO, moverse_arriba(YO, rampa, silla_de_ruedas))",
+        "modality": "directiva de petición",
+        "negation": false,
+        "aspect": "none",
+        "tense": "unspecified"
+      },
+      "pragmatics": {
+        "politeness": "neutral",
+        "formality": "informal",
+        "expected_response": "compliance",
+        "urgency": "medium",
+        "speaker_stance": "solicita apoyo físico para superar una barrera de acceso"
+      },
+      "visual_guidelines": {
+        "focus_actor": "persona usuaria de silla de ruedas que solicita ayuda",
+        "secondary_actor": "persona destinataria que ayuda",
+        "action_core": "ayudar a impulsar o acompañar a la persona hacia arriba",
+        "object_core": "silla de ruedas",
+        "context": "rampa accesible en trayectoria ascendente",
+        "temporal": "immediate",
+        "salience": {
+          "persona usuaria": 1,
+          "persona ayudante": 0.9,
+          "silla de ruedas": 1,
+          "rampa": 0.95,
+          "movimiento ascendente": 0.95
+        }
+      }
+    },
+    "composition": {
+      "elements": [
+        {
+          "id": "pictograma",
+          "concept": "Root",
+          "children": [
+            {
+              "id": "persona_usuaria",
+              "concept": "Agent",
+              "children": [
+                {
+                  "id": "silla_de_ruedas",
+                  "concept": "Object"
+                }
+              ]
+            },
+            {
+              "id": "persona_ayudante",
+              "concept": "Agent"
+            },
+            {
+              "id": "accion_ayudar",
+              "concept": "Action"
+            },
+            {
+              "id": "rampa",
+              "concept": "Context",
+              "children": [
+                {
+                  "id": "movimiento_ascendente",
+                  "concept": "Action"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "prompt": "'persona_usuaria' se encuentra en la parte inferior de la escena, sentada en la 'silla_de_ruedas' que está contenida dentro de su silueta. 'rampa' ocupa el espacio central y se extiende en trayectoria ascendente desde la parte inferior hasta la parte superior, con 'movimiento_ascendente' integrado sobre ella. 'persona_ayudante' está situada junto a 'persona_usuaria', ligeramente detrás, conectada a ella mediante 'accion_ayudar' que la acompaña o impulsa hacia arriba por la 'rampa'."
+    }
+  }
+]

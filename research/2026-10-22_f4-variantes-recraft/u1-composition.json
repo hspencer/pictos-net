@@ -1,0 +1,26 @@
+{
+  "utterance": "Me duele la cabeza",
+  "composition": {
+    "elements": [
+      {
+        "id": "pictograma",
+        "concept": "Root",
+        "children": [
+          {
+            "id": "yo",
+            "concept": "Agent"
+          },
+          {
+            "id": "dolor",
+            "concept": "Action"
+          },
+          {
+            "id": "cabeza",
+            "concept": "Object"
+          }
+        ]
+      }
+    ],
+    "prompt": "'yo' está en el centro como el agente principal. 'cabeza' se posiciona en la parte superior de 'yo', destacando la ubicación del malestar. 'dolor' se representa con líneas o símbolos radiantes alrededor de 'cabeza', indicando la sensación de dolor agudo en esa zona."
+  }
+}

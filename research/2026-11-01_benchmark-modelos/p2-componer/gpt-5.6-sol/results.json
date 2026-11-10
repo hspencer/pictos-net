@@ -1,0 +1,3036 @@
+{
+  "planHash": "037db2447fa19dcf6313f6437343e85ef4b624e27092b813ba12bf88368ebdd1",
+  "state": "completed",
+  "estimatedExposureUsd": 0.2296079999999998,
+  "attempts": [
+    {
+      "state": "recorded",
+      "caseId": "gracias",
+      "requestedModel": "gpt-5.6-sol",
+      "returnedModel": "gpt-5.6-sol",
+      "phase": 2,
+      "repetition": 0,
+      "requestHash": "e96377b9ae4a54e206a15daf96fc63c77c5c5860702e6005b2d93cbf7effcfcc",
+      "milliseconds": 2486,
+      "usage": {
+        "input_tokens": 1353,
+        "input_tokens_details": {
+          "cache_write_tokens": 1222,
+          "cached_tokens": 0
+        },
+        "output_tokens": 184,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 1537
+      },
+      "inputTokens": 1353,
+      "outputTokens": 184,
+      "estimatedCostUsd": 0.009092,
+      "reservedUsd": 0.495168,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "elements": [
+          {
+            "id": "pictograma",
+            "concept": "Root",
+            "children": [
+              {
+                "id": "hablante",
+                "concept": "Agent"
+              },
+              {
+                "id": "destinatario",
+                "concept": "Agent"
+              },
+              {
+                "id": "agradecimiento",
+                "concept": "Action"
+              },
+              {
+                "id": "ayuda",
+                "concept": "Action",
+                "children": [
+                  {
+                    "id": "beneficiario",
+                    "concept": "Object"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "prompt": "'hablante' y 'destinatario' se ubican frente a frente, con 'hablante' ligeramente más grande y a la izquierda. 'agradecimiento' aparece entre ambos y se orienta desde 'hablante' hacia 'destinatario'. 'ayuda' se coloca debajo y ligeramente detrás de 'agradecimiento', conectando a 'destinatario' con 'beneficiario'. 'beneficiario' queda junto a 'hablante' para indicar que ambos representan a la misma persona."
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "compose_pictogram",
+            "input": {
+              "elements": [
+                {
+                  "id": "hablante",
+                  "concept": "Agent"
+                },
+                {
+                  "id": "destinatario",
+                  "concept": "Agent"
+                },
+                {
+                  "id": "agradecimiento",
+                  "concept": "Action"
+                },
+                {
+                  "id": "ayuda",
+                  "concept": "Action",
+                  "children": [
+                    {
+                      "id": "beneficiario",
+                      "concept": "Object"
+                    }
+                  ]
+                }
+              ],
+              "prompt": "'hablante' y 'destinatario' se ubican frente a frente, con 'hablante' ligeramente más grande y a la izquierda. 'agradecimiento' aparece entre ambos y se orienta desde 'hablante' hacia 'destinatario'. 'ayuda' se coloca debajo y ligeramente detrás de 'agradecimiento', conectando a 'destinatario' con 'beneficiario'. 'beneficiario' queda junto a 'hablante' para indicar que ambos representan a la misma persona."
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gpt-5.6-sol",
+        "usage": {
+          "input_tokens": 1353,
+          "input_tokens_details": {
+            "cache_write_tokens": 1222,
+            "cached_tokens": 0
+          },
+          "output_tokens": 184,
+          "output_tokens_details": {
+            "reasoning_tokens": 0
+          },
+          "total_tokens": 1537
+        },
+        "meta": {
+          "provider": "openai",
+          "requestId": "req_60fbc997ab8746ac9b6e1f40e5b32ddc",
+          "attempts": 1,
+          "requestedModel": "gpt-5.6-sol",
+          "actualModel": "gpt-5.6-sol",
+          "reasoningEffort": "low",
+          "durationMs": 2483
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "0e7e8b185d56b691f92e8c6b204d2050cabab6b82ef0a3a6ea7d0ae7e1a743fa"
+    },
+    {
+      "state": "recorded",
+      "caseId": "cansado",
+      "requestedModel": "gpt-5.6-sol",
+      "returnedModel": "gpt-5.6-sol",
+      "phase": 2,
+      "repetition": 0,
+      "requestHash": "722ad4a56f7f9962b03b6e6f8273dedd8546866b3a093d2471e6f1c5d1ddd14b",
+      "milliseconds": 2444,
+      "usage": {
+        "input_tokens": 1268,
+        "input_tokens_details": {
+          "cache_write_tokens": 1137,
+          "cached_tokens": 0
+        },
+        "output_tokens": 181,
+        "output_tokens_details": {
+          "reasoning_tokens": 50
+        },
+        "total_tokens": 1449
+      },
+      "inputTokens": 1268,
+      "outputTokens": 181,
+      "estimatedCostUsd": 0.008692,
+      "reservedUsd": 0.488568,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "elements": [
+          {
+            "id": "pictograma",
+            "concept": "Root",
+            "children": [
+              {
+                "id": "hablante",
+                "concept": "Agent"
+              },
+              {
+                "id": "cansancio",
+                "concept": "Action",
+                "children": [
+                  {
+                    "id": "intensidad",
+                    "concept": "Element"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "prompt": "'hablante' ocupa el centro y es el elemento más grande. 'cansancio' rodea la parte superior del cuerpo de 'hablante' y se conecta directamente con su postura. 'intensidad' se ubica junto a 'cansancio', ligeramente arriba, y es más pequeña que 'hablante' pero claramente visible."
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "compose_pictogram",
+            "input": {
+              "elements": [
+                {
+                  "id": "hablante",
+                  "concept": "Agent"
+                },
+                {
+                  "id": "cansancio",
+                  "concept": "Action",
+                  "children": [
+                    {
+                      "id": "intensidad",
+                      "concept": "Element"
+                    }
+                  ]
+                }
+              ],
+              "prompt": "'hablante' ocupa el centro y es el elemento más grande. 'cansancio' rodea la parte superior del cuerpo de 'hablante' y se conecta directamente con su postura. 'intensidad' se ubica junto a 'cansancio', ligeramente arriba, y es más pequeña que 'hablante' pero claramente visible."
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gpt-5.6-sol",
+        "usage": {
+          "input_tokens": 1268,
+          "input_tokens_details": {
+            "cache_write_tokens": 1137,
+            "cached_tokens": 0
+          },
+          "output_tokens": 181,
+          "output_tokens_details": {
+            "reasoning_tokens": 50
+          },
+          "total_tokens": 1449
+        },
+        "meta": {
+          "provider": "openai",
+          "requestId": "req_19b746d6ef1e438287e1e0816667e0c2",
+          "attempts": 1,
+          "requestedModel": "gpt-5.6-sol",
+          "actualModel": "gpt-5.6-sol",
+          "reasoningEffort": "low",
+          "durationMs": 2443
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "9c254622e33b76cbd4feb995d2666775063219f3a5139c76db37538b06d69a0b"
+    },
+    {
+      "state": "recorded",
+      "caseId": "once",
+      "requestedModel": "gpt-5.6-sol",
+      "returnedModel": "gpt-5.6-sol",
+      "phase": 2,
+      "repetition": 0,
+      "requestHash": "be13d1b6891674c2a57d144a4b89bcddbd79d3740647dfe612a5fffaacf0c89f",
+      "milliseconds": 2613,
+      "usage": {
+        "input_tokens": 1502,
+        "input_tokens_details": {
+          "cache_write_tokens": 1371,
+          "cached_tokens": 0
+        },
+        "output_tokens": 214,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 1716
+      },
+      "inputTokens": 1502,
+      "outputTokens": 214,
+      "estimatedCostUsd": 0.010288,
+      "reservedUsd": 0.5088,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "elements": [
+          {
+            "id": "pictograma",
+            "concept": "Root",
+            "children": [
+              {
+                "id": "hablante",
+                "concept": "Agent"
+              },
+              {
+                "id": "deseo",
+                "concept": "Action"
+              },
+              {
+                "id": "ingesta",
+                "concept": "Action"
+              },
+              {
+                "id": "once",
+                "concept": "Object",
+                "children": [
+                  {
+                    "id": "bebida",
+                    "concept": "Element"
+                  },
+                  {
+                    "id": "pan_amasado",
+                    "concept": "Object"
+                  }
+                ]
+              },
+              {
+                "id": "mesa",
+                "concept": "Context"
+              }
+            ]
+          }
+        ],
+        "prompt": "'hablante' ocupa el lado izquierdo y se orienta hacia 'once', ubicada sobre 'mesa' a la derecha. 'deseo' se sitúa entre 'hablante' y 'once', conectado con ambos, mientras 'ingesta' aparece junto a la boca de 'hablante' y se dirige hacia 'once'. Dentro de 'once', 'bebida' y 'pan_amasado' aparecen juntos, con tamaños similares y claramente separados. 'mesa' se extiende debajo de 'once' como base contextual y es más ancha que los objetos que sostiene."
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "compose_pictogram",
+            "input": {
+              "elements": [
+                {
+                  "id": "hablante",
+                  "concept": "Agent"
+                },
+                {
+                  "id": "deseo",
+                  "concept": "Action"
+                },
+                {
+                  "id": "ingesta",
+                  "concept": "Action"
+                },
+                {
+                  "id": "once",
+                  "concept": "Object",
+                  "children": [
+                    {
+                      "id": "bebida",
+                      "concept": "Element"
+                    },
+                    {
+                      "id": "pan_amasado",
+                      "concept": "Object"
+                    }
+                  ]
+                },
+                {
+                  "id": "mesa",
+                  "concept": "Context"
+                }
+              ],
+              "prompt": "'hablante' ocupa el lado izquierdo y se orienta hacia 'once', ubicada sobre 'mesa' a la derecha. 'deseo' se sitúa entre 'hablante' y 'once', conectado con ambos, mientras 'ingesta' aparece junto a la boca de 'hablante' y se dirige hacia 'once'. Dentro de 'once', 'bebida' y 'pan_amasado' aparecen juntos, con tamaños similares y claramente separados. 'mesa' se extiende debajo de 'once' como base contextual y es más ancha que los objetos que sostiene."
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gpt-5.6-sol",
+        "usage": {
+          "input_tokens": 1502,
+          "input_tokens_details": {
+            "cache_write_tokens": 1371,
+            "cached_tokens": 0
+          },
+          "output_tokens": 214,
+          "output_tokens_details": {
+            "reasoning_tokens": 0
+          },
+          "total_tokens": 1716
+        },
+        "meta": {
+          "provider": "openai",
+          "requestId": "req_8a0832840d0e429eaa74564985ab033b",
+          "attempts": 1,
+          "requestedModel": "gpt-5.6-sol",
+          "actualModel": "gpt-5.6-sol",
+          "reasoningEffort": "low",
+          "durationMs": 2611
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "baed7ebc91dc134e9c1ee0bd6598715892eb6da0a44ed367d1e0cda05e824d38"
+    },
+    {
+      "state": "recorded",
+      "caseId": "orgullo",
+      "requestedModel": "gpt-5.6-sol",
+      "returnedModel": "gpt-5.6-sol",
+      "phase": 2,
+      "repetition": 0,
+      "requestHash": "0e6251e367ea502420727aa5507fccb4eaef4b702cee18a485aed9292cbcffcf",
+      "milliseconds": 1904,
+      "usage": {
+        "input_tokens": 1212,
+        "input_tokens_details": {
+          "cache_write_tokens": 1081,
+          "cached_tokens": 0
+        },
+        "output_tokens": 123,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 1335
+      },
+      "inputTokens": 1212,
+      "outputTokens": 123,
+      "estimatedCostUsd": 0.007308,
+      "reservedUsd": 0.48444,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "elements": [
+          {
+            "id": "pictograma",
+            "concept": "Root",
+            "children": [
+              {
+                "id": "persona",
+                "concept": "Agent"
+              },
+              {
+                "id": "orgullo",
+                "concept": "Action"
+              },
+              {
+                "id": "si_misma",
+                "concept": "Object"
+              }
+            ]
+          }
+        ],
+        "prompt": "'persona' ocupa el centro y es el elemento más grande. 'orgullo' se ubica sobre el pecho de 'persona' y se conecta con ella. 'si_misma' aparece frente a 'persona', ligeramente a la derecha, y se conecta tanto con 'orgullo' como con 'persona' para indicar que la valoración se dirige hacia sí misma."
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "compose_pictogram",
+            "input": {
+              "elements": [
+                {
+                  "id": "persona",
+                  "concept": "Agent"
+                },
+                {
+                  "id": "orgullo",
+                  "concept": "Action"
+                },
+                {
+                  "id": "si_misma",
+                  "concept": "Object"
+                }
+              ],
+              "prompt": "'persona' ocupa el centro y es el elemento más grande. 'orgullo' se ubica sobre el pecho de 'persona' y se conecta con ella. 'si_misma' aparece frente a 'persona', ligeramente a la derecha, y se conecta tanto con 'orgullo' como con 'persona' para indicar que la valoración se dirige hacia sí misma."
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gpt-5.6-sol",
+        "usage": {
+          "input_tokens": 1212,
+          "input_tokens_details": {
+            "cache_write_tokens": 1081,
+            "cached_tokens": 0
+          },
+          "output_tokens": 123,
+          "output_tokens_details": {
+            "reasoning_tokens": 0
+          },
+          "total_tokens": 1335
+        },
+        "meta": {
+          "provider": "openai",
+          "requestId": "req_744dff6cd5bf464fac418b3ca84eeae1",
+          "attempts": 1,
+          "requestedModel": "gpt-5.6-sol",
+          "actualModel": "gpt-5.6-sol",
+          "reasoningEffort": "low",
+          "durationMs": 1903
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "50d1375855049dec8b833ec97e7aead7659686056f29ee363ae86c4bde00ac37"
+    },
+    {
+      "state": "recorded",
+      "caseId": "revolver-sopa",
+      "requestedModel": "gpt-5.6-sol",
+      "returnedModel": "gpt-5.6-sol",
+      "phase": 2,
+      "repetition": 0,
+      "requestHash": "922f6c070fa1a356097395bc5a50b42fdc31d5dd3b61139b78c115c3347eefa0",
+      "milliseconds": 3117,
+      "usage": {
+        "input_tokens": 1334,
+        "input_tokens_details": {
+          "cache_write_tokens": 1203,
+          "cached_tokens": 0
+        },
+        "output_tokens": 243,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 1577
+      },
+      "inputTokens": 1334,
+      "outputTokens": 243,
+      "estimatedCostUsd": 0.010196,
+      "reservedUsd": 0.49236,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "elements": [
+          {
+            "id": "pictograma",
+            "concept": "Root",
+            "children": [
+              {
+                "id": "persona",
+                "concept": "Agent"
+              },
+              {
+                "id": "revolver",
+                "concept": "Action",
+                "children": [
+                  {
+                    "id": "movimiento_circular",
+                    "concept": "Action"
+                  }
+                ]
+              },
+              {
+                "id": "sopa",
+                "concept": "Object",
+                "children": [
+                  {
+                    "id": "olla",
+                    "concept": "Element"
+                  },
+                  {
+                    "id": "cuchara",
+                    "concept": "Object"
+                  }
+                ]
+              },
+              {
+                "id": "lentitud",
+                "concept": "Element"
+              },
+              {
+                "id": "cocina",
+                "concept": "Context"
+              }
+            ]
+          }
+        ],
+        "prompt": "'persona' se ubica a la izquierda de 'sopa', con el brazo extendido hacia 'cuchara'. 'sopa' ocupa el centro dentro de 'olla', y 'cuchara' entra desde arriba en su interior. 'revolver' rodea la parte sumergida de 'cuchara', con 'movimiento_circular' formando una trayectoria cerrada alrededor del centro de 'sopa'. 'lentitud' aparece junto a 'movimiento_circular' y se conecta con este para indicar que el recorrido ocurre despacio. 'cocina' queda detrás y alrededor de 'persona' y 'sopa' como contexto secundario."
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "compose_pictogram",
+            "input": {
+              "elements": [
+                {
+                  "id": "persona",
+                  "concept": "Agent"
+                },
+                {
+                  "id": "revolver",
+                  "concept": "Action",
+                  "children": [
+                    {
+                      "id": "movimiento_circular",
+                      "concept": "Action"
+                    }
+                  ]
+                },
+                {
+                  "id": "sopa",
+                  "concept": "Object",
+                  "children": [
+                    {
+                      "id": "olla",
+                      "concept": "Element"
+                    },
+                    {
+                      "id": "cuchara",
+                      "concept": "Object"
+                    }
+                  ]
+                },
+                {
+                  "id": "lentitud",
+                  "concept": "Element"
+                },
+                {
+                  "id": "cocina",
+                  "concept": "Context"
+                }
+              ],
+              "prompt": "'persona' se ubica a la izquierda de 'sopa', con el brazo extendido hacia 'cuchara'. 'sopa' ocupa el centro dentro de 'olla', y 'cuchara' entra desde arriba en su interior. 'revolver' rodea la parte sumergida de 'cuchara', con 'movimiento_circular' formando una trayectoria cerrada alrededor del centro de 'sopa'. 'lentitud' aparece junto a 'movimiento_circular' y se conecta con este para indicar que el recorrido ocurre despacio. 'cocina' queda detrás y alrededor de 'persona' y 'sopa' como contexto secundario."
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gpt-5.6-sol",
+        "usage": {
+          "input_tokens": 1334,
+          "input_tokens_details": {
+            "cache_write_tokens": 1203,
+            "cached_tokens": 0
+          },
+          "output_tokens": 243,
+          "output_tokens_details": {
+            "reasoning_tokens": 0
+          },
+          "total_tokens": 1577
+        },
+        "meta": {
+          "provider": "openai",
+          "requestId": "req_cc9639d2447b49c7bf266c2c7e2aceca",
+          "attempts": 1,
+          "requestedModel": "gpt-5.6-sol",
+          "actualModel": "gpt-5.6-sol",
+          "reasoningEffort": "low",
+          "durationMs": 3116
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "9b4e0994a90d3d534c198e6a0874cda1edf08fcc354c4e4789fac6f0c3f78ce6"
+    },
+    {
+      "state": "recorded",
+      "caseId": "sangre",
+      "requestedModel": "gpt-5.6-sol",
+      "returnedModel": "gpt-5.6-sol",
+      "phase": 2,
+      "repetition": 0,
+      "requestHash": "036c148703e7dfb767bb29352ae10ddd81c58b27042e4c959b54ae46263765f5",
+      "milliseconds": 2597,
+      "usage": {
+        "input_tokens": 1416,
+        "input_tokens_details": {
+          "cache_write_tokens": 1285,
+          "cached_tokens": 0
+        },
+        "output_tokens": 184,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 1600
+      },
+      "inputTokens": 1416,
+      "outputTokens": 184,
+      "estimatedCostUsd": 0.009344,
+      "reservedUsd": 0.503424,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "elements": [
+          {
+            "id": "pictograma",
+            "concept": "Root",
+            "children": [
+              {
+                "id": "personal_de_salud",
+                "concept": "Agent"
+              },
+              {
+                "id": "persona",
+                "concept": "Agent",
+                "children": [
+                  {
+                    "id": "brazo",
+                    "concept": "Object"
+                  }
+                ]
+              },
+              {
+                "id": "extraccion",
+                "concept": "Action"
+              },
+              {
+                "id": "sangre",
+                "concept": "Object"
+              },
+              {
+                "id": "consultorio",
+                "concept": "Context"
+              }
+            ]
+          }
+        ],
+        "prompt": "'persona' ocupa el centro, con 'brazo' extendido y visible a un lado del cuerpo. 'personal_de_salud' se ubica junto al extremo de 'brazo', orientado hacia este. 'extraccion' conecta 'brazo' con 'sangre' mediante un recorrido que va desde el interior del brazo hacia afuera. 'sangre' aparece inmediatamente fuera de 'brazo', y 'consultorio' rodea a los demás elementos como contexto secundario."
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "compose_pictogram",
+            "input": {
+              "elements": [
+                {
+                  "id": "personal_de_salud",
+                  "concept": "Agent"
+                },
+                {
+                  "id": "persona",
+                  "concept": "Agent",
+                  "children": [
+                    {
+                      "id": "brazo",
+                      "concept": "Object"
+                    }
+                  ]
+                },
+                {
+                  "id": "extraccion",
+                  "concept": "Action"
+                },
+                {
+                  "id": "sangre",
+                  "concept": "Object"
+                },
+                {
+                  "id": "consultorio",
+                  "concept": "Context"
+                }
+              ],
+              "prompt": "'persona' ocupa el centro, con 'brazo' extendido y visible a un lado del cuerpo. 'personal_de_salud' se ubica junto al extremo de 'brazo', orientado hacia este. 'extraccion' conecta 'brazo' con 'sangre' mediante un recorrido que va desde el interior del brazo hacia afuera. 'sangre' aparece inmediatamente fuera de 'brazo', y 'consultorio' rodea a los demás elementos como contexto secundario."
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gpt-5.6-sol",
+        "usage": {
+          "input_tokens": 1416,
+          "input_tokens_details": {
+            "cache_write_tokens": 1285,
+            "cached_tokens": 0
+          },
+          "output_tokens": 184,
+          "output_tokens_details": {
+            "reasoning_tokens": 0
+          },
+          "total_tokens": 1600
+        },
+        "meta": {
+          "provider": "openai",
+          "requestId": "req_5430f82dfd27424ba3d1e6b29c46f88a",
+          "attempts": 1,
+          "requestedModel": "gpt-5.6-sol",
+          "actualModel": "gpt-5.6-sol",
+          "reasoningEffort": "low",
+          "durationMs": 2597
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "bcf0f9ed3dd76bd54727001be5418d2c3355c4ffea66bee27072409546cbde4b"
+    },
+    {
+      "state": "recorded",
+      "caseId": "bano",
+      "requestedModel": "gpt-5.6-sol",
+      "returnedModel": "gpt-5.6-sol",
+      "phase": 2,
+      "repetition": 0,
+      "requestHash": "da2c27d89c7c91de10292f6ec15a1a686c1f5753566a7c8b0719cce16b7a2a2c",
+      "milliseconds": 2234,
+      "usage": {
+        "input_tokens": 1377,
+        "input_tokens_details": {
+          "cache_write_tokens": 1246,
+          "cached_tokens": 0
+        },
+        "output_tokens": 159,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 1536
+      },
+      "inputTokens": 1377,
+      "outputTokens": 159,
+      "estimatedCostUsd": 0.008688,
+      "reservedUsd": 0.498672,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "elements": [
+          {
+            "id": "pictograma",
+            "concept": "Root",
+            "children": [
+              {
+                "id": "hablante",
+                "concept": "Agent"
+              },
+              {
+                "id": "necesidad",
+                "concept": "Action"
+              },
+              {
+                "id": "desplazamiento",
+                "concept": "Action"
+              },
+              {
+                "id": "baño",
+                "concept": "Context"
+              }
+            ]
+          }
+        ],
+        "prompt": "'hablante' ocupa el lado izquierdo y 'baño' el lado derecho, con ambos claramente separados. 'desplazamiento' se sitúa entre 'hablante' y 'baño', conectándolos y orientándose hacia 'baño'. 'necesidad' aparece cerca de 'hablante', ligeramente arriba, vinculada con 'desplazamiento'. 'baño' es un poco más grande que los demás elementos para marcar el destino."
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "compose_pictogram",
+            "input": {
+              "elements": [
+                {
+                  "id": "hablante",
+                  "concept": "Agent"
+                },
+                {
+                  "id": "necesidad",
+                  "concept": "Action"
+                },
+                {
+                  "id": "desplazamiento",
+                  "concept": "Action"
+                },
+                {
+                  "id": "baño",
+                  "concept": "Context"
+                }
+              ],
+              "prompt": "'hablante' ocupa el lado izquierdo y 'baño' el lado derecho, con ambos claramente separados. 'desplazamiento' se sitúa entre 'hablante' y 'baño', conectándolos y orientándose hacia 'baño'. 'necesidad' aparece cerca de 'hablante', ligeramente arriba, vinculada con 'desplazamiento'. 'baño' es un poco más grande que los demás elementos para marcar el destino."
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gpt-5.6-sol",
+        "usage": {
+          "input_tokens": 1377,
+          "input_tokens_details": {
+            "cache_write_tokens": 1246,
+            "cached_tokens": 0
+          },
+          "output_tokens": 159,
+          "output_tokens_details": {
+            "reasoning_tokens": 0
+          },
+          "total_tokens": 1536
+        },
+        "meta": {
+          "provider": "openai",
+          "requestId": "req_af96b68468f8428d9eb8fb7749d3b54b",
+          "attempts": 1,
+          "requestedModel": "gpt-5.6-sol",
+          "actualModel": "gpt-5.6-sol",
+          "reasoningEffort": "low",
+          "durationMs": 2232
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "eaa76e60ae10394c693506c998b67b25238b62bc6d4d0c134d419f4ed804d915"
+    },
+    {
+      "state": "recorded",
+      "caseId": "silla-ruedas",
+      "requestedModel": "gpt-5.6-sol",
+      "returnedModel": "gpt-5.6-sol",
+      "phase": 2,
+      "repetition": 0,
+      "requestHash": "ea0e04e3436b61b8d06830e7c2c7ca74186dbf0f2faaddc1bbbbdd0c0e173cd0",
+      "milliseconds": 3304,
+      "usage": {
+        "input_tokens": 1554,
+        "input_tokens_details": {
+          "cache_write_tokens": 1423,
+          "cached_tokens": 0
+        },
+        "output_tokens": 222,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 1776
+      },
+      "inputTokens": 1554,
+      "outputTokens": 222,
+      "estimatedCostUsd": 0.010656,
+      "reservedUsd": 0.516432,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "elements": [
+          {
+            "id": "pictograma",
+            "concept": "Root",
+            "children": [
+              {
+                "id": "persona_usuaria",
+                "concept": "Agent"
+              },
+              {
+                "id": "persona_ayudante",
+                "concept": "Agent"
+              },
+              {
+                "id": "ayuda",
+                "concept": "Action",
+                "children": [
+                  {
+                    "id": "impulso",
+                    "concept": "Action"
+                  },
+                  {
+                    "id": "ascenso",
+                    "concept": "Action"
+                  }
+                ]
+              },
+              {
+                "id": "silla_de_ruedas",
+                "concept": "Object"
+              },
+              {
+                "id": "rampa",
+                "concept": "Context"
+              }
+            ]
+          }
+        ],
+        "prompt": "'rampa' ocupa la base y asciende en diagonal de izquierda a derecha. 'persona_usuaria' está sentada sobre 'silla_de_ruedas', ambas ubicadas en la parte media-baja de 'rampa'. 'persona_ayudante' se sitúa inmediatamente detrás de 'silla_de_ruedas', conectada a 'ayuda' mediante 'impulso' hacia adelante y arriba. 'ascenso' se extiende paralelo a 'rampa' desde el conjunto de 'persona_usuaria' y 'silla_de_ruedas' hacia el extremo superior derecho."
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "compose_pictogram",
+            "input": {
+              "elements": [
+                {
+                  "id": "persona_usuaria",
+                  "concept": "Agent"
+                },
+                {
+                  "id": "persona_ayudante",
+                  "concept": "Agent"
+                },
+                {
+                  "id": "ayuda",
+                  "concept": "Action",
+                  "children": [
+                    {
+                      "id": "impulso",
+                      "concept": "Action"
+                    },
+                    {
+                      "id": "ascenso",
+                      "concept": "Action"
+                    }
+                  ]
+                },
+                {
+                  "id": "silla_de_ruedas",
+                  "concept": "Object"
+                },
+                {
+                  "id": "rampa",
+                  "concept": "Context"
+                }
+              ],
+              "prompt": "'rampa' ocupa la base y asciende en diagonal de izquierda a derecha. 'persona_usuaria' está sentada sobre 'silla_de_ruedas', ambas ubicadas en la parte media-baja de 'rampa'. 'persona_ayudante' se sitúa inmediatamente detrás de 'silla_de_ruedas', conectada a 'ayuda' mediante 'impulso' hacia adelante y arriba. 'ascenso' se extiende paralelo a 'rampa' desde el conjunto de 'persona_usuaria' y 'silla_de_ruedas' hacia el extremo superior derecho."
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gpt-5.6-sol",
+        "usage": {
+          "input_tokens": 1554,
+          "input_tokens_details": {
+            "cache_write_tokens": 1423,
+            "cached_tokens": 0
+          },
+          "output_tokens": 222,
+          "output_tokens_details": {
+            "reasoning_tokens": 0
+          },
+          "total_tokens": 1776
+        },
+        "meta": {
+          "provider": "openai",
+          "requestId": "req_c3d4efc32bff4cb59875f24a230f7ed2",
+          "attempts": 1,
+          "requestedModel": "gpt-5.6-sol",
+          "actualModel": "gpt-5.6-sol",
+          "reasoningEffort": "low",
+          "durationMs": 3304
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "35145812abfb577c71bae7269854cc1b74bf336a7c149fe87458d71dda8be7b8"
+    },
+    {
+      "state": "recorded",
+      "caseId": "miedo-tormenta",
+      "requestedModel": "gpt-5.6-sol",
+      "returnedModel": "gpt-5.6-sol",
+      "phase": 2,
+      "repetition": 0,
+      "requestHash": "0882563bed9dd178af56c6acb3d20b071ef704dc75a255e7b1aeeb9d3a3822cf",
+      "milliseconds": 2566,
+      "usage": {
+        "input_tokens": 1330,
+        "input_tokens_details": {
+          "cache_write_tokens": 1199,
+          "cached_tokens": 0
+        },
+        "output_tokens": 196,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 1526
+      },
+      "inputTokens": 1330,
+      "outputTokens": 196,
+      "estimatedCostUsd": 0.00924,
+      "reservedUsd": 0.493872,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "elements": [
+          {
+            "id": "pictograma",
+            "concept": "Root",
+            "children": [
+              {
+                "id": "persona",
+                "concept": "Agent"
+              },
+              {
+                "id": "miedo",
+                "concept": "Action"
+              },
+              {
+                "id": "tormenta",
+                "concept": "Object",
+                "children": [
+                  {
+                    "id": "nubes",
+                    "concept": "Element"
+                  },
+                  {
+                    "id": "lluvia",
+                    "concept": "Element"
+                  },
+                  {
+                    "id": "rayos",
+                    "concept": "Element"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "prompt": "'persona' ocupa la zona central izquierda y tiene a 'miedo' inmediatamente alrededor de la cabeza y el pecho. 'tormenta' aparece más grande en la parte superior derecha, frente a 'persona'. Dentro de 'tormenta', 'nubes' se ubica arriba, 'lluvia' desciende debajo de 'nubes' y 'rayos' conecta desde 'nubes' hacia abajo. La proximidad entre 'persona' y 'tormenta' muestra que 'miedo' está dirigido hacia 'tormenta'."
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "compose_pictogram",
+            "input": {
+              "elements": [
+                {
+                  "id": "persona",
+                  "concept": "Agent"
+                },
+                {
+                  "id": "miedo",
+                  "concept": "Action"
+                },
+                {
+                  "id": "tormenta",
+                  "concept": "Object",
+                  "children": [
+                    {
+                      "id": "nubes",
+                      "concept": "Element"
+                    },
+                    {
+                      "id": "lluvia",
+                      "concept": "Element"
+                    },
+                    {
+                      "id": "rayos",
+                      "concept": "Element"
+                    }
+                  ]
+                }
+              ],
+              "prompt": "'persona' ocupa la zona central izquierda y tiene a 'miedo' inmediatamente alrededor de la cabeza y el pecho. 'tormenta' aparece más grande en la parte superior derecha, frente a 'persona'. Dentro de 'tormenta', 'nubes' se ubica arriba, 'lluvia' desciende debajo de 'nubes' y 'rayos' conecta desde 'nubes' hacia abajo. La proximidad entre 'persona' y 'tormenta' muestra que 'miedo' está dirigido hacia 'tormenta'."
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gpt-5.6-sol",
+        "usage": {
+          "input_tokens": 1330,
+          "input_tokens_details": {
+            "cache_write_tokens": 1199,
+            "cached_tokens": 0
+          },
+          "output_tokens": 196,
+          "output_tokens_details": {
+            "reasoning_tokens": 0
+          },
+          "total_tokens": 1526
+        },
+        "meta": {
+          "provider": "openai",
+          "requestId": "req_a1cace56b2a6453b86a345ce933f5a5e",
+          "attempts": 1,
+          "requestedModel": "gpt-5.6-sol",
+          "actualModel": "gpt-5.6-sol",
+          "reasoningEffort": "low",
+          "durationMs": 2565
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "6cd6938fa2b75bf1f2441e91f9554916d9770d10f370a888fa4982a6972cb674"
+    },
+    {
+      "state": "recorded",
+      "caseId": "dolor-cabeza",
+      "requestedModel": "gpt-5.6-sol",
+      "returnedModel": "gpt-5.6-sol",
+      "phase": 2,
+      "repetition": 0,
+      "requestHash": "4da47131ac21cce5968076c47386503a59dd8db3e1db72357116b1bd80d26f3e",
+      "milliseconds": 2242,
+      "usage": {
+        "input_tokens": 1219,
+        "input_tokens_details": {
+          "cache_write_tokens": 1088,
+          "cached_tokens": 0
+        },
+        "output_tokens": 138,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 1357
+      },
+      "inputTokens": 1219,
+      "outputTokens": 138,
+      "estimatedCostUsd": 0.007636,
+      "reservedUsd": 0.483912,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "elements": [
+          {
+            "id": "pictograma",
+            "concept": "Root",
+            "children": [
+              {
+                "id": "persona",
+                "concept": "Agent",
+                "children": [
+                  {
+                    "id": "cabeza",
+                    "concept": "Object"
+                  }
+                ]
+              },
+              {
+                "id": "dolor",
+                "concept": "Action"
+              }
+            ]
+          }
+        ],
+        "prompt": "'persona' ocupa el centro y se muestra de frente, con 'cabeza' integrada en la parte superior de 'persona' y ligeramente ampliada. 'dolor' se ubica alrededor de 'cabeza', conectado directamente con ambos lados de esta. 'cabeza' y 'dolor' tienen mayor tamaño relativo que el resto de 'persona' para concentrar la composición en esa zona."
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "compose_pictogram",
+            "input": {
+              "elements": [
+                {
+                  "id": "persona",
+                  "concept": "Agent",
+                  "children": [
+                    {
+                      "id": "cabeza",
+                      "concept": "Object"
+                    }
+                  ]
+                },
+                {
+                  "id": "dolor",
+                  "concept": "Action"
+                }
+              ],
+              "prompt": "'persona' ocupa el centro y se muestra de frente, con 'cabeza' integrada en la parte superior de 'persona' y ligeramente ampliada. 'dolor' se ubica alrededor de 'cabeza', conectado directamente con ambos lados de esta. 'cabeza' y 'dolor' tienen mayor tamaño relativo que el resto de 'persona' para concentrar la composición en esa zona."
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gpt-5.6-sol",
+        "usage": {
+          "input_tokens": 1219,
+          "input_tokens_details": {
+            "cache_write_tokens": 1088,
+            "cached_tokens": 0
+          },
+          "output_tokens": 138,
+          "output_tokens_details": {
+            "reasoning_tokens": 0
+          },
+          "total_tokens": 1357
+        },
+        "meta": {
+          "provider": "openai",
+          "requestId": "req_0dd516f3f5a54f1ea4e68c261272d9b6",
+          "attempts": 1,
+          "requestedModel": "gpt-5.6-sol",
+          "actualModel": "gpt-5.6-sol",
+          "reasoningEffort": "low",
+          "durationMs": 2242
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "00696339c4c95793e559929aa395d507cabe9f8f10a2d4f467237a7255f48d76"
+    },
+    {
+      "state": "recorded",
+      "caseId": "hora-colegio",
+      "requestedModel": "gpt-5.6-sol",
+      "returnedModel": "gpt-5.6-sol",
+      "phase": 2,
+      "repetition": 0,
+      "requestHash": "38e4ade296333159bebfccc20273d2e9975002a924c341a6c20e81d66436680f",
+      "milliseconds": 3382,
+      "usage": {
+        "input_tokens": 1299,
+        "input_tokens_details": {
+          "cache_write_tokens": 1168,
+          "cached_tokens": 0
+        },
+        "output_tokens": 269,
+        "output_tokens_details": {
+          "reasoning_tokens": 87
+        },
+        "total_tokens": 1568
+      },
+      "inputTokens": 1299,
+      "outputTokens": 269,
+      "estimatedCostUsd": 0.010576,
+      "reservedUsd": 0.490992,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "elements": [
+          {
+            "id": "pictograma",
+            "concept": "Root",
+            "children": [
+              {
+                "id": "nosotros",
+                "concept": "Agent"
+              },
+              {
+                "id": "ir",
+                "concept": "Action"
+              },
+              {
+                "id": "colegio",
+                "concept": "Context"
+              },
+              {
+                "id": "hora",
+                "concept": "Context"
+              },
+              {
+                "id": "signo_interrogacion",
+                "concept": "Element"
+              }
+            ]
+          }
+        ],
+        "prompt": "'nosotros' se ubica a la izquierda y 'colegio' a la derecha, ambos separados por un espacio amplio. 'ir' ocupa el espacio entre 'nosotros' y 'colegio', conectándolos en dirección hacia 'colegio'. 'hora' aparece arriba, centrada y con mayor tamaño que los demás elementos. 'signo_interrogacion' se coloca junto a 'hora' y se relaciona visualmente con el conjunto formado por 'nosotros', 'ir' y 'colegio'."
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "compose_pictogram",
+            "input": {
+              "elements": [
+                {
+                  "id": "nosotros",
+                  "concept": "Agent"
+                },
+                {
+                  "id": "ir",
+                  "concept": "Action"
+                },
+                {
+                  "id": "colegio",
+                  "concept": "Context"
+                },
+                {
+                  "id": "hora",
+                  "concept": "Context"
+                },
+                {
+                  "id": "signo_interrogacion",
+                  "concept": "Element"
+                }
+              ],
+              "prompt": "'nosotros' se ubica a la izquierda y 'colegio' a la derecha, ambos separados por un espacio amplio. 'ir' ocupa el espacio entre 'nosotros' y 'colegio', conectándolos en dirección hacia 'colegio'. 'hora' aparece arriba, centrada y con mayor tamaño que los demás elementos. 'signo_interrogacion' se coloca junto a 'hora' y se relaciona visualmente con el conjunto formado por 'nosotros', 'ir' y 'colegio'."
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gpt-5.6-sol",
+        "usage": {
+          "input_tokens": 1299,
+          "input_tokens_details": {
+            "cache_write_tokens": 1168,
+            "cached_tokens": 0
+          },
+          "output_tokens": 269,
+          "output_tokens_details": {
+            "reasoning_tokens": 87
+          },
+          "total_tokens": 1568
+        },
+        "meta": {
+          "provider": "openai",
+          "requestId": "req_b52408662eba4fd8828d41cfb0ffc02e",
+          "attempts": 1,
+          "requestedModel": "gpt-5.6-sol",
+          "actualModel": "gpt-5.6-sol",
+          "reasoningEffort": "low",
+          "durationMs": 3380
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "47aabe9cd99ec47df8a0bbffd0832140689f27fb5b013845123399d6307c958d"
+    },
+    {
+      "state": "recorded",
+      "caseId": "tarea-dibujos",
+      "requestedModel": "gpt-5.6-sol",
+      "returnedModel": "gpt-5.6-sol",
+      "phase": 2,
+      "repetition": 0,
+      "requestHash": "b2116a6e5c2036c5bf92afb900e82d89c07bbe0f276c064889dc8a13a2d22b28",
+      "milliseconds": 2953,
+      "usage": {
+        "input_tokens": 1605,
+        "input_tokens_details": {
+          "cache_write_tokens": 1474,
+          "cached_tokens": 0
+        },
+        "output_tokens": 224,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 1829
+      },
+      "inputTokens": 1605,
+      "outputTokens": 224,
+      "estimatedCostUsd": 0.0109,
+      "reservedUsd": 0.52344,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "elements": [
+          {
+            "id": "pictograma",
+            "concept": "Root",
+            "children": [
+              {
+                "id": "persona",
+                "concept": "Agent"
+              },
+              {
+                "id": "terminar",
+                "concept": "Action"
+              },
+              {
+                "id": "tarea",
+                "concept": "Object"
+              },
+              {
+                "id": "ver",
+                "concept": "Action"
+              },
+              {
+                "id": "dibujos_animados",
+                "concept": "Object"
+              },
+              {
+                "id": "pedir_permiso",
+                "concept": "Action"
+              },
+              {
+                "id": "adulto",
+                "concept": "Agent"
+              },
+              {
+                "id": "secuencia",
+                "concept": "Action"
+              }
+            ]
+          }
+        ],
+        "prompt": "'persona' aparece al centro, con 'pedir_permiso' conectándolo hacia 'adulto', ubicado a la derecha. A la izquierda de 'persona' se colocan 'tarea' y 'terminar' juntos como el primer evento. Una conexión de 'secuencia' va desde 'terminar' y 'tarea' hacia 'ver' y 'dibujos_animados', situados después, a la derecha y cerca de 'persona'. 'dibujos_animados' es más grande que 'tarea', mientras 'pedir_permiso' ocupa la posición principal entre 'persona' y 'adulto'."
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "compose_pictogram",
+            "input": {
+              "elements": [
+                {
+                  "id": "persona",
+                  "concept": "Agent"
+                },
+                {
+                  "id": "terminar",
+                  "concept": "Action"
+                },
+                {
+                  "id": "tarea",
+                  "concept": "Object"
+                },
+                {
+                  "id": "ver",
+                  "concept": "Action"
+                },
+                {
+                  "id": "dibujos_animados",
+                  "concept": "Object"
+                },
+                {
+                  "id": "pedir_permiso",
+                  "concept": "Action"
+                },
+                {
+                  "id": "adulto",
+                  "concept": "Agent"
+                },
+                {
+                  "id": "secuencia",
+                  "concept": "Action"
+                }
+              ],
+              "prompt": "'persona' aparece al centro, con 'pedir_permiso' conectándolo hacia 'adulto', ubicado a la derecha. A la izquierda de 'persona' se colocan 'tarea' y 'terminar' juntos como el primer evento. Una conexión de 'secuencia' va desde 'terminar' y 'tarea' hacia 'ver' y 'dibujos_animados', situados después, a la derecha y cerca de 'persona'. 'dibujos_animados' es más grande que 'tarea', mientras 'pedir_permiso' ocupa la posición principal entre 'persona' y 'adulto'."
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gpt-5.6-sol",
+        "usage": {
+          "input_tokens": 1605,
+          "input_tokens_details": {
+            "cache_write_tokens": 1474,
+            "cached_tokens": 0
+          },
+          "output_tokens": 224,
+          "output_tokens_details": {
+            "reasoning_tokens": 0
+          },
+          "total_tokens": 1829
+        },
+        "meta": {
+          "provider": "openai",
+          "requestId": "req_d67f0de6684444a4b4bda10eecf098d9",
+          "attempts": 1,
+          "requestedModel": "gpt-5.6-sol",
+          "actualModel": "gpt-5.6-sol",
+          "reasoningEffort": "low",
+          "durationMs": 2953
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "22f69fc8cc6df0cffd7baccb1678d270d558ba1d649d838db0a3611ab1b1eb9b"
+    },
+    {
+      "state": "recorded",
+      "caseId": "turno",
+      "requestedModel": "gpt-5.6-sol",
+      "returnedModel": "gpt-5.6-sol",
+      "phase": 2,
+      "repetition": 0,
+      "requestHash": "6417d276d7b0dafc6ba9bc2100cb1e9e624bb84e9f769a7f67e42158d763d768",
+      "milliseconds": 2866,
+      "usage": {
+        "input_tokens": 1213,
+        "input_tokens_details": {
+          "cache_write_tokens": 1082,
+          "cached_tokens": 0
+        },
+        "output_tokens": 160,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 1373
+      },
+      "inputTokens": 1213,
+      "outputTokens": 160,
+      "estimatedCostUsd": 0.008052,
+      "reservedUsd": 0.483504,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "elements": [
+          {
+            "id": "pictograma",
+            "concept": "Root",
+            "children": [
+              {
+                "id": "hablante",
+                "concept": "Agent"
+              },
+              {
+                "id": "turno",
+                "concept": "Action"
+              },
+              {
+                "id": "otra_persona",
+                "concept": "Agent"
+              },
+              {
+                "id": "secuencia",
+                "concept": "Context"
+              }
+            ]
+          }
+        ],
+        "prompt": "'hablante' ocupa el centro y es más grande que los demás elementos. 'turno' se coloca inmediatamente delante de 'hablante' y se conecta con 'hablante' para indicar que le corresponde actuar ahora. 'otra_persona' aparece a un lado, ligeramente detrás y orientada hacia 'hablante'. 'secuencia' rodea o conecta a 'hablante' y 'otra_persona' para mostrar su orden dentro de una actividad compartida."
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "compose_pictogram",
+            "input": {
+              "elements": [
+                {
+                  "id": "hablante",
+                  "concept": "Agent"
+                },
+                {
+                  "id": "turno",
+                  "concept": "Action"
+                },
+                {
+                  "id": "otra_persona",
+                  "concept": "Agent"
+                },
+                {
+                  "id": "secuencia",
+                  "concept": "Context"
+                }
+              ],
+              "prompt": "'hablante' ocupa el centro y es más grande que los demás elementos. 'turno' se coloca inmediatamente delante de 'hablante' y se conecta con 'hablante' para indicar que le corresponde actuar ahora. 'otra_persona' aparece a un lado, ligeramente detrás y orientada hacia 'hablante'. 'secuencia' rodea o conecta a 'hablante' y 'otra_persona' para mostrar su orden dentro de una actividad compartida."
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gpt-5.6-sol",
+        "usage": {
+          "input_tokens": 1213,
+          "input_tokens_details": {
+            "cache_write_tokens": 1082,
+            "cached_tokens": 0
+          },
+          "output_tokens": 160,
+          "output_tokens_details": {
+            "reasoning_tokens": 0
+          },
+          "total_tokens": 1373
+        },
+        "meta": {
+          "provider": "openai",
+          "requestId": "req_1af67540ec0942379ee8a305cb7d7f19",
+          "attempts": 1,
+          "requestedModel": "gpt-5.6-sol",
+          "actualModel": "gpt-5.6-sol",
+          "reasoningEffort": "low",
+          "durationMs": 2865
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "3946cc79eee5141ba1708d61e4c5e9e24188bf10b904371bc27ab9c5044387a0"
+    },
+    {
+      "state": "recorded",
+      "caseId": "manana-playa",
+      "requestedModel": "gpt-5.6-sol",
+      "returnedModel": "gpt-5.6-sol",
+      "phase": 2,
+      "repetition": 0,
+      "requestHash": "f1ac9e2d1f5662214120c41c3fb89969c0545c04cbd03da29b537eeb17166650",
+      "milliseconds": 2348,
+      "usage": {
+        "input_tokens": 1305,
+        "input_tokens_details": {
+          "cache_write_tokens": 1174,
+          "cached_tokens": 0
+        },
+        "output_tokens": 186,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 1491
+      },
+      "inputTokens": 1305,
+      "outputTokens": 186,
+      "estimatedCostUsd": 0.00894,
+      "reservedUsd": 0.492048,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "elements": [
+          {
+            "id": "pictograma",
+            "concept": "Root",
+            "children": [
+              {
+                "id": "grupo",
+                "concept": "Agent"
+              },
+              {
+                "id": "desplazamiento",
+                "concept": "Action"
+              },
+              {
+                "id": "playa",
+                "concept": "Context",
+                "children": [
+                  {
+                    "id": "mar",
+                    "concept": "Element"
+                  },
+                  {
+                    "id": "arena",
+                    "concept": "Element"
+                  }
+                ]
+              },
+              {
+                "id": "mañana",
+                "concept": "Context"
+              }
+            ]
+          }
+        ],
+        "prompt": "'grupo' se ubica a la izquierda y 'playa' a la derecha, con ambos como elementos principales de tamaño similar. 'desplazamiento' conecta 'grupo' con 'playa' mediante una trayectoria dirigida de izquierda a derecha. Dentro de 'playa', 'arena' ocupa la parte inferior y 'mar' se sitúa detrás o arriba de 'arena'. 'mañana' aparece arriba de la composición, separado pero asociado espacialmente con 'desplazamiento' y 'playa'."
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "compose_pictogram",
+            "input": {
+              "elements": [
+                {
+                  "id": "grupo",
+                  "concept": "Agent"
+                },
+                {
+                  "id": "desplazamiento",
+                  "concept": "Action"
+                },
+                {
+                  "id": "playa",
+                  "concept": "Context",
+                  "children": [
+                    {
+                      "id": "mar",
+                      "concept": "Element"
+                    },
+                    {
+                      "id": "arena",
+                      "concept": "Element"
+                    }
+                  ]
+                },
+                {
+                  "id": "mañana",
+                  "concept": "Context"
+                }
+              ],
+              "prompt": "'grupo' se ubica a la izquierda y 'playa' a la derecha, con ambos como elementos principales de tamaño similar. 'desplazamiento' conecta 'grupo' con 'playa' mediante una trayectoria dirigida de izquierda a derecha. Dentro de 'playa', 'arena' ocupa la parte inferior y 'mar' se sitúa detrás o arriba de 'arena'. 'mañana' aparece arriba de la composición, separado pero asociado espacialmente con 'desplazamiento' y 'playa'."
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gpt-5.6-sol",
+        "usage": {
+          "input_tokens": 1305,
+          "input_tokens_details": {
+            "cache_write_tokens": 1174,
+            "cached_tokens": 0
+          },
+          "output_tokens": 186,
+          "output_tokens_details": {
+            "reasoning_tokens": 0
+          },
+          "total_tokens": 1491
+        },
+        "meta": {
+          "provider": "openai",
+          "requestId": "req_418b7e758d314fb5855f03dcc50efbea",
+          "attempts": 1,
+          "requestedModel": "gpt-5.6-sol",
+          "actualModel": "gpt-5.6-sol",
+          "reasoningEffort": "low",
+          "durationMs": 2348
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "9d827ce932c9975b7484bd2cbf4518b839d7ec6eed671bc8eb1a51e4d0496ce8"
+    },
+    {
+      "state": "recorded",
+      "caseId": "no-verduras",
+      "requestedModel": "gpt-5.6-sol",
+      "returnedModel": "gpt-5.6-sol",
+      "phase": 2,
+      "repetition": 0,
+      "requestHash": "2c82be3c1cd79f573158493150d145442076d71a64414d6be32f5ba77f12410d",
+      "milliseconds": 2321,
+      "usage": {
+        "input_tokens": 1300,
+        "input_tokens_details": {
+          "cache_write_tokens": 1169,
+          "cached_tokens": 0
+        },
+        "output_tokens": 176,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 1476
+      },
+      "inputTokens": 1300,
+      "outputTokens": 176,
+      "estimatedCostUsd": 0.00872,
+      "reservedUsd": 0.490752,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "elements": [
+          {
+            "id": "pictograma",
+            "concept": "Root",
+            "children": [
+              {
+                "id": "hablante",
+                "concept": "Agent"
+              },
+              {
+                "id": "rechazo",
+                "concept": "Action",
+                "children": [
+                  {
+                    "id": "comer",
+                    "concept": "Action"
+                  }
+                ]
+              },
+              {
+                "id": "verduras",
+                "concept": "Object"
+              },
+              {
+                "id": "mesa",
+                "concept": "Context"
+              }
+            ]
+          }
+        ],
+        "prompt": "'hablante' ocupa el lado izquierdo y mira hacia 'verduras', ubicadas sobre 'mesa' en el lado derecho. 'rechazo' se sitúa entre 'hablante' y 'verduras', conectado con ambos, y es el elemento central de mayor tamaño. 'comer' aparece dentro de 'rechazo', cerca de la boca de 'hablante' y orientado hacia 'verduras'. 'mesa' se extiende debajo de 'verduras' como contexto de alimentación."
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "compose_pictogram",
+            "input": {
+              "elements": [
+                {
+                  "id": "hablante",
+                  "concept": "Agent"
+                },
+                {
+                  "id": "rechazo",
+                  "concept": "Action",
+                  "children": [
+                    {
+                      "id": "comer",
+                      "concept": "Action"
+                    }
+                  ]
+                },
+                {
+                  "id": "verduras",
+                  "concept": "Object"
+                },
+                {
+                  "id": "mesa",
+                  "concept": "Context"
+                }
+              ],
+              "prompt": "'hablante' ocupa el lado izquierdo y mira hacia 'verduras', ubicadas sobre 'mesa' en el lado derecho. 'rechazo' se sitúa entre 'hablante' y 'verduras', conectado con ambos, y es el elemento central de mayor tamaño. 'comer' aparece dentro de 'rechazo', cerca de la boca de 'hablante' y orientado hacia 'verduras'. 'mesa' se extiende debajo de 'verduras' como contexto de alimentación."
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gpt-5.6-sol",
+        "usage": {
+          "input_tokens": 1300,
+          "input_tokens_details": {
+            "cache_write_tokens": 1169,
+            "cached_tokens": 0
+          },
+          "output_tokens": 176,
+          "output_tokens_details": {
+            "reasoning_tokens": 0
+          },
+          "total_tokens": 1476
+        },
+        "meta": {
+          "provider": "openai",
+          "requestId": "req_9acab1a10f2c467dafc10a3d18fa77c9",
+          "attempts": 1,
+          "requestedModel": "gpt-5.6-sol",
+          "actualModel": "gpt-5.6-sol",
+          "reasoningEffort": "low",
+          "durationMs": 2320
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "985496211f470c5cfb5441d585ed38b40255f88c95946640f3f17a821a565a82"
+    },
+    {
+      "state": "recorded",
+      "caseId": "ayuda-1",
+      "requestedModel": "gpt-5.6-sol",
+      "returnedModel": "gpt-5.6-sol",
+      "phase": 2,
+      "repetition": 0,
+      "requestHash": "c8f68acb521f41506c628fff0f836a60434cf52cd3533d0137e8b51748351e1f",
+      "milliseconds": 3809,
+      "usage": {
+        "input_tokens": 1271,
+        "input_tokens_details": {
+          "cache_write_tokens": 1140,
+          "cached_tokens": 0
+        },
+        "output_tokens": 260,
+        "output_tokens_details": {
+          "reasoning_tokens": 125
+        },
+        "total_tokens": 1531
+      },
+      "inputTokens": 1271,
+      "outputTokens": 260,
+      "estimatedCostUsd": 0.010284,
+      "reservedUsd": 0.488304,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "elements": [
+          {
+            "id": "pictograma",
+            "concept": "Root",
+            "children": [
+              {
+                "id": "solicitante",
+                "concept": "Agent"
+              },
+              {
+                "id": "ayudante",
+                "concept": "Agent"
+              },
+              {
+                "id": "ayuda",
+                "concept": "Action"
+              }
+            ]
+          }
+        ],
+        "prompt": "'solicitante' se ubica a la izquierda y 'ayudante' a la derecha, ambos de tamaño similar y frente a frente. 'ayuda' ocupa el centro entre los dos y se conecta desde 'ayudante' hacia 'solicitante'. 'ayuda' es el elemento más grande, mientras 'solicitante' y 'ayudante' quedan próximos entre sí."
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "compose_pictogram",
+            "input": {
+              "elements": [
+                {
+                  "id": "solicitante",
+                  "concept": "Agent"
+                },
+                {
+                  "id": "ayudante",
+                  "concept": "Agent"
+                },
+                {
+                  "id": "ayuda",
+                  "concept": "Action"
+                }
+              ],
+              "prompt": "'solicitante' se ubica a la izquierda y 'ayudante' a la derecha, ambos de tamaño similar y frente a frente. 'ayuda' ocupa el centro entre los dos y se conecta desde 'ayudante' hacia 'solicitante'. 'ayuda' es el elemento más grande, mientras 'solicitante' y 'ayudante' quedan próximos entre sí."
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gpt-5.6-sol",
+        "usage": {
+          "input_tokens": 1271,
+          "input_tokens_details": {
+            "cache_write_tokens": 1140,
+            "cached_tokens": 0
+          },
+          "output_tokens": 260,
+          "output_tokens_details": {
+            "reasoning_tokens": 125
+          },
+          "total_tokens": 1531
+        },
+        "meta": {
+          "provider": "openai",
+          "requestId": "req_74dd8359835d41018eb915118bc731d1",
+          "attempts": 1,
+          "requestedModel": "gpt-5.6-sol",
+          "actualModel": "gpt-5.6-sol",
+          "reasoningEffort": "low",
+          "durationMs": 3808
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "7b64a8a0ac097e8361bb698d1d609d85a30cd2c31de122ee4525b248c7b36614"
+    },
+    {
+      "state": "recorded",
+      "caseId": "saludo",
+      "requestedModel": "gpt-5.6-sol",
+      "returnedModel": "gpt-5.6-sol",
+      "phase": 2,
+      "repetition": 0,
+      "requestHash": "62effa4e96d1a11ed63421a85a6ae78b767cfb941e0567c197aa2ba356f3e966",
+      "milliseconds": 3166,
+      "usage": {
+        "input_tokens": 1428,
+        "input_tokens_details": {
+          "cache_write_tokens": 1297,
+          "cached_tokens": 0
+        },
+        "output_tokens": 212,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 1640
+      },
+      "inputTokens": 1428,
+      "outputTokens": 212,
+      "estimatedCostUsd": 0.009952,
+      "reservedUsd": 0.504216,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "elements": [
+          {
+            "id": "pictograma",
+            "concept": "Root",
+            "children": [
+              {
+                "id": "hablante",
+                "concept": "Agent"
+              },
+              {
+                "id": "destinatario",
+                "concept": "Agent",
+                "children": [
+                  {
+                    "id": "bienestar",
+                    "concept": "Object"
+                  }
+                ]
+              },
+              {
+                "id": "saludo",
+                "concept": "Action"
+              },
+              {
+                "id": "pregunta",
+                "concept": "Action"
+              },
+              {
+                "id": "ahora",
+                "concept": "Context"
+              },
+              {
+                "id": "encuentro",
+                "concept": "Context"
+              }
+            ]
+          }
+        ],
+        "prompt": "'hablante' se ubica a la izquierda y 'destinatario' a la derecha, ambos frente a frente y con tamaño similar. 'saludo' aparece entre ambos, más cerca de 'hablante', mientras 'pregunta' conecta a 'hablante' con 'destinatario' y ocupa la zona central superior. 'bienestar' se coloca junto al torso de 'destinatario' como foco de la pregunta. 'ahora' aparece sobre la interacción y 'encuentro' rodea discretamente a los dos agentes como contexto compartido."
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "compose_pictogram",
+            "input": {
+              "elements": [
+                {
+                  "id": "hablante",
+                  "concept": "Agent"
+                },
+                {
+                  "id": "destinatario",
+                  "concept": "Agent",
+                  "children": [
+                    {
+                      "id": "bienestar",
+                      "concept": "Object"
+                    }
+                  ]
+                },
+                {
+                  "id": "saludo",
+                  "concept": "Action"
+                },
+                {
+                  "id": "pregunta",
+                  "concept": "Action"
+                },
+                {
+                  "id": "ahora",
+                  "concept": "Context"
+                },
+                {
+                  "id": "encuentro",
+                  "concept": "Context"
+                }
+              ],
+              "prompt": "'hablante' se ubica a la izquierda y 'destinatario' a la derecha, ambos frente a frente y con tamaño similar. 'saludo' aparece entre ambos, más cerca de 'hablante', mientras 'pregunta' conecta a 'hablante' con 'destinatario' y ocupa la zona central superior. 'bienestar' se coloca junto al torso de 'destinatario' como foco de la pregunta. 'ahora' aparece sobre la interacción y 'encuentro' rodea discretamente a los dos agentes como contexto compartido."
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gpt-5.6-sol",
+        "usage": {
+          "input_tokens": 1428,
+          "input_tokens_details": {
+            "cache_write_tokens": 1297,
+            "cached_tokens": 0
+          },
+          "output_tokens": 212,
+          "output_tokens_details": {
+            "reasoning_tokens": 0
+          },
+          "total_tokens": 1640
+        },
+        "meta": {
+          "provider": "openai",
+          "requestId": "req_f21d6324277747aa95521b95e5c3a297",
+          "attempts": 1,
+          "requestedModel": "gpt-5.6-sol",
+          "actualModel": "gpt-5.6-sol",
+          "reasoningEffort": "low",
+          "durationMs": 3165
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "db952b129fc7b56a43ec22930f2c898a42004b88b474b3618d80e8384e16b7e5"
+    },
+    {
+      "state": "recorded",
+      "caseId": "peticion-agua",
+      "requestedModel": "gpt-5.6-sol",
+      "returnedModel": "gpt-5.6-sol",
+      "phase": 2,
+      "repetition": 0,
+      "requestHash": "908b307d756759b2a3af0eeee726641972e0edf933a975fdd76d3cbb5330062f",
+      "milliseconds": 2099,
+      "usage": {
+        "input_tokens": 1354,
+        "input_tokens_details": {
+          "cache_write_tokens": 1223,
+          "cached_tokens": 0
+        },
+        "output_tokens": 163,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 1517
+      },
+      "inputTokens": 1354,
+      "outputTokens": 163,
+      "estimatedCostUsd": 0.008676,
+      "reservedUsd": 0.496704,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "elements": [
+          {
+            "id": "pictograma",
+            "concept": "Root",
+            "children": [
+              {
+                "id": "hablante",
+                "concept": "Agent"
+              },
+              {
+                "id": "deseo",
+                "concept": "Action"
+              },
+              {
+                "id": "vaso_con_agua",
+                "concept": "Object",
+                "children": [
+                  {
+                    "id": "vaso",
+                    "concept": "Object"
+                  },
+                  {
+                    "id": "agua",
+                    "concept": "Object"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "prompt": "'hablante' se ubica a la izquierda y ocupa un tamaño mediano. 'vaso_con_agua' aparece a la derecha, ligeramente más grande, con 'agua' dentro de 'vaso'. 'deseo' se sitúa entre 'hablante' y 'vaso_con_agua', conectado desde 'hablante' hacia 'vaso_con_agua' para representar que quiere recibirlo."
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "compose_pictogram",
+            "input": {
+              "elements": [
+                {
+                  "id": "hablante",
+                  "concept": "Agent"
+                },
+                {
+                  "id": "deseo",
+                  "concept": "Action"
+                },
+                {
+                  "id": "vaso_con_agua",
+                  "concept": "Object",
+                  "children": [
+                    {
+                      "id": "vaso",
+                      "concept": "Object"
+                    },
+                    {
+                      "id": "agua",
+                      "concept": "Object"
+                    }
+                  ]
+                }
+              ],
+              "prompt": "'hablante' se ubica a la izquierda y ocupa un tamaño mediano. 'vaso_con_agua' aparece a la derecha, ligeramente más grande, con 'agua' dentro de 'vaso'. 'deseo' se sitúa entre 'hablante' y 'vaso_con_agua', conectado desde 'hablante' hacia 'vaso_con_agua' para representar que quiere recibirlo."
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gpt-5.6-sol",
+        "usage": {
+          "input_tokens": 1354,
+          "input_tokens_details": {
+            "cache_write_tokens": 1223,
+            "cached_tokens": 0
+          },
+          "output_tokens": 163,
+          "output_tokens_details": {
+            "reasoning_tokens": 0
+          },
+          "total_tokens": 1517
+        },
+        "meta": {
+          "provider": "openai",
+          "requestId": "req_a77ac2b0e82e4c849148575d250040be",
+          "attempts": 1,
+          "requestedModel": "gpt-5.6-sol",
+          "actualModel": "gpt-5.6-sol",
+          "reasoningEffort": "low",
+          "durationMs": 2097
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "132531407c651f361e8440c24d9f0f011067ac0856c556b329ceb95bc8d97c28"
+    },
+    {
+      "state": "recorded",
+      "caseId": "donde-mama",
+      "requestedModel": "gpt-5.6-sol",
+      "returnedModel": "gpt-5.6-sol",
+      "phase": 2,
+      "repetition": 0,
+      "requestHash": "b7e42aea34e2436e241552f9076162b4ce1fc4cba83016836feb11d01a6969ea",
+      "milliseconds": 2268,
+      "usage": {
+        "input_tokens": 1213,
+        "input_tokens_details": {
+          "cache_write_tokens": 1082,
+          "cached_tokens": 0
+        },
+        "output_tokens": 145,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 1358
+      },
+      "inputTokens": 1213,
+      "outputTokens": 145,
+      "estimatedCostUsd": 0.007752,
+      "reservedUsd": 0.4836,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "elements": [
+          {
+            "id": "pictograma",
+            "concept": "Root",
+            "children": [
+              {
+                "id": "mamá",
+                "concept": "Object"
+              },
+              {
+                "id": "ubicación",
+                "concept": "Context"
+              },
+              {
+                "id": "estar",
+                "concept": "Action"
+              },
+              {
+                "id": "interrogación",
+                "concept": "Element"
+              }
+            ]
+          }
+        ],
+        "prompt": "'mamá' ocupa el centro y es el elemento más grande. 'ubicación' rodea parcialmente a 'mamá' como un espacio abierto, sin representar un lugar específico. 'estar' se sitúa entre 'mamá' y 'ubicación', conectando ambos elementos. 'interrogación' aparece arriba de 'mamá' y se conecta con 'ubicación' para indicar que el lugar es desconocido."
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "compose_pictogram",
+            "input": {
+              "elements": [
+                {
+                  "id": "mamá",
+                  "concept": "Object"
+                },
+                {
+                  "id": "ubicación",
+                  "concept": "Context"
+                },
+                {
+                  "id": "estar",
+                  "concept": "Action"
+                },
+                {
+                  "id": "interrogación",
+                  "concept": "Element"
+                }
+              ],
+              "prompt": "'mamá' ocupa el centro y es el elemento más grande. 'ubicación' rodea parcialmente a 'mamá' como un espacio abierto, sin representar un lugar específico. 'estar' se sitúa entre 'mamá' y 'ubicación', conectando ambos elementos. 'interrogación' aparece arriba de 'mamá' y se conecta con 'ubicación' para indicar que el lugar es desconocido."
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gpt-5.6-sol",
+        "usage": {
+          "input_tokens": 1213,
+          "input_tokens_details": {
+            "cache_write_tokens": 1082,
+            "cached_tokens": 0
+          },
+          "output_tokens": 145,
+          "output_tokens_details": {
+            "reasoning_tokens": 0
+          },
+          "total_tokens": 1358
+        },
+        "meta": {
+          "provider": "openai",
+          "requestId": "req_d4a53c5b975a47b480c07164f9b350a0",
+          "attempts": 1,
+          "requestedModel": "gpt-5.6-sol",
+          "actualModel": "gpt-5.6-sol",
+          "reasoningEffort": "low",
+          "durationMs": 2266
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "2f8e7678f78aa50efacac09834ef4dfa5131d19960211f085db3f9afec4daf87"
+    },
+    {
+      "state": "recorded",
+      "caseId": "ayer-hermano",
+      "requestedModel": "gpt-5.6-sol",
+      "returnedModel": "gpt-5.6-sol",
+      "phase": 2,
+      "repetition": 0,
+      "requestHash": "5ba07816f64132c8ffe6d1c41dd206f3906466bb4d7f1c1d100b54d436edce59",
+      "milliseconds": 5488,
+      "usage": {
+        "input_tokens": 1439,
+        "input_tokens_details": {
+          "cache_write_tokens": 1308,
+          "cached_tokens": 0
+        },
+        "output_tokens": 203,
+        "output_tokens_details": {
+          "reasoning_tokens": 80
+        },
+        "total_tokens": 1642
+      },
+      "inputTokens": 2753,
+      "outputTokens": 414,
+      "estimatedCostUsd": 0.019292,
+      "reservedUsd": 0.491304,
+      "canonicalValid": true,
+      "firstCallValid": false,
+      "providerCalls": 2,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "elements": [
+          {
+            "id": "pictograma",
+            "concept": "Root",
+            "children": [
+              {
+                "id": "hablante",
+                "concept": "Agent"
+              },
+              {
+                "id": "hermano",
+                "concept": "Element"
+              },
+              {
+                "id": "jugar",
+                "concept": "Action"
+              },
+              {
+                "id": "ayer",
+                "concept": "Context"
+              }
+            ]
+          }
+        ],
+        "prompt": "'hablante' y 'hermano' aparecen uno al lado del otro, con 'hablante' ligeramente más grande. 'jugar' se sitúa entre ambos y los conecta como una acción compartida. 'ayer' aparece arriba de la escena, separado de los participantes para indicar el tiempo."
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "compose_pictogram",
+            "input": {
+              "elements": [
+                {
+                  "id": "hablante",
+                  "concept": "Agent"
+                },
+                {
+                  "id": "hermano",
+                  "concept": "Element"
+                },
+                {
+                  "id": "jugar",
+                  "concept": "Action"
+                },
+                {
+                  "id": "ayer",
+                  "concept": "Context"
+                }
+              ],
+              "prompt": "'hablante' y 'hermano' aparecen uno al lado del otro, con 'hablante' ligeramente más grande. 'jugar' se sitúa entre ambos y los conecta como una acción compartida. 'ayer' aparece arriba de la escena, separado de los participantes para indicar el tiempo."
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gpt-5.6-sol",
+        "usage": {
+          "input_tokens": 1439,
+          "input_tokens_details": {
+            "cache_write_tokens": 1308,
+            "cached_tokens": 0
+          },
+          "output_tokens": 203,
+          "output_tokens_details": {
+            "reasoning_tokens": 80
+          },
+          "total_tokens": 1642
+        },
+        "meta": {
+          "provider": "openai",
+          "requestId": "req_11883ee24a214d868b4308c964c2f450",
+          "attempts": 1,
+          "requestedModel": "gpt-5.6-sol",
+          "actualModel": "gpt-5.6-sol",
+          "reasoningEffort": "low",
+          "durationMs": 2653
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "f076b247ba6031eab5b95c8141ab121edeef0a1d2ef319299e3eeeadccbb5a46"
+    },
+    {
+      "state": "recorded",
+      "caseId": "profe-cuento",
+      "requestedModel": "gpt-5.6-sol",
+      "returnedModel": "gpt-5.6-sol",
+      "phase": 2,
+      "repetition": 0,
+      "requestHash": "ce2bd03d2adeaa6ff8996c9e07f2c27d3cc6ab06c4cb61781bf0cf438ec7a6c9",
+      "milliseconds": 2106,
+      "usage": {
+        "input_tokens": 1313,
+        "input_tokens_details": {
+          "cache_write_tokens": 1182,
+          "cached_tokens": 0
+        },
+        "output_tokens": 150,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 1463
+      },
+      "inputTokens": 1313,
+      "outputTokens": 150,
+      "estimatedCostUsd": 0.008252,
+      "reservedUsd": 0.491736,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "elements": [
+          {
+            "id": "pictograma",
+            "concept": "Root",
+            "children": [
+              {
+                "id": "profesora",
+                "concept": "Agent"
+              },
+              {
+                "id": "lectura",
+                "concept": "Action"
+              },
+              {
+                "id": "cuento",
+                "concept": "Object"
+              },
+              {
+                "id": "niños",
+                "concept": "Agent"
+              }
+            ]
+          }
+        ],
+        "prompt": "'profesora' se ubica al centro y es el elemento más grande. 'cuento' aparece abierto frente a 'profesora', entre ella y 'niños'. 'niños' forman un grupo más pequeño delante de 'profesora' y orientado hacia ella. 'lectura' conecta la boca de 'profesora' con 'cuento' y se extiende hacia 'niños' para mostrar la acción dirigida al grupo."
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "compose_pictogram",
+            "input": {
+              "elements": [
+                {
+                  "id": "profesora",
+                  "concept": "Agent"
+                },
+                {
+                  "id": "lectura",
+                  "concept": "Action"
+                },
+                {
+                  "id": "cuento",
+                  "concept": "Object"
+                },
+                {
+                  "id": "niños",
+                  "concept": "Agent"
+                }
+              ],
+              "prompt": "'profesora' se ubica al centro y es el elemento más grande. 'cuento' aparece abierto frente a 'profesora', entre ella y 'niños'. 'niños' forman un grupo más pequeño delante de 'profesora' y orientado hacia ella. 'lectura' conecta la boca de 'profesora' con 'cuento' y se extiende hacia 'niños' para mostrar la acción dirigida al grupo."
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gpt-5.6-sol",
+        "usage": {
+          "input_tokens": 1313,
+          "input_tokens_details": {
+            "cache_write_tokens": 1182,
+            "cached_tokens": 0
+          },
+          "output_tokens": 150,
+          "output_tokens_details": {
+            "reasoning_tokens": 0
+          },
+          "total_tokens": 1463
+        },
+        "meta": {
+          "provider": "openai",
+          "requestId": "req_7e6ef28e22db4d4fa0c88c6ffa10d847",
+          "attempts": 1,
+          "requestedModel": "gpt-5.6-sol",
+          "actualModel": "gpt-5.6-sol",
+          "reasoningEffort": "low",
+          "durationMs": 2103
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "c157259ed9d59e70102dd7b759f45b88ff7bb0b89178d34985a19025d4aa037f"
+    },
+    {
+      "state": "recorded",
+      "caseId": "agua-1",
+      "requestedModel": "gpt-5.6-sol",
+      "returnedModel": "gpt-5.6-sol",
+      "phase": 2,
+      "repetition": 0,
+      "requestHash": "955cf20a3ae257a68ad67f7172c47141dbc4e7ce3b671c9d00ad5b4d694e313b",
+      "milliseconds": 2457,
+      "usage": {
+        "input_tokens": 1228,
+        "input_tokens_details": {
+          "cache_write_tokens": 1097,
+          "cached_tokens": 0
+        },
+        "output_tokens": 165,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 1393
+      },
+      "inputTokens": 1228,
+      "outputTokens": 165,
+      "estimatedCostUsd": 0.008212,
+      "reservedUsd": 0.485448,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "elements": [
+          {
+            "id": "pictograma",
+            "concept": "Root",
+            "children": [
+              {
+                "id": "solicitante",
+                "concept": "Agent"
+              },
+              {
+                "id": "destinatario",
+                "concept": "Agent"
+              },
+              {
+                "id": "peticion",
+                "concept": "Action"
+              },
+              {
+                "id": "agua",
+                "concept": "Object",
+                "children": [
+                  {
+                    "id": "vaso",
+                    "concept": "Element"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "prompt": "'solicitante' se ubica a la izquierda y 'destinatario' a la derecha, ambos de tamaño medio y frente a frente. 'agua' ocupa el centro entre ambas personas, ligeramente más grande, con 'vaso' contenido dentro de 'agua'. 'peticion' conecta a 'solicitante' con 'agua' y se orienta hacia 'destinatario'. La composición forma una secuencia horizontal de solicitud y entrega inmediata."
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "compose_pictogram",
+            "input": {
+              "elements": [
+                {
+                  "id": "solicitante",
+                  "concept": "Agent"
+                },
+                {
+                  "id": "destinatario",
+                  "concept": "Agent"
+                },
+                {
+                  "id": "peticion",
+                  "concept": "Action"
+                },
+                {
+                  "id": "agua",
+                  "concept": "Object",
+                  "children": [
+                    {
+                      "id": "vaso",
+                      "concept": "Element"
+                    }
+                  ]
+                }
+              ],
+              "prompt": "'solicitante' se ubica a la izquierda y 'destinatario' a la derecha, ambos de tamaño medio y frente a frente. 'agua' ocupa el centro entre ambas personas, ligeramente más grande, con 'vaso' contenido dentro de 'agua'. 'peticion' conecta a 'solicitante' con 'agua' y se orienta hacia 'destinatario'. La composición forma una secuencia horizontal de solicitud y entrega inmediata."
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gpt-5.6-sol",
+        "usage": {
+          "input_tokens": 1228,
+          "input_tokens_details": {
+            "cache_write_tokens": 1097,
+            "cached_tokens": 0
+          },
+          "output_tokens": 165,
+          "output_tokens_details": {
+            "reasoning_tokens": 0
+          },
+          "total_tokens": 1393
+        },
+        "meta": {
+          "provider": "openai",
+          "requestId": "req_1d7a1f6320d14afebf46c449024a953b",
+          "attempts": 1,
+          "requestedModel": "gpt-5.6-sol",
+          "actualModel": "gpt-5.6-sol",
+          "reasoningEffort": "low",
+          "durationMs": 2454
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "79477157ccc1daed25fb4cf01148b96e8bdf5be2240de1265540ba1d6f6f68bf"
+    },
+    {
+      "state": "recorded",
+      "caseId": "para-auto",
+      "requestedModel": "gpt-5.6-sol",
+      "returnedModel": "gpt-5.6-sol",
+      "phase": 2,
+      "repetition": 0,
+      "requestHash": "a1e046a72e3597dff9abaec8acc0ffae405be608eeef4fd578c0187f6b2157e7",
+      "milliseconds": 2559,
+      "usage": {
+        "input_tokens": 1473,
+        "input_tokens_details": {
+          "cache_write_tokens": 1342,
+          "cached_tokens": 0
+        },
+        "output_tokens": 212,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 1685
+      },
+      "inputTokens": 1473,
+      "outputTokens": 212,
+      "estimatedCostUsd": 0.010132,
+      "reservedUsd": 0.508296,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "elements": [
+          {
+            "id": "pictograma",
+            "concept": "Root",
+            "children": [
+              {
+                "id": "destinatario",
+                "concept": "Agent"
+              },
+              {
+                "id": "detencion",
+                "concept": "Action"
+              },
+              {
+                "id": "auto",
+                "concept": "Object"
+              },
+              {
+                "id": "movimiento",
+                "concept": "Action"
+              },
+              {
+                "id": "lugar",
+                "concept": "Context"
+              },
+              {
+                "id": "hablante",
+                "concept": "Agent"
+              },
+              {
+                "id": "advertencia",
+                "concept": "Action"
+              }
+            ]
+          }
+        ],
+        "prompt": "'destinatario' ocupa el centro y es el elemento más grande; 'detencion' se coloca inmediatamente delante de su cuerpo y se conecta con él. 'auto' aparece a un lado, orientado hacia 'destinatario', con 'movimiento' entre ambos para indicar que se aproxima. 'lugar' rodea a 'destinatario' y 'auto' como escenario compartido de tránsito. 'hablante' se ubica detrás y a un costado de 'destinatario', conectado mediante 'advertencia' dirigida hacia 'destinatario' y vinculada también con 'auto'."
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "compose_pictogram",
+            "input": {
+              "elements": [
+                {
+                  "id": "destinatario",
+                  "concept": "Agent"
+                },
+                {
+                  "id": "detencion",
+                  "concept": "Action"
+                },
+                {
+                  "id": "auto",
+                  "concept": "Object"
+                },
+                {
+                  "id": "movimiento",
+                  "concept": "Action"
+                },
+                {
+                  "id": "lugar",
+                  "concept": "Context"
+                },
+                {
+                  "id": "hablante",
+                  "concept": "Agent"
+                },
+                {
+                  "id": "advertencia",
+                  "concept": "Action"
+                }
+              ],
+              "prompt": "'destinatario' ocupa el centro y es el elemento más grande; 'detencion' se coloca inmediatamente delante de su cuerpo y se conecta con él. 'auto' aparece a un lado, orientado hacia 'destinatario', con 'movimiento' entre ambos para indicar que se aproxima. 'lugar' rodea a 'destinatario' y 'auto' como escenario compartido de tránsito. 'hablante' se ubica detrás y a un costado de 'destinatario', conectado mediante 'advertencia' dirigida hacia 'destinatario' y vinculada también con 'auto'."
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gpt-5.6-sol",
+        "usage": {
+          "input_tokens": 1473,
+          "input_tokens_details": {
+            "cache_write_tokens": 1342,
+            "cached_tokens": 0
+          },
+          "output_tokens": 212,
+          "output_tokens_details": {
+            "reasoning_tokens": 0
+          },
+          "total_tokens": 1685
+        },
+        "meta": {
+          "provider": "openai",
+          "requestId": "req_2bf36dee95334ff0aef138bb3932d3f5",
+          "attempts": 1,
+          "requestedModel": "gpt-5.6-sol",
+          "actualModel": "gpt-5.6-sol",
+          "reasoningEffort": "low",
+          "durationMs": 2558
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "e8844011816ec9c2ab3e960b12700c3b28fe05e4a37f1f4a5b7ecd8615237da7"
+    },
+    {
+      "state": "recorded",
+      "caseId": "micro",
+      "requestedModel": "gpt-5.6-sol",
+      "returnedModel": "gpt-5.6-sol",
+      "phase": 2,
+      "repetition": 0,
+      "requestHash": "19d5f8800d11507ba92dd611401b15356c6305807ed5b365234369db2dc32ebd",
+      "milliseconds": 2038,
+      "usage": {
+        "input_tokens": 1312,
+        "input_tokens_details": {
+          "cache_write_tokens": 1181,
+          "cached_tokens": 0
+        },
+        "output_tokens": 174,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 1486
+      },
+      "inputTokens": 1312,
+      "outputTokens": 174,
+      "estimatedCostUsd": 0.008728,
+      "reservedUsd": 0.4932,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "elements": [
+          {
+            "id": "pictograma",
+            "concept": "Root",
+            "children": [
+              {
+                "id": "nosotros",
+                "concept": "Agent",
+                "children": [
+                  {
+                    "id": "hablante",
+                    "concept": "Agent"
+                  },
+                  {
+                    "id": "destinatario",
+                    "concept": "Agent"
+                  }
+                ]
+              },
+              {
+                "id": "abordaje",
+                "concept": "Action"
+              },
+              {
+                "id": "micro",
+                "concept": "Object"
+              },
+              {
+                "id": "parada",
+                "concept": "Context"
+              }
+            ]
+          }
+        ],
+        "prompt": "'micro' ocupa el centro y es más grande que los demás elementos. 'nosotros' se ubica a la izquierda de 'micro', con 'hablante' y 'destinatario' juntos dentro de 'nosotros'. 'abordaje' conecta 'nosotros' con la entrada de 'micro' mediante una trayectoria ascendente. 'parada' se sitúa junto a 'micro' como contexto del punto de abordaje."
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "compose_pictogram",
+            "input": {
+              "elements": [
+                {
+                  "id": "nosotros",
+                  "concept": "Agent",
+                  "children": [
+                    {
+                      "id": "hablante",
+                      "concept": "Agent"
+                    },
+                    {
+                      "id": "destinatario",
+                      "concept": "Agent"
+                    }
+                  ]
+                },
+                {
+                  "id": "abordaje",
+                  "concept": "Action"
+                },
+                {
+                  "id": "micro",
+                  "concept": "Object"
+                },
+                {
+                  "id": "parada",
+                  "concept": "Context"
+                }
+              ],
+              "prompt": "'micro' ocupa el centro y es más grande que los demás elementos. 'nosotros' se ubica a la izquierda de 'micro', con 'hablante' y 'destinatario' juntos dentro de 'nosotros'. 'abordaje' conecta 'nosotros' con la entrada de 'micro' mediante una trayectoria ascendente. 'parada' se sitúa junto a 'micro' como contexto del punto de abordaje."
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gpt-5.6-sol",
+        "usage": {
+          "input_tokens": 1312,
+          "input_tokens_details": {
+            "cache_write_tokens": 1181,
+            "cached_tokens": 0
+          },
+          "output_tokens": 174,
+          "output_tokens_details": {
+            "reasoning_tokens": 0
+          },
+          "total_tokens": 1486
+        },
+        "meta": {
+          "provider": "openai",
+          "requestId": "req_cd33fca7ef014dc787e38c54e4d5f688",
+          "attempts": 1,
+          "requestedModel": "gpt-5.6-sol",
+          "actualModel": "gpt-5.6-sol",
+          "reasoningEffort": "low",
+          "durationMs": 2038
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "f4deb824ef379411991d9253e7f78c3691eea62602a0edf7def6f8e83d2464f1"
+    }
+  ],
+  "warning": "Costs are estimates, not invoice ceilings. Structural validation does not establish semantic or AAC effectiveness."
+}

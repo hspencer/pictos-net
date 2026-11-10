@@ -1,0 +1,50 @@
+<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" width="1024" height="1024">
+  <title>¡Para! Viene un auto</title>
+  <desc>Una persona hace el gesto de alto mientras un auto se acerca por la calle, con un símbolo de peligro entre ambos.</desc>
+  <rect width="1024" height="1024" fill="#FFFFFF" />
+  <g stroke="#111111" stroke-width="10" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M0 772 Q256 748 512 772 T1024 772 L1024 1024 0 1024Z" fill="#F2F2F2" stroke="none" />
+    <path d="M0 772 Q256 748 512 772 T1024 772" fill="none" stroke="#111111" stroke-width="7" />
+    <path d="M82 866H228 M367 866H513 M652 866H798 M937 866H1024" fill="none" stroke="#FFFFFF" stroke-width="12" />
+  </g>
+
+  <g stroke="#111111" stroke-width="12" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M127 465 Q87 424 99 355 Q109 287 168 278 Q214 273 239 312" fill="#FFFFFF" />
+    <path d="M113 398 Q104 450 59 470 Q102 491 140 457" fill="#FFFFFF" />
+    <path d="M139 410 C139 330 192 286 256 292 C322 298 355 349 351 413 C347 478 305 523 242 524 C180 525 138 481 139 410Z" fill="#FFFFFF" />
+    <path d="M142 369 Q205 343 241 303 Q293 321 324 365 Q308 334 272 315 Q249 358 177 390" fill="#111111" />
+    <path d="M267 392 Q282 385 295 393" fill="none" stroke-width="9" />
+    <circle cx="287" cy="417" r="7" fill="#111111" stroke-width="5" />
+    <path d="M272 461 Q286 451 301 461" fill="none" stroke-width="8" />
+    <path d="M193 514 Q177 537 144 544 L76 571 Q49 584 38 617 L29 765 Q96 798 214 785 L228 606 Q239 565 272 547 L311 534 Q328 528 326 510 Q323 496 306 500 L263 513 Q239 520 218 517Z" fill="#FFFFFF" />
+    <path d="M83 578 L48 650 L79 674" fill="#FFFFFF" />
+    <path d="M145 789 L132 914 M213 790 L240 912" fill="none" />
+    <path d="M269 545 Q331 550 394 548 L453 546 Q468 544 470 528 L472 464 Q474 437 490 429 Q502 425 507 440 L510 475 L514 434 Q517 420 529 421 Q542 423 542 443 L541 504 Q541 553 516 572 Q495 588 454 589 L322 593" fill="#FFFFFF" />
+    <path d="M490 469 L493 438 M519 474 L524 432" fill="none" stroke-width="8" />
+  </g>
+
+  <g stroke="#111111" stroke-width="10" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M574 353 L616 279 Q621 270 630 279 L672 353 Q677 363 666 363 L580 363 Q569 363 574 353Z" fill="#EA0A0A" />
+    <path d="M622 299 L625 329" fill="none" stroke="#FFFFFF" stroke-width="8" />
+    <circle cx="625" cy="345" r="4" fill="#FFFFFF" stroke="#FFFFFF" />
+  </g>
+
+  <g stroke="#111111" stroke-width="12" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M609 501 Q590 487 576 498 Q564 509 581 524 L611 538" fill="#1A4CFF" />
+    <path d="M930 501 Q951 487 969 500 Q982 511 965 526 L934 539" fill="#1A4CFF" />
+    <path d="M590 528 Q611 475 648 432 Q665 412 704 410 L867 410 Q904 411 923 437 Q954 479 971 531 L976 631 Q976 663 947 667 L607 667 Q577 664 577 634 L577 558 Q578 540 590 528Z" fill="#1A4CFF" />
+    <path d="M645 484 Q665 449 681 432 Q691 422 712 422 L860 422 Q881 423 892 439 Q909 461 923 484 Q928 494 915 494 L653 494 Q638 494 645 484Z" fill="#FFFFFF" />
+    <circle cx="790" cy="457" r="18" fill="#111111" />
+    <path d="M770 490 Q773 472 790 472 Q808 472 812 490" fill="#111111" />
+    <path d="M598 553 Q639 547 663 559 Q678 567 678 590 Q677 601 666 602 L609 600 Q596 597 596 583 L596 564 Q596 556 598 553Z" fill="#FFD92E" />
+    <path d="M955 553 Q914 547 890 559 Q875 567 875 590 Q876 601 887 602 L944 600 Q957 597 957 583 L957 564 Q957 556 955 553Z" fill="#FFD92E" />
+    <path d="M707 570 L847 570 Q858 570 858 581 L858 587 Q858 598 847 598 L707 598 Q696 598 696 587 L696 581 Q696 570 707 570Z" fill="#111111" />
+    <path d="M601 667 Q603 702 626 702 Q649 702 651 667 M899 667 Q901 702 924 702 Q947 702 949 667" fill="#111111" />
+  </g>
+
+  <g fill="none" stroke="#111111" stroke-width="9" stroke-linecap="round">
+    <path d="M992 453 L1020 446" />
+    <path d="M988 489 L1022 481" />
+    <path d="M982 525 L1018 516" />
+  </g>
+</svg>

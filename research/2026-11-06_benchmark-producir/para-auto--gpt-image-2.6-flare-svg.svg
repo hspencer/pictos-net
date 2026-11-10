@@ -1,0 +1,37 @@
+<svg viewBox="0 0 1024 1024" width="1024" height="1024" xmlns="http://www.w3.org/2000/svg">
+  <title>¡Para! Viene un auto</title>
+  <desc>Una persona hace el gesto de alto mientras un auto se acerca por la calle.</desc>
+  <rect width="1024" height="1024" fill="#ffffff" />
+  <g id="street">
+    <path d="M180 350H844L1024 1024H0Z" fill="#e8edf0" />
+    <path d="M180 350H844" fill="none" stroke="#263746" stroke-width="12" stroke-linecap="round" />
+    <path d="M512 410 486 520h52l-8-110M459 625l-31 123h69l20-123M392 880l-36 144h105l32-144" fill="#ffffff" />
+    <path d="M512 410 486 520h52l-8-110M459 625l-31 123h69l20-123M392 880l-36 144h105l32-144" fill="none" stroke="#263746" stroke-width="10" stroke-linejoin="round" />
+  </g>
+  <g id="motion" fill="none" stroke="#263746" stroke-width="14" stroke-linecap="round">
+    <path d="M882 403h83" />
+    <path d="M895 441h68" />
+    <path d="M906 479h57" />
+  </g>
+  <g id="car" stroke="#263746" stroke-width="12" stroke-linejoin="round">
+    <path d="M676 450 704 385Q716 357 748 357h136q31 0 46 28l34 65q22 17 22 49v104q0 24-20 34v39q0 21-21 21H679q-21 0-21-21v-39q-19-11-19-34V499q0-31 37-49Z" fill="#f3b52b" />
+    <path d="M711 447 731 399q7-17 25-17h119q18 0 27 17l24 48Z" fill="#dce8ed" />
+    <path d="M675 506q0-20 23-20l42 18q19 9 19 24 0 17-20 17h-39q-25 0-25-23Z" fill="#ffffff" />
+    <path d="M948 506q0-20-23-20l-42 18q-19 9-19 24 0 17 20 17h39q25 0 25-23Z" fill="#ffffff" />
+    <path d="M694 608h221v28H694Z" fill="#263746" />
+    <path d="M690 704h56v29h-56zM859 704h56v29h-56z" fill="#263746" />
+  </g>
+  <g id="person" fill="#263746" stroke="#263746" stroke-width="12" stroke-linejoin="round" stroke-linecap="round">
+    <circle cx="184" cy="250" r="66" />
+    <path d="M136 333q-53 14-73 71l-42 166q-9 37 15 57l-20 207q-3 29 25 29h92q28 0 29-25 1-19-23-25l-31-8 23-153 65 107 34 91q7 18 28 18h86q27 0 28-24 0-20-25-26l-29-7-54-174-52-81 27-151q66 10 128-3l95-20q39-8 42-44l3-84q1-24-22-27-22-3-29 19l-17 61-116 2q-59 1-113-10Z" />
+    <path d="M395 366 415 319q7-16 23-12 15 4 14 20l-4 66q-1 24-26 26l-35 3Z" />
+  </g>
+  <g id="stop-hand" fill="#263746" stroke="#263746" stroke-width="10" stroke-linejoin="round">
+    <path d="M394 369q19-2 28 14l12 20 3-77q1-18 16-18t16 18v69l8-65q2-16 17-15 15 1 14 18l-4 67 9-52q3-15 17-12 15 3 11 19l-13 75q-5 29-30 39l-42 14-55-24-28-52q-10-20 1-32 10-11 20 1Z" />
+  </g>
+  <g id="hazard">
+    <path d="M482 448q10-17 30 0l111 145q20 27-14 27H419q-33 0-14-28Z" fill="#e23b35" stroke="#263746" stroke-width="10" stroke-linejoin="round" />
+    <path d="M507 492q0-13 12-13t12 13l-5 50q-1 9-7 9t-7-9Z" fill="#ffffff" />
+    <circle cx="519" cy="572" r="8" fill="#ffffff" />
+  </g>
+</svg>

@@ -1,0 +1,38 @@
+{
+  "at": "2026-11-01T23:41:14.596Z",
+  "style": "Pictograma vectorial plano, estilo señalética AIGA/DOT, silueta simplificada y contundente, abstracción media conservando los detalles concretos relevantes, grosor de trazo uniforme, contornos monolineales, colores planos y sólidos — sin degradados, sin sombras, sin texturas, sin elementos decorativos. Estética adulta y neutra, sobria y funcional. Formas geométricas limpias, silueta clara y legible, peso visual consistente en toda la serie.",
+  "results": [
+    {
+      "model": "gemini-nano-banana-2.1",
+      "caseId": "silla-ruedas",
+      "utterance": "Ayúdame a subir la rampa con la silla de ruedas",
+      "ms": 24741,
+      "ok": true,
+      "file": "silla-ruedas--gemini-nano-banana-2.1.png",
+      "usd": 0.034,
+      "usage": {
+        "promptTokenCount": 311,
+        "candidatesTokenCount": 1198,
+        "totalTokenCount": 2900,
+        "trafficType": "ON_DEMAND",
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 311
+          }
+        ],
+        "candidatesTokensDetails": [
+          {
+            "modality": "IMAGE",
+            "tokenCount": 1120
+          },
+          {
+            "modality": "TEXT",
+            "tokenCount": 78
+          }
+        ],
+        "thoughtsTokenCount": 1391
+      }
+    }
+  ]
+}

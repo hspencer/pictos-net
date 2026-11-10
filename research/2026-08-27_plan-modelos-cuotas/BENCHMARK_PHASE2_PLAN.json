@@ -1,0 +1,2307 @@
+{
+  "state": "planned",
+  "version": 1,
+  "phase": 2,
+  "seed": "pictonet-benchmark-1",
+  "caseHash": "ad67e9b641398fabae5bf991b7a78f02ff321c25324b1243697e6936f1986371",
+  "configHash": "1f4b1226e197a877616a2f8960ffe785935571d40ebba44aa0d5ce1002028a6d",
+  "contractVersion": "0.1.0",
+  "promptVersion": "composition-0.1.0",
+  "limits": {
+    "maxOutputTokens": 4096,
+    "budgetUsd": null,
+    "maxCalls": null
+  },
+  "plannedCalls": 9,
+  "totalReservedEstimateUsd": 0.7532028,
+  "warning": "Costs are estimates, not invoice ceilings. Structural validation does not establish semantic or AAC effectiveness.",
+  "attempts": [
+    {
+      "caseId": "beber-agua",
+      "utterance": "Beber agua",
+      "lang": "es-419",
+      "model": "gpt-5.6-luna",
+      "repetition": 2,
+      "request": {
+        "model": "gpt-5.6-luna",
+        "max_tokens": 4096,
+        "system": [
+          {
+            "type": "text",
+            "text": "You are the \"Visual Topology Node\" in the PictoNet graph.\nTranslate the semantic NLU graph into a list of visual child elements and a spatial prompt.\n\nLanguage context: **es-419**\n— Element IDs and the prompt must be in **es-419**.\n— IDs: simple nouns in es-419, snake_case for compounds.\n— Do NOT include a root pictograma/pictogram element — return only the semantic children.\n\nConcept mapping (REQUIRED on every element, including nested children):\n— Derive each element's `concept` from the NLU frame roles, never from the ID text:\n  · Agent — fillers of Agent, Experiencer, Speaker or Addressee roles (the protagonist).\n  · Action — the visual depiction of the lexical_unit / event itself (gesture, motion lines, arrows).\n  · Object — fillers of Patient, Theme, Object, Instrument or Beneficiary roles.\n  · Context — Location, Time, scenario or background elements.\n  · Element — anything that does not map to a frame role.\n\nAvailable visual style context (do not add CSS fields to semantic elements): .main, .secondary, .tertiary, .accent, .red, .green, .dashed, .glow, .anim-blink, .anim-beat, .anim-swing\n\nPrompt rules:\n— Wrap every element ID in single quotes: 'persona', 'casa'.\n— Describe only TOPOLOGY (relative position, size, connections). No style.\n— 3–6 sentences maximum.\n\nYou MUST invoke the compose_pictogram tool with both `elements` and `prompt`.",
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "tools": [
+          {
+            "name": "compose_pictogram",
+            "description": "Return the provider-independent semantic children and spatial composition.",
+            "input_schema": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "elements",
+                "prompt"
+              ],
+              "properties": {
+                "elements": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "id",
+                      "concept"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "pattern": "^[^\\s']+$",
+                        "minLength": 1,
+                        "description": "Unique semantic identifier. A noun in the utterance language; snake_case for compounds."
+                      },
+                      "concept": {
+                        "type": "string",
+                        "enum": [
+                          "Agent",
+                          "Action",
+                          "Object",
+                          "Context",
+                          "Element"
+                        ]
+                      },
+                      "children": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "id",
+                            "concept"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "pattern": "^[^\\s']+$",
+                              "minLength": 1,
+                              "description": "Unique semantic identifier. A noun in the utterance language; snake_case for compounds."
+                            },
+                            "concept": {
+                              "type": "string",
+                              "enum": [
+                                "Agent",
+                                "Action",
+                                "Object",
+                                "Context",
+                                "Element"
+                              ]
+                            },
+                            "children": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "concept"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "pattern": "^[^\\s']+$",
+                                    "minLength": 1,
+                                    "description": "Unique semantic identifier. A noun in the utterance language; snake_case for compounds."
+                                  },
+                                  "concept": {
+                                    "type": "string",
+                                    "enum": [
+                                      "Agent",
+                                      "Action",
+                                      "Object",
+                                      "Context",
+                                      "Element"
+                                    ]
+                                  },
+                                  "children": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "id",
+                                        "concept"
+                                      ],
+                                      "properties": {
+                                        "id": {
+                                          "type": "string",
+                                          "pattern": "^[^\\s']+$",
+                                          "minLength": 1,
+                                          "description": "Unique semantic identifier. A noun in the utterance language; snake_case for compounds."
+                                        },
+                                        "concept": {
+                                          "type": "string",
+                                          "enum": [
+                                            "Agent",
+                                            "Action",
+                                            "Object",
+                                            "Context",
+                                            "Element"
+                                          ]
+                                        },
+                                        "children": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "id",
+                                              "concept"
+                                            ],
+                                            "properties": {
+                                              "id": {
+                                                "type": "string",
+                                                "pattern": "^[^\\s']+$",
+                                                "minLength": 1,
+                                                "description": "Unique semantic identifier. A noun in the utterance language; snake_case for compounds."
+                                              },
+                                              "concept": {
+                                                "type": "string",
+                                                "enum": [
+                                                  "Agent",
+                                                  "Action",
+                                                  "Object",
+                                                  "Context",
+                                                  "Element"
+                                                ]
+                                              },
+                                              "children": {
+                                                "type": "array",
+                                                "items": {
+                                                  "type": "object",
+                                                  "additionalProperties": false,
+                                                  "required": [
+                                                    "id",
+                                                    "concept"
+                                                  ],
+                                                  "properties": {
+                                                    "id": {
+                                                      "type": "string",
+                                                      "pattern": "^[^\\s']+$",
+                                                      "minLength": 1,
+                                                      "description": "Unique semantic identifier. A noun in the utterance language; snake_case for compounds."
+                                                    },
+                                                    "concept": {
+                                                      "type": "string",
+                                                      "enum": [
+                                                        "Agent",
+                                                        "Action",
+                                                        "Object",
+                                                        "Context",
+                                                        "Element"
+                                                      ]
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "description": "Semantic children only. Root is constructed locally, never by the provider."
+                },
+                "prompt": {
+                  "type": "string",
+                  "pattern": "\\S",
+                  "description": "Spatial topology. Reference every semantic element ID in single quotes. No visual style."
+                }
+              }
+            },
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "tool_choice": {
+          "type": "tool",
+          "name": "compose_pictogram"
+        },
+        "messages": [
+          {
+            "role": "user",
+            "content": "NLU Semantics: {\"utterance\":\"Beber agua\",\"lang\":\"es-419\",\"metadata\":{\"speech_act\":\"directive\",\"intent\":\"request\"},\"frames\":[{\"id\":\"f1\",\"frame_name\":\"Ingestion\",\"lexical_unit\":\"beber\",\"roles\":{\"Agent\":{\"type\":\"Agent\",\"surface\":\"persona\"},\"Theme\":{\"type\":\"Theme\",\"surface\":\"agua\"}}}],\"nsm_explications\":{\"beber\":\"ALGUIEN QUIERE HACER ALGO\"},\"logical_form\":{\"event\":\"beber(persona, agua)\",\"modality\":\"want\"},\"pragmatics\":{\"politeness\":\"neutral\",\"formality\":\"neutral\",\"expected_response\":\"compliance\"},\"visual_guidelines\":{\"focus_actor\":\"persona\",\"action_core\":\"beber\",\"object_core\":\"agua\",\"context\":\"\",\"temporal\":\"immediate\"}}"
+          }
+        ]
+      },
+      "requestHash": "8ac81ba9462008106ee738234e35c9cd9fd9b61a5053be4bdf21f2afb9d2cb8c",
+      "wireHash": "014a68ad54cd4413a2ee81a739f1b96f50b7ea6a4cbad6106d30716533747248",
+      "inputBound": 18562,
+      "outputBound": 4096,
+      "reservedUsd": 0.008627600000000001,
+      "pricing": {
+        "kind": "tokens",
+        "inputUsdPerMillion": 0.2,
+        "outputUsdPerMillion": 1.2,
+        "cachedInputUsdPerMillion": 0.02,
+        "longContext": {
+          "aboveInputTokens": 272000,
+          "inputUsdPerMillion": 0.4,
+          "outputUsdPerMillion": 1.8
+        }
+      },
+      "pricingCheckedAt": "2026-08-27",
+      "pricingSource": "https://developers.openai.com/api/docs/models/compare",
+      "contractHash": "ab53a8cf706987a881736d79df138517797f080aebab2f5d6fce3df6e69ee304",
+      "promptHash": "40709f595a12793fb32375a20fbeb3565b6c366845d3652f9a35af6e777b4615",
+      "reasoning": {
+        "effort": "low"
+      },
+      "orderKey": "1742962c6b0c6e662c1b1d481efc548e8e66ff3c9c65cc6d3537244035f6cab2"
+    },
+    {
+      "caseId": "beber-agua",
+      "utterance": "Beber agua",
+      "lang": "es-419",
+      "model": "gpt-5.6-luna",
+      "repetition": 1,
+      "request": {
+        "model": "gpt-5.6-luna",
+        "max_tokens": 4096,
+        "system": [
+          {
+            "type": "text",
+            "text": "You are the \"Visual Topology Node\" in the PictoNet graph.\nTranslate the semantic NLU graph into a list of visual child elements and a spatial prompt.\n\nLanguage context: **es-419**\n— Element IDs and the prompt must be in **es-419**.\n— IDs: simple nouns in es-419, snake_case for compounds.\n— Do NOT include a root pictograma/pictogram element — return only the semantic children.\n\nConcept mapping (REQUIRED on every element, including nested children):\n— Derive each element's `concept` from the NLU frame roles, never from the ID text:\n  · Agent — fillers of Agent, Experiencer, Speaker or Addressee roles (the protagonist).\n  · Action — the visual depiction of the lexical_unit / event itself (gesture, motion lines, arrows).\n  · Object — fillers of Patient, Theme, Object, Instrument or Beneficiary roles.\n  · Context — Location, Time, scenario or background elements.\n  · Element — anything that does not map to a frame role.\n\nAvailable visual style context (do not add CSS fields to semantic elements): .main, .secondary, .tertiary, .accent, .red, .green, .dashed, .glow, .anim-blink, .anim-beat, .anim-swing\n\nPrompt rules:\n— Wrap every element ID in single quotes: 'persona', 'casa'.\n— Describe only TOPOLOGY (relative position, size, connections). No style.\n— 3–6 sentences maximum.\n\nYou MUST invoke the compose_pictogram tool with both `elements` and `prompt`.",
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "tools": [
+          {
+            "name": "compose_pictogram",
+            "description": "Return the provider-independent semantic children and spatial composition.",
+            "input_schema": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "elements",
+                "prompt"
+              ],
+              "properties": {
+                "elements": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "id",
+                      "concept"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "pattern": "^[^\\s']+$",
+                        "minLength": 1,
+                        "description": "Unique semantic identifier. A noun in the utterance language; snake_case for compounds."
+                      },
+                      "concept": {
+                        "type": "string",
+                        "enum": [
+                          "Agent",
+                          "Action",
+                          "Object",
+                          "Context",
+                          "Element"
+                        ]
+                      },
+                      "children": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "id",
+                            "concept"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "pattern": "^[^\\s']+$",
+                              "minLength": 1,
+                              "description": "Unique semantic identifier. A noun in the utterance language; snake_case for compounds."
+                            },
+                            "concept": {
+                              "type": "string",
+                              "enum": [
+                                "Agent",
+                                "Action",
+                                "Object",
+                                "Context",
+                                "Element"
+                              ]
+                            },
+                            "children": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "concept"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "pattern": "^[^\\s']+$",
+                                    "minLength": 1,
+                                    "description": "Unique semantic identifier. A noun in the utterance language; snake_case for compounds."
+                                  },
+                                  "concept": {
+                                    "type": "string",
+                                    "enum": [
+                                      "Agent",
+                                      "Action",
+                                      "Object",
+                                      "Context",
+                                      "Element"
+                                    ]
+                                  },
+                                  "children": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "id",
+                                        "concept"
+                                      ],
+                                      "properties": {
+                                        "id": {
+                                          "type": "string",
+                                          "pattern": "^[^\\s']+$",
+                                          "minLength": 1,
+                                          "description": "Unique semantic identifier. A noun in the utterance language; snake_case for compounds."
+                                        },
+                                        "concept": {
+                                          "type": "string",
+                                          "enum": [
+                                            "Agent",
+                                            "Action",
+                                            "Object",
+                                            "Context",
+                                            "Element"
+                                          ]
+                                        },
+                                        "children": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "id",
+                                              "concept"
+                                            ],
+                                            "properties": {
+                                              "id": {
+                                                "type": "string",
+                                                "pattern": "^[^\\s']+$",
+                                                "minLength": 1,
+                                                "description": "Unique semantic identifier. A noun in the utterance language; snake_case for compounds."
+                                              },
+                                              "concept": {
+                                                "type": "string",
+                                                "enum": [
+                                                  "Agent",
+                                                  "Action",
+                                                  "Object",
+                                                  "Context",
+                                                  "Element"
+                                                ]
+                                              },
+                                              "children": {
+                                                "type": "array",
+                                                "items": {
+                                                  "type": "object",
+                                                  "additionalProperties": false,
+                                                  "required": [
+                                                    "id",
+                                                    "concept"
+                                                  ],
+                                                  "properties": {
+                                                    "id": {
+                                                      "type": "string",
+                                                      "pattern": "^[^\\s']+$",
+                                                      "minLength": 1,
+                                                      "description": "Unique semantic identifier. A noun in the utterance language; snake_case for compounds."
+                                                    },
+                                                    "concept": {
+                                                      "type": "string",
+                                                      "enum": [
+                                                        "Agent",
+                                                        "Action",
+                                                        "Object",
+                                                        "Context",
+                                                        "Element"
+                                                      ]
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "description": "Semantic children only. Root is constructed locally, never by the provider."
+                },
+                "prompt": {
+                  "type": "string",
+                  "pattern": "\\S",
+                  "description": "Spatial topology. Reference every semantic element ID in single quotes. No visual style."
+                }
+              }
+            },
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "tool_choice": {
+          "type": "tool",
+          "name": "compose_pictogram"
+        },
+        "messages": [
+          {
+            "role": "user",
+            "content": "NLU Semantics: {\"utterance\":\"Beber agua\",\"lang\":\"es-419\",\"metadata\":{\"speech_act\":\"directive\",\"intent\":\"request\"},\"frames\":[{\"id\":\"f1\",\"frame_name\":\"Ingestion\",\"lexical_unit\":\"beber\",\"roles\":{\"Agent\":{\"type\":\"Agent\",\"surface\":\"persona\"},\"Theme\":{\"type\":\"Theme\",\"surface\":\"agua\"}}}],\"nsm_explications\":{\"beber\":\"ALGUIEN QUIERE HACER ALGO\"},\"logical_form\":{\"event\":\"beber(persona, agua)\",\"modality\":\"want\"},\"pragmatics\":{\"politeness\":\"neutral\",\"formality\":\"neutral\",\"expected_response\":\"compliance\"},\"visual_guidelines\":{\"focus_actor\":\"persona\",\"action_core\":\"beber\",\"object_core\":\"agua\",\"context\":\"\",\"temporal\":\"immediate\"}}"
+          }
+        ]
+      },
+      "requestHash": "8ac81ba9462008106ee738234e35c9cd9fd9b61a5053be4bdf21f2afb9d2cb8c",
+      "wireHash": "014a68ad54cd4413a2ee81a739f1b96f50b7ea6a4cbad6106d30716533747248",
+      "inputBound": 18562,
+      "outputBound": 4096,
+      "reservedUsd": 0.008627600000000001,
+      "pricing": {
+        "kind": "tokens",
+        "inputUsdPerMillion": 0.2,
+        "outputUsdPerMillion": 1.2,
+        "cachedInputUsdPerMillion": 0.02,
+        "longContext": {
+          "aboveInputTokens": 272000,
+          "inputUsdPerMillion": 0.4,
+          "outputUsdPerMillion": 1.8
+        }
+      },
+      "pricingCheckedAt": "2026-08-27",
+      "pricingSource": "https://developers.openai.com/api/docs/models/compare",
+      "contractHash": "ab53a8cf706987a881736d79df138517797f080aebab2f5d6fce3df6e69ee304",
+      "promptHash": "40709f595a12793fb32375a20fbeb3565b6c366845d3652f9a35af6e777b4615",
+      "reasoning": {
+        "effort": "low"
+      },
+      "orderKey": "58f6b27ae918000f76b2c0fc4670f553f33521c19b74514475b08d9cf9d7bbde"
+    },
+    {
+      "caseId": "beber-agua",
+      "utterance": "Beber agua",
+      "lang": "es-419",
+      "model": "gpt-5.6-terra",
+      "repetition": 0,
+      "request": {
+        "model": "gpt-5.6-terra",
+        "max_tokens": 4096,
+        "system": [
+          {
+            "type": "text",
+            "text": "You are the \"Visual Topology Node\" in the PictoNet graph.\nTranslate the semantic NLU graph into a list of visual child elements and a spatial prompt.\n\nLanguage context: **es-419**\n— Element IDs and the prompt must be in **es-419**.\n— IDs: simple nouns in es-419, snake_case for compounds.\n— Do NOT include a root pictograma/pictogram element — return only the semantic children.\n\nConcept mapping (REQUIRED on every element, including nested children):\n— Derive each element's `concept` from the NLU frame roles, never from the ID text:\n  · Agent — fillers of Agent, Experiencer, Speaker or Addressee roles (the protagonist).\n  · Action — the visual depiction of the lexical_unit / event itself (gesture, motion lines, arrows).\n  · Object — fillers of Patient, Theme, Object, Instrument or Beneficiary roles.\n  · Context — Location, Time, scenario or background elements.\n  · Element — anything that does not map to a frame role.\n\nAvailable visual style context (do not add CSS fields to semantic elements): .main, .secondary, .tertiary, .accent, .red, .green, .dashed, .glow, .anim-blink, .anim-beat, .anim-swing\n\nPrompt rules:\n— Wrap every element ID in single quotes: 'persona', 'casa'.\n— Describe only TOPOLOGY (relative position, size, connections). No style.\n— 3–6 sentences maximum.\n\nYou MUST invoke the compose_pictogram tool with both `elements` and `prompt`.",
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "tools": [
+          {
+            "name": "compose_pictogram",
+            "description": "Return the provider-independent semantic children and spatial composition.",
+            "input_schema": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "elements",
+                "prompt"
+              ],
+              "properties": {
+                "elements": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "id",
+                      "concept"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "pattern": "^[^\\s']+$",
+                        "minLength": 1,
+                        "description": "Unique semantic identifier. A noun in the utterance language; snake_case for compounds."
+                      },
+                      "concept": {
+                        "type": "string",
+                        "enum": [
+                          "Agent",
+                          "Action",
+                          "Object",
+                          "Context",
+                          "Element"
+                        ]
+                      },
+                      "children": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "id",
+                            "concept"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "pattern": "^[^\\s']+$",
+                              "minLength": 1,
+                              "description": "Unique semantic identifier. A noun in the utterance language; snake_case for compounds."
+                            },
+                            "concept": {
+                              "type": "string",
+                              "enum": [
+                                "Agent",
+                                "Action",
+                                "Object",
+                                "Context",
+                                "Element"
+                              ]
+                            },
+                            "children": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "concept"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "pattern": "^[^\\s']+$",
+                                    "minLength": 1,
+                                    "description": "Unique semantic identifier. A noun in the utterance language; snake_case for compounds."
+                                  },
+                                  "concept": {
+                                    "type": "string",
+                                    "enum": [
+                                      "Agent",
+                                      "Action",
+                                      "Object",
+                                      "Context",
+                                      "Element"
+                                    ]
+                                  },
+                                  "children": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "id",
+                                        "concept"
+                                      ],
+                                      "properties": {
+                                        "id": {
+                                          "type": "string",
+                                          "pattern": "^[^\\s']+$",
+                                          "minLength": 1,
+                                          "description": "Unique semantic identifier. A noun in the utterance language; snake_case for compounds."
+                                        },
+                                        "concept": {
+                                          "type": "string",
+                                          "enum": [
+                                            "Agent",
+                                            "Action",
+                                            "Object",
+                                            "Context",
+                                            "Element"
+                                          ]
+                                        },
+                                        "children": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "id",
+                                              "concept"
+                                            ],
+                                            "properties": {
+                                              "id": {
+                                                "type": "string",
+                                                "pattern": "^[^\\s']+$",
+                                                "minLength": 1,
+                                                "description": "Unique semantic identifier. A noun in the utterance language; snake_case for compounds."
+                                              },
+                                              "concept": {
+                                                "type": "string",
+                                                "enum": [
+                                                  "Agent",
+                                                  "Action",
+                                                  "Object",
+                                                  "Context",
+                                                  "Element"
+                                                ]
+                                              },
+                                              "children": {
+                                                "type": "array",
+                                                "items": {
+                                                  "type": "object",
+                                                  "additionalProperties": false,
+                                                  "required": [
+                                                    "id",
+                                                    "concept"
+                                                  ],
+                                                  "properties": {
+                                                    "id": {
+                                                      "type": "string",
+                                                      "pattern": "^[^\\s']+$",
+                                                      "minLength": 1,
+                                                      "description": "Unique semantic identifier. A noun in the utterance language; snake_case for compounds."
+                                                    },
+                                                    "concept": {
+                                                      "type": "string",
+                                                      "enum": [
+                                                        "Agent",
+                                                        "Action",
+                                                        "Object",
+                                                        "Context",
+                                                        "Element"
+                                                      ]
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "description": "Semantic children only. Root is constructed locally, never by the provider."
+                },
+                "prompt": {
+                  "type": "string",
+                  "pattern": "\\S",
+                  "description": "Spatial topology. Reference every semantic element ID in single quotes. No visual style."
+                }
+              }
+            },
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "tool_choice": {
+          "type": "tool",
+          "name": "compose_pictogram"
+        },
+        "messages": [
+          {
+            "role": "user",
+            "content": "NLU Semantics: {\"utterance\":\"Beber agua\",\"lang\":\"es-419\",\"metadata\":{\"speech_act\":\"directive\",\"intent\":\"request\"},\"frames\":[{\"id\":\"f1\",\"frame_name\":\"Ingestion\",\"lexical_unit\":\"beber\",\"roles\":{\"Agent\":{\"type\":\"Agent\",\"surface\":\"persona\"},\"Theme\":{\"type\":\"Theme\",\"surface\":\"agua\"}}}],\"nsm_explications\":{\"beber\":\"ALGUIEN QUIERE HACER ALGO\"},\"logical_form\":{\"event\":\"beber(persona, agua)\",\"modality\":\"want\"},\"pragmatics\":{\"politeness\":\"neutral\",\"formality\":\"neutral\",\"expected_response\":\"compliance\"},\"visual_guidelines\":{\"focus_actor\":\"persona\",\"action_core\":\"beber\",\"object_core\":\"agua\",\"context\":\"\",\"temporal\":\"immediate\"}}"
+          }
+        ]
+      },
+      "requestHash": "f323c6015747c9361968691838b15f4f94b3259ac52dd318bac8d8fe07c66cd3",
+      "wireHash": "8d7cb290d1cbaa9f35fbcb93c24266976275b0629b789f47cb8e98e2ec7a62ec",
+      "inputBound": 18564,
+      "outputBound": 4096,
+      "reservedUsd": 0.08628,
+      "pricing": {
+        "kind": "tokens",
+        "inputUsdPerMillion": 2,
+        "outputUsdPerMillion": 12,
+        "cachedInputUsdPerMillion": 0.2,
+        "longContext": {
+          "aboveInputTokens": 272000,
+          "inputUsdPerMillion": 4,
+          "outputUsdPerMillion": 18
+        }
+      },
+      "pricingCheckedAt": "2026-08-27",
+      "pricingSource": "https://developers.openai.com/api/docs/models/compare",
+      "contractHash": "ab53a8cf706987a881736d79df138517797f080aebab2f5d6fce3df6e69ee304",
+      "promptHash": "40709f595a12793fb32375a20fbeb3565b6c366845d3652f9a35af6e777b4615",
+      "reasoning": {
+        "effort": "low"
+      },
+      "orderKey": "5fc4d86695f5ecbcab0f7d891a3f343562512cdac7b93e325ededd4040f6e122"
+    },
+    {
+      "caseId": "beber-agua",
+      "utterance": "Beber agua",
+      "lang": "es-419",
+      "model": "gpt-5.6-terra",
+      "repetition": 1,
+      "request": {
+        "model": "gpt-5.6-terra",
+        "max_tokens": 4096,
+        "system": [
+          {
+            "type": "text",
+            "text": "You are the \"Visual Topology Node\" in the PictoNet graph.\nTranslate the semantic NLU graph into a list of visual child elements and a spatial prompt.\n\nLanguage context: **es-419**\n— Element IDs and the prompt must be in **es-419**.\n— IDs: simple nouns in es-419, snake_case for compounds.\n— Do NOT include a root pictograma/pictogram element — return only the semantic children.\n\nConcept mapping (REQUIRED on every element, including nested children):\n— Derive each element's `concept` from the NLU frame roles, never from the ID text:\n  · Agent — fillers of Agent, Experiencer, Speaker or Addressee roles (the protagonist).\n  · Action — the visual depiction of the lexical_unit / event itself (gesture, motion lines, arrows).\n  · Object — fillers of Patient, Theme, Object, Instrument or Beneficiary roles.\n  · Context — Location, Time, scenario or background elements.\n  · Element — anything that does not map to a frame role.\n\nAvailable visual style context (do not add CSS fields to semantic elements): .main, .secondary, .tertiary, .accent, .red, .green, .dashed, .glow, .anim-blink, .anim-beat, .anim-swing\n\nPrompt rules:\n— Wrap every element ID in single quotes: 'persona', 'casa'.\n— Describe only TOPOLOGY (relative position, size, connections). No style.\n— 3–6 sentences maximum.\n\nYou MUST invoke the compose_pictogram tool with both `elements` and `prompt`.",
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "tools": [
+          {
+            "name": "compose_pictogram",
+            "description": "Return the provider-independent semantic children and spatial composition.",
+            "input_schema": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "elements",
+                "prompt"
+              ],
+              "properties": {
+                "elements": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "id",
+                      "concept"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "pattern": "^[^\\s']+$",
+                        "minLength": 1,
+                        "description": "Unique semantic identifier. A noun in the utterance language; snake_case for compounds."
+                      },
+                      "concept": {
+                        "type": "string",
+                        "enum": [
+                          "Agent",
+                          "Action",
+                          "Object",
+                          "Context",
+                          "Element"
+                        ]
+                      },
+                      "children": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "id",
+                            "concept"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "pattern": "^[^\\s']+$",
+                              "minLength": 1,
+                              "description": "Unique semantic identifier. A noun in the utterance language; snake_case for compounds."
+                            },
+                            "concept": {
+                              "type": "string",
+                              "enum": [
+                                "Agent",
+                                "Action",
+                                "Object",
+                                "Context",
+                                "Element"
+                              ]
+                            },
+                            "children": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "concept"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "pattern": "^[^\\s']+$",
+                                    "minLength": 1,
+                                    "description": "Unique semantic identifier. A noun in the utterance language; snake_case for compounds."
+                                  },
+                                  "concept": {
+                                    "type": "string",
+                                    "enum": [
+                                      "Agent",
+                                      "Action",
+                                      "Object",
+                                      "Context",
+                                      "Element"
+                                    ]
+                                  },
+                                  "children": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "id",
+                                        "concept"
+                                      ],
+                                      "properties": {
+                                        "id": {
+                                          "type": "string",
+                                          "pattern": "^[^\\s']+$",
+                                          "minLength": 1,
+                                          "description": "Unique semantic identifier. A noun in the utterance language; snake_case for compounds."
+                                        },
+                                        "concept": {
+                                          "type": "string",
+                                          "enum": [
+                                            "Agent",
+                                            "Action",
+                                            "Object",
+                                            "Context",
+                                            "Element"
+                                          ]
+                                        },
+                                        "children": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "id",
+                                              "concept"
+                                            ],
+                                            "properties": {
+                                              "id": {
+                                                "type": "string",
+                                                "pattern": "^[^\\s']+$",
+                                                "minLength": 1,
+                                                "description": "Unique semantic identifier. A noun in the utterance language; snake_case for compounds."
+                                              },
+                                              "concept": {
+                                                "type": "string",
+                                                "enum": [
+                                                  "Agent",
+                                                  "Action",
+                                                  "Object",
+                                                  "Context",
+                                                  "Element"
+                                                ]
+                                              },
+                                              "children": {
+                                                "type": "array",
+                                                "items": {
+                                                  "type": "object",
+                                                  "additionalProperties": false,
+                                                  "required": [
+                                                    "id",
+                                                    "concept"
+                                                  ],
+                                                  "properties": {
+                                                    "id": {
+                                                      "type": "string",
+                                                      "pattern": "^[^\\s']+$",
+                                                      "minLength": 1,
+                                                      "description": "Unique semantic identifier. A noun in the utterance language; snake_case for compounds."
+                                                    },
+                                                    "concept": {
+                                                      "type": "string",
+                                                      "enum": [
+                                                        "Agent",
+                                                        "Action",
+                                                        "Object",
+                                                        "Context",
+                                                        "Element"
+                                                      ]
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "description": "Semantic children only. Root is constructed locally, never by the provider."
+                },
+                "prompt": {
+                  "type": "string",
+                  "pattern": "\\S",
+                  "description": "Spatial topology. Reference every semantic element ID in single quotes. No visual style."
+                }
+              }
+            },
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "tool_choice": {
+          "type": "tool",
+          "name": "compose_pictogram"
+        },
+        "messages": [
+          {
+            "role": "user",
+            "content": "NLU Semantics: {\"utterance\":\"Beber agua\",\"lang\":\"es-419\",\"metadata\":{\"speech_act\":\"directive\",\"intent\":\"request\"},\"frames\":[{\"id\":\"f1\",\"frame_name\":\"Ingestion\",\"lexical_unit\":\"beber\",\"roles\":{\"Agent\":{\"type\":\"Agent\",\"surface\":\"persona\"},\"Theme\":{\"type\":\"Theme\",\"surface\":\"agua\"}}}],\"nsm_explications\":{\"beber\":\"ALGUIEN QUIERE HACER ALGO\"},\"logical_form\":{\"event\":\"beber(persona, agua)\",\"modality\":\"want\"},\"pragmatics\":{\"politeness\":\"neutral\",\"formality\":\"neutral\",\"expected_response\":\"compliance\"},\"visual_guidelines\":{\"focus_actor\":\"persona\",\"action_core\":\"beber\",\"object_core\":\"agua\",\"context\":\"\",\"temporal\":\"immediate\"}}"
+          }
+        ]
+      },
+      "requestHash": "f323c6015747c9361968691838b15f4f94b3259ac52dd318bac8d8fe07c66cd3",
+      "wireHash": "8d7cb290d1cbaa9f35fbcb93c24266976275b0629b789f47cb8e98e2ec7a62ec",
+      "inputBound": 18564,
+      "outputBound": 4096,
+      "reservedUsd": 0.08628,
+      "pricing": {
+        "kind": "tokens",
+        "inputUsdPerMillion": 2,
+        "outputUsdPerMillion": 12,
+        "cachedInputUsdPerMillion": 0.2,
+        "longContext": {
+          "aboveInputTokens": 272000,
+          "inputUsdPerMillion": 4,
+          "outputUsdPerMillion": 18
+        }
+      },
+      "pricingCheckedAt": "2026-08-27",
+      "pricingSource": "https://developers.openai.com/api/docs/models/compare",
+      "contractHash": "ab53a8cf706987a881736d79df138517797f080aebab2f5d6fce3df6e69ee304",
+      "promptHash": "40709f595a12793fb32375a20fbeb3565b6c366845d3652f9a35af6e777b4615",
+      "reasoning": {
+        "effort": "low"
+      },
+      "orderKey": "8bb830d76a24951ba2eb5a7d47b2c75d69ac23e4283a9dd217feb0ad09bf08d1"
+    },
+    {
+      "caseId": "beber-agua",
+      "utterance": "Beber agua",
+      "lang": "es-419",
+      "model": "gpt-5.6-sol",
+      "repetition": 1,
+      "request": {
+        "model": "gpt-5.6-sol",
+        "max_tokens": 4096,
+        "system": [
+          {
+            "type": "text",
+            "text": "You are the \"Visual Topology Node\" in the PictoNet graph.\nTranslate the semantic NLU graph into a list of visual child elements and a spatial prompt.\n\nLanguage context: **es-419**\n— Element IDs and the prompt must be in **es-419**.\n— IDs: simple nouns in es-419, snake_case for compounds.\n— Do NOT include a root pictograma/pictogram element — return only the semantic children.\n\nConcept mapping (REQUIRED on every element, including nested children):\n— Derive each element's `concept` from the NLU frame roles, never from the ID text:\n  · Agent — fillers of Agent, Experiencer, Speaker or Addressee roles (the protagonist).\n  · Action — the visual depiction of the lexical_unit / event itself (gesture, motion lines, arrows).\n  · Object — fillers of Patient, Theme, Object, Instrument or Beneficiary roles.\n  · Context — Location, Time, scenario or background elements.\n  · Element — anything that does not map to a frame role.\n\nAvailable visual style context (do not add CSS fields to semantic elements): .main, .secondary, .tertiary, .accent, .red, .green, .dashed, .glow, .anim-blink, .anim-beat, .anim-swing\n\nPrompt rules:\n— Wrap every element ID in single quotes: 'persona', 'casa'.\n— Describe only TOPOLOGY (relative position, size, connections). No style.\n— 3–6 sentences maximum.\n\nYou MUST invoke the compose_pictogram tool with both `elements` and `prompt`.",
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "tools": [
+          {
+            "name": "compose_pictogram",
+            "description": "Return the provider-independent semantic children and spatial composition.",
+            "input_schema": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "elements",
+                "prompt"
+              ],
+              "properties": {
+                "elements": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "id",
+                      "concept"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "pattern": "^[^\\s']+$",
+                        "minLength": 1,
+                        "description": "Unique semantic identifier. A noun in the utterance language; snake_case for compounds."
+                      },
+                      "concept": {
+                        "type": "string",
+                        "enum": [
+                          "Agent",
+                          "Action",
+                          "Object",
+                          "Context",
+                          "Element"
+                        ]
+                      },
+                      "children": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "id",
+                            "concept"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "pattern": "^[^\\s']+$",
+                              "minLength": 1,
+                              "description": "Unique semantic identifier. A noun in the utterance language; snake_case for compounds."
+                            },
+                            "concept": {
+                              "type": "string",
+                              "enum": [
+                                "Agent",
+                                "Action",
+                                "Object",
+                                "Context",
+                                "Element"
+                              ]
+                            },
+                            "children": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "concept"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "pattern": "^[^\\s']+$",
+                                    "minLength": 1,
+                                    "description": "Unique semantic identifier. A noun in the utterance language; snake_case for compounds."
+                                  },
+                                  "concept": {
+                                    "type": "string",
+                                    "enum": [
+                                      "Agent",
+                                      "Action",
+                                      "Object",
+                                      "Context",
+                                      "Element"
+                                    ]
+                                  },
+                                  "children": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "id",
+                                        "concept"
+                                      ],
+                                      "properties": {
+                                        "id": {
+                                          "type": "string",
+                                          "pattern": "^[^\\s']+$",
+                                          "minLength": 1,
+                                          "description": "Unique semantic identifier. A noun in the utterance language; snake_case for compounds."
+                                        },
+                                        "concept": {
+                                          "type": "string",
+                                          "enum": [
+                                            "Agent",
+                                            "Action",
+                                            "Object",
+                                            "Context",
+                                            "Element"
+                                          ]
+                                        },
+                                        "children": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "id",
+                                              "concept"
+                                            ],
+                                            "properties": {
+                                              "id": {
+                                                "type": "string",
+                                                "pattern": "^[^\\s']+$",
+                                                "minLength": 1,
+                                                "description": "Unique semantic identifier. A noun in the utterance language; snake_case for compounds."
+                                              },
+                                              "concept": {
+                                                "type": "string",
+                                                "enum": [
+                                                  "Agent",
+                                                  "Action",
+                                                  "Object",
+                                                  "Context",
+                                                  "Element"
+                                                ]
+                                              },
+                                              "children": {
+                                                "type": "array",
+                                                "items": {
+                                                  "type": "object",
+                                                  "additionalProperties": false,
+                                                  "required": [
+                                                    "id",
+                                                    "concept"
+                                                  ],
+                                                  "properties": {
+                                                    "id": {
+                                                      "type": "string",
+                                                      "pattern": "^[^\\s']+$",
+                                                      "minLength": 1,
+                                                      "description": "Unique semantic identifier. A noun in the utterance language; snake_case for compounds."
+                                                    },
+                                                    "concept": {
+                                                      "type": "string",
+                                                      "enum": [
+                                                        "Agent",
+                                                        "Action",
+                                                        "Object",
+                                                        "Context",
+                                                        "Element"
+                                                      ]
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "description": "Semantic children only. Root is constructed locally, never by the provider."
+                },
+                "prompt": {
+                  "type": "string",
+                  "pattern": "\\S",
+                  "description": "Spatial topology. Reference every semantic element ID in single quotes. No visual style."
+                }
+              }
+            },
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "tool_choice": {
+          "type": "tool",
+          "name": "compose_pictogram"
+        },
+        "messages": [
+          {
+            "role": "user",
+            "content": "NLU Semantics: {\"utterance\":\"Beber agua\",\"lang\":\"es-419\",\"metadata\":{\"speech_act\":\"directive\",\"intent\":\"request\"},\"frames\":[{\"id\":\"f1\",\"frame_name\":\"Ingestion\",\"lexical_unit\":\"beber\",\"roles\":{\"Agent\":{\"type\":\"Agent\",\"surface\":\"persona\"},\"Theme\":{\"type\":\"Theme\",\"surface\":\"agua\"}}}],\"nsm_explications\":{\"beber\":\"ALGUIEN QUIERE HACER ALGO\"},\"logical_form\":{\"event\":\"beber(persona, agua)\",\"modality\":\"want\"},\"pragmatics\":{\"politeness\":\"neutral\",\"formality\":\"neutral\",\"expected_response\":\"compliance\"},\"visual_guidelines\":{\"focus_actor\":\"persona\",\"action_core\":\"beber\",\"object_core\":\"agua\",\"context\":\"\",\"temporal\":\"immediate\"}}"
+          }
+        ]
+      },
+      "requestHash": "9470bd7cf392ddac8d6c820ecc19a41d7d1ef4ab2f9c93cd08dfcb766da74d3c",
+      "wireHash": "498475dc35fb4871ead7b3affc5f79c84daeab24422d087f9d96a2bf7ce43c9c",
+      "inputBound": 18560,
+      "outputBound": 4096,
+      "reservedUsd": 0.15616,
+      "pricing": {
+        "kind": "tokens",
+        "inputUsdPerMillion": 4,
+        "outputUsdPerMillion": 20,
+        "cachedInputUsdPerMillion": 0.4,
+        "longContext": {
+          "aboveInputTokens": 272000,
+          "inputUsdPerMillion": 8,
+          "outputUsdPerMillion": 30
+        }
+      },
+      "pricingCheckedAt": "2026-08-27",
+      "pricingSource": "https://developers.openai.com/api/docs/models/compare",
+      "contractHash": "ab53a8cf706987a881736d79df138517797f080aebab2f5d6fce3df6e69ee304",
+      "promptHash": "40709f595a12793fb32375a20fbeb3565b6c366845d3652f9a35af6e777b4615",
+      "reasoning": {
+        "effort": "low"
+      },
+      "orderKey": "b064049fa80f56f47b638682ddb03c00f88247f4ec0bf6be49198bd983c1cba2"
+    },
+    {
+      "caseId": "beber-agua",
+      "utterance": "Beber agua",
+      "lang": "es-419",
+      "model": "gpt-5.6-sol",
+      "repetition": 2,
+      "request": {
+        "model": "gpt-5.6-sol",
+        "max_tokens": 4096,
+        "system": [
+          {
+            "type": "text",
+            "text": "You are the \"Visual Topology Node\" in the PictoNet graph.\nTranslate the semantic NLU graph into a list of visual child elements and a spatial prompt.\n\nLanguage context: **es-419**\n— Element IDs and the prompt must be in **es-419**.\n— IDs: simple nouns in es-419, snake_case for compounds.\n— Do NOT include a root pictograma/pictogram element — return only the semantic children.\n\nConcept mapping (REQUIRED on every element, including nested children):\n— Derive each element's `concept` from the NLU frame roles, never from the ID text:\n  · Agent — fillers of Agent, Experiencer, Speaker or Addressee roles (the protagonist).\n  · Action — the visual depiction of the lexical_unit / event itself (gesture, motion lines, arrows).\n  · Object — fillers of Patient, Theme, Object, Instrument or Beneficiary roles.\n  · Context — Location, Time, scenario or background elements.\n  · Element — anything that does not map to a frame role.\n\nAvailable visual style context (do not add CSS fields to semantic elements): .main, .secondary, .tertiary, .accent, .red, .green, .dashed, .glow, .anim-blink, .anim-beat, .anim-swing\n\nPrompt rules:\n— Wrap every element ID in single quotes: 'persona', 'casa'.\n— Describe only TOPOLOGY (relative position, size, connections). No style.\n— 3–6 sentences maximum.\n\nYou MUST invoke the compose_pictogram tool with both `elements` and `prompt`.",
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "tools": [
+          {
+            "name": "compose_pictogram",
+            "description": "Return the provider-independent semantic children and spatial composition.",
+            "input_schema": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "elements",
+                "prompt"
+              ],
+              "properties": {
+                "elements": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "id",
+                      "concept"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "pattern": "^[^\\s']+$",
+                        "minLength": 1,
+                        "description": "Unique semantic identifier. A noun in the utterance language; snake_case for compounds."
+                      },
+                      "concept": {
+                        "type": "string",
+                        "enum": [
+                          "Agent",
+                          "Action",
+                          "Object",
+                          "Context",
+                          "Element"
+                        ]
+                      },
+                      "children": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "id",
+                            "concept"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "pattern": "^[^\\s']+$",
+                              "minLength": 1,
+                              "description": "Unique semantic identifier. A noun in the utterance language; snake_case for compounds."
+                            },
+                            "concept": {
+                              "type": "string",
+                              "enum": [
+                                "Agent",
+                                "Action",
+                                "Object",
+                                "Context",
+                                "Element"
+                              ]
+                            },
+                            "children": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "concept"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "pattern": "^[^\\s']+$",
+                                    "minLength": 1,
+                                    "description": "Unique semantic identifier. A noun in the utterance language; snake_case for compounds."
+                                  },
+                                  "concept": {
+                                    "type": "string",
+                                    "enum": [
+                                      "Agent",
+                                      "Action",
+                                      "Object",
+                                      "Context",
+                                      "Element"
+                                    ]
+                                  },
+                                  "children": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "id",
+                                        "concept"
+                                      ],
+                                      "properties": {
+                                        "id": {
+                                          "type": "string",
+                                          "pattern": "^[^\\s']+$",
+                                          "minLength": 1,
+                                          "description": "Unique semantic identifier. A noun in the utterance language; snake_case for compounds."
+                                        },
+                                        "concept": {
+                                          "type": "string",
+                                          "enum": [
+                                            "Agent",
+                                            "Action",
+                                            "Object",
+                                            "Context",
+                                            "Element"
+                                          ]
+                                        },
+                                        "children": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "id",
+                                              "concept"
+                                            ],
+                                            "properties": {
+                                              "id": {
+                                                "type": "string",
+                                                "pattern": "^[^\\s']+$",
+                                                "minLength": 1,
+                                                "description": "Unique semantic identifier. A noun in the utterance language; snake_case for compounds."
+                                              },
+                                              "concept": {
+                                                "type": "string",
+                                                "enum": [
+                                                  "Agent",
+                                                  "Action",
+                                                  "Object",
+                                                  "Context",
+                                                  "Element"
+                                                ]
+                                              },
+                                              "children": {
+                                                "type": "array",
+                                                "items": {
+                                                  "type": "object",
+                                                  "additionalProperties": false,
+                                                  "required": [
+                                                    "id",
+                                                    "concept"
+                                                  ],
+                                                  "properties": {
+                                                    "id": {
+                                                      "type": "string",
+                                                      "pattern": "^[^\\s']+$",
+                                                      "minLength": 1,
+                                                      "description": "Unique semantic identifier. A noun in the utterance language; snake_case for compounds."
+                                                    },
+                                                    "concept": {
+                                                      "type": "string",
+                                                      "enum": [
+                                                        "Agent",
+                                                        "Action",
+                                                        "Object",
+                                                        "Context",
+                                                        "Element"
+                                                      ]
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "description": "Semantic children only. Root is constructed locally, never by the provider."
+                },
+                "prompt": {
+                  "type": "string",
+                  "pattern": "\\S",
+                  "description": "Spatial topology. Reference every semantic element ID in single quotes. No visual style."
+                }
+              }
+            },
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "tool_choice": {
+          "type": "tool",
+          "name": "compose_pictogram"
+        },
+        "messages": [
+          {
+            "role": "user",
+            "content": "NLU Semantics: {\"utterance\":\"Beber agua\",\"lang\":\"es-419\",\"metadata\":{\"speech_act\":\"directive\",\"intent\":\"request\"},\"frames\":[{\"id\":\"f1\",\"frame_name\":\"Ingestion\",\"lexical_unit\":\"beber\",\"roles\":{\"Agent\":{\"type\":\"Agent\",\"surface\":\"persona\"},\"Theme\":{\"type\":\"Theme\",\"surface\":\"agua\"}}}],\"nsm_explications\":{\"beber\":\"ALGUIEN QUIERE HACER ALGO\"},\"logical_form\":{\"event\":\"beber(persona, agua)\",\"modality\":\"want\"},\"pragmatics\":{\"politeness\":\"neutral\",\"formality\":\"neutral\",\"expected_response\":\"compliance\"},\"visual_guidelines\":{\"focus_actor\":\"persona\",\"action_core\":\"beber\",\"object_core\":\"agua\",\"context\":\"\",\"temporal\":\"immediate\"}}"
+          }
+        ]
+      },
+      "requestHash": "9470bd7cf392ddac8d6c820ecc19a41d7d1ef4ab2f9c93cd08dfcb766da74d3c",
+      "wireHash": "498475dc35fb4871ead7b3affc5f79c84daeab24422d087f9d96a2bf7ce43c9c",
+      "inputBound": 18560,
+      "outputBound": 4096,
+      "reservedUsd": 0.15616,
+      "pricing": {
+        "kind": "tokens",
+        "inputUsdPerMillion": 4,
+        "outputUsdPerMillion": 20,
+        "cachedInputUsdPerMillion": 0.4,
+        "longContext": {
+          "aboveInputTokens": 272000,
+          "inputUsdPerMillion": 8,
+          "outputUsdPerMillion": 30
+        }
+      },
+      "pricingCheckedAt": "2026-08-27",
+      "pricingSource": "https://developers.openai.com/api/docs/models/compare",
+      "contractHash": "ab53a8cf706987a881736d79df138517797f080aebab2f5d6fce3df6e69ee304",
+      "promptHash": "40709f595a12793fb32375a20fbeb3565b6c366845d3652f9a35af6e777b4615",
+      "reasoning": {
+        "effort": "low"
+      },
+      "orderKey": "b0892ca1b382f1b9ec032d51733688922c8419bae76acf587f580bc0870b22d8"
+    },
+    {
+      "caseId": "beber-agua",
+      "utterance": "Beber agua",
+      "lang": "es-419",
+      "model": "gpt-5.6-terra",
+      "repetition": 2,
+      "request": {
+        "model": "gpt-5.6-terra",
+        "max_tokens": 4096,
+        "system": [
+          {
+            "type": "text",
+            "text": "You are the \"Visual Topology Node\" in the PictoNet graph.\nTranslate the semantic NLU graph into a list of visual child elements and a spatial prompt.\n\nLanguage context: **es-419**\n— Element IDs and the prompt must be in **es-419**.\n— IDs: simple nouns in es-419, snake_case for compounds.\n— Do NOT include a root pictograma/pictogram element — return only the semantic children.\n\nConcept mapping (REQUIRED on every element, including nested children):\n— Derive each element's `concept` from the NLU frame roles, never from the ID text:\n  · Agent — fillers of Agent, Experiencer, Speaker or Addressee roles (the protagonist).\n  · Action — the visual depiction of the lexical_unit / event itself (gesture, motion lines, arrows).\n  · Object — fillers of Patient, Theme, Object, Instrument or Beneficiary roles.\n  · Context — Location, Time, scenario or background elements.\n  · Element — anything that does not map to a frame role.\n\nAvailable visual style context (do not add CSS fields to semantic elements): .main, .secondary, .tertiary, .accent, .red, .green, .dashed, .glow, .anim-blink, .anim-beat, .anim-swing\n\nPrompt rules:\n— Wrap every element ID in single quotes: 'persona', 'casa'.\n— Describe only TOPOLOGY (relative position, size, connections). No style.\n— 3–6 sentences maximum.\n\nYou MUST invoke the compose_pictogram tool with both `elements` and `prompt`.",
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "tools": [
+          {
+            "name": "compose_pictogram",
+            "description": "Return the provider-independent semantic children and spatial composition.",
+            "input_schema": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "elements",
+                "prompt"
+              ],
+              "properties": {
+                "elements": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "id",
+                      "concept"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "pattern": "^[^\\s']+$",
+                        "minLength": 1,
+                        "description": "Unique semantic identifier. A noun in the utterance language; snake_case for compounds."
+                      },
+                      "concept": {
+                        "type": "string",
+                        "enum": [
+                          "Agent",
+                          "Action",
+                          "Object",
+                          "Context",
+                          "Element"
+                        ]
+                      },
+                      "children": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "id",
+                            "concept"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "pattern": "^[^\\s']+$",
+                              "minLength": 1,
+                              "description": "Unique semantic identifier. A noun in the utterance language; snake_case for compounds."
+                            },
+                            "concept": {
+                              "type": "string",
+                              "enum": [
+                                "Agent",
+                                "Action",
+                                "Object",
+                                "Context",
+                                "Element"
+                              ]
+                            },
+                            "children": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "concept"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "pattern": "^[^\\s']+$",
+                                    "minLength": 1,
+                                    "description": "Unique semantic identifier. A noun in the utterance language; snake_case for compounds."
+                                  },
+                                  "concept": {
+                                    "type": "string",
+                                    "enum": [
+                                      "Agent",
+                                      "Action",
+                                      "Object",
+                                      "Context",
+                                      "Element"
+                                    ]
+                                  },
+                                  "children": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "id",
+                                        "concept"
+                                      ],
+                                      "properties": {
+                                        "id": {
+                                          "type": "string",
+                                          "pattern": "^[^\\s']+$",
+                                          "minLength": 1,
+                                          "description": "Unique semantic identifier. A noun in the utterance language; snake_case for compounds."
+                                        },
+                                        "concept": {
+                                          "type": "string",
+                                          "enum": [
+                                            "Agent",
+                                            "Action",
+                                            "Object",
+                                            "Context",
+                                            "Element"
+                                          ]
+                                        },
+                                        "children": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "id",
+                                              "concept"
+                                            ],
+                                            "properties": {
+                                              "id": {
+                                                "type": "string",
+                                                "pattern": "^[^\\s']+$",
+                                                "minLength": 1,
+                                                "description": "Unique semantic identifier. A noun in the utterance language; snake_case for compounds."
+                                              },
+                                              "concept": {
+                                                "type": "string",
+                                                "enum": [
+                                                  "Agent",
+                                                  "Action",
+                                                  "Object",
+                                                  "Context",
+                                                  "Element"
+                                                ]
+                                              },
+                                              "children": {
+                                                "type": "array",
+                                                "items": {
+                                                  "type": "object",
+                                                  "additionalProperties": false,
+                                                  "required": [
+                                                    "id",
+                                                    "concept"
+                                                  ],
+                                                  "properties": {
+                                                    "id": {
+                                                      "type": "string",
+                                                      "pattern": "^[^\\s']+$",
+                                                      "minLength": 1,
+                                                      "description": "Unique semantic identifier. A noun in the utterance language; snake_case for compounds."
+                                                    },
+                                                    "concept": {
+                                                      "type": "string",
+                                                      "enum": [
+                                                        "Agent",
+                                                        "Action",
+                                                        "Object",
+                                                        "Context",
+                                                        "Element"
+                                                      ]
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "description": "Semantic children only. Root is constructed locally, never by the provider."
+                },
+                "prompt": {
+                  "type": "string",
+                  "pattern": "\\S",
+                  "description": "Spatial topology. Reference every semantic element ID in single quotes. No visual style."
+                }
+              }
+            },
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "tool_choice": {
+          "type": "tool",
+          "name": "compose_pictogram"
+        },
+        "messages": [
+          {
+            "role": "user",
+            "content": "NLU Semantics: {\"utterance\":\"Beber agua\",\"lang\":\"es-419\",\"metadata\":{\"speech_act\":\"directive\",\"intent\":\"request\"},\"frames\":[{\"id\":\"f1\",\"frame_name\":\"Ingestion\",\"lexical_unit\":\"beber\",\"roles\":{\"Agent\":{\"type\":\"Agent\",\"surface\":\"persona\"},\"Theme\":{\"type\":\"Theme\",\"surface\":\"agua\"}}}],\"nsm_explications\":{\"beber\":\"ALGUIEN QUIERE HACER ALGO\"},\"logical_form\":{\"event\":\"beber(persona, agua)\",\"modality\":\"want\"},\"pragmatics\":{\"politeness\":\"neutral\",\"formality\":\"neutral\",\"expected_response\":\"compliance\"},\"visual_guidelines\":{\"focus_actor\":\"persona\",\"action_core\":\"beber\",\"object_core\":\"agua\",\"context\":\"\",\"temporal\":\"immediate\"}}"
+          }
+        ]
+      },
+      "requestHash": "f323c6015747c9361968691838b15f4f94b3259ac52dd318bac8d8fe07c66cd3",
+      "wireHash": "8d7cb290d1cbaa9f35fbcb93c24266976275b0629b789f47cb8e98e2ec7a62ec",
+      "inputBound": 18564,
+      "outputBound": 4096,
+      "reservedUsd": 0.08628,
+      "pricing": {
+        "kind": "tokens",
+        "inputUsdPerMillion": 2,
+        "outputUsdPerMillion": 12,
+        "cachedInputUsdPerMillion": 0.2,
+        "longContext": {
+          "aboveInputTokens": 272000,
+          "inputUsdPerMillion": 4,
+          "outputUsdPerMillion": 18
+        }
+      },
+      "pricingCheckedAt": "2026-08-27",
+      "pricingSource": "https://developers.openai.com/api/docs/models/compare",
+      "contractHash": "ab53a8cf706987a881736d79df138517797f080aebab2f5d6fce3df6e69ee304",
+      "promptHash": "40709f595a12793fb32375a20fbeb3565b6c366845d3652f9a35af6e777b4615",
+      "reasoning": {
+        "effort": "low"
+      },
+      "orderKey": "b4f25e2da3e9678fc6c487f830673aadc83ff69e6d9eaf583560c2fae260dcd5"
+    },
+    {
+      "caseId": "beber-agua",
+      "utterance": "Beber agua",
+      "lang": "es-419",
+      "model": "gpt-5.6-luna",
+      "repetition": 0,
+      "request": {
+        "model": "gpt-5.6-luna",
+        "max_tokens": 4096,
+        "system": [
+          {
+            "type": "text",
+            "text": "You are the \"Visual Topology Node\" in the PictoNet graph.\nTranslate the semantic NLU graph into a list of visual child elements and a spatial prompt.\n\nLanguage context: **es-419**\n— Element IDs and the prompt must be in **es-419**.\n— IDs: simple nouns in es-419, snake_case for compounds.\n— Do NOT include a root pictograma/pictogram element — return only the semantic children.\n\nConcept mapping (REQUIRED on every element, including nested children):\n— Derive each element's `concept` from the NLU frame roles, never from the ID text:\n  · Agent — fillers of Agent, Experiencer, Speaker or Addressee roles (the protagonist).\n  · Action — the visual depiction of the lexical_unit / event itself (gesture, motion lines, arrows).\n  · Object — fillers of Patient, Theme, Object, Instrument or Beneficiary roles.\n  · Context — Location, Time, scenario or background elements.\n  · Element — anything that does not map to a frame role.\n\nAvailable visual style context (do not add CSS fields to semantic elements): .main, .secondary, .tertiary, .accent, .red, .green, .dashed, .glow, .anim-blink, .anim-beat, .anim-swing\n\nPrompt rules:\n— Wrap every element ID in single quotes: 'persona', 'casa'.\n— Describe only TOPOLOGY (relative position, size, connections). No style.\n— 3–6 sentences maximum.\n\nYou MUST invoke the compose_pictogram tool with both `elements` and `prompt`.",
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "tools": [
+          {
+            "name": "compose_pictogram",
+            "description": "Return the provider-independent semantic children and spatial composition.",
+            "input_schema": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "elements",
+                "prompt"
+              ],
+              "properties": {
+                "elements": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "id",
+                      "concept"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "pattern": "^[^\\s']+$",
+                        "minLength": 1,
+                        "description": "Unique semantic identifier. A noun in the utterance language; snake_case for compounds."
+                      },
+                      "concept": {
+                        "type": "string",
+                        "enum": [
+                          "Agent",
+                          "Action",
+                          "Object",
+                          "Context",
+                          "Element"
+                        ]
+                      },
+                      "children": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "id",
+                            "concept"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "pattern": "^[^\\s']+$",
+                              "minLength": 1,
+                              "description": "Unique semantic identifier. A noun in the utterance language; snake_case for compounds."
+                            },
+                            "concept": {
+                              "type": "string",
+                              "enum": [
+                                "Agent",
+                                "Action",
+                                "Object",
+                                "Context",
+                                "Element"
+                              ]
+                            },
+                            "children": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "concept"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "pattern": "^[^\\s']+$",
+                                    "minLength": 1,
+                                    "description": "Unique semantic identifier. A noun in the utterance language; snake_case for compounds."
+                                  },
+                                  "concept": {
+                                    "type": "string",
+                                    "enum": [
+                                      "Agent",
+                                      "Action",
+                                      "Object",
+                                      "Context",
+                                      "Element"
+                                    ]
+                                  },
+                                  "children": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "id",
+                                        "concept"
+                                      ],
+                                      "properties": {
+                                        "id": {
+                                          "type": "string",
+                                          "pattern": "^[^\\s']+$",
+                                          "minLength": 1,
+                                          "description": "Unique semantic identifier. A noun in the utterance language; snake_case for compounds."
+                                        },
+                                        "concept": {
+                                          "type": "string",
+                                          "enum": [
+                                            "Agent",
+                                            "Action",
+                                            "Object",
+                                            "Context",
+                                            "Element"
+                                          ]
+                                        },
+                                        "children": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "id",
+                                              "concept"
+                                            ],
+                                            "properties": {
+                                              "id": {
+                                                "type": "string",
+                                                "pattern": "^[^\\s']+$",
+                                                "minLength": 1,
+                                                "description": "Unique semantic identifier. A noun in the utterance language; snake_case for compounds."
+                                              },
+                                              "concept": {
+                                                "type": "string",
+                                                "enum": [
+                                                  "Agent",
+                                                  "Action",
+                                                  "Object",
+                                                  "Context",
+                                                  "Element"
+                                                ]
+                                              },
+                                              "children": {
+                                                "type": "array",
+                                                "items": {
+                                                  "type": "object",
+                                                  "additionalProperties": false,
+                                                  "required": [
+                                                    "id",
+                                                    "concept"
+                                                  ],
+                                                  "properties": {
+                                                    "id": {
+                                                      "type": "string",
+                                                      "pattern": "^[^\\s']+$",
+                                                      "minLength": 1,
+                                                      "description": "Unique semantic identifier. A noun in the utterance language; snake_case for compounds."
+                                                    },
+                                                    "concept": {
+                                                      "type": "string",
+                                                      "enum": [
+                                                        "Agent",
+                                                        "Action",
+                                                        "Object",
+                                                        "Context",
+                                                        "Element"
+                                                      ]
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "description": "Semantic children only. Root is constructed locally, never by the provider."
+                },
+                "prompt": {
+                  "type": "string",
+                  "pattern": "\\S",
+                  "description": "Spatial topology. Reference every semantic element ID in single quotes. No visual style."
+                }
+              }
+            },
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "tool_choice": {
+          "type": "tool",
+          "name": "compose_pictogram"
+        },
+        "messages": [
+          {
+            "role": "user",
+            "content": "NLU Semantics: {\"utterance\":\"Beber agua\",\"lang\":\"es-419\",\"metadata\":{\"speech_act\":\"directive\",\"intent\":\"request\"},\"frames\":[{\"id\":\"f1\",\"frame_name\":\"Ingestion\",\"lexical_unit\":\"beber\",\"roles\":{\"Agent\":{\"type\":\"Agent\",\"surface\":\"persona\"},\"Theme\":{\"type\":\"Theme\",\"surface\":\"agua\"}}}],\"nsm_explications\":{\"beber\":\"ALGUIEN QUIERE HACER ALGO\"},\"logical_form\":{\"event\":\"beber(persona, agua)\",\"modality\":\"want\"},\"pragmatics\":{\"politeness\":\"neutral\",\"formality\":\"neutral\",\"expected_response\":\"compliance\"},\"visual_guidelines\":{\"focus_actor\":\"persona\",\"action_core\":\"beber\",\"object_core\":\"agua\",\"context\":\"\",\"temporal\":\"immediate\"}}"
+          }
+        ]
+      },
+      "requestHash": "8ac81ba9462008106ee738234e35c9cd9fd9b61a5053be4bdf21f2afb9d2cb8c",
+      "wireHash": "014a68ad54cd4413a2ee81a739f1b96f50b7ea6a4cbad6106d30716533747248",
+      "inputBound": 18562,
+      "outputBound": 4096,
+      "reservedUsd": 0.008627600000000001,
+      "pricing": {
+        "kind": "tokens",
+        "inputUsdPerMillion": 0.2,
+        "outputUsdPerMillion": 1.2,
+        "cachedInputUsdPerMillion": 0.02,
+        "longContext": {
+          "aboveInputTokens": 272000,
+          "inputUsdPerMillion": 0.4,
+          "outputUsdPerMillion": 1.8
+        }
+      },
+      "pricingCheckedAt": "2026-08-27",
+      "pricingSource": "https://developers.openai.com/api/docs/models/compare",
+      "contractHash": "ab53a8cf706987a881736d79df138517797f080aebab2f5d6fce3df6e69ee304",
+      "promptHash": "40709f595a12793fb32375a20fbeb3565b6c366845d3652f9a35af6e777b4615",
+      "reasoning": {
+        "effort": "low"
+      },
+      "orderKey": "b91123d1182f130744002033ecd8832e8d849e12c3853cfab459e82146a37954"
+    },
+    {
+      "caseId": "beber-agua",
+      "utterance": "Beber agua",
+      "lang": "es-419",
+      "model": "gpt-5.6-sol",
+      "repetition": 0,
+      "request": {
+        "model": "gpt-5.6-sol",
+        "max_tokens": 4096,
+        "system": [
+          {
+            "type": "text",
+            "text": "You are the \"Visual Topology Node\" in the PictoNet graph.\nTranslate the semantic NLU graph into a list of visual child elements and a spatial prompt.\n\nLanguage context: **es-419**\n— Element IDs and the prompt must be in **es-419**.\n— IDs: simple nouns in es-419, snake_case for compounds.\n— Do NOT include a root pictograma/pictogram element — return only the semantic children.\n\nConcept mapping (REQUIRED on every element, including nested children):\n— Derive each element's `concept` from the NLU frame roles, never from the ID text:\n  · Agent — fillers of Agent, Experiencer, Speaker or Addressee roles (the protagonist).\n  · Action — the visual depiction of the lexical_unit / event itself (gesture, motion lines, arrows).\n  · Object — fillers of Patient, Theme, Object, Instrument or Beneficiary roles.\n  · Context — Location, Time, scenario or background elements.\n  · Element — anything that does not map to a frame role.\n\nAvailable visual style context (do not add CSS fields to semantic elements): .main, .secondary, .tertiary, .accent, .red, .green, .dashed, .glow, .anim-blink, .anim-beat, .anim-swing\n\nPrompt rules:\n— Wrap every element ID in single quotes: 'persona', 'casa'.\n— Describe only TOPOLOGY (relative position, size, connections). No style.\n— 3–6 sentences maximum.\n\nYou MUST invoke the compose_pictogram tool with both `elements` and `prompt`.",
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "tools": [
+          {
+            "name": "compose_pictogram",
+            "description": "Return the provider-independent semantic children and spatial composition.",
+            "input_schema": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "elements",
+                "prompt"
+              ],
+              "properties": {
+                "elements": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "id",
+                      "concept"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "pattern": "^[^\\s']+$",
+                        "minLength": 1,
+                        "description": "Unique semantic identifier. A noun in the utterance language; snake_case for compounds."
+                      },
+                      "concept": {
+                        "type": "string",
+                        "enum": [
+                          "Agent",
+                          "Action",
+                          "Object",
+                          "Context",
+                          "Element"
+                        ]
+                      },
+                      "children": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "id",
+                            "concept"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "pattern": "^[^\\s']+$",
+                              "minLength": 1,
+                              "description": "Unique semantic identifier. A noun in the utterance language; snake_case for compounds."
+                            },
+                            "concept": {
+                              "type": "string",
+                              "enum": [
+                                "Agent",
+                                "Action",
+                                "Object",
+                                "Context",
+                                "Element"
+                              ]
+                            },
+                            "children": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "concept"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "pattern": "^[^\\s']+$",
+                                    "minLength": 1,
+                                    "description": "Unique semantic identifier. A noun in the utterance language; snake_case for compounds."
+                                  },
+                                  "concept": {
+                                    "type": "string",
+                                    "enum": [
+                                      "Agent",
+                                      "Action",
+                                      "Object",
+                                      "Context",
+                                      "Element"
+                                    ]
+                                  },
+                                  "children": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "id",
+                                        "concept"
+                                      ],
+                                      "properties": {
+                                        "id": {
+                                          "type": "string",
+                                          "pattern": "^[^\\s']+$",
+                                          "minLength": 1,
+                                          "description": "Unique semantic identifier. A noun in the utterance language; snake_case for compounds."
+                                        },
+                                        "concept": {
+                                          "type": "string",
+                                          "enum": [
+                                            "Agent",
+                                            "Action",
+                                            "Object",
+                                            "Context",
+                                            "Element"
+                                          ]
+                                        },
+                                        "children": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "id",
+                                              "concept"
+                                            ],
+                                            "properties": {
+                                              "id": {
+                                                "type": "string",
+                                                "pattern": "^[^\\s']+$",
+                                                "minLength": 1,
+                                                "description": "Unique semantic identifier. A noun in the utterance language; snake_case for compounds."
+                                              },
+                                              "concept": {
+                                                "type": "string",
+                                                "enum": [
+                                                  "Agent",
+                                                  "Action",
+                                                  "Object",
+                                                  "Context",
+                                                  "Element"
+                                                ]
+                                              },
+                                              "children": {
+                                                "type": "array",
+                                                "items": {
+                                                  "type": "object",
+                                                  "additionalProperties": false,
+                                                  "required": [
+                                                    "id",
+                                                    "concept"
+                                                  ],
+                                                  "properties": {
+                                                    "id": {
+                                                      "type": "string",
+                                                      "pattern": "^[^\\s']+$",
+                                                      "minLength": 1,
+                                                      "description": "Unique semantic identifier. A noun in the utterance language; snake_case for compounds."
+                                                    },
+                                                    "concept": {
+                                                      "type": "string",
+                                                      "enum": [
+                                                        "Agent",
+                                                        "Action",
+                                                        "Object",
+                                                        "Context",
+                                                        "Element"
+                                                      ]
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "description": "Semantic children only. Root is constructed locally, never by the provider."
+                },
+                "prompt": {
+                  "type": "string",
+                  "pattern": "\\S",
+                  "description": "Spatial topology. Reference every semantic element ID in single quotes. No visual style."
+                }
+              }
+            },
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "tool_choice": {
+          "type": "tool",
+          "name": "compose_pictogram"
+        },
+        "messages": [
+          {
+            "role": "user",
+            "content": "NLU Semantics: {\"utterance\":\"Beber agua\",\"lang\":\"es-419\",\"metadata\":{\"speech_act\":\"directive\",\"intent\":\"request\"},\"frames\":[{\"id\":\"f1\",\"frame_name\":\"Ingestion\",\"lexical_unit\":\"beber\",\"roles\":{\"Agent\":{\"type\":\"Agent\",\"surface\":\"persona\"},\"Theme\":{\"type\":\"Theme\",\"surface\":\"agua\"}}}],\"nsm_explications\":{\"beber\":\"ALGUIEN QUIERE HACER ALGO\"},\"logical_form\":{\"event\":\"beber(persona, agua)\",\"modality\":\"want\"},\"pragmatics\":{\"politeness\":\"neutral\",\"formality\":\"neutral\",\"expected_response\":\"compliance\"},\"visual_guidelines\":{\"focus_actor\":\"persona\",\"action_core\":\"beber\",\"object_core\":\"agua\",\"context\":\"\",\"temporal\":\"immediate\"}}"
+          }
+        ]
+      },
+      "requestHash": "9470bd7cf392ddac8d6c820ecc19a41d7d1ef4ab2f9c93cd08dfcb766da74d3c",
+      "wireHash": "498475dc35fb4871ead7b3affc5f79c84daeab24422d087f9d96a2bf7ce43c9c",
+      "inputBound": 18560,
+      "outputBound": 4096,
+      "reservedUsd": 0.15616,
+      "pricing": {
+        "kind": "tokens",
+        "inputUsdPerMillion": 4,
+        "outputUsdPerMillion": 20,
+        "cachedInputUsdPerMillion": 0.4,
+        "longContext": {
+          "aboveInputTokens": 272000,
+          "inputUsdPerMillion": 8,
+          "outputUsdPerMillion": 30
+        }
+      },
+      "pricingCheckedAt": "2026-08-27",
+      "pricingSource": "https://developers.openai.com/api/docs/models/compare",
+      "contractHash": "ab53a8cf706987a881736d79df138517797f080aebab2f5d6fce3df6e69ee304",
+      "promptHash": "40709f595a12793fb32375a20fbeb3565b6c366845d3652f9a35af6e777b4615",
+      "reasoning": {
+        "effort": "low"
+      },
+      "orderKey": "f977ee4822745d35848627add0070d81e2ae332fc6a303edb949103d070ba306"
+    }
+  ],
+  "planHash": "d43bfa06fb53e5f2e8d7a670d8d1ee1a433760a78f8340463aa1387f34490615"
+}

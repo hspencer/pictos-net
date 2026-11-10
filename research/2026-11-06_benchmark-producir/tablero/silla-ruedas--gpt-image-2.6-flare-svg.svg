@@ -1,0 +1,34 @@
+<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" width="1024" height="1024">
+  <title>Ayúdame a subir la rampa con la silla de ruedas</title>
+  <rect width="1024" height="1024" fill="#FFFFFF" />
+  <g stroke="#000000" stroke-width="16" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M248 850 L1000 590 L1000 850 Z" fill="#1A4CFF" />
+    <path d="M744 582 L857 491 L831 465 L936 428 L944 533 L911 500 L765 618 Z" fill="#6EE000" />
+    <g fill="#FFFFFF">
+      <path d="M130 301 C105 308 96 333 88 363 L67 476 C62 504 72 526 92 546 L169 615 L194 790 L278 788 L250 624 C247 603 236 589 220 571 L168 518 L193 426 L238 455 C256 466 278 469 302 466 L333 464 C350 463 358 450 352 437 C348 426 336 422 321 424 L279 426 C258 426 244 419 231 402 L198 345 C185 316 163 297 130 301 Z" />
+      <path d="M90 537 L83 646 L26 779 C19 798 28 815 47 818 L117 818 C135 817 143 805 135 791 C129 781 112 776 95 774 L135 676 L171 607 Z" />
+      <circle cx="194" cy="226" r="82" />
+      <path d="M387 395 C371 406 368 428 372 456 L392 559 L505 553 C536 551 556 561 568 585 L601 659 L650 677 L693 661 C708 655 710 642 700 632 C693 625 682 626 672 630 L658 635 L631 554 C622 526 602 512 573 513 L470 520 L450 446 C443 417 420 394 387 395 Z" />
+      <circle cx="430" cy="312" r="79" />
+      <path d="M415 453 C437 482 458 499 486 503 L562 503 C579 503 589 493 586 481 C584 470 574 465 560 465 L495 465 C480 465 471 458 463 446" />
+    </g>
+    <g fill="none">
+      <path d="M140 374 C162 407 181 435 201 451 C218 465 241 468 271 466 L328 463" />
+      <path d="M352 447 L369 447 L393 546" />
+      <path d="M359 449 L379 545" />
+      <path d="M379 546 L392 559" />
+      <path d="M452 520 L538 520" />
+      <path d="M581 566 L608 649" />
+    </g>
+    <circle cx="444" cy="659" r="121" fill="#1A4CFF" />
+    <circle cx="444" cy="659" r="76" fill="#1A4CFF" />
+    <circle cx="614" cy="704" r="37" fill="#1A4CFF" />
+    <circle cx="614" cy="704" r="12" fill="#FFFFFF" stroke-width="12" />
+    <g fill="#000000" stroke="none">
+      <ellipse cx="235" cy="220" rx="11" ry="15" />
+      <ellipse cx="470" cy="300" rx="10" ry="14" />
+    </g>
+    <path d="M211 259 Q232 282 258 267" fill="none" stroke-width="11" />
+    <path d="M447 340 Q468 362 492 346" fill="none" stroke-width="11" />
+  </g>
+</svg>

@@ -1,0 +1,198 @@
+{
+  "at": "2026-10-23T00:21:13.792Z",
+  "recraftCalls": 12,
+  "results": [
+    {
+      "utterance": 0,
+      "model": "recraftv4_1_vector",
+      "ms": 9000,
+      "bytes": 25375,
+      "elements": {
+        "svg": 1,
+        "metadata": 1,
+        "manifest": 1,
+        "path": 16
+      },
+      "admitted": false,
+      "construct": "svg>metadata>manifest",
+      "rule": "Unsupported or active SVG element",
+      "eligible": true
+    },
+    {
+      "utterance": 0,
+      "model": "recraftv4_1_utility_vector",
+      "ms": 11060,
+      "bytes": 39780,
+      "elements": {
+        "svg": 1,
+        "metadata": 1,
+        "manifest": 1,
+        "path": 37
+      },
+      "admitted": false,
+      "construct": "svg>metadata>manifest",
+      "rule": "Unsupported or active SVG element",
+      "eligible": true
+    },
+    {
+      "utterance": 0,
+      "model": "recraftv4_1_pro_vector",
+      "ms": 9775,
+      "bytes": 23344,
+      "elements": {
+        "svg": 1,
+        "metadata": 1,
+        "manifest": 1,
+        "path": 8
+      },
+      "admitted": false,
+      "construct": "svg>metadata>manifest",
+      "rule": "Unsupported or active SVG element",
+      "eligible": true
+    },
+    {
+      "utterance": 0,
+      "model": "recraftv4_1_utility_pro_vector",
+      "ms": 11993,
+      "bytes": 27423,
+      "elements": {
+        "svg": 1,
+        "metadata": 1,
+        "manifest": 1,
+        "path": 18
+      },
+      "admitted": false,
+      "construct": "svg>metadata>manifest",
+      "rule": "Unsupported or active SVG element",
+      "eligible": true
+    },
+    {
+      "utterance": 1,
+      "model": "recraftv4_1_vector",
+      "ms": 9328,
+      "bytes": 25008,
+      "elements": {
+        "svg": 1,
+        "metadata": 1,
+        "manifest": 1,
+        "path": 9
+      },
+      "admitted": false,
+      "construct": "svg>metadata>manifest",
+      "rule": "Unsupported or active SVG element",
+      "eligible": true
+    },
+    {
+      "utterance": 1,
+      "model": "recraftv4_1_utility_vector",
+      "ms": 12373,
+      "bytes": 26631,
+      "elements": {
+        "svg": 1,
+        "metadata": 1,
+        "manifest": 1,
+        "path": 7
+      },
+      "admitted": false,
+      "construct": "svg>metadata>manifest",
+      "rule": "Unsupported or active SVG element",
+      "eligible": true
+    },
+    {
+      "utterance": 1,
+      "model": "recraftv4_1_pro_vector",
+      "ms": 9712,
+      "bytes": 27680,
+      "elements": {
+        "svg": 1,
+        "metadata": 1,
+        "manifest": 1,
+        "path": 13
+      },
+      "admitted": false,
+      "construct": "svg>metadata>manifest",
+      "rule": "Unsupported or active SVG element",
+      "eligible": true
+    },
+    {
+      "utterance": 1,
+      "model": "recraftv4_1_utility_pro_vector",
+      "ms": 11698,
+      "bytes": 22629,
+      "elements": {
+        "svg": 1,
+        "metadata": 1,
+        "manifest": 1,
+        "path": 11
+      },
+      "admitted": false,
+      "construct": "svg>metadata>manifest",
+      "rule": "Unsupported or active SVG element",
+      "eligible": true
+    },
+    {
+      "utterance": 2,
+      "model": "recraftv4_1_vector",
+      "ms": 10233,
+      "bytes": 36143,
+      "elements": {
+        "svg": 1,
+        "metadata": 1,
+        "manifest": 1,
+        "path": 28
+      },
+      "admitted": false,
+      "construct": "svg>metadata>manifest",
+      "rule": "Unsupported or active SVG element",
+      "eligible": true
+    },
+    {
+      "utterance": 2,
+      "model": "recraftv4_1_utility_vector",
+      "ms": 11454,
+      "bytes": 39311,
+      "elements": {
+        "svg": 1,
+        "metadata": 1,
+        "manifest": 1,
+        "path": 44
+      },
+      "admitted": false,
+      "construct": "svg>metadata>manifest",
+      "rule": "Unsupported or active SVG element",
+      "eligible": true
+    },
+    {
+      "utterance": 2,
+      "model": "recraftv4_1_pro_vector",
+      "ms": 9459,
+      "bytes": 27965,
+      "elements": {
+        "svg": 1,
+        "metadata": 1,
+        "manifest": 1,
+        "path": 22
+      },
+      "admitted": false,
+      "construct": "svg>metadata>manifest",
+      "rule": "Unsupported or active SVG element",
+      "eligible": true
+    },
+    {
+      "utterance": 2,
+      "model": "recraftv4_1_utility_pro_vector",
+      "ms": 12216,
+      "bytes": 33330,
+      "elements": {
+        "svg": 1,
+        "metadata": 1,
+        "manifest": 1,
+        "path": 28
+      },
+      "admitted": false,
+      "construct": "svg>metadata>manifest",
+      "rule": "Unsupported or active SVG element",
+      "eligible": true
+    }
+  ]
+}

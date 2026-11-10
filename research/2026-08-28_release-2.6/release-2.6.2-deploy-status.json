@@ -1,0 +1,51 @@
+{
+  "checkedAt": "2026-08-28T16:21:24.672Z",
+  "expected": "d5a121ddcaf7c50b60d9de0604726173eacc7fa5",
+  "sites": [
+    {
+      "host": "next.pictos.net",
+      "branch": "dev",
+      "configuredBranch": "dev",
+      "state": "ready",
+      "deployId": "6a91b4c7526a4a000936e218",
+      "commit": "d5a121ddcaf7c50b60d9de0604726173eacc7fa5",
+      "publishedCommit": "d5a121ddcaf7c50b60d9de0604726173eacc7fa5",
+      "publishedAt": "2026-08-28T16:18:57.753Z",
+      "error": null
+    },
+    {
+      "host": "pictos.net",
+      "branch": "main",
+      "configuredBranch": "main",
+      "state": "ready",
+      "deployId": "6a91b539894eb00008d5b762",
+      "commit": "d5a121ddcaf7c50b60d9de0604726173eacc7fa5",
+      "publishedCommit": "d5a121ddcaf7c50b60d9de0604726173eacc7fa5",
+      "publishedAt": "2026-08-28T16:20:48.711Z",
+      "error": null
+    }
+  ],
+  "ci": [
+    {
+      "branch": "dev",
+      "status": "success",
+      "url": "https://github.com/hspencer/pictos-net/actions/runs/33189322351"
+    },
+    {
+      "branch": "main",
+      "status": "success",
+      "url": "https://github.com/hspencer/pictos-net/actions/runs/33189472492"
+    }
+  ],
+  "smoke": {
+    "next.pictos.net": {
+      "http": 200,
+      "browserVersion": "2.6.2"
+    },
+    "pictos.net": {
+      "http": 200,
+      "browserVersion": "2.6.2"
+    }
+  },
+  "providerGenerationTested": false
+}

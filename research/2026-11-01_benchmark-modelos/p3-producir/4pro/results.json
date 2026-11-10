@@ -1,0 +1,86 @@
+{
+  "at": "2026-11-01T23:37:42.624Z",
+  "style": "Pictograma vectorial plano, estilo señalética AIGA/DOT, silueta simplificada y contundente, abstracción media conservando los detalles concretos relevantes, grosor de trazo uniforme, contornos monolineales, colores planos y sólidos — sin degradados, sin sombras, sin texturas, sin elementos decorativos. Estética adulta y neutra, sobria y funcional. Formas geométricas limpias, silueta clara y legible, peso visual consistente en toda la serie.",
+  "results": [
+    {
+      "model": "recraftv4_1_pro_vector",
+      "caseId": "peticion-agua",
+      "utterance": "Quiero un vaso de agua",
+      "ms": 11085,
+      "ok": true,
+      "file": "peticion-agua--recraftv4_1_pro_vector.svg",
+      "usd": 0.3,
+      "usage": null
+    },
+    {
+      "model": "recraftv4_1_pro_vector",
+      "caseId": "donde-mama",
+      "utterance": "¿Dónde está mamá?",
+      "ms": 10261,
+      "ok": true,
+      "file": "donde-mama--recraftv4_1_pro_vector.svg",
+      "usd": 0.3,
+      "usage": null
+    },
+    {
+      "model": "recraftv4_1_pro_vector",
+      "caseId": "profe-cuento",
+      "utterance": "La profesora les lee un cuento a los niños",
+      "ms": 10678,
+      "ok": true,
+      "file": "profe-cuento--recraftv4_1_pro_vector.svg",
+      "usd": 0.3,
+      "usage": null
+    },
+    {
+      "model": "recraftv4_1_pro_vector",
+      "caseId": "para-auto",
+      "utterance": "¡Para! Viene un auto",
+      "ms": 10326,
+      "ok": true,
+      "file": "para-auto--recraftv4_1_pro_vector.svg",
+      "usd": 0.3,
+      "usage": null
+    },
+    {
+      "model": "recraftv4_1_utility_pro_vector",
+      "caseId": "peticion-agua",
+      "utterance": "Quiero un vaso de agua",
+      "ms": 19038,
+      "ok": true,
+      "file": "peticion-agua--recraftv4_1_utility_pro_vector.svg",
+      "usd": 0.3,
+      "usage": null
+    },
+    {
+      "model": "recraftv4_1_utility_pro_vector",
+      "caseId": "donde-mama",
+      "utterance": "¿Dónde está mamá?",
+      "ms": 28993,
+      "ok": true,
+      "file": "donde-mama--recraftv4_1_utility_pro_vector.svg",
+      "usd": 0.3,
+      "usage": null
+    },
+    {
+      "model": "recraftv4_1_utility_pro_vector",
+      "caseId": "profe-cuento",
+      "utterance": "La profesora les lee un cuento a los niños",
+      "ms": 13336,
+      "ok": true,
+      "file": "profe-cuento--recraftv4_1_utility_pro_vector.svg",
+      "usd": 0.3,
+      "usage": null
+    },
+    {
+      "model": "recraftv4_1_utility_pro_vector",
+      "caseId": "para-auto",
+      "utterance": "¡Para! Viene un auto",
+      "ms": 12527,
+      "ok": true,
+      "file": "para-auto--recraftv4_1_utility_pro_vector.svg",
+      "usd": 0.3,
+      "usage": null
+    }
+  ]
+}

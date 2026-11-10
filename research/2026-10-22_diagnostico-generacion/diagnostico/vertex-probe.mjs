@@ -1,0 +1,10 @@
+import fs from 'node:fs/promises';
+import {getVertexAccessToken,vertexModelUrl} from '/Users/hspencer/Sites/pictos-net/netlify/functions/_shared/vertex.js';
+const model='gemini-3.1-flash-image';
+const body={contents:[{role:'user',parts:[{text:'Generate a simple AAC pictogram of a person requesting a cup of water. Black bold hand-drawn strokes, white background, no text, square format.'}]}],generationConfig:{responseModalities:['IMAGE'],imageConfig:{aspectRatio:'1:1',imageSize:'1K'}}};
+const t=Date.now();
+const response=await fetch(vertexModelUrl(model),{method:'POST',headers:{Authorization:`Bearer ${await getVertexAccessToken()}`,'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(90000)});
+const d=await response.json();
+const safe={checkedAt:new Date().toISOString(),model,httpStatus:response.status,durationMs:Date.now()-t,modelVersion:d.modelVersion,promptFeedback:d.promptFeedback,usageMetadata:d.usageMetadata,error:d.error,candidates:d.candidates?.map(c=>({finishReason:c.finishReason,finishMessage:c.finishMessage,safetyRatings:c.safetyRatings,parts:c.content?.parts?.map(p=>({keys:Object.keys(p),mimeType:p.inlineData?.mimeType,bytes:p.inlineData?.data?.length,textLength:p.text?.length}))}))};
+await fs.writeFile('/Users/hspencer/Sites/pictos-net/research/diagnostico-2026-10-22/vertex-31-probe.json',JSON.stringify(safe,null,2));
+console.log(JSON.stringify(safe,null,2));

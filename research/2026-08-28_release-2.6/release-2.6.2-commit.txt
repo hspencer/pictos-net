@@ -1,0 +1,10 @@
+fix(svg): restore editable drafts and localized diagnostics (v2.6.2)
+
+Separate operational structuring from canonical MF-SVG certification.
+Preserve and edit uncertified drafts without overwriting trace or canonical
+artifacts; reject stale edits and keep historical semantic evidence intact.
+Localize validator/provider diagnostics and synchronize locale changes.
+
+Update Allium contracts, regression tests and release notes.
+Verified: 193 unit/UI tests, 19 contract tests, 8 NLU fixtures, schema sync,
+typecheck, i18n and production build. No paid provider calls.

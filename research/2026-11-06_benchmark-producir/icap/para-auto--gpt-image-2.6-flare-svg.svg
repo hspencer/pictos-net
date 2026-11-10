@@ -1,0 +1,46 @@
+<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" width="1024" height="1024">
+  <title>Persona deteniendo un auto que se aproxima</title>
+  <desc>Una persona en la calle extiende una mano en gesto de alto hacia un auto; un símbolo coral de peligro queda entre ambos.</desc>
+  <rect width="1024" height="1024" fill="#F7F6F2" />
+  <g id="street">
+    <rect x="20" y="638" width="984" height="186" rx="8" fill="#E6E3DD" />
+    <line x1="20" y1="638" x2="1004" y2="638" stroke="#C8C5BE" stroke-width="8" />
+    <g fill="#F7F6F2">
+      <path d="M329 806l46-36h45l-45 36z" />
+      <path d="M402 752l43-32h42l-42 32z" />
+      <path d="M463 709l32-22h39l-31 22z" />
+      <path d="M516 677l22-17h27l-21 17z" />
+    </g>
+    <line x1="20" y1="824" x2="1004" y2="824" stroke="#D1CEC8" stroke-width="2" />
+  </g>
+  <g id="approach-lines" fill="none" stroke="#B9B7B0" stroke-width="8" stroke-linecap="round">
+    <line x1="901" y1="367" x2="990" y2="362" />
+    <line x1="918" y1="391" x2="998" y2="386" />
+    <line x1="929" y1="416" x2="1000" y2="412" />
+  </g>
+  <g id="person" fill="#414442">
+    <ellipse cx="166" cy="253" rx="53" ry="57" />
+    <path d="M110 317 Q120 308 142 311 L350 359 Q375 365 384 346 L400 306 Q405 293 416 296 Q427 299 422 313 L410 368 Q404 389 382 393 L178 392 L158 510 Q156 530 137 530 L63 528 Q47 526 50 508 L84 348 Q89 324 110 317Z" />
+    <path d="M62 518 L142 523 L129 648 Q127 670 117 695 L70 796 Q63 811 48 805 Q23 798 29 780 L57 672Z" />
+    <path d="M130 521 L161 524 L222 609 Q233 625 236 650 L248 789 Q249 808 232 811 Q210 814 203 798 L190 663 L128 581Z" />
+    <path d="M43 786 Q60 781 76 790 L103 799 Q116 803 114 813 Q112 823 98 823 L41 823 Q23 822 23 807 Q24 792 43 786Z" />
+    <path d="M208 785 Q226 779 245 786 L287 796 Q304 800 304 812 Q304 823 289 823 L216 823 Q200 823 200 809 Q200 794 208 785Z" />
+    <path d="M342 358 L397 358 L406 380 L378 394 L344 393Z" />
+    <path d="M399 321 Q402 301 411 296 Q419 293 423 301 L421 330 L411 365 Q406 381 391 385 L374 381 L382 361 Q391 358 394 346Z" />
+  </g>
+  <path d="M396 346 L406 322" fill="none" stroke="#666966" stroke-width="5" stroke-linecap="round" />
+  <g id="danger">
+    <path d="M506 361 Q511 352 519 361 L608 511 Q616 526 600 532 L417 532 Q402 527 410 511Z" fill="#C97868" />
+  </g>
+  <g id="car">
+    <path d="M653 440 L678 389 Q687 371 711 369 Q779 361 852 369 Q875 371 884 391 L907 441 Q934 453 936 486 L936 567 Q936 592 912 596 Q840 604 687 596 Q633 593 628 573 L628 486 Q629 454 653 440Z" fill="#638C87" />
+    <path d="M687 398 Q693 384 710 382 Q779 376 849 382 Q863 383 869 396 L890 439 Q894 448 881 449 L681 449 Q668 448 673 438Z" fill="#F7F6F2" />
+    <path d="M639 431 Q614 429 613 443 Q612 457 634 459 L653 459 L660 437Z" fill="#638C87" />
+    <path d="M913 431 Q941 428 950 439 Q956 452 936 459 L914 460 L905 438Z" fill="#638C87" />
+    <path d="M645 492 Q649 485 660 490 L690 499 Q704 504 706 517 Q707 528 694 530 L665 527 Q651 525 647 515Z" fill="#F7F6F2" />
+    <path d="M919 492 Q915 485 904 490 L874 499 Q860 504 858 517 Q857 528 870 530 L899 527 Q913 525 917 515Z" fill="#F7F6F2" />
+    <rect x="734" y="526" width="95" height="24" rx="12" fill="#8BA9A4" />
+    <path d="M628 565 L675 565 L675 613 Q675 629 658 629 L644 629 Q628 629 628 613Z" fill="#414442" />
+    <path d="M888 565 L935 565 L935 613 Q935 629 918 629 L904 629 Q888 629 888 613Z" fill="#414442" />
+  </g>
+</svg>

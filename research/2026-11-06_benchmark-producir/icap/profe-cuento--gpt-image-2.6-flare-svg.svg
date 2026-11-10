@@ -1,0 +1,58 @@
+<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" width="1024" height="1024">
+  <title>La profesora les lee un cuento a los niños</title>
+  <desc>Una profesora sentada lee un libro abierto a tres niños en un aula tranquila.</desc>
+  <rect width="1024" height="1024" fill="#f4f2ec" />
+  <g id="classroom">
+    <rect x="570" y="122" width="365" height="290" rx="10" fill="#aab4a2" />
+    <path d="M570 403h365v10H570z" fill="#c9c7bf" />
+    <path d="M62 824h900v7H62z" fill="#d4d1c9" />
+    <path d="M75 826v12m838-12v12" fill="none" stroke="#d4d1c9" stroke-width="5" stroke-linecap="round" />
+    <path d="M86 492h143v326H86z" fill="#d0cdc5" />
+    <path d="M99 506h117v123H99zM99 643h117v107H99z" fill="#aaa9a1" />
+    <path d="M117 506v123m43-123v123m-41 14v107m49-107v107" fill="none" stroke="#f0eee8" stroke-width="18" stroke-linecap="round" />
+  </g>
+  <g id="teacher" stroke="#393a37" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M286 790h275v35H286z" fill="#b9b7af" />
+    <path d="M309 817v32m229-32v32" fill="none" />
+    <path d="M353 498c-29 47-34 122-25 218l20 88h76l15-178 26 178h71l13-101c9-84 3-154-24-205z" fill="#393a37" />
+    <path d="M348 796c-4 21 6 37 31 42 28 6 52 0 56-15l-8-20-38-10zM475 796c-4 21 9 39 36 44 28 5 54-2 57-16l-15-21-43-9z" fill="#393a37" />
+    <path d="M346 302c-42 26-62 91-67 190l-7 64c-2 19 10 34 31 36 44 4 83-2 116-15l36-100 33-108c-13-43-48-69-91-76z" fill="#aab4a2" />
+    <path d="M357 289c-10-22-4-50 12-68 19-21 34-38 42-66 12-41 48-62 82-51 42 13 61 49 47 96-12 41-6 81-22 102-18 23-59 17-96-2z" fill="#393a37" stroke="none" />
+    <path d="M398 201c14-5 33-8 48-17 18-10 30-25 40-43 15 12 19 34 13 57-7 27-18 59-43 67-26 8-48-11-57-32-9-21-12-28-1-32z" fill="#d5b29a" stroke="none" />
+    <path d="M394 215c-11 4-18-2-18-13 0-10 5-17 13-15 8 2 12 11 13 22" fill="#d5b29a" stroke="none" />
+    <path d="M407 262c9 19 25 29 42 32m0 0-4 12" fill="none" stroke-width="4" />
+    <path d="M327 335c7 17 1 35-5 54l-20 57m-30 15c22-21 43-18 68-15l56 1" fill="none" />
+    <path d="M315 496c-2 13 0 29 10 38 26 20 74 9 108-4l20-28-8-19c-15-9-32-10-48-9l-54 5c-13 1-23 7-28 17z" fill="#aab4a2" />
+  </g>
+  <g id="book" stroke="#393a37" stroke-width="7" stroke-linejoin="round">
+    <path d="M421 340l100 8v131l-105-8z" fill="#f4f2ec" />
+    <path d="M521 348l105-19v130l-105 20z" fill="#f4f2ec" />
+    <path d="M521 348v131" fill="none" />
+  </g>
+  <g id="teacher-hands" fill="#d5b29a" stroke="#393a37" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M313 477c15-12 30-26 43-31 10-4 22-3 35-1l20 4c7 2 8 8 1 11l-16 3 19 1c8 1 8 8 0 10l-20 3 17 4c8 2 6 9-2 10l-23 2 12 5c6 3 4 9-4 10l-29 3c-14 2-28-1-42-5z" />
+    <path d="M561 469c11-12 18-17 22-13 3 2 1 9-2 15 8-12 14-19 19-15 4 3-1 12-5 19 8-10 14-15 18-11 4 5-3 15-8 22-8 12-15 19-27 19l-31-4-8-14z" />
+  </g>
+  <g id="children" stroke="#393a37" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M85 794c-18 26-13 54 15 66 41 17 107 7 136-21l-6-23-61-37z" fill="#393a37" />
+    <path d="M77 664c5-42 32-64 70-62 40 2 65 25 68 65l10 109c-17 25-76 33-121 20-22-6-34-17-37-32z" fill="#666762" />
+    <path d="M111 602c-8-29 8-55 37-64 35-11 67 6 73 33 6 24-8 47-25 61-10 8-26 16-42 11-19-5-38-21-43-41z" fill="#393a37" stroke="none" />
+    <path d="M185 624c10 3 15 12 11 22-4 9-13 12-21 6-7-5-8-14-3-22" fill="#d5b29a" stroke="none" />
+    <path d="M210 727c9 34 22 56 39 75" fill="none" />
+    <path d="M296 845c-9 21 2 43 29 54 39 16 113 10 145-13 18-13 23-29 14-43l-48-28z" fill="#393a37" />
+    <path d="M248 744c10-36 38-56 76-51 42 5 63 29 66 70l8 96c-18 22-74 29-119 18-28-7-41-18-42-35z" fill="#aab4a2" />
+    <path d="M279 680c-4-31 17-56 48-60 29-4 53 12 57 39 4 25-9 48-29 61-18 11-46 10-61-5-10-9-14-22-15-35z" fill="#393a37" stroke="none" />
+    <path d="M375 696c10 2 15 11 11 21-4 9-13 12-21 6-7-5-8-14-3-22" fill="#d5b29a" stroke="none" />
+    <path d="M259 768c3-19 7-33 14-44" fill="none" />
+    <path d="M583 845c-11 19-4 40 23 53 38 18 109 16 145-5 20-12 27-28 20-43l-42-31z" fill="#393a37" />
+    <path d="M618 714c4-42 31-65 73-65 44 0 69 25 71 68l10 119c-16 22-75 29-120 16-25-7-38-20-38-39z" fill="#666762" />
+    <path d="M631 623c-7-30 12-57 44-64 33-8 62 10 65 39 3 29-13 53-36 67-19 11-47 6-61-9-8-9-11-20-12-33z" fill="#393a37" stroke="none" />
+    <path d="M630 655c-8 5-9 17-3 24 6 8 15 7 20-1 4-7 2-15-4-21" fill="#d5b29a" stroke="none" />
+    <path d="M714 727c9 30 17 49 33 66" fill="none" />
+    <path d="M799 796c-12 24-2 47 27 59 41 17 103 10 130-16l-5-23-65-38z" fill="#393a37" />
+    <path d="M803 667c5-40 32-62 70-60 40 2 65 26 68 66l8 105c-19 24-75 30-118 17-23-7-35-18-36-34z" fill="#aab4a2" />
+    <path d="M824 598c-6-29 12-53 41-59 32-7 60 10 63 38 3 27-12 49-33 62-18 12-44 9-59-5-8-8-11-19-12-36z" fill="#393a37" stroke="none" />
+    <path d="M824 622c-9 5-10 16-4 24 6 8 15 8 20 0 5-7 3-15-3-21" fill="#d5b29a" stroke="none" />
+    <path d="M871 715c6 25-1 47-13 70" fill="none" />
+  </g>
+</svg>

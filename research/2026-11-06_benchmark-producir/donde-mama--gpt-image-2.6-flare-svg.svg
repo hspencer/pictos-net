@@ -1,0 +1,44 @@
+<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" width="1024" height="1024">
+  <title>¿Dónde está mamá?</title>
+  <desc>Una persona pregunta por mamá, cuya ubicación aparece enmarcada como desconocida.</desc>
+  <rect width="1024" height="1024" fill="#ffffff" />
+  <g stroke="#263746" stroke-width="18" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M328 296 C333 237 392 199 464 204 C528 208 556 247 580 230 C618 204 670 200 706 219 C747 241 765 214 814 220 C874 227 913 269 907 324 C903 367 942 385 946 431 C951 474 916 501 921 541 C929 599 957 628 937 678 C919 723 877 733 866 777 C854 826 816 844 768 838 C719 832 690 859 641 851 C594 843 567 818 523 832 C478 847 438 857 402 833 C362 807 355 764 326 741 C288 711 291 667 311 628 C330 591 311 553 295 522 C274 480 294 446 315 411 C336 376 321 338 328 296 Z" fill="#f5f7f8" stroke="#9aa9b4" stroke-width="12" />
+    <path d="M177 513 C239 506 301 490 374 470 C421 457 456 447 488 437" fill="none" stroke="#61798a" stroke-width="12" stroke-dasharray="18 22" />
+  </g>
+
+  <g fill="#263746" stroke="#263746" stroke-linecap="round" stroke-linejoin="round">
+    
+    <circle cx="164" cy="450" r="48" fill="#f0c9a8" stroke-width="14" />
+    <path d="M117 447 C113 407 137 384 169 384 C198 384 218 403 216 435 C197 419 180 416 163 420 C148 425 137 437 117 447Z" stroke-width="12" />
+    <path d="M119 510 C95 526 82 555 78 597 L69 753 Q68 769 84 769 L222 769 Q238 768 236 751 L225 593 C222 555 206 529 185 513Z" fill="#567b8d" stroke-width="16" />
+    <path d="M112 547 C91 555 78 575 72 601 L59 655 C55 672 66 683 80 679 C91 676 94 667 98 652 L117 608" fill="#f0c9a8" stroke-width="14" />
+    <path d="M193 547 C213 560 224 580 228 606 L237 649 C241 667 230 678 216 674 C205 671 201 663 198 648 L185 606" fill="#f0c9a8" stroke-width="14" />
+    <path d="M140 450 L143 450" fill="none" stroke="#263746" stroke-width="9" />
+    <path d="M181 450 L184 450" fill="none" stroke="#263746" stroke-width="9" />
+    <path d="M149 476 Q163 465 177 476" fill="none" stroke="#263746" stroke-width="7" />
+  </g>
+
+  <g fill="none" stroke="#263746" stroke-linecap="round" stroke-linejoin="round">
+    
+    <path d="M127 320 C126 287 148 267 176 267 C204 267 224 284 224 310 C224 328 214 338 198 350 C184 361 180 372 180 385" stroke-width="16" />
+    <circle cx="179" cy="413" r="8" fill="#263746" stroke="none" />
+  </g>
+
+  <g stroke="#263746" stroke-width="18" stroke-linecap="round" stroke-linejoin="round">
+    
+    <path d="M547 350 C544 300 574 266 621 266 C669 266 701 301 699 350 C697 394 667 425 623 425 C580 425 550 395 547 350Z" fill="#f0c9a8" />
+    <path d="M548 352 C534 308 552 266 586 247 C616 230 660 239 681 269 C696 289 700 319 694 349 C679 325 666 305 650 293 C628 319 594 333 548 352Z" fill="#394f60" />
+    <path d="M566 429 C531 446 507 478 493 522 L467 693 Q463 716 484 716 L758 716 Q779 716 774 693 L747 521 C740 477 714 446 679 429 C661 445 645 452 622 452 C599 452 583 445 566 429Z" fill="#648696" />
+    <path d="M579 467 L622 514 L666 467" fill="none" stroke="#e8eef0" stroke-width="12" />
+    <path d="M622 515 L622 692" fill="none" stroke="#e8eef0" stroke-width="10" />
+    <path d="M584 365 L588 365 M655 365 L659 365" fill="none" stroke-width="9" />
+    <path d="M601 391 Q622 406 644 391" fill="none" stroke-width="7" />
+  </g>
+
+  <g fill="none" stroke="#9aa9b4" stroke-width="12" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="841" cy="408" r="25" />
+    <path d="M836 409 C837 397 846 392 855 397 C864 403 862 412 855 419 C850 424 849 428 849 433" />
+    <circle cx="849" cy="444" r="4" fill="#9aa9b4" stroke="none" />
+  </g>
+</svg>
