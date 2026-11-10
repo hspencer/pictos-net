@@ -18,6 +18,7 @@ const anthropicSource = 'https://platform.claude.com/docs/en/about-claude/pricin
 const vertexSource = 'https://cloud.google.com/vertex-ai/generative-ai/pricing';
 const openaiSource = 'https://developers.openai.com/api/docs/models/compare';
 const recraftSource = 'https://www.recraft.ai/docs/api-reference/pricing';
+const quiverSource = 'https://docs.quiver.ai/developers/pricing';
 
 const text = (label, provider, phases, input, output, source, extra = {}, status = 'active') => ({
   label, provider, phases, output: 'text', status,
@@ -75,6 +76,13 @@ export const MODEL_CATALOG = {
   'recraftv4_1_utility': image('Recraft V4.1 Utility (raster)', 'recraft', 'bitmap', 0.035, recraftSource, { size: '1K' }, 'active'),
   'recraftv4_1_pro': image('Recraft V4.1 Pro (raster)', 'recraft', 'bitmap', 0.21, recraftSource, { size: '2K' }, 'active'),
   'recraftv4_1_utility_pro': image('Recraft V4.1 Utility Pro (raster)', 'recraft', 'bitmap', 0.21, recraftSource, { size: '2K' }, 'active'),
+  // QuiverAI Arrow 2, native SVG (research/2026-11-10_quiver-arrow2): 8/8 clean pictograms,
+  // p50 29 s, no gradients or text with the style in `instructions`. Token-priced
+  // ($4 in / $20 out per 1M); US$0.066 median per pictogram, US$1 held per request.
+  'arrow-2': { ...image('QuiverAI Arrow 2 (vector)', 'quiver', 'vector', 0.07, quiverSource,
+    { promptCostsExtra: true }, 'experimental'), pricingCheckedAt: '2026-11-10',
+    // Server pipeline batch runs rows in sequence inside a 15-min background function.
+    batchMaxRows: 10 },
 
   // ── Retired: never offered or admitted; kept so saved configs and rows keep a label ──
   // 2026-11-01: superseded on cost, latency or quality by an offered model (see report).

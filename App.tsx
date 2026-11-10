@@ -1879,7 +1879,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
     if (!activeLibraryId) return;
     try { await ensureAuth(); } catch { return; }
 
-    const eligible = Batch.pipelineBatchableRows(rows).slice(0, Batch.PIPELINE_BATCH_MAX_ROWS);
+    const eligible = Batch.pipelineBatchableRows(rows).slice(0, Batch.pipelineBatchLimit(config));
     if (eligible.length === 0) { addLog('error', t('batch.noEligible')); return; }
 
     setConfirmDialog({

@@ -64,3 +64,30 @@ export function composeRecraftPrompt(elements, prompt, utterance, nlu, config) {
   if (full.length > 10000) throw new Error('Recraft prompt exceeds 10000 characters; shorten the composition explicitly.');
   return full;
 }
+
+/** Fixed canvas for Quiver: `attributes.viewBox` asks for it; the prose repeats it. */
+export const QUIVER_VIEWBOX = Object.freeze({ minX: 0, minY: 0, width: 512, height: 512 });
+
+/**
+ * Quiver Arrow 2 takes the library style apart from the content (`instructions`),
+ * which halved output tokens and removed gradients (research/2026-11-10_quiver-arrow2).
+ */
+export function composeQuiverRequest(elements, prompt, utterance, nlu, config) {
+  return {
+    prompt: [
+      `AAC pictogram: "${utterance}"`,
+      nluContext(nlu, 'Semantic context'),
+      '',
+      'Visual elements (hierarchy):',
+      formatElements(elements),
+      '',
+      'Spatial composition:',
+      plainComposition(prompt),
+    ].join('\n'),
+    instructions: [
+      config?.visualStylePrompt || 'Flat pictogram style, simple vector design.',
+      '',
+      'Construction: an AAC communication-board pictogram read at 96 px. Filled shapes on a plain white background, centred, square 512x512 view box, generous padding. No text, letters, numbers, labels or watermarks.',
+    ].join('\n'),
+  };
+}

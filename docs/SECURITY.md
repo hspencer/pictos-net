@@ -42,10 +42,11 @@ El proyecto nunca expone API keys al navegador. Todas las llamadas a servicios e
 | `api-openai-worker-background.js` | `api-openai-poll.js` | OpenAI (`gpt-image-2.5-flare`) |
 | `api-gemini-worker-background.js` | `api-gemini-poll.js` | Vertex AI (`gemini-3.1-flash-lite-image`) |
 | `api-recraft-worker-background.js` | `api-recraft-poll.js` | Recraft V4.1 (vector y raster) |
+| `api-quiver-worker-background.js` | `api-quiver-poll.js` | Quiver Arrow 2 (SVG nativo) |
 
 - **Auth**: permiso de un solo uso de `api-authorize`.
 - **Cuota**: cada worker cobra 1 unidad (`checkAndCharge`) y la devuelve una sola vez si la generación falla (`refundUnitsOnce`, con clave idempotente por trabajo).
-- **Resultado**: queda en el store del trabajo (`openai-jobs`, `gemini-jobs`, `recraft-jobs`) hasta que el poll lo entrega; entonces se borra.
+- **Resultado**: queda en el store del trabajo (`openai-jobs`, `gemini-jobs`, `recraft-jobs`, `quiver-jobs`) hasta que el poll lo entrega; entonces se borra.
 
 ### `api-pipeline-batch-create.js` + `-background.js` + `-poll.js` (lote 1 → 2 → 3)
 
@@ -86,6 +87,7 @@ Todas son server-side. Ninguna lleva prefijo `VITE_`.
 | `PICTOS_OPENAI_KEY` | OpenAI (texto e imagen). Tiene prioridad sobre `OPENAI_API_KEY` |
 | `OPENAI_API_KEY` | Respaldo de la anterior |
 | `RECRAFT_API_KEY` | Recraft V4.1 (fase 3) |
+| `QUIVER_API_KEY` | Quiver Arrow 2 (fase 3) |
 | `GOOGLE_SERVICE_ACCOUNT_JSON` | Cuenta de servicio de Vertex AI, en una sola línea (Nano Banana 2 Lite y detección) |
 | `VERTEX_PROJECT_ID` | Opcional; por defecto el `project_id` de la cuenta de servicio |
 | `VERTEX_LOCATION` | Opcional; por defecto `global` |

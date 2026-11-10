@@ -3,7 +3,8 @@ import { configuredModel, type GlobalConfig, type VisualElement, type Phase3Resu
 import { assertModelAvailable, getModelProvider } from '../netlify/functions/_shared/modelCatalog.js';
 import * as Recraft from './recraftService';
 import * as Gemini from './geminiService';
-import { callOpenAI } from './aiClient';
+import { callOpenAI, callQuiver } from './aiClient';
+import { composeQuiverRequest } from '../netlify/functions/_shared/imagePrompts.js';
 
 export async function generateImage(
     elements: VisualElement[], prompt: string,
@@ -23,6 +24,13 @@ export async function generateImage(
             quality: config.openaiImageQuality ?? 'low',
         }, msg => onLog?.('info', msg));
         return { ...response, generationModel: resolved.generationModel };
+    }
+    if (provider === 'quiver') {
+        onLog?.('info', `[PRODUCIR] Generando SVG con Quiver (${model})…`);
+        const request = composeQuiverRequest(elements, prompt, row.UTTERANCE, row.NLU, resolved);
+        const { svg } = await callQuiver({ model, ...request }, msg => onLog?.('info', msg));
+        if (!svg?.includes('<svg')) throw new Error('Quiver no devolvió un SVG válido');
+        return { svg: Recraft.normalizeSvgDimensions(svg), generationModel: resolved.generationModel };
     }
     return provider === 'recraft'
         ? Recraft.generateImage(elements, prompt, row, resolved, onLog)

@@ -17,6 +17,7 @@
 import { checkAndCharge, refundUnits, logCall } from './_shared/usage.js';
 import { getBlobStore as getStore, connectBlobs } from './_shared/blobs.js';
 import { OPENAI_IMAGE_QUALITIES, openaiApiKey } from './_shared/openaiImage.js';
+import { quiverApiKey } from './_shared/quiverImage.js';
 import { fetchFreshRoles } from './_shared/identity.js';
 import { MODEL_CATALOG, modelSupportsPhase, getModelProvider, configuredModelId } from './_shared/modelCatalog.js';
 
@@ -91,6 +92,14 @@ export const handler = async (event, context) => {
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'Model is not supported for the selected phase' }) };
   }
   const imageModel = MODEL_CATALOG[selectedModels[2][1]];
+  if (rows.length > (imageModel.batchMaxRows ?? MAX_ROWS)) {
+    return { statusCode: 400, headers, body: JSON.stringify({ error: `${imageModel.label} batches take at most ${imageModel.batchMaxRows} rows` }) };
+  }
+  if (imageModel.provider === 'quiver') {
+    try { quiverApiKey(); } catch {
+      return { statusCode: 503, headers, body: JSON.stringify({ error: 'QUIVER_API_KEY not configured' }) };
+    }
+  }
   const styleId = config?.recraftStyleId?.trim();
   if (imageModel.provider === 'recraft' && ((imageModel.requiresStyle && !styleId) ||
       (styleId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(styleId)))) {

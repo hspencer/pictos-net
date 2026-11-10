@@ -16,7 +16,8 @@ import {
     callPipelineBatchCreate, callPipelineBatchPoll, callPipelineRowResult,
     type PipelineBatchJob, type PipelineRowResult,
 } from './aiClient';
-import { batchModelIds } from '../netlify/functions/_shared/modelCatalog.js';
+import { batchModelIds, MODEL_CATALOG } from '../netlify/functions/_shared/modelCatalog.js';
+import { configuredModel } from '../types';
 
 /** Defensive elements accessor (same contract as App.tsx's local helper). */
 function elementsOf(row: RowData): VisualElement[] {
@@ -31,6 +32,11 @@ export const BATCH_MODELS = batchModelIds();
 
 /** Pipeline batch works with any provider config. Max 25 rows (15-min budget). */
 export const PIPELINE_BATCH_MAX_ROWS = 25;
+
+/** Rows one pipeline batch may carry: slow image models declare a lower cap in the catalog. */
+export function pipelineBatchLimit(config: GlobalConfig): number {
+    return Math.min(PIPELINE_BATCH_MAX_ROWS, MODEL_CATALOG[configuredModel(config, 3)]?.batchMaxRows ?? PIPELINE_BATCH_MAX_ROWS);
+}
 
 /** True while the job still needs polling or draining. */
 export function isActiveBatch(job: BatchJobView | null): boolean {
@@ -104,7 +110,7 @@ export async function submitPipelineBatch(
     rows: RowData[],
     config: GlobalConfig,
 ): Promise<{ jobId: string; rowCount: number }> {
-    const eligible = pipelineBatchableRows(rows).slice(0, PIPELINE_BATCH_MAX_ROWS);
+    const eligible = pipelineBatchableRows(rows).slice(0, pipelineBatchLimit(config));
     if (eligible.length === 0) throw new Error('No hay pictogramas con enunciados para enviar al lote');
 
     return callPipelineBatchCreate({

@@ -350,6 +350,7 @@ import type { StyleDefinition, KeyframeDefinition } from './lib/style-editor/lib
 /** The Phase 3 generation models, by stable API identifier. */
 export type GenerationModel =
   | 'gpt-image-2.5-flare'
+  | 'arrow-2'
   | 'gpt-image-2'
   | 'gemini-2.5-flash-image'
   | 'gemini-3.1-flash-image'
@@ -367,12 +368,12 @@ export type GenerationModel =
   | 'recraftv4_styles_pro'
   | 'recraftv4_styles_pro_vector';
 
-/** Output type classification: *_vector models produce SVG ('vector'); all others produce PNG ('bitmap'). */
+/** Output type classification, from the catalog: SVG models are 'vector', the rest produce PNG ('bitmap'). */
 export type ModelFamily = 'bitmap' | 'vector';
 export type OpenAIImageQuality = 'low' | 'medium' | 'high';
 
 export function getModelFamily(model: GenerationModel): ModelFamily {
-  return model.endsWith('_vector') ? 'vector' : 'bitmap';
+  return MODEL_CATALOG[model]?.output === 'vector' ? 'vector' : 'bitmap';
 }
 
 export const DEFAULT_GENERATION_MODEL = DEFAULT_MODELS[3] as GenerationModel;

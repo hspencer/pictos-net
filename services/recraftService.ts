@@ -16,7 +16,7 @@ import { composeRecraftPrompt } from "../netlify/functions/_shared/imagePrompts.
  * Recraft returns SVGs with explicit pixel width/height; we strip those
  * and ensure a viewBox is present so the SVG is resolution-independent.
  */
-function normalizeSvgDimensions(svg: string): string {
+export function normalizeSvgDimensions(svg: string): string {
     return svg.replace(/(<svg\b)([\s\S]*?)>/, (_match, tagStart, attrs) => {
         const hasViewBox = /viewBox\s*=/.test(attrs);
         const wm = attrs.match(/\bwidth\s*=\s*["']([0-9.]+)/);

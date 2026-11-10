@@ -27,6 +27,8 @@ import { openProviderQuotaCircuit } from './_shared/pipelineQuotaCircuit.js';
 import { MODEL_CATALOG, getModelProvider, configuredModelId, modelSupportsPhase } from './_shared/modelCatalog.js';
 import { providerHttpError, providerFailure } from './_shared/providerError.js';
 import { generateRecraftImage } from './_shared/recraftImage.js';
+import { generateQuiverImage } from './_shared/quiverImage.js';
+import { composeQuiverRequest } from './_shared/imagePrompts.js';
 
 
 // ── Phase 3 runners ───────────────────────────────────────────────────────────
@@ -91,6 +93,16 @@ async function phase3OpenAI(elements, prompt, utterance, nluData, config, email)
     provider: 'openai', request_id: result.requestId, usage: result.usage,
   });
   return { bitmap: result.bitmap, generationQuality: result.generationQuality };
+}
+
+async function phase3Quiver(elements, prompt, utterance, nluData, config, email) {
+  const startMs = Date.now();
+  const result = await generateQuiverImage({ model: config.generationModel,
+    ...composeQuiverRequest(elements, prompt, utterance, nluData, config) }, { maxTotalMs: 75000 });
+  await logCall({ email, phase: 'quiver-batch', model: config.generationModel, units_charged: 0, ms: Date.now() - startMs, ok: true,
+    tokens_in: result.usage?.input_tokens ?? null, tokens_out: result.usage?.output_tokens ?? null,
+    provider: 'quiver', request_id: result.requestId, usage: result.usage });
+  return { svg: result.svg };
 }
 
 // ── Handler ───────────────────────────────────────────────────────────────────
@@ -186,7 +198,9 @@ export const handler = async (event, context) => {
       activePhase = 3;
       const imageResult = isRecraft
         ? await phase3Recraft(elements, prompt, utterance, nluData, runConfig, email)
-        : isOpenAI
+        : imageProvider === 'quiver'
+          ? await phase3Quiver(elements, prompt, utterance, nluData, runConfig, email)
+          : isOpenAI
           ? await phase3OpenAI(elements, prompt, utterance, nluData, runConfig, email)
           : await phase3Gemini(elements, prompt, utterance, nluData, runConfig, email);
 

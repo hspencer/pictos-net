@@ -2,7 +2,7 @@ const TRANSIENT_STATUSES = new Set([408, 409, 429, 500, 502, 503, 504]);
 const BILLING_CODES = new Set([
   'insufficient_quota', 'credit_balance_exhausted', 'organization_spend_limit_exceeded',
   'project_spend_limit_exceeded', 'organization_usage_limit_exceeded',
-  'billing_hard_limit_reached', 'billing_not_active',
+  'billing_hard_limit_reached', 'billing_not_active', 'insufficient_credits',
 ]);
 
 function header(headers, name) {

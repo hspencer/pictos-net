@@ -16,6 +16,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { getVertexAccessToken, vertexModelUrl } from './_shared/vertex.js';
 import { connectBlobs } from './_shared/blobs.js';
 import { openaiApiKey, OPENAI_IMAGE_MODEL } from './_shared/openaiImage.js';
+import { quiverApiKey } from './_shared/quiverImage.js';
 
 
 
@@ -95,6 +96,17 @@ async function checkOpenAI(model) {
   return Date.now() - t0;
 }
 
+async function checkQuiver(model) {
+  const t0 = Date.now();
+  const res = await fetch(`https://api.quiver.ai/v1/models/${model}`, {
+    headers: { Authorization: `Bearer ${quiverApiKey()}` },
+    signal: AbortSignal.timeout(10000),
+  });
+  // Free metadata lookup: credentials and model access, not the credit balance.
+  if (!res.ok) throw Object.assign(new Error(`Quiver model access: HTTP ${res.status}`), { status: res.status });
+  return Date.now() - t0;
+}
+
 async function handleRequest(event, context) {
   connectBlobs(event);
   const origin = event.headers?.origin || '';
@@ -140,6 +152,9 @@ async function handleRequest(event, context) {
       checkScope = 'credentials_and_credit_balance';
     } else if (service === 'openai') {
       latency = await checkOpenAI(selectedModel);
+      checkScope = 'model_metadata_access';
+    } else if (service === 'quiver') {
+      latency = await checkQuiver(selectedModel);
       checkScope = 'model_metadata_access';
     }
     return { statusCode: 200, headers, body: JSON.stringify({ ok: true, latency, checkedModel, checkScope,

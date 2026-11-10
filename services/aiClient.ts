@@ -354,19 +354,24 @@ export interface GeminiResponse {
  * `onStatus` receives human-readable retry progress for the UI log.
  */
 export async function callGemini(params: GeminiParams, onStatus?: (msg: string) => void): Promise<GeminiResponse> {
-    return callImageBackground('gemini', params, onStatus);
+    return callImageBackground('gemini', params, onStatus) as Promise<GeminiResponse>;
 }
 
 export async function callOpenAI(
     params: GeminiParams & { quality: OpenAIImageQuality }, onStatus?: (msg: string) => void,
 ): Promise<GeminiResponse & { generationQuality?: OpenAIImageQuality }> {
-    return callImageBackground('openai', params, onStatus);
+    return callImageBackground('openai', params, onStatus) as Promise<GeminiResponse & { generationQuality?: OpenAIImageQuality }>;
+}
+
+/** Quiver Arrow 2: native SVG, library style passed apart as `instructions`. */
+export async function callQuiver(params: GeminiParams & { instructions: string }, onStatus?: (msg: string) => void): Promise<{ svg: string }> {
+    return callImageBackground('quiver', params, onStatus) as Promise<{ svg: string }>;
 }
 
 async function callImageBackground(
-    provider: 'gemini' | 'openai', params: GeminiParams & { quality?: OpenAIImageQuality },
+    provider: 'gemini' | 'openai' | 'quiver', params: GeminiParams & { quality?: OpenAIImageQuality; instructions?: string },
     onStatus?: (msg: string) => void,
-): Promise<GeminiResponse & { generationQuality?: OpenAIImageQuality }> {
+): Promise<Partial<GeminiResponse> & { svg?: string; generationQuality?: OpenAIImageQuality }> {
     const jobId = provider + '-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9);
     const isLocalDev = import.meta.env.DEV;
     const reqHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -387,10 +392,10 @@ async function callImageBackground(
         throw new Error(`Fallo al iniciar el trabajo de ${provider}: ${startRes.statusText}`);
     }
 
-    // Gemini keeps its 120s window. OpenAI allows 220s to cover its bounded
-    // 180s request plus worker startup/storage; it never auto-replays generation.
+    // Gemini keeps its 120s window. OpenAI and Quiver allow 220s to cover their
+    // bounded 180s request plus worker startup/storage.
     let lastRetryAttempt = 0;
-    for (let i = 0; i < (provider === 'openai' ? 110 : 60); i++) {
+    for (let i = 0; i < (provider === 'gemini' ? 60 : 110); i++) {
         await new Promise(r => setTimeout(r, 2000));
 
         const pollRes = await fetch(`/.netlify/functions/api-${provider}-poll?jobId=${jobId}`, {
@@ -405,6 +410,7 @@ async function callImageBackground(
 
         const data = await pollRes.json();
 
+        if (data.svg) return { svg: data.svg };
         if (data.bitmap) return { bitmap: data.bitmap, ...(provider === 'openai' ? { generationQuality: data.generationQuality } : {}) };
         if (data.error || data.quotaExceeded || data.failureSource) throw providerErrorFromPayload(data, { provider: provider, model: params.model, requestId: jobId });
         if (data.pending) {

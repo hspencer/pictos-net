@@ -237,6 +237,7 @@ Required keys:
 - `OPENAI_API_KEY`: [platform.openai.com](https://platform.openai.com), default image model and GPT-6 Luna
 - `GOOGLE_SERVICE_ACCOUNT_JSON`: Vertex AI service account on one line, for Nano Banana 2 Lite and entity detection
 - `RECRAFT_API_KEY`: [recraft.ai](https://www.recraft.ai/api), optional, Recraft models only
+- `QUIVER_API_KEY`: [platform.quiver.ai](https://platform.quiver.ai), optional, Quiver Arrow 2 only
 
 See [docs/CONTRIBUTING.md](./docs/CONTRIBUTING.md) for full instructions.
 
@@ -261,6 +262,7 @@ Most technical documents are in Spanish.
 |---|---|
 | [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) | Full architecture with diagrams: pipeline, server, persistence, data |
 | [docs/CONTROLES_DE_EXPERTICIA.md](./docs/CONTROLES_DE_EXPERTICIA.md) | The research question crossed with the controls of each moment |
+| [research/README.md](./research/README.md) | Studies and benchmarks: index, how to view and rerun them (Spanish) |
 | [docs/ESTRUCTURAR.md](./docs/ESTRUCTURAR.md) | Phase 4 inside: detection, regions, assembly, certification |
 | [docs/BENCHMARK_MODELOS_2026-11.md](./docs/BENCHMARK_MODELOS_2026-11.md) | Evidence behind the model choices |
 | [docs/API_V1.md](./docs/API_V1.md) | Machine API v1 |
