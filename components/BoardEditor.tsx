@@ -5,6 +5,7 @@ import { useTranslation } from '../hooks/useTranslation';
 import { createPlayableAudioUrl, revokePlayableAudioUrl } from '../services/audioPlayback';
 import { convertAudioToMp4 } from '../services/audioConvert';
 import { CellEditor } from './CellEditor';
+import { validBitmap, validDownstreamSvg } from '../utils/rowArtifacts';
 
 interface BoardEditorProps {
   board: Board;
@@ -325,15 +326,15 @@ export function BoardEditor({ board, rows, otherBoardCells, onSave, onBack, onUp
                 >
                   {/* Pictogram area */}
                   <div className={mode === 'use' ? 'relative min-h-0 w-full flex-1' : 'relative w-full aspect-square'}>
-                    {row && (row.structuredSvg || row.rawSvg) && (
+                    {row && validDownstreamSvg(row) && (
                       <div
                         className="absolute inset-0 p-1 [&>svg]:w-full [&>svg]:h-full"
-                        dangerouslySetInnerHTML={{ __html: row.structuredSvg || row.rawSvg || '' }}
+                        dangerouslySetInnerHTML={{ __html: validDownstreamSvg(row) || '' }}
                       />
                     )}
-                    {row && !row.structuredSvg && !row.rawSvg && row.bitmap && (
+                    {row && !validDownstreamSvg(row) && validBitmap(row) && (
                       <div className="absolute inset-0 p-1 flex items-center justify-center">
-                        <img src={row.bitmap} className="w-full h-full object-contain" alt="" />
+                        <img src={validBitmap(row)} className="w-full h-full object-contain" alt="" />
                       </div>
                     )}
                     {hasAudio && (

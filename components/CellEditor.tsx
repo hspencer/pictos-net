@@ -3,6 +3,7 @@ import { X, Mic, Square, RefreshCw } from 'lucide-react';
 import { BoardCell, FitzgeraldColor, RowData } from '../types';
 import { useTranslation } from '../hooks/useTranslation';
 import { createPlayableAudioUrl, revokePlayableAudioUrl } from '../services/audioPlayback';
+import { validBitmap, validDownstreamSvg } from '../utils/rowArtifacts';
 
 interface CellEditorProps {
   cell: BoardCell;
@@ -246,11 +247,11 @@ export function CellEditor({ cell, rows, allCells, onUpdateCell, onUpdateRowAudi
                     }}
                     className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 text-left"
                   >
-                    {(row.structuredSvg || row.rawSvg) ? (
+                    {validDownstreamSvg(row) ? (
                       <div className="w-8 h-8 flex-shrink-0 [&>svg]:w-full [&>svg]:h-full"
-                        dangerouslySetInnerHTML={{ __html: row.structuredSvg || row.rawSvg || '' }} />
-                    ) : row.bitmap ? (
-                      <img src={row.bitmap} className="w-8 h-8 flex-shrink-0 object-contain" alt="" />
+                        dangerouslySetInnerHTML={{ __html: validDownstreamSvg(row) || '' }} />
+                    ) : validBitmap(row) ? (
+                      <img src={validBitmap(row)} className="w-8 h-8 flex-shrink-0 object-contain" alt="" />
                     ) : (
                       <div className="w-8 h-8 flex-shrink-0 bg-slate-100 rounded" />
                     )}

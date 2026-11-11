@@ -1750,6 +1750,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
       update.structuredSvgStatus = 'idle';
     } else if (result.bitmap) {
       update.bitmap = result.bitmap;
+      update.bitmapDiscarded = false;
       update.rawSvg = undefined;
     }
     if (result.svg || result.bitmap) {
@@ -1963,6 +1964,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
           updateRowById(row.id, {
             rawSvg: isVector ? p3Result.svg : undefined,
             bitmap: isVector ? undefined : p3Result.bitmap,
+            bitmapDiscarded: isVector ? undefined : false,
             generationModel: p3Result.generationModel,
             generationQuality: p3Result.generationQuality,
             rawSvgDiscarded: isVector ? false : undefined,
@@ -2100,6 +2102,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
           return {
             rawSvg: isVector ? p3.svg : undefined,
             bitmap: isVector ? undefined : p3.bitmap,
+            bitmapDiscarded: isVector ? undefined : false,
             generationModel: p3.generationModel,
             generationQuality: p3.generationQuality,
             rawSvgDiscarded: isVector ? false : row.rawSvgDiscarded,
@@ -2263,6 +2266,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
       const p3IsVector = !!p3Result.svg;
       finalUpdates.rawSvg = p3IsVector ? p3Result.svg : undefined;
       finalUpdates.bitmap = p3IsVector ? undefined : p3Result.bitmap;
+      finalUpdates.bitmapDiscarded = p3IsVector ? undefined : false;
       finalUpdates.generationModel = p3Result.generationModel;
       finalUpdates.generationQuality = p3Result.generationQuality;
       finalUpdates.rawSvgDiscarded = p3IsVector ? false : undefined;
@@ -4180,6 +4184,7 @@ const RowComponent: React.FC<{
   const [elementsManuallyEdited, setElementsManuallyEdited] = React.useState(false);
   const [promptManuallyEdited, setPromptManuallyEdited] = React.useState(false);
   const [isPromptEditing, setIsPromptEditing] = React.useState(false);
+  const [confirmingBitmapDelete, setConfirmingBitmapDelete] = React.useState(false);
   const [isRegeneratingPrompt, setIsRegeneratingPrompt] = React.useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
   const [showAuditPanel, setShowAuditPanel] = React.useState(false);
@@ -4357,7 +4362,8 @@ const RowComponent: React.FC<{
             >
               <div className="flex flex-col gap-4">
 
-                {/* Bitmap slot — shown whenever bitmap exists; download only */}
+                {/* Bitmap slot — download or delete. Deleting sets bitmapDiscarded (the data stays
+                   on the row, like the trace and structure discards); producing again clears it. */}
                 {validBitmap(row) && (
                   <div className="border border-slate-200 bg-white flex items-center justify-center relative overflow-hidden group/bitmap-row w-full aspect-square">
                     <img
@@ -4374,11 +4380,31 @@ const RowComponent: React.FC<{
                           a.click();
                         }}
                         className="p-1.5 bg-black/60 hover:bg-black/80 text-white rounded-full shadow-lg"
-                        title={t('svg.download')}
+                        title={t('actions.downloadPng')}
+                        aria-label={t('actions.downloadPng')}
                       >
                         <Download size={12} />
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmingBitmapDelete(true)}
+                        className="p-1.5 bg-black/60 hover:bg-rose-600 text-white rounded-full shadow-lg"
+                        title={t('actions.delete')}
+                        aria-label={t('actions.delete')}
+                      >
+                        <Trash2 size={12} />
+                      </button>
                     </div>
+                    {confirmingBitmapDelete && (
+                      <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-20 gap-2">
+                        <button type="button" onClick={() => { onUpdate({ bitmapDiscarded: true }); setConfirmingBitmapDelete(false); }} className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold uppercase tracking-wider rounded">
+                          {t('actions.delete')}
+                        </button>
+                        <button type="button" onClick={() => setConfirmingBitmapDelete(false)} className="px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white text-xs font-bold uppercase tracking-wider rounded">
+                          {t('actions.cancel')}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
 

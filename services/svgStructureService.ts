@@ -37,7 +37,7 @@ import { validateStructuringMapping } from './svgMappingValidation';
 import { REGION_TOOL, absorbUnassigned, buildRegionToolSchema, regionAnswerToMapping, type RegionDiagnostics } from './regionMapping';
 import { openTraceSession, VTRACER_WEB_ENGINE, type TraceOptions, type TraceRegion, type TracedRegionPath } from './vtracerWebService';
 import { shouldSimplify, roundPathD } from './svgPathPolish';
-import { canStructureSVG, svgForStructuring } from './svgCanonical';
+import { canStructureSVG, svgForStructuring, primitivesToPaths } from './svgCanonical';
 import { bakeMatrixIntoPathD, parseTransformToMatrix } from '../utils/svgNormalizer';
 import { assertModelAvailable } from '../netlify/functions/_shared/modelCatalog.js';
 import { svgStructureDiagnostic } from './svgStructureDiagnostics';
@@ -2021,7 +2021,7 @@ export async function assembleAndVerify(
 
 export async function structureSVG(input: SVGStructureInput): Promise<SVGStructureResult> {
     // Structure a provenance-free copy; the row keeps the original rawSvg.
-    if (typeof input.rawSvg === 'string') input = { ...input, rawSvg: svgForStructuring(input.rawSvg) };
+    if (typeof input.rawSvg === 'string') input = { ...input, rawSvg: primitivesToPaths(svgForStructuring(input.rawSvg)) };
     try {
         if (!input.rawSvg || typeof input.rawSvg !== 'string') {
             return { svg: '', success: false, diagnostic: { key: 'traceRequired' } };
@@ -2047,10 +2047,7 @@ export async function structureSVG(input: SVGStructureInput): Promise<SVGStructu
 
         input.onProgress?.(`[ESTRUCTURAR] Inventario: ${inventory.paths.length} paths, ${Object.keys(inventory.vtracerGroups).length} grupos, ${inventory.backgroundPathIds.length} fondo excluido`);
 
-        // The pipeline only understands <path>; other primitives would be
-        // silently dropped from the output. Surface it instead of hiding it.
-        // ponytail: detection only — convert primitives to paths if this warning
-        // ever fires on real rows.
+        // Primitives were converted to paths on entry; only <line> (stroke-only) can remain.
         const nonPathCount = (input.rawSvg.match(/<(rect|circle|ellipse|polygon|polyline|line)\b/g) ?? []).length;
         if (nonPathCount > 0) {
             input.onProgress?.(`[ESTRUCTURAR] advertencia: ${nonPathCount} elemento(s) no-path (rect/circle/…) en el SVG crudo — no serán incluidos en la estructura`);

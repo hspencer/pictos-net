@@ -77,6 +77,9 @@
     # CSP: blocks inline scripts (protects against SVG/XSS injection).
     # style-src 'unsafe-inline' required — SVG editor injects <style> tags dynamically.
     # wasm-unsafe-eval required — VTracer WASM (phase 4, manual vectorizer).
+    # The sha256 admits only @vitejs/plugin-react's dev preamble: Netlify Dev (port 9001)
+    # applies these headers, and without it the app stays blank locally. Recompute after
+    # upgrading the plugin (hash of the inline <script type="module"> served on port 3000).
     # nominatim.openstreetmap.org — geo-context autocomplete in settings.
     # pictos.net + next.pictos.net — admin.html consulta api-usage-report en ambos deploys.
     # *.googleusercontent.com — Google profile photos for the logged-in user
@@ -84,7 +87,7 @@
     # variants), so a single-host allowance intermittently breaks the avatar.
     # fonts.googleapis.com + fonts.gstatic.com — netlify-identity-widget loads
     # Fira Code from Google Fonts and injects the <link> into the host page.
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https://*.googleusercontent.com https://www.gravatar.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://nominatim.openstreetmap.org https://pictos.net https://next.pictos.net; media-src 'self' data: blob:; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'sha256-Z2/iFzh9VMlVkEOar1f/oSHWwQk3ve1qk/C2WdsC4Xk='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https://*.googleusercontent.com https://www.gravatar.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://nominatim.openstreetmap.org https://pictos.net https://next.pictos.net; media-src 'self' data: blob:; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'"
 
 [[headers]]
   for = "/assets/*.js"

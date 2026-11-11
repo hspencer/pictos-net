@@ -457,7 +457,7 @@ sequenceDiagram
 | `api-openai-worker-background` + `api-openai-poll` | PRODUCIR con GPT Image | 1, reembolso si falla |
 | `api-gemini-worker-background` + `api-gemini-poll` | PRODUCIR con Nano Banana 2 Lite | 1, reembolso si falla |
 | `api-recraft-worker-background` + `api-recraft-poll` | PRODUCIR con Recraft V4.1 | 1, reembolso si falla |
-| `api-quiver-worker-background` + `api-quiver-poll` | PRODUCIR con Quiver Arrow 2 (SVG nativo, experimental; estilo en `instructions`, `viewBox` 512) | 1, reembolso si falla |
+| `api-quiver-worker-background` + `api-quiver-poll` | PRODUCIR con Quiver Arrow 2 (SVG nativo; estilo en `instructions`, `viewBox` 512) | 1, reembolso si falla |
 | `api-pipeline-batch-create` / `-background` / `-poll` | lote 1 → 2 → 3, hasta 25 filas | 1 por fila al crear |
 | `api-check` | prueba de conectividad por proveedor | 0 |
 | `api-usage-report` | resumen diario para administración | — |

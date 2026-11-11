@@ -1,4 +1,5 @@
 import type { RowData, SvgEditorSource, SvgStructureDiagnostic } from '../types';
+import { primitiveToPathD } from '../utils/svgPrimitives.ts';
 import { assertSemanticInputs, assertValidSVG, createSvgReference, reviseSVG, inspectPassiveSVG } from '../schemas/pictos-svg-schema/index.js';
 import { validateGeneration } from '../schemas/pictos-nlu-schema/index.js';
 import { validateDocument as validateComposition } from '../schemas/pictos-composition-schema/index.js';
@@ -26,6 +27,40 @@ export function svgForStructuring(svg: string): string {
     .replace(/<c2pa:manifest\b[^>]*>[A-Za-z0-9+/=\s]*<\/c2pa:manifest>|<c2pa:manifest\b[^>]*\/>/g, '')
     .replace(/<metadata\b[^>]*>\s*<\/metadata>/g, '')
     .replace(/\s+xmlns:c2pa\s*=\s*("[^"]*"|'[^']*')/, '');
+}
+
+const PRIMITIVE_GEOMETRY: Record<string, string[]> = {
+  rect: ['x', 'y', 'width', 'height', 'rx', 'ry'], circle: ['cx', 'cy', 'r'],
+  ellipse: ['cx', 'cy', 'rx', 'ry'], polygon: ['points'], polyline: ['points'],
+};
+
+/**
+ * The structuring pipeline only understands <path>. Native-SVG models (Quiver
+ * draws heads as <circle>, bodies as <rect>/<ellipse>) would otherwise lose those
+ * shapes. Each primitive becomes a <path> with the same attributes; `line` stays.
+ */
+export function primitivesToPaths(svg: string): string {
+  if (!/<(rect|circle|ellipse|polygon|polyline)\b/.test(svg)) return svg;
+  const doc = new DOMParser().parseFromString(svg, 'image/svg+xml');
+  if (doc.getElementsByTagName('parsererror').length) return svg;
+  const inert = (el: Element) => {
+    for (let n = el.parentNode as Element | null; n && n.nodeType === 1; n = n.parentNode as Element | null) {
+      if (['defs', 'clipPath', 'mask', 'pattern', 'symbol'].includes(n.tagName)) return true;
+    }
+    return false;
+  };
+  for (const tag of Object.keys(PRIMITIVE_GEOMETRY)) {
+    for (const el of Array.from(doc.getElementsByTagName(tag))) {
+      // ponytail: rounded rect corners (rx/ry) become square; add arcs if a model relies on them.
+      const d = inert(el) ? null : primitiveToPathD(el);
+      if (!d) continue;
+      const path = doc.createElementNS('http://www.w3.org/2000/svg', 'path');
+      for (const { name, value } of Array.from(el.attributes)) if (!PRIMITIVE_GEOMETRY[tag].includes(name)) path.setAttribute(name, value);
+      path.setAttribute('d', d);
+      el.parentNode!.replaceChild(path, el);
+    }
+  }
+  return new XMLSerializer().serializeToString(doc);
 }
 
 export function canStructureSVG(row: Partial<RowData>): SvgStructureEligibility {

@@ -77,10 +77,11 @@ export const MODEL_CATALOG = {
   'recraftv4_1_pro': image('Recraft V4.1 Pro (raster)', 'recraft', 'bitmap', 0.21, recraftSource, { size: '2K' }, 'active'),
   'recraftv4_1_utility_pro': image('Recraft V4.1 Utility Pro (raster)', 'recraft', 'bitmap', 0.21, recraftSource, { size: '2K' }, 'active'),
   // QuiverAI Arrow 2, native SVG (research/2026-11-10_quiver-arrow2): 8/8 clean pictograms,
-  // p50 29 s, no gradients or text with the style in `instructions`. Token-priced
+  // p50 29 s, no gradients or text with the style in `instructions`. Verified in the app
+  // 2026-11-10: PRODUCIR through worker/poll, then ESTRUCTURAR at 0 % fidelity loss. Token-priced
   // ($4 in / $20 out per 1M); US$0.066 median per pictogram, US$1 held per request.
   'arrow-2': { ...image('QuiverAI Arrow 2 (vector)', 'quiver', 'vector', 0.07, quiverSource,
-    { promptCostsExtra: true }, 'experimental'), pricingCheckedAt: '2026-11-10',
+    { promptCostsExtra: true }, 'active'), pricingCheckedAt: '2026-11-10',
     // Server pipeline batch runs rows in sequence inside a 15-min background function.
     batchMaxRows: 10 },
 

@@ -4,7 +4,7 @@
   "version": "2.8.0",
   "type": "module",
   "scripts": {
-    "dev": "npm run copy-schemas && npm run optimize-thumbs && netlify dev",
+    "dev": "rm -rf dist && npm run copy-schemas && npm run optimize-thumbs && netlify dev",
     "build": "npm run copy-schemas && npm run optimize-thumbs && vite build",
     "preview": "npm run copy-schemas && vite preview",
     "test": "node --test \"netlify/functions/**/*.test.mjs\" \"services/**/*.test.ts\" \"utils/**/*.test.ts\"",
