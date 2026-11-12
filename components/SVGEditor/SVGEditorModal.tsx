@@ -10,7 +10,7 @@ import { SelectionToolbar } from './SelectionToolbar';
 import type { StyleDefinition } from '../../lib/style-editor/lib/types';
 import type { GlobalConfig } from '../../types';
 import { StyleEditor } from '../PictoForge/StyleEditor';
-import { convertInlineAttrsToCssRules, citedClassNames, styleIsCited } from '../../utils/styleUtils';
+import { convertInlineAttrsToCssRules, citedClassNames, styleIsCited, parseCssToStyleDefinitions, getSvgStyleText } from '../../utils/styleUtils';
 import { bakeDocumentTransforms } from './editor/geometry';
 import { handleToolbarKeyDown } from './editor/toolbarKeydown';
 
@@ -110,6 +110,7 @@ export const SVGEditorModal: React.FC<SVGEditorModalProps> = ({
     const [currentSvg, setCurrentSvg] = useState(initialSvg);
     const loadSVG = useSVGEditorStore(state => state.loadSVG);
     const setStyles = useSVGEditorStore(state => state.setStyles);
+    const applyLibraryChanges = useSVGEditorStore(state => state.applyLibraryChanges);
     const setSvgSource = useSVGEditorStore(state => state.setSvgSource);
     const svgDocument = useSVGEditorStore(state => state.svgDocument);
     const undo = useSVGEditorStore(state => state.undo);
@@ -185,6 +186,20 @@ export const SVGEditorModal: React.FC<SVGEditorModalProps> = ({
                 }
                 const cleanedSvg = convertInlineAttrsToCssRules(svg);
                 loadSVG(cleanedSvg);
+                // The document's own rules win for its classes (loadSVG); the
+                // classes the library palette lacks join it, so other pictograms
+                // can cite them. A class the palette defines differently stays a
+                // local variant: overwriting it would restyle the library.
+                // Without a palette of its own the library uses the canonical
+                // sheet, which already has these classes.
+                const palette = config?.svgStyleDefs;
+                if (palette && onUpdateConfig) {
+                    const known = new Set(palette.flatMap(st => st.selectors));
+                    const missing = parseCssToStyleDefinitions(getSvgStyleText(cleanedSvg))
+                        .map(st => ({ ...st, selectors: st.selectors.filter(sel => !known.has(sel)) }))
+                        .filter(st => st.selectors.length > 0);
+                    if (missing.length) onUpdateConfig({ ...config, svgStyleDefs: [...palette, ...missing] });
+                }
             }
         }
 
@@ -499,10 +514,10 @@ export const SVGEditorModal: React.FC<SVGEditorModalProps> = ({
                     classesInUse={classesInUseHere}
                     onUpdateConfig={(newConfig) => {
                         onUpdateConfig(newConfig);
-                        // Refresh styles in the SVG editor store
-                        if (newConfig.svgStyleDefs) {
-                            setStyles(newConfig.svgStyleDefs);
-                        }
+                        // Only the classes edited in the palette reach this
+                        // document; the rest keep the document's own rules.
+                        const before = new Set((config.svgStyleDefs ?? []).map(st => JSON.stringify(st)));
+                        applyLibraryChanges((newConfig.svgStyleDefs ?? []).filter(st => !before.has(JSON.stringify(st))));
                     }}
                     onClose={() => setShowStyleEditor(false)}
                 />

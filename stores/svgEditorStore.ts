@@ -16,6 +16,7 @@ import {
     extractLibraryRules,
     setOverrideRule,
     removeOverrideRule,
+    removeShapeRules,
     citedClassNames,
     styleIsCited,
     type OverrideMap,
@@ -164,7 +165,10 @@ export interface EditorState {
     // Class application (additive, does NOT strip inline styles)
     addClassToElement: (elementId: string, className: string) => void;
     stripInlineStyles: (elementId: string) => void;
+    removeShapeColor: (elementId: string) => void;
     setStyles: (styles: StyleDefinition[]) => void;
+    /** Applies edited library classes over the document's, keeping the rest. */
+    applyLibraryChanges: (changed: StyleDefinition[]) => void;
     setLibraryPalette: (palette: LibraryPalette | null) => void;
     setKeyframes: (keyframes: KeyframeDefinition[]) => void;
     setElementClasses: (id: string, classes: string[]) => void;
@@ -272,16 +276,18 @@ const buildLibraryValuesMap = (styles: StyleDefinition[]): Map<string, Record<st
     return map;
 };
 
-const mergeStyles = (base: StyleDefinition[], extra: StyleDefinition[]) => {
-    const byKey = new Map<string, StyleDefinition>();
-    const keyFor = (s: StyleDefinition) => s.selectors.slice().sort().join(',');
-    base.forEach((style) => {
-        byKey.set(keyFor(style), style);
-    });
-    extra.forEach((style) => {
-        byKey.set(keyFor(style), style);
-    });
-    return Array.from(byKey.values());
+/**
+ * `extra` wins per class: each of its selectors is taken out of the `base`
+ * styles (a base style left without selectors is dropped). On load `extra` is
+ * the document's own rules, so a structured SVG keeps the look it carries; on
+ * a palette edit it is the edited library classes.
+ */
+export const mergeStyles = (base: StyleDefinition[], extra: StyleDefinition[]) => {
+    const taken = new Set(extra.flatMap(s => s.selectors));
+    const kept = base
+        .map(s => ({ ...s, selectors: s.selectors.filter(sel => !taken.has(sel)) }))
+        .filter(s => s.selectors.length > 0);
+    return [...kept, ...extra];
 };
 
 const getElementClassesFromSvg = (svg: string, id: string): string[] => {
@@ -622,6 +628,14 @@ export const useSVGEditorStore = create<EditorState>((set, get) => {
         },
 
         setLibraryPalette: (palette) => set({ libraryPalette: palette }),
+
+        applyLibraryChanges: (changed: StyleDefinition[]) => {
+            if (!changed.length) return;
+            const styles = mergeStyles(get().styleDefinitions, changed);
+            set({ styleDefinitions: styles, libraryValues: buildLibraryValuesMap(styles) });
+            const svgDocument = get().svgDocument;
+            if (svgDocument && get().svgSource !== 'raw') commitSvg(applyUsedStylesToSvg(svgDocument, styles, get().keyframes));
+        },
 
         setStyles: (styles: StyleDefinition[]) => {
             set({ styleDefinitions: styles });
@@ -984,23 +998,33 @@ export const useSVGEditorStore = create<EditorState>((set, get) => {
             commitSvg(svg);
         },
 
+        /**
+         * Clears every local paint of the element and its descendants: inline
+         * presentation attrs, `#id.from-inline` rules and ESTRUCTURAR's per-shape
+         * colours, so classes decide the look again.
+         */
         stripInlineStyles: (elementId: string) => {
             const svgDocument = get().svgDocument;
             if (!svgDocument) return;
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(svgDocument, 'image/svg+xml');
-
-            const stripEl = (el: Element) => {
-                ['fill', 'stroke', 'stroke-width', 'opacity', 'style'].forEach(attr => el.removeAttribute(attr));
-                // Recurse into children
-                Array.from(el.children).forEach(child => stripEl(child));
-            };
-
+            const doc = new DOMParser().parseFromString(svgDocument, 'image/svg+xml');
             const el = doc.querySelector(`#${CSS.escape(elementId)}`);
             if (!el) return;
-            stripEl(el);
-            const svg = new XMLSerializer().serializeToString(doc);
+            const targets = [el, ...Array.from(el.querySelectorAll('*'))];
+            targets.forEach(t => ['fill', 'stroke', 'stroke-width', 'opacity', 'style'].forEach(attr => t.removeAttribute(attr)));
+            const ids = targets.map(t => t.getAttribute('id')).filter((id): id is string => !!id);
+            let svg = new XMLSerializer().serializeToString(doc);
+            // Only rebuild the block when there is a from-inline rule to drop.
+            const fromInline = parseOverrideRules(getSvgStyleText(svg));
+            ids.filter(id => fromInline.get(id)?.has('from-inline')).forEach(id => { svg = removeOverrideRule(svg, id, 'from-inline'); });
+            svg = removeShapeRules(svg, ids);
+            set({ overrideMap: parseOverrideRules(getSvgStyleText(svg)) });
             commitSvg(svg);
+        },
+
+        removeShapeColor: (elementId: string) => {
+            const svgDocument = get().svgDocument;
+            if (!svgDocument) return;
+            commitSvg(removeShapeRules(svgDocument, [elementId]));
         },
 
         // ── Two-level CSS model actions ────────────────────────────────────────
@@ -1033,6 +1057,9 @@ export const useSVGEditorStore = create<EditorState>((set, get) => {
                 });
                 svg = new XMLSerializer().serializeToString(doc);
             }
+            // A per-shape colour (#id { fill }) outranks any class: drop it, or
+            // the cited class would not show.
+            svg = removeShapeRules(svg, [elementId]);
 
             set({ overrideMap: parseOverrideRules(getSvgStyleText(svg)) });
             commitSvg(svg);

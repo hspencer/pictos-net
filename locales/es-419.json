@@ -645,7 +645,12 @@
     "define": "Definir",
     "localIndicator": "local",
     "outlineMode": "Modo contorno",
-    "childFills": "Rellenos de los hijos"
+    "childFills": "Rellenos de los hijos",
+    "shapeColor": "Color propio de la forma",
+    "shapeColorHint": "Lo asignó ESTRUCTURAR y pesa más que cualquier clase.",
+    "removeLocalRule": "Quitar",
+    "inheritsFrom": "Hereda {cls} del grupo «{id}»",
+    "selectParent": "Seleccionar grupo"
   },
   "onboarding": {
     "skipAll": "Saltar",

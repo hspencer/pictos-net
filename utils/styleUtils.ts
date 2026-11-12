@@ -174,6 +174,30 @@ export function extractPreservedRules(cssText: string): string {
   return blocks.join('\n\n');
 }
 
+// ── Per-shape colour rules (#id { ... }) ───────────────────────────────────
+
+const escapeRe = (v: string) => v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const shapeRuleRe = (id: string) => new RegExp(`(^|[}\\s])#${escapeRe(id)}\\s*\\{([^}]*)\\}\\s*`, 'g');
+
+/** Declarations of the per-shape rule `#id { ... }` ESTRUCTURAR writes, or null. */
+export function getShapeRule(cssText: string, id: string): Record<string, string> | null {
+  const m = shapeRuleRe(id).exec(cssText.replace(/\/\*[\s\S]*?\*\//g, ''));
+  if (!m) return null;
+  const out: Record<string, string> = {};
+  m[2].split(';').forEach(rule => {
+    const idx = rule.indexOf(':');
+    if (idx > 0) out[rule.slice(0, idx).trim()] = rule.slice(idx + 1).trim();
+  });
+  return Object.keys(out).length ? out : null;
+}
+
+/** Drops the per-shape rules `#id { ... }` of the given ids from the <style>. */
+export function removeShapeRules(svgDocument: string, ids: string[]): string {
+  const css = getSvgStyleText(svgDocument);
+  const next = ids.reduce((text, id) => text.replace(shapeRuleRe(id), '$1'), css);
+  return next === css ? svgDocument : updateSvgStyleText(svgDocument, next, !next.trim());
+}
+
 // ── Override rule mutation ─────────────────────────────────────────────────
 
 /**
@@ -339,8 +363,9 @@ export const parseCssToStyleDefinitions = (cssText: string): StyleDefinition[] =
 
     const selectors = selectorText
       .split(',')
-      .map((sel) => sel.trim())
-      .filter((sel) => sel.length > 0 && sel.startsWith('.'));
+      // generateCssString scopes every class as `svg .name`; read it back.
+      .map((sel) => sel.trim().replace(/^svg\s+/, ''))
+      .filter((sel) => sel.length > 0 && /^\.[\w-]+$/.test(sel));
 
     if (selectors.length === 0) continue;
 

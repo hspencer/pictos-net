@@ -112,6 +112,18 @@ Una clase creada en el editor ("Definir", "Convertir en clase" o "Definir nueva 
 
 Una clase que ningún pictograma de la librería cita (ni el documento abierto) puede quitarse de la paleta: con la papelera en la paleta del editor, con "Eliminar" en el editor de estilos, o con "Quitar sin uso" para todas a la vez. Una clase en uso no se puede eliminar, y el editor lo explica. Esto vale también para las clases base: cada librería puede quedarse con un stock menor, toda librería nueva parte del conjunto base completo, y "Restaurar defaults" lo devuelve.
 
+### Las reglas del SVG mandan sobre la paleta
+
+Al abrir un SVG estructurado, las reglas de clase que trae su `<style>` mandan para sus clases (`mergeStyles` en `stores/svgEditorStore.ts`, desde el 12 de noviembre de 2026): el pictograma se ve en el editor igual que en la fila. Antes la paleta de la librería las reemplazaba al abrir, y el pictograma perdía, por ejemplo, el borde blanco de `.main`. Las clases que la paleta de la librería no tiene se le agregan en ese momento, en un solo cambio de configuración, y quedan disponibles para los demás pictogramas. Una clase que la paleta define con otros valores queda como variante local de ese SVG: sobrescribir la paleta cambiaría el aspecto del resto de la librería. Una librería sin paleta propia usa la hoja canónica y no recibe clases.
+
+Editar la paleta en el editor de estilos aplica al documento abierto solo las clases cambiadas (`applyLibraryChanges`); las demás conservan las reglas del SVG.
+
+`parseCssToStyleDefinitions()` lee los selectores en la forma `svg .clase` que escribe `generateCssString()`. Hasta el 12 de noviembre de 2026 solo aceptaba `.clase`, así que la primera edición borraba las clases que el SVG definía y la paleta no.
+
+### Colores propios de cada forma
+
+Las reglas `#id { fill: … }` que escribe ESTRUCTURAR pesan más que cualquier clase. El panel las muestra como "Color propio de la forma" con un botón para quitarlas; citar una clase en esa forma también las quita, porque de lo contrario la clase no se vería. "Limpiar estilos inline" quita del elemento y de todo lo que contiene los atributos de presentación, las reglas `from-inline` y estos colores. Una forma sin clase dentro de un grupo con clase muestra en el panel que hereda la clase del grupo y permite seleccionarlo.
+
 El anfitrión (`SVGEditorModal`) instala en el store la paleta de la librería (`setLibraryPalette`: guardar, quitar y saber si una clase está en uso). App calcula las clases en uso a partir de los SVG visibles de las filas (estructurado, borrador y trazado), excluida la fila abierta, cuyo documento vivo cuenta en su lugar.
 
 ## Pipeline Cleanup (on load)

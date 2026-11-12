@@ -6,6 +6,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { StylePickerModal } from './StylePickerModal';
 import EditModal from '../../lib/style-editor/lib/components/EditModal';
 import { INITIAL_KEYFRAMES } from '../../lib/style-editor/lib/keyframeConstants';
+import { getShapeRule, getSvgStyleText } from '../../utils/styleUtils';
 
 // ── RenameField ─────────────────────────────────────────────────────────────
 const RenameField: React.FC<{ elementId: string }> = ({ elementId }) => {
@@ -557,9 +558,15 @@ export const StylePanel: React.FC<StylePanelProps> = ({ styleDefs = [], svgSourc
         getResolvedClassValues,
         saveStyleDefinition,
         styleDefinitions,
+        removeShapeColor,
+        selectElement,
     } = useSVGEditorStore();
 
     const [currentClasses, setCurrentClasses] = useState<string[]>([]);
+    // The nearest classed ancestor paints an unclassed shape; say so, or the
+    // panel reads "no styles" for a shape that visibly has one.
+    const [inherited, setInherited] = useState<{ id: string; cls: string } | null>(null);
+    const shapeColor = selectedElementId && svgDocument ? getShapeRule(getSvgStyleText(svgDocument), selectedElementId) : null;
     const [isPickerOpen, setIsPickerOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editModalPreset, setEditModalPreset] = useState<StyleDefinition | null>(null);
@@ -574,6 +581,10 @@ export const StylePanel: React.FC<StylePanelProps> = ({ styleDefs = [], svgSourc
         if (!el) { setCurrentClasses([]); return; }
         const classAttr = el.getAttribute('class') || '';
         setCurrentClasses(classAttr.split(' ').filter(Boolean));
+        const owner = el.parentElement?.closest('[class]');
+        setInherited(owner && owner.id && owner.localName !== 'svg'
+            ? { id: owner.id, cls: (owner.getAttribute('class') || '').split(/\s+/).filter(Boolean).map(c => `.${c}`).join(' ') }
+            : null);
     }, [selectedElementId, svgDocument]);
 
     // Close modals when selection changes
@@ -681,9 +692,39 @@ export const StylePanel: React.FC<StylePanelProps> = ({ styleDefs = [], svgSourc
                         </div>
                     </div>
 
+                    {shapeColor && (
+                        <div className="border border-amber-200 rounded-lg bg-amber-50 px-2.5 py-2 space-y-1">
+                            <div className="flex items-center justify-between">
+                                <span className="text-xs font-bold text-amber-700">{t('svgEditor.shapeColor')}</span>
+                                <button
+                                    onClick={() => removeShapeColor(selectedElementId)}
+                                    className="flex items-center gap-0.5 text-xs text-slate-500 hover:text-red-500 hover:bg-red-50 px-1.5 py-0.5 rounded transition-colors"
+                                >
+                                    <X size={9} aria-hidden="true" />
+                                    {t('svgEditor.removeLocalRule')}
+                                </button>
+                            </div>
+                            {Object.entries(shapeColor).map(([prop, val]) => (
+                                <div key={prop} className="flex items-center gap-1.5 text-xs font-mono text-slate-600">
+                                    {prop === 'fill' && <span className="w-3 h-3 rounded-sm border border-slate-300" style={{ backgroundColor: val }} />}
+                                    {prop}: {val}
+                                </div>
+                            ))}
+                            <p className="text-xs text-amber-600">{t('svgEditor.shapeColorHint')}</p>
+                        </div>
+                    )}
+
                     {currentClasses.length === 0 ? (
-                        <div className="py-6 text-center">
+                        <div className="py-6 text-center space-y-1.5">
                             <p className="text-xs text-slate-500 italic">{t('svgEditor.noStylesAssigned')}</p>
+                            {inherited && (
+                                <p className="text-xs text-slate-600">
+                                    {t('svgEditor.inheritsFrom', { cls: inherited.cls, id: inherited.id })}{' '}
+                                    <button onClick={() => selectElement(inherited.id)} className="text-violet-600 hover:underline">
+                                        {t('svgEditor.selectParent')}
+                                    </button>
+                                </p>
+                            )}
                         </div>
                     ) : (
                         currentClasses.map(cls => {
@@ -718,7 +759,16 @@ export const StylePanel: React.FC<StylePanelProps> = ({ styleDefs = [], svgSourc
                             <div className="border border-amber-200 rounded-lg overflow-hidden bg-amber-50">
                                 <div className="px-2.5 py-1.5 border-b border-amber-100 flex items-center justify-between">
                                     <span className="text-xs font-mono text-amber-700 font-bold">{t('svgEditor.fromInlineCode')}</span>
-                                    <span className="text-xs text-amber-600">{t('svgEditor.fromInlineLabel')}</span>
+                                    <span className="flex items-center gap-1 text-xs text-amber-600">
+                                        {t('svgEditor.fromInlineLabel')}
+                                        <button
+                                            onClick={() => restoreClassToLibrary(selectedElementId, 'from-inline')}
+                                            className="flex items-center gap-0.5 text-slate-500 hover:text-red-500 hover:bg-red-50 px-1.5 py-0.5 rounded transition-colors"
+                                        >
+                                            <X size={9} aria-hidden="true" />
+                                            {t('svgEditor.removeLocalRule')}
+                                        </button>
+                                    </span>
                                 </div>
                                 <div className="px-2.5 py-2 space-y-1.5">
                                     {Object.entries(fromInline).map(([prop, val]) => (

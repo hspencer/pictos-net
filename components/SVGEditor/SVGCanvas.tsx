@@ -235,7 +235,7 @@ export default function SVGCanvas() {
     useEffect(() => {
         if (!svgElement) return;
         const onDown = (event: MouseEvent) => {
-            if (event.button !== 0 || event.shiftKey) return;
+            if (event.button !== 0 || event.shiftKey || event.metaKey || event.ctrlKey) return;
             const state = useSVGEditorStore.getState();
             if (state.pathEditMode || state.activeTool !== 'select') return;
             const target = event.target;
@@ -285,7 +285,7 @@ export default function SVGCanvas() {
 
             if (id) {
                 const current = useSVGEditorStore.getState().selectedElementIds;
-                if (event.shiftKey) {
+                if (event.shiftKey || event.metaKey || event.ctrlKey) {
                     toggleSelection(id);
                 } else if (current.size > 1 && current.has(id)) {
                     // A click on a member of a multi-selection keeps the selection

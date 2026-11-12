@@ -645,7 +645,12 @@
     "define": "Define",
     "localIndicator": "local",
     "outlineMode": "Outline mode",
-    "childFills": "Child fills"
+    "childFills": "Child fills",
+    "shapeColor": "Shape's own colour",
+    "shapeColorHint": "Set by Structure; it outranks any class.",
+    "removeLocalRule": "Remove",
+    "inheritsFrom": "Inherits {cls} from group “{id}”",
+    "selectParent": "Select group"
   },
   "onboarding": {
     "skipAll": "Skip",

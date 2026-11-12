@@ -28,7 +28,6 @@ interface TreeNodeProps {
     onDropNode: (node: SVGElement, mode: DropMode) => void;
     dragOverId: string | null;
     dragMode: DropMode | null;
-    isMultiSelected: boolean;
     onShiftClick: (id: string) => void;
 }
 
@@ -58,7 +57,6 @@ function TreeNode({
     onDropNode,
     dragOverId,
     dragMode,
-    isMultiSelected,
     onShiftClick,
 }: TreeNodeProps) {
     const { t } = useTranslation();
@@ -76,6 +74,7 @@ function TreeNode({
     const hasChildren = node.children && node.children.length > 0;
     const isContainer = node.tagName.toLowerCase() === 'g' || hasChildren;
     const isSelected = selectedElementId === node.id;
+    const isMultiSelected = useSVGEditorStore(s => s.selectedElementIds.has(node.id));
     const isDragOver = dragOverId === node.id;
     const dragIndicator =
         isDragOver && dragMode === 'before'
@@ -118,11 +117,11 @@ function TreeNode({
         <div id={`tree-node-${node.id}`} className="select-none">
             <div
                 ref={rowRef}
-                className={`group flex items-center gap-1 px-2 py-1.5 hover:bg-slate-100 transition-colors text-slate-700 ${dragIndicator} ${isSelected || isMultiSelected ? 'bg-slate-100' : ''}`}
+                className={`group flex items-center gap-1 px-2 py-1.5 hover:bg-slate-100 transition-colors text-slate-700 ${dragIndicator} ${isSelected || isMultiSelected ? 'bg-blue-100 text-blue-900' : ''}`}
                 style={{ paddingLeft: `${level * 14 + 8}px` }}
                 onClick={(e) => {
                     if (pathEditMode) return;
-                    if (e.shiftKey) {
+                    if (e.shiftKey || e.metaKey || e.ctrlKey) {
                         onShiftClick(node.id);
                     } else {
                         selectElement(node.id);
@@ -336,7 +335,6 @@ function TreeNode({
                             onDropNode={onDropNode}
                             dragOverId={dragOverId}
                             dragMode={dragMode}
-                            isMultiSelected={isMultiSelected}
                             onShiftClick={onShiftClick}
                         />
                     ))}
@@ -460,7 +458,6 @@ export default function SemanticTree() {
                         }}
                         dragOverId={dragOverId}
                         dragMode={dragMode}
-                        isMultiSelected={selectedElementIds.has(node.id)}
                         onShiftClick={(id) => toggleSelection(id)}
                     />
                 ))

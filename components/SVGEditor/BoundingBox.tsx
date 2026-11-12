@@ -50,6 +50,8 @@ interface DragStart {
     center: { x: number; y: number };  // for rotate
     startAngle: number;                // for rotate (radians)
     moved: boolean;                    // past the drag threshold
+    /** Elements the gesture applies to: the whole selection for a move, this element otherwise. */
+    peers: { id: string; el: SVGGraphicsElement; base: string | null }[];
 }
 
 /** Screen pixels the pointer must travel before a press becomes a drag. */
@@ -162,6 +164,21 @@ export default function BoundingBox({ svgElement, elementId, containerElement, o
         }
     };
 
+    /** A move carries the whole selection (specs/vector-editor.allium CommitGesture);
+     *  members nested in another selected member ride along with it.
+     *  ponytail: scale and rotate still act on the pressed element's own box;
+     *  a selection-wide box is the upgrade if multi-scale is needed. */
+    const gesturePeers = (handle: HandleType) => {
+        const own = targetElementRef.current!;
+        const ids = handle === 'move' ? Array.from(useSVGEditorStore.getState().selectedElementIds) : [elementId];
+        const els = ids.map(id => ({ id, el: svgElement.querySelector(`#${CSS.escape(id)}`) }))
+            .filter((p): p is { id: string; el: SVGGraphicsElement } => p.el instanceof SVGGraphicsElement);
+        if (!els.some(p => p.el === own)) els.push({ id: elementId, el: own });
+        return els
+            .filter(p => !els.some(q => q.el !== p.el && q.el.contains(p.el)))
+            .map(p => ({ ...p, base: p.el.getAttribute('transform') }));
+    };
+
     const handleMouseDown = (e: { clientX: number; clientY: number; stopPropagation(): void }, handle: HandleType) => {
         e.stopPropagation();
         if (!bbox || !targetElementRef.current) return;
@@ -182,6 +199,7 @@ export default function BoundingBox({ svgElement, elementId, containerElement, o
             center,
             startAngle,
             moved: false,
+            peers: gesturePeers(handle),
         };
     };
 
@@ -200,7 +218,7 @@ export default function BoundingBox({ svgElement, elementId, containerElement, o
     // See specs/vector-editor.allium and VectorCraft's doc/src/hit.rs.
     useEffect(() => {
         const onDown = (e: MouseEvent) => {
-            if (e.button !== 0 || e.shiftKey) return;
+            if (e.button !== 0 || e.shiftKey || e.metaKey || e.ctrlKey) return;
             if (useSVGEditorStore.getState().pathEditMode) return;
             const t = e.target;
             if (!(t instanceof Element)) return;
@@ -243,7 +261,9 @@ export default function BoundingBox({ svgElement, elementId, containerElement, o
             gesture = resizeMatrix(activeHandle, ds.bbox, dx, dy, e.altKey, e.shiftKey);
         }
 
-        previewGesture(el, gesture, base, svgElement);
+        for (const p of ds.peers) {
+            previewGesture(p.el, gesture, p.el === el ? base : parseTransformToMatrix(p.base), svgElement);
+        }
         updateBoundingBox();
     };
 
@@ -252,36 +272,36 @@ export default function BoundingBox({ svgElement, elementId, containerElement, o
      *  semantic guard refuses it), the on-screen preview is reverted: the
      *  canvas must never show an edit the document does not hold. */
     const commit = () => {
-        const el = targetElementRef.current;
-        if (!el) return;
+        const peers = dragStartRef.current?.peers ?? [];
+        if (!peers.length) return;
         const revert = () => {
-            const base = dragStartRef.current?.baseTransform ?? null;
-            if (base) el.setAttribute('transform', base);
-            else el.removeAttribute('transform');
+            for (const p of peers) {
+                if (p.base) p.el.setAttribute('transform', p.base);
+                else p.el.removeAttribute('transform');
+            }
         };
-        const finalTransform = el.getAttribute('transform');
         const { svgDocument, commitGeometry } = useSVGEditorStore.getState();
         if (!svgDocument) return revert();
 
         const doc = new DOMParser().parseFromString(svgDocument, 'image/svg+xml');
         if (doc.querySelector('parsererror')) return revert();
-        const target = doc.querySelector(`[id="${CSS.escape(elementId)}"]`);
-        if (!target) {
-            console.warn(`[BoundingBox] ${elementId} is not in the document; gesture reverted`);
-            return revert();
+        const groupIds: string[] = [];
+        for (const p of peers) {
+            const target = doc.querySelector(`[id="${CSS.escape(p.id)}"]`);
+            if (!target) {
+                console.warn(`[BoundingBox] ${p.id} is not in the document; gesture reverted`);
+                return revert();
+            }
+            const finalTransform = p.el.getAttribute('transform');
+            if (finalTransform) target.setAttribute('transform', finalTransform);
+            else target.removeAttribute('transform');
+            // Groups distribute the transform into children (kernel-backed flatten).
+            if (target.tagName.toLowerCase() === 'g') groupIds.push(p.id);
+            else bakeElementTransform(target); // keep-primitive bake
         }
 
-        if (finalTransform) target.setAttribute('transform', finalTransform);
-        else target.removeAttribute('transform');
-
-        let serialized: string;
-        if (target.tagName.toLowerCase() === 'g') {
-            // Groups: distribute the transform into children (kernel-backed flatten).
-            serialized = flattenGroupTransforms(new XMLSerializer().serializeToString(doc), [elementId]);
-        } else {
-            bakeElementTransform(target); // keep-primitive bake
-            serialized = new XMLSerializer().serializeToString(doc);
-        }
+        let serialized = new XMLSerializer().serializeToString(doc);
+        if (groupIds.length) serialized = flattenGroupTransforms(serialized, groupIds);
         serialized = serialized
             .replace(/ xmlns="http:\/\/www\.w3\.org\/2000\/svg"/g, '')
             .replace(/<svg /, '<svg xmlns="http://www.w3.org/2000/svg" ');

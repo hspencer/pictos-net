@@ -4,7 +4,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { extractPreservedRules, parseOverrideRules, citedClassNames, styleIsCited } from './styleUtils.ts';
+import { extractPreservedRules, parseOverrideRules, citedClassNames, styleIsCited, parseCssToStyleDefinitions, getShapeRule } from './styleUtils.ts';
 
 const CSS = `
 svg .main, svg .primary { fill: #1a1a1a; stroke: #fff; }
@@ -37,4 +37,16 @@ test('citedClassNames reads class attributes, not style rules; styleIsCited matc
     assert.deepEqual([...cited].sort(), ['f', 'k', 'main']);
     assert.equal(styleIsCited({ id: '1', selectors: ['.k', '.x'], rules: [] }, cited), true);
     assert.equal(styleIsCited({ id: '2', selectors: ['.unused'], rules: [] }, cited), false);
+});
+
+test('classes written as `svg .name` read back (generateCssString round trip)', () => {
+    const defs = parseCssToStyleDefinitions(CSS);
+    assert.deepEqual(defs.map(d => d.selectors), [['.main', '.primary'], ['.w', '.white']]);
+    assert.deepEqual(defs[0].rules.map(r => r.property), ['fill', 'stroke']);
+});
+
+test('a per-shape colour rule is matched by its exact id', () => {
+    assert.deepEqual(getShapeRule(CSS, 'mamá-1'), { fill: '#505052' });
+    assert.equal(getShapeRule(CSS, 'mamá'), null);
+    assert.equal(getShapeRule(CSS, 'mamá-2'), null, '#mamá-2.main is an override, not a shape colour');
 });

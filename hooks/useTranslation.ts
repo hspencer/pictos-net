@@ -55,9 +55,9 @@ export const useTranslation = () => {
       return key;
     }
 
-    // Simple variable interpolation
+    // Variable interpolation: {name}, and {{name}} as some catalog entries write it
     if (vars) {
-      return value.replace(/\{(\w+)\}/g, (match, varName) => {
+      return value.replace(/\{\{(\w+)\}\}|\{(\w+)\}/g, (match, a, b) => { const varName = a ?? b;
         return vars[varName] !== undefined ? String(vars[varName]) : match;
       });
     }
