@@ -138,7 +138,8 @@ export const MODEL_CATALOG = {
   'recraftv4_styles_vector': { ...image('Recraft V4 Styles (vector)', 'recraft', 'vector', 0.05, recraftSource, {}, 'retired'), requiresStyle: true },
   'recraftv4_styles_pro': { ...image('Recraft V4 Styles Pro (raster)', 'recraft', 'bitmap', 0.10, recraftSource, { size: '2K' }, 'retired'), requiresStyle: true },
   'recraftv4_styles_pro_vector': { ...image('Recraft V4 Styles Pro (vector)', 'recraft', 'vector', 0.12, recraftSource, {}, 'retired'), requiresStyle: true },
-  // Text Gemini 2.5 retired by Google on 2026-10-20; Pro already returns 404.
+  // Text Gemini 2.5: Google announced retirement for 2026-10-20 and Pro returns 404, but Flash
+  // still answered 200 on Vertex on 2026-11-12. Kept retired: superseded and on its way out.
   'gemini-2.5-flash': { ...text('Gemini 2.5 Flash', 'gemini', [1, 2, 5], 0.30, 2.50, vertexSource, {}, 'retired'), thinking: { budget: 0 } },
   'gemini-2.5-pro': { ...text('Gemini 2.5 Pro', 'gemini', [1, 2, 5], 1.25, 10, vertexSource, {
     longContext: { aboveInputTokens: 200000, inputUsdPerMillion: 2.50, outputUsdPerMillion: 15 },

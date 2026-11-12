@@ -45,7 +45,7 @@ En la serie parcial de Flash-Lite 3.5 hay un intento sin uso conocido: su costo 
 - Gemini 3.8 P1: la original se detuvo por `Provider request deadline exceeded` (17/18 válidos); `-r2` completó 48/48, pero con p95 de 27,6 s. P2 tuvo p95 de 41,7 s.
 - Gemini 3.5 Flash-Lite P1: ambas corridas se interrumpieron tras seis intentos por `MAX_TOKENS`, con uso incierto; 3/6 y 4/6 válidos. P2 terminó con 47/48: un prompt refería un elemento desconocido.
 - Gemini 3.1 Flash-Lite P1: 46/48; dos errores de `/lang` para `saludo`.
-- Gemini 4 Argon y Carbon: una prueba inicial P1 por modelo; ninguna completó antes del plazo del proveedor. No hay una serie completa que permita compararlos.
+- Gemini 4 Argon y Carbon: la prueba P1 del benchmark (carpeta `smoke/`) agotó el plazo de producción de 75 s en ambos. Una sonda aparte, con el mismo pedido de COMPRENDER y 180 s de plazo (`g4-probe.mjs`), muestra que sí responden con la herramienta y un NLU, pero lentos: Carbon 69,8 s con razonamiento LOW y 86,7 s sin configurarlo; Argon 96,6 s con LOW y más de 180 s sin configurarlo. Ninguno acepta MINIMAL (400). Con unos 500 tokens de salida, eso es del orden de 5 a 7 tokens por segundo: quedan fuera por latencia, no por calidad, que no se midió. Conviene repetir la sonda cuando Google publique cambios de rendimiento.
 
 No se atribuyen las interrupciones de red a un proveedor con certeza, ni se presenta ninguna corrida repetida como garantía de ausencia de fallas futuras.
 
@@ -59,6 +59,17 @@ node scripts/eval/summarize-benchmark.mjs research/2026-11-12_benchmark-texto/p2
 ```
 
 Para repetir una serie pagada, seguir las instrucciones de [investigación](../README.md), con el corpus `scripts/eval/cases/pipeline-es-419.json` para P1 y `research/2026-11-01_benchmark-modelos/corpus/phase2-es-419.json` para P2; usar una carpeta nueva. Los nombres exactos de los corpus utilizados se verifican con sus hashes en los planes.
+
+## Disponibilidad en Vertex
+
+`vertex-models.mjs` lista los modelos de Google publicados en Vertex (34 el 12-11-2026). La lista no prueba que un modelo responda: incluye modelos 2.5 que Google anunció como retirados. Una llamada mínima a cada candidato de texto respondió 200 en `gemini-4-argon`, `gemini-4-carbon`, `gemini-3.8-flash`, `gemini-3.7-flash`, `gemini-3.5-flash`, `gemini-3.5-flash-lite`, `gemini-3.1-flash-lite` y también `gemini-2.5-flash`, que el catálogo mantiene retirado. `gemini-3.5-flash` y `gemini-3.7-flash` no se midieron: los reemplaza 3.8 Flash y no tienen precio publicado en la página de la API de Gemini.
+
+Los precios de los candidatos salen de la página de la API de Gemini (`aistudio.google.com/docs/pricing`); la de Vertex se carga con JavaScript y no pudo leerse. Gemini 4 duplica su precio desde el 1 de diciembre de 2026.
+
+```sh
+node --env-file=.env research/2026-11-12_benchmark-texto/vertex-models.mjs
+node --env-file=.env research/2026-11-12_benchmark-texto/g4-probe.mjs gemini-4-argon none LOW
+```
 
 ## Verificación del cambio
 

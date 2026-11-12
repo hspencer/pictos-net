@@ -42,8 +42,8 @@ RECRAFT_API_KEY=tu_key_aquí
 GOOGLE_SERVICE_ACCOUNT_JSON={"type":"service_account",...}
 ```
 
-- `PICTOS_ANTHROPIC_KEY` (o `ANTHROPIC_API_KEY`): obtenla en [Anthropic Console](https://console.anthropic.com). Fases 1, 2 y 4
-- `OPENAI_API_KEY`: obtenla en [OpenAI Platform](https://platform.openai.com). PRODUCIR por defecto y GPT-6 Luna
+- `PICTOS_ANTHROPIC_KEY` (o `ANTHROPIC_API_KEY`): obtenla en [Anthropic Console](https://console.anthropic.com). Fase 4 y Claude Haiku 5.5 en las fases 1 y 2
+- `OPENAI_API_KEY`: obtenla en [OpenAI Platform](https://platform.openai.com). COMPRENDER, COMPONER (GPT-6 Luna) y PRODUCIR por defecto
 - `RECRAFT_API_KEY`: obtenla en [Recraft](https://www.recraft.ai). Modelos Recraft V4.1 en PRODUCIR
 - `GOOGLE_SERVICE_ACCOUNT_JSON`: cuenta de servicio de Vertex AI en una sola línea. Nano Banana 2 Lite en PRODUCIR y detección de entidades antes de ESTRUCTURAR
 
@@ -103,8 +103,8 @@ Para verificar que el pipeline funciona en local:
 3. Abre `http://localhost:9001`
 4. Ingresa un utterance de prueba (ej: "Quiero beber agua")
 5. El sistema debería generar:
-   - Análisis NLU (fase 1, Claude Haiku 5.5)
-   - Elementos visuales y prompt espacial (fase 2, Claude Haiku 5.5)
+   - Análisis NLU (fase 1, GPT-6 Luna por defecto)
+   - Elementos visuales y prompt espacial (fase 2, GPT-6 Luna por defecto)
    - Imagen (fase 3, GPT Image 2.5 Flare por defecto: bitmap; un modelo Recraft vectorial entrega SVG)
 
 Si encuentras errores de API:

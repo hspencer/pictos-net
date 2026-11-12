@@ -1,5 +1,10 @@
 # PictoNet 2.9.0
 
+## COMPRENDER y COMPONER
+
+- GPT-6 Luna pasa a ser el modelo por defecto de ambas fases y Claude Haiku 5.5 queda como alternativa. En la ronda del 12 de noviembre, los dos terminaron 48/48 válidos por fase; Luna necesitó menos reparaciones y costó cerca de la mitad. Las librerías que fijaron un modelo lo conservan. Evidencia en `research/2026-11-12_benchmark-texto`.
+- Los modelos de texto de Google se midieron y quedan fuera: Gemini 3.1 y 3.5 Flash-Lite incumplen el contrato de COMPRENDER, Gemini 3.8 Flash es más caro y tiene colas largas, y Gemini 4 Argon y Carbon tardan entre 70 y 97 s por llamada.
+
 ## PRODUCIR
 
 - QuiverAI Arrow 2 entra como modelo de PRODUCIR que dibuja SVG nativo. El estilo de la librería viaja aparte del contenido, con un lienzo fijo de 512 y muestreo sobrio. Cada pictograma tarda entre 30 y 60 segundos y cuesta cerca de US$0,07. El lote del servidor admite hasta 10 filas con este modelo. Evidencia en `research/2026-11-10_quiver-arrow2`.

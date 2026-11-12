@@ -27,7 +27,7 @@ El sistema no almacena perfiles, no rastrea sesiones entre visitas, y no constru
 Solo las solicitudes de generación cruzan el límite de tu dispositivo con contenido tuyo, y todas pasan por las funciones del sitio (Netlify Functions), que las reenvían al proveedor sin conservarlas. Según la fase:
 
 - **COMPRENDER y COMPONER**: el enunciado y el contexto configurado (idioma, región, dominio) van a OpenAI por defecto (GPT-6 Luna) o a Anthropic si eliges Claude Haiku 5.5.
-- **PRODUCIR**: el prompt de imagen, que incluye el enunciado, los elementos de la composición y el estilo visual, va a OpenAI, a Google (Vertex AI) o a Recraft, según el modelo elegido.
+- **PRODUCIR**: el prompt de imagen, que incluye el enunciado, los elementos de la composición y el estilo visual, va a OpenAI, a Google (Vertex AI), a Recraft o a Quiver, según el modelo elegido.
 - **ESTRUCTURAR**, cuando lo pides: al estructurar desde el bitmap, la imagen, el enunciado y los nombres de los elementos van primero a Google (Vertex AI) para detectar dónde está dibujado cada uno; luego la imagen original, una copia rasterizada con marcas numeradas, el árbol de elementos y la descripción de las regiones trazadas van a Anthropic. Al estructurar un trazado o un SVG nativo van a Anthropic las imágenes rasterizadas, el árbol de elementos y el código fuente del SVG (hasta 10.000 caracteres).
 
 La imagen generada en PRODUCIR queda en el almacenamiento del sitio solo hasta que tu navegador la recoge; en ese momento se borra. Lo mismo ocurre con los datos de entrada de un trabajo en segundo plano. No escribas información personal sobre otras personas.
@@ -45,3 +45,5 @@ El principio de diseño detrás de estas decisiones es la soberanía del usuario
 ## Licencia y auditabilidad
 
 El código fuente está licenciado bajo Apache 2.0. Los pictogramas generados con la herramienta pueden compartirse bajo CC-BY 4.0 a elección del autor. Todo el código base es público en este repositorio: cualquier afirmación de este documento puede verificarse contra el código, y los problemas o preguntas sobre el manejo de datos son bienvenidos a través del rastreador de problemas del repositorio.
+
+*Actualizado el 12 de noviembre de 2026.*

@@ -21,7 +21,7 @@ PICTOS is a pipeline of three automatic phases and a fourth one the user starts.
 
 **(2) Compose** (GPT-6 Luna; alternative Claude Haiku 5.5). Turns the NLU into a tree of visual elements and a spatial articulation prompt. Each element carries a `concept` (Agent, Action, Object, Context, Element) that reaches the `data-concept` of the final SVG. Names are written in the library's language. If the user edits the tree, they can regenerate only the prompt.
 
-**(3) Produce** (default GPT Image 2.5 Flare; alternatives Nano Banana 2 Lite and the Recraft V4.1 family). Generates the image from the utterance, the NLU, the elements, the spatial prompt and the library's visual style. Raster models return a bitmap; Recraft vector returns native SVG.
+**(3) Produce** (default GPT Image 2.5 Flare; alternatives Nano Banana 2 Lite, the Recraft V4.1 family and Quiver Arrow 2). Generates the image from the utterance, the NLU, the elements, the spatial prompt and the library's visual style. Raster models return a bitmap; Recraft vector and Quiver Arrow 2 return native SVG.
 
 **(4) Structure** (Claude Sonnet 4.6, optional). Turns the drawing into a semantic SVG following [pictos-svg-schema](schemas/pictos-svg-schema): one group per element of the tree, with the NLU, the composition, the bindings and accessibility metadata embedded. On a bitmap, Gemini 3.8 Flash first locates each drawn entity, VTracer 1.0 cuts the image into regions and a single vision call assigns each region to an entity. Geometry is computed in the browser: the model only decides membership. A result that meets the schema is certified; otherwise it stays a draft with a list of what is missing, which can be resolved without structuring again. Details in [docs/ESTRUCTURAR.md](docs/ESTRUCTURAR.md) (Spanish).
 
@@ -66,7 +66,7 @@ flowchart LR
             F_TXT["api-claude · api-openai-text<br>phases 1, 2, 5"]
             F_DET["api-gemini-detect"]
             F_AUTH["api-authorize"]
-            F_IMG["api-openai · api-gemini · api-recraft<br>worker-background + poll"]
+            F_IMG["api-openai · api-gemini · api-recraft · api-quiver<br>worker-background + poll"]
             F_BATCH["api-pipeline-batch<br>create · background · poll"]
             F_V1["api-v1-comprender<br>api-v1-componer"]
             F_ADM["api-usage-report · api-check"]
@@ -94,6 +94,7 @@ flowchart LR
         P_OAI["OpenAI<br>GPT Image 2.5 Flare · GPT-6 Luna"]
         P_VTX["Vertex AI<br>Nano Banana 2 Lite · Gemini 3.8 Flash"]
         P_RCR["Recraft V4.1"]
+        P_QVR["Quiver<br>Arrow 2"]
     end
 
     EXT["Machine client"]
@@ -124,8 +125,8 @@ flowchart LR
 
     F_TXT --> P_ANT & P_OAI
     F_DET --> P_VTX
-    F_IMG --> P_OAI & P_VTX & P_RCR
-    F_BATCH --> P_ANT & P_OAI & P_VTX & P_RCR
+    F_IMG --> P_OAI & P_VTX & P_RCR & P_QVR
+    F_BATCH --> P_ANT & P_OAI & P_VTX & P_RCR & P_QVR
     F_V1 --> P_ANT & P_OAI
 
     style VIEWS fill:#f8fafc,stroke:#94a3b8
@@ -233,8 +234,8 @@ npm run dev                 # → http://localhost:9001 (netlify dev)
 ```
 
 Required keys:
-- `ANTHROPIC_API_KEY`: [console.anthropic.com](https://console.anthropic.com), phases 1, 2 and 4
-- `OPENAI_API_KEY`: [platform.openai.com](https://platform.openai.com), default image model and GPT-6 Luna
+- `ANTHROPIC_API_KEY`: [console.anthropic.com](https://console.anthropic.com), phase 4 and Claude Haiku 5.5 in phases 1 and 2
+- `OPENAI_API_KEY`: [platform.openai.com](https://platform.openai.com), default models for phases 1, 2 (GPT-6 Luna) and 3 (GPT Image 2.5 Flare)
 - `GOOGLE_SERVICE_ACCOUNT_JSON`: Vertex AI service account on one line, for Nano Banana 2 Lite and entity detection
 - `RECRAFT_API_KEY`: [recraft.ai](https://www.recraft.ai/api), optional, Recraft models only
 - `QUIVER_API_KEY`: [platform.quiver.ai](https://platform.quiver.ai), optional, Quiver Arrow 2 only
@@ -244,10 +245,11 @@ See [docs/CONTRIBUTING.md](./docs/CONTRIBUTING.md) for full instructions.
 ## Stack
 
 - React 19, TypeScript 5.8, Vite 6, Tailwind CSS 3.4, Zustand (SVG editor)
-- Anthropic: Claude Haiku 5.5 (phases 1 and 2) and Claude Sonnet 4.6 (phase 4)
+- Anthropic: Claude Sonnet 4.6 (phase 4) and Claude Haiku 5.5 (phases 1 and 2, alternative)
 - OpenAI: GPT Image 2.5 Flare (phase 3, default) and GPT-6 Luna (phases 1 and 2, default)
 - Google Vertex AI: Nano Banana 2 Lite (phase 3) and Gemini 3.8 Flash (entity detection)
 - Recraft V4.1 (phase 3, vector or raster)
+- Quiver Arrow 2 (phase 3, native SVG)
 - VTracer 1.0 compiled to WebAssembly (regions in the browser)
 - Netlify Functions, Blobs and Identity
 - localStorage + IndexedDB (local persistence)
@@ -297,3 +299,5 @@ https://pictos.net
 ```
 
 *License: Apache 2.0 (code) · CC-BY-4.0 (generated pictograms, per user's choice)*
+
+*Updated on 12 November 2026.*

@@ -147,7 +147,7 @@ Estado en `MODEL_CATALOG` desde esta fecha. Los retirados no se ofrecen ni se ad
 
 | Modelo | Fases | Estado | Motivo |
 |---|---|---|---|
-| `claude-haiku-5-5` | 1, 2 | workshop (por defecto) | 100 % válido, el más rápido y 15 veces más barato que Haiku 4.5 |
+| `claude-haiku-5-5` | 1, 2 | workshop (por defecto hasta el 12-11-2026; desde entonces alternativa) | 100 % válido, el más rápido y 15 veces más barato que Haiku 4.5 |
 | `gpt-6-luna` | 1, 2 | active | Alternativa de otro proveedor si Anthropic falla; 100 % válido, el más barato |
 | `claude-sonnet-4-6` | 4 | workshop (por defecto) | El único con 98 % de nodos y casi ninguna región sin resolver |
 | `gpt-image-2.5-flare` | 3 | workshop (por defecto) | 8/8 claras, 9,8 s, US$0,006, fuera de la cuota de Vertex |

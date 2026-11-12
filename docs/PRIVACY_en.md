@@ -26,8 +26,8 @@ The system does not store profiles, does not track sessions across visits, and d
 
 Only generation requests carry your content across the boundary of your device, and all of them go through the site's own functions (Netlify Functions), which forward them to the provider without keeping them. By phase:
 
-- **COMPRENDER and COMPONER**: the utterance and the configured context (language, region, domain) go to Anthropic or, if you choose GPT-6 Luna, to OpenAI.
-- **PRODUCIR**: the image prompt, which includes the utterance, the composition elements and the visual style, goes to OpenAI, Google (Vertex AI) or Recraft, depending on the model selected.
+- **COMPRENDER and COMPONER**: the utterance and the configured context (language, region, domain) go to OpenAI by default (GPT-6 Luna) or to Anthropic if you choose Claude Haiku 5.5.
+- **PRODUCIR**: the image prompt, which includes the utterance, the composition elements and the visual style, goes to OpenAI, Google (Vertex AI), Recraft or Quiver, depending on the model selected.
 - **ESTRUCTURAR**, when you request it: when structuring from the bitmap, the image, the utterance and the element names first go to Google (Vertex AI) to detect where each element is drawn; then the original image, a rasterised copy with numbered marks, the element tree and a description of the traced regions go to Anthropic. When structuring a trace or a native SVG, the rasterised images, the element tree and the SVG source (up to 10,000 characters) go to Anthropic.
 
 The image generated in PRODUCIR stays in the site's storage only until your browser collects it; it is deleted at that point. The same applies to the input of a background job. Do not type personal information about other people.
@@ -45,3 +45,5 @@ The design principle behind these choices is user sovereignty: the person who cr
 ## Licensing and auditability
 
 The source code is licensed under Apache 2.0. Pictograms generated with the tool may be shared under CC-BY 4.0 at the author's choice. The entire codebase is public in this repository: any statement in this document can be checked against the code, and issues or questions about data handling are welcome through the repository's issue tracker.
+
+*Updated on 12 November 2026.*

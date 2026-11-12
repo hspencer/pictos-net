@@ -86,7 +86,7 @@ flowchart LR
             F_TXT["api-claude · api-openai-text<br>fases 1, 2, 5"]
             F_DET["api-gemini-detect"]
             F_AUTH["api-authorize"]
-            F_IMG["api-openai · api-gemini · api-recraft<br>worker-background + poll"]
+            F_IMG["api-openai · api-gemini · api-recraft · api-quiver<br>worker-background + poll"]
             F_BATCH["api-pipeline-batch<br>create · background · poll"]
             F_V1["api-v1-comprender<br>api-v1-componer"]
             F_ADM["api-usage-report · api-check"]
@@ -114,6 +114,7 @@ flowchart LR
         P_OAI["OpenAI<br>GPT Image 2.5 Flare · GPT-6 Luna"]
         P_VTX["Vertex AI<br>Nano Banana 2 Lite · Gemini 3.8 Flash"]
         P_RCR["Recraft V4.1"]
+        P_QVR["Quiver<br>Arrow 2"]
     end
 
     EXT["Cliente de máquina"]
@@ -144,8 +145,8 @@ flowchart LR
 
     F_TXT --> P_ANT & P_OAI
     F_DET --> P_VTX
-    F_IMG --> P_OAI & P_VTX & P_RCR
-    F_BATCH --> P_ANT & P_OAI & P_VTX & P_RCR
+    F_IMG --> P_OAI & P_VTX & P_RCR & P_QVR
+    F_BATCH --> P_ANT & P_OAI & P_VTX & P_RCR & P_QVR
     F_V1 --> P_ANT & P_OAI
 
     style VIEWS fill:#f8fafc,stroke:#94a3b8
@@ -187,6 +188,7 @@ flowchart LR
         OAI["OpenAI<br>GPT Image 2.5 Flare,<br>GPT-6 Luna"]
         VTX["Vertex AI<br>Nano Banana 2 Lite,<br>Gemini 3.8 Flash"]
         RCR["Recraft<br>V4.1"]
+        QVR["Quiver<br>Arrow 2"]
     end
 
     UI -->|"login perezoso"| ID
@@ -195,6 +197,7 @@ flowchart LR
     FN --> OAI
     FN --> VTX
     FN --> RCR
+    FN --> QVR
     EXT["Cliente de máquina<br>credencial de servicio"] -->|"/api/v1/*"| FN
 ```
 
@@ -209,10 +212,10 @@ flowchart TD
     UTT["Enunciado<br>RowData.UTTERANCE"]
     CFG["GlobalConfig de la librería<br>lang · geoContext · domainContext<br>visualStylePrompt · svgStyleDefs"]
 
-    subgraph P1["1 · COMPRENDER — Claude Haiku 5.5 (alt. GPT-6 Luna)"]
+    subgraph P1["1 · COMPRENDER — GPT-6 Luna (alt. Claude Haiku 5.5)"]
         F1["tool use forzado analyze_utterance<br>validación pictos-nlu-schema 1.1.0<br>reintento con reparación de contrato"]
     end
-    subgraph P2["2 · COMPONER — Claude Haiku 5.5 (alt. GPT-6 Luna)"]
+    subgraph P2["2 · COMPONER — GPT-6 Luna (alt. Claude Haiku 5.5)"]
         F2["tool use forzado compose_pictogram<br>validación pictos-composition-schema 0.1.0"]
         F2b["generateSpatialPrompt<br>solo si el usuario editó el árbol"]
     end
@@ -236,7 +239,7 @@ flowchart TD
     NLU --> F3
     CFG -.->|"visualStylePrompt"| F3
     F3 --> BMP["bitmap<br>modelos raster"]
-    F3 --> RAW["rawSvg<br>Recraft vector"]
+    F3 --> RAW["rawSvg<br>Recraft vector · Quiver Arrow 2"]
     BMP -->|"Estructurar"| F4
     BMP -->|"Solo trazar<br>VectorizerModal"| RAW
     RAW -->|"Estructurar trazado"| F4
@@ -473,9 +476,9 @@ Stores de Blobs: `pictonet-usage`, `auth-grants`, `openai-jobs`, `gemini-jobs`, 
 
 | Fase | Por defecto | Alternativas |
 |---|---|---|
-| 1 COMPRENDER | `claude-haiku-5-5` | `gpt-6-luna` |
-| 2 COMPONER | `claude-haiku-5-5` | `gpt-6-luna` |
-| 3 PRODUCIR | `gpt-image-2.5-flare` | `gemini-3.1-flash-lite-image`; Recraft V4.1 vector y raster en Standard, Utility, Pro y Utility Pro |
+| 1 COMPRENDER | `gpt-6-luna` | `claude-haiku-5-5` |
+| 2 COMPONER | `gpt-6-luna` | `claude-haiku-5-5` |
+| 3 PRODUCIR | `gpt-image-2.5-flare` | `gemini-3.1-flash-lite-image`; Recraft V4.1 vector y raster en Standard, Utility, Pro y Utility Pro; `arrow-2` (Quiver, SVG nativo) |
 | 4 ESTRUCTURAR (id 5) | `claude-sonnet-4-6` | ninguna |
 | detección | `gemini-3.8-flash` | ninguna |
 
