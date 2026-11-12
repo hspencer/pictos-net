@@ -63,6 +63,7 @@ Una carpeta por estudio: `AAAA-MM-DD_tema`, con la fecha de inicio del estudio. 
 | `2026-11-06_benchmark-producir/` | Candidatos nuevos para PRODUCIR (GPT Image 2.6 y SVG, Nano Banana, fal.ai) en cuatro estilos | Abrir `index.html`; librerías importables en `librerias/` |
 | `2026-11-07_segmentacion-semantica/` | Quién reconoce las entidades del árbol en el bitmap: ruta actual (VTracer + Sonnet), SAM 3 (fal) o Gemini 3.8 Flash (Vertex) | Abrir `index.html`; Gemini con cajas 90 % en 3 s y US$0,002 por pictograma |
 | `2026-11-10_quiver-arrow2/` | Quiver Arrow 2 (SVG nativo) en PRODUCIR: prompt actual, configuración según la documentación y referencias de estilo de la librería | Abrir `index.html`; con dos pictogramas de la librería como referencia adopta su estilo, US$0,08 y unos 30 s por pictograma |
+| `2026-11-12_benchmark-texto/` | Candidatos Gemini frente a Haiku 5.5 y GPT-6 Luna en COMPRENDER/COMPONER | [Informe](2026-11-12_benchmark-texto/README.md); Luna por defecto en ambas fases, con 48/48 válidos por fase y menor costo |
 | `references/` | Copias locales de fuentes oficiales, con manifiesto de procedencia y hashes | |
 
 ## Estructura del benchmark de noviembre

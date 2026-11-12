@@ -20,6 +20,7 @@ const openaiSource = 'https://developers.openai.com/api/docs/models/compare';
 const recraftSource = 'https://www.recraft.ai/docs/api-reference/pricing';
 const quiverSource = 'https://docs.quiver.ai/developers/pricing';
 
+const geminiApiSource = 'https://aistudio.google.com/docs/pricing';
 const text = (label, provider, phases, input, output, source, extra = {}, status = 'active') => ({
   label, provider, phases, output: 'text', status,
   pricing: { kind: 'tokens', inputUsdPerMillion: input, outputUsdPerMillion: output, ...extra },
@@ -43,12 +44,13 @@ export const MODEL_CATALOG = {
   'claude-haiku-5-5': { ...text('Claude Haiku 5.5', 'claude', [1, 2], 0.10, 0.50, anthropicSource, {
     ...claudeCache(0.10), longContext: { aboveInputTokens: 100000, inputUsdPerMillion: 0.50, outputUsdPerMillion: 2.50 },
   }, 'workshop'), pricingCheckedAt: '2026-11-01', fixedSampling: true },
-  // Alternative provider for phases 1-2 when Anthropic is unavailable: 100% valid, cheapest.
+  // Default for phases 1-2 (2026-11-12): 48/48 valid per phase; fewer repairs and
+  // lower cost than Haiku. Haiku stays available as the alternative provider.
   'gpt-6-luna': { ...text('OpenAI GPT-6 Luna', 'openai', [1, 2], 0.10, 0.50,
     'https://developers.openai.com/api/docs/models/gpt-6-luna', {
       cachedInputUsdPerMillion: 0.01,
       longContext: { aboveInputTokens: 272000, inputUsdPerMillion: 0.20, outputUsdPerMillion: 0.75, cachedInputUsdPerMillion: 0.02 },
-    }, 'active'), pricingCheckedAt: '2026-11-01' },
+    }, 'workshop'), pricingCheckedAt: '2026-11-01' },
   // ESTRUCTURAR: only model covering 98% of semantic nodes with ~0 unresolved regions.
   'claude-sonnet-4-6': text('Claude Sonnet 4.6', 'claude', [5], 3, 15, anthropicSource, claudeCache(3), 'workshop'),
   // PRODUCIR default: 8/8 clear pictograms, p50 9.8 s, US$0.006, outside Vertex image quota.
@@ -106,8 +108,21 @@ export const MODEL_CATALOG = {
   // in ~3 s (research/2026-11-07_segmentacion-semantica).
   'gemini-3.8-flash': { ...text('Gemini 3.8 Flash', 'gemini', ['detect'], 0.75, 3.75,
     'https://cloud.google.com/gemini-enterprise-agent-platform/generative-ai/pricing',
-    { scheduledChange: { from: '2027-01-01', inputUsdPerMillion: 1.50, outputUsdPerMillion: 7.50 } }, 'active'),
-    thinking: { level: 'LOW' }, pricingCheckedAt: '2026-10-22' },
+    { cachedInputUsdPerMillion: 0.075, scheduledChange: { from: '2027-01-01', inputUsdPerMillion: 1.50, outputUsdPerMillion: 7.50 } }, 'active'),
+    thinking: { level: 'LOW' }, pricingCheckedAt: '2026-10-22', benchmarkPhases: [1, 2] },
+  // Benchmark candidates for COMPRENDER/COMPONER (2026-11-12): no phase, so never offered or
+  // admitted; scripts/benchmark-models.mjs reads benchmarkPhases. Prices from the Gemini API
+  // page (aistudio.google.com/docs/pricing); the Vertex page renders client-side.
+  'gemini-4-argon': { ...text('Gemini 4 Argon', 'gemini', [], 2, 10, geminiApiSource,
+    { cachedInputUsdPerMillion: 0.10, scheduledChange: { from: '2026-12-01', inputUsdPerMillion: 4, outputUsdPerMillion: 20 } }, 'experimental'),
+    thinking: { level: 'LOW' }, pricingCheckedAt: '2026-11-12', benchmarkPhases: [1, 2] },
+  'gemini-4-carbon': { ...text('Gemini 4 Carbon', 'gemini', [], 2, 10, geminiApiSource,
+    { cachedInputUsdPerMillion: 0.10, scheduledChange: { from: '2026-12-01', inputUsdPerMillion: 4, outputUsdPerMillion: 20 } }, 'experimental'),
+    thinking: { level: 'LOW' }, pricingCheckedAt: '2026-11-12', benchmarkPhases: [1, 2] },
+  'gemini-3.5-flash-lite': { ...text('Gemini 3.5 Flash-Lite', 'gemini', [], 0.30, 2.50, geminiApiSource,
+    { cachedInputUsdPerMillion: 0.03 }, 'experimental'), thinking: { level: 'LOW' }, pricingCheckedAt: '2026-11-12', benchmarkPhases: [1, 2] },
+  'gemini-3.1-flash-lite': { ...text('Gemini 3.1 Flash-Lite', 'gemini', [], 0.25, 1.50, geminiApiSource,
+    { cachedInputUsdPerMillion: 0.025 }, 'experimental'), thinking: { level: 'LOW' }, pricingCheckedAt: '2026-11-12', benchmarkPhases: [1, 2] },
   'gpt-image-2': image('OpenAI GPT Image 2', 'openai', 'bitmap', 0.006,
     'https://developers.openai.com/api/docs/models/gpt-image-2', {
       qualityUsd: { low: 0.006, medium: 0.053, high: 0.211 }, promptCostsExtra: true, size: '1024×1024',
@@ -132,10 +147,10 @@ export const MODEL_CATALOG = {
 
 /**
  * Default model per phase (5 = ESTRUCTURAR), the only place defaults live.
- * Evidence: docs/BENCHMARK_MODELOS_2026-11.md.
+ * Evidence: docs/BENCHMARK_MODELOS_2026-11.md (text round 2026-11-12).
  */
 export const DEFAULT_MODELS = Object.freeze({
-  1: 'claude-haiku-5-5', 2: 'claude-haiku-5-5', 3: 'gpt-image-2.5-flare', 5: 'claude-sonnet-4-6',
+  1: 'gpt-6-luna', 2: 'gpt-6-luna', 3: 'gpt-image-2.5-flare', 5: 'claude-sonnet-4-6',
   /** Entity boxes before ESTRUCTURAR (not a user-selectable phase). */
   detect: 'gemini-3.8-flash',
 });

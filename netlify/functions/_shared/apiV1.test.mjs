@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import fixture from '../../../schemas/pictos-nlu-schema/tests/generation/valid.json' with { type: 'json' };
 import { createV1Handler, createApiAjv, PROCESSES, PROCESS_RUNNERS, API_SCHEMAS } from './apiV1.js';
+import { buildOpenAITextRequest } from './openaiText.js';
 import { buildNluRequest, buildCompositionRequest } from './pipelineContracts.js';
 import { mintServiceToken, credentialRecord, verifyServiceCredential, parseServiceToken } from './serviceCredentials.js';
 import { modelIdsForPhase, MODEL_CATALOG } from './modelCatalog.js';
@@ -44,7 +45,7 @@ function post(token, body, extraHeaders = {}) {
   return { httpMethod: 'POST', headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}), ...extraHeaders }, body: typeof body === 'string' ? body : JSON.stringify(body) };
 }
 
-/** Anthropic-shaped provider stub: answers each forced tool with the next queued input. */
+/** Answers either provider protocol with the next queued semantic input. */
 function mockProvider(outputs) {
   const sent = [];
   const fetchMock = mock.method(globalThis, 'fetch', async (_url, options) => {
@@ -52,19 +53,26 @@ function mockProvider(outputs) {
     sent.push(request);
     const next = outputs.shift();
     if (next instanceof Response) return next;
+    if (request.tool_choice.type === 'function') return Response.json({ status: 'completed', model: request.model,
+      usage: { input_tokens: 10, output_tokens: 20 }, output: [{ type: 'function_call', name: request.tool_choice.name, arguments: JSON.stringify(next), status: 'completed' }] });
     return Response.json({ id: 'msg_test', model: request.model, usage: { input_tokens: 10, output_tokens: 20 }, content: [{ type: 'tool_use', name: request.tool_choice.name, input: next }] });
   });
   return { sent, fetchMock };
 }
 
-let savedKey;
-function withAnthropicKey() {
-  savedKey = process.env.PICTOS_ANTHROPIC_KEY;
-  process.env.PICTOS_ANTHROPIC_KEY = 'synthetic-test-key';
+const providerKeys = ['PICTOS_ANTHROPIC_KEY', 'PICTOS_OPENAI_KEY'];
+let savedKeys;
+function withProviderKeys() {
+  savedKeys = Object.fromEntries(providerKeys.map(key => [key, process.env[key]]));
+  for (const key of providerKeys) process.env[key] = 'synthetic-test-key';
 }
 afterEach(() => {
-  if (savedKey === undefined) delete process.env.PICTOS_ANTHROPIC_KEY;
-  else process.env.PICTOS_ANTHROPIC_KEY = savedKey;
+  if (!savedKeys) return;
+  for (const key of providerKeys) {
+    if (savedKeys[key] === undefined) delete process.env[key];
+    else process.env[key] = savedKeys[key];
+  }
+  savedKeys = undefined;
 });
 
 // ── Published contracts ───────────────────────────────────────────────────────
@@ -196,27 +204,27 @@ test('a credential without the process scope is forbidden', async () => {
 // ── Comprender / Componer ─────────────────────────────────────────────────────
 
 test('comprender sends the shared NLU request and returns a validated, attributed envelope', async () => {
-  withAnthropicKey();
+  withProviderKeys();
   const { token, handlers } = await setup();
   const { sent } = mockProvider([structuredClone(fixture)]);
   const body = { utterance: fixture.utterance, config: { lang: 'es-419', geoContext: { region: 'Chile' }, domainContext: 'hogar' } };
   const response = await handlers.comprender(post(token, body));
   assert.equal(response.statusCode, 200, response.body);
-  assert.deepEqual(sent[0], buildNluRequest(body.utterance, body.config), 'prompt and tool schema come from pipelineContracts, not a copy');
+  assert.deepEqual(sent[0], buildOpenAITextRequest(buildNluRequest(body.utterance, body.config)), 'prompt and tool schema come from pipelineContracts, not a copy');
   const result = JSON.parse(response.body);
   assert.ok(ajv.getSchema(PROCESSES.comprender.responseSchema)(result), JSON.stringify(ajv.errors));
   assert.equal(result.executor, 'pictos.net');
   assert.equal(result.request_id, response.headers['X-Request-Id']);
   assert.deepEqual(result.process, { name: 'comprender', version: 'nlu-1.1.0' });
   assert.deepEqual(result.schema, { id: 'https://pictos.net/schemas/pictonet-nlu-generation-1.1.0.schema.json', version: '1.1.0' });
-  assert.deepEqual(result.model, { requested: 'claude-haiku-5-5', actual: 'claude-haiku-5-5', provider: 'anthropic' });
+  assert.deepEqual(result.model, { requested: 'gpt-6-luna', actual: 'gpt-6-luna', provider: 'openai' });
   assert.deepEqual(result.output, fixture);
   assert.equal(result.replayed, false);
   assert.equal(response.headers['Access-Control-Allow-Origin'], undefined, 'machine API is not exposed to browsers');
 });
 
 test('comprender rejects retired and out-of-phase models before any provider call', async () => {
-  withAnthropicKey();
+  withProviderKeys();
   const { token, handlers } = await setup();
   const { sent } = mockProvider([structuredClone(fixture)]);
   // Retired on 2026-11-01: a clear 400, not an internal error.
@@ -234,12 +242,12 @@ test('comprender rejects retired and out-of-phase models before any provider cal
 });
 
 test('componer returns the accepted composition with the deterministic root, never the provider shape', async () => {
-  withAnthropicKey();
+  withProviderKeys();
   const { token, handlers } = await setup();
   const { sent } = mockProvider([structuredClone(COMPOSITION)]);
   const response = await handlers.componer(post(token, { nlu: fixture, config: { domainContext: 'hogar' } }));
   assert.equal(response.statusCode, 200, response.body);
-  assert.deepEqual(sent[0], buildCompositionRequest(fixture, { domainContext: 'hogar' }));
+  assert.deepEqual(sent[0], buildOpenAITextRequest(buildCompositionRequest(fixture, { domainContext: 'hogar' })));
   const result = JSON.parse(response.body);
   assert.ok(ajv.getSchema(PROCESSES.componer.responseSchema)(result), JSON.stringify(ajv.errors));
   assert.deepEqual(result.output, { elements: [{ id: 'pictograma', concept: 'Root', children: COMPOSITION.elements }], prompt: COMPOSITION.prompt });
@@ -248,7 +256,7 @@ test('componer returns the accepted composition with the deterministic root, nev
 });
 
 test('invalid model output is rejected once, without repair or a paid retry', async () => {
-  withAnthropicKey();
+  withProviderKeys();
   const { token, handlers } = await setup();
   const { fetchMock } = mockProvider([{ ...structuredClone(fixture), frames: [] }, { elements: [{ id: 'persona', concept: 'Agent' }], prompt: "'gato' duerme." }]);
   for (const [name, body] of [['comprender', { utterance: fixture.utterance }], ['componer', { nlu: fixture }]]) {
@@ -288,7 +296,7 @@ test('malformed envelopes are invalid requests with structured issues', async ()
 });
 
 test('provider failures are classified as retryable or not, without provider bodies', async () => {
-  withAnthropicKey();
+  withProviderKeys();
   const { token, handlers } = await setup();
   mockProvider([Response.json({ type: 'error', error: { type: 'invalid_request_error', message: 'secret prompt echo' } }, { status: 400 })]);
   const response = await handlers.comprender(post(token, { utterance: fixture.utterance }));
@@ -302,7 +310,7 @@ test('provider failures are classified as retryable or not, without provider bod
 // ── Idempotency and quota ─────────────────────────────────────────────────────
 
 test('an Idempotency-Key replays the stored success and refuses a different body', async () => {
-  withAnthropicKey();
+  withProviderKeys();
   const { token, handlers } = await setup();
   const { fetchMock } = mockProvider([structuredClone(fixture)]);
   const body = { utterance: fixture.utterance };
@@ -324,7 +332,7 @@ test('an Idempotency-Key replays the stored success and refuses a different body
 });
 
 test('a failed idempotent request can be retried with the same key', async () => {
-  withAnthropicKey();
+  withProviderKeys();
   const { token, handlers } = await setup();
   const { fetchMock } = mockProvider([{ ...structuredClone(fixture), frames: [] }, structuredClone(fixture)]);
   const event = () => post(token, { utterance: fixture.utterance }, { 'Idempotency-Key': 'retry-after-failure' });
@@ -334,7 +342,7 @@ test('a failed idempotent request can be retried with the same key', async () =>
 });
 
 test('the principal daily call limit is enforced and reported', async () => {
-  withAnthropicKey();
+  withProviderKeys();
   const { token, handlers } = await setup({ dailyCallLimit: 1 });
   mockProvider([structuredClone(fixture)]);
   const first = await handlers.comprender(post(token, { utterance: fixture.utterance }));

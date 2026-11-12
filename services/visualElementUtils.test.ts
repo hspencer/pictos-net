@@ -11,7 +11,7 @@
  *     — Concept validation: invalid/Root concepts are stripped.
  *     — Defensive unwrap: model response wrapped under a root is transparently unwrapped.
  *   NLUModel catalog
- *     — Current compatible models present; default is claude-haiku-4-5; Gemini models included.
+ *     — Current benchmarked pair offered; GPT-6 Luna is the default.
  *
  * Run: node --test services/visualElementUtils.test.ts
  */
@@ -233,8 +233,8 @@ test('NLU_MODELS no longer offers the retired Gemini 2.5 text models', () => {
     assert.ok(!ids.includes('gemini-2.5-pro'));
 });
 
-test('DEFAULT_NLU_MODEL is claude-haiku-5-5', () => {
-    assert.equal(DEFAULT_NLU_MODEL, 'claude-haiku-5-5');
+test('DEFAULT_NLU_MODEL is gpt-6-luna', () => {
+    assert.equal(DEFAULT_NLU_MODEL, 'gpt-6-luna');
 });
 
 test('every NLU_MODELS entry has a non-empty label', () => {

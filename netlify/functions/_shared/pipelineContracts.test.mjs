@@ -127,7 +127,7 @@ test('batch sends the shared request, validates results, and emits evidence only
   });
   try {
     const evidence = [];
-    const config = { lang: 'es-419' };
+    const config = { lang: 'es-419', nluModel: 'claude-haiku-5-5' };
     const nlu = await runPhase1(fixture.utterance, config, e => evidence.push(e));
     const composition = await runPhase2(nlu, config, e => evidence.push(e));
     assert.deepEqual(sent[0], buildNluRequest(fixture.utterance, config));
@@ -160,7 +160,7 @@ test('phase 1 repairs a malformed output by re-prompting with the validator comp
   });
   try {
     const evidence = [];
-    const nlu = await runPhase1(fixture.utterance, { lang: 'es-419' }, e => evidence.push(e));
+    const nlu = await runPhase1(fixture.utterance, { lang: 'es-419', nluModel: 'claude-haiku-5-5' }, e => evidence.push(e));
     assert.equal(fetchMock.mock.callCount(), 2, 'one original call plus one repair');
     assert.equal(nlu.utterance, fixture.utterance);
     assert.equal(evidence.length, 1, 'evidence is emitted only for the accepted attempt');

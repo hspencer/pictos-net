@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { MODEL_CATALOG, modelAllowed, modelIdsForPhase, batchModelIds } from './modelCatalog.js';
+import { MODEL_CATALOG, DEFAULT_MODELS, configuredModelId, modelAllowed, modelIdsForPhase, batchModelIds } from './modelCatalog.js';
 import { handler as claude } from '../api-claude.js';
 import { handler as geminiNlu } from '../api-gemini-nlu.js';
 import { handler as geminiStructure } from '../api-gemini-structure.js';
@@ -87,4 +87,15 @@ test('no endpoint declares its own list of model ids', () => {
     const src = fs.readFileSync(new URL(file, functions), 'utf8');
     assert.doesNotMatch(src, /ALLOWED_MODELS\s*=\s*\[|_MODELS\s*=\s*\[\s*'(?:claude|gemini|gpt|recraft)/, file);
   }
+});
+
+test('new libraries follow the measured text defaults while explicit choices are preserved', () => {
+  for (const phase of [1, 2]) {
+    assert.equal(DEFAULT_MODELS[phase], 'gpt-6-luna');
+    assert.equal(configuredModelId({}, phase), 'gpt-6-luna');
+    assert.equal(configuredModelId({ nluModel: 'claude-haiku-5-5' }, phase), 'claude-haiku-5-5');
+    assert.deepEqual(new Set(modelIdsForPhase(phase)), new Set(['gpt-6-luna', 'claude-haiku-5-5']));
+  }
+  assert.equal(configuredModelId({ comprenderModel: 'claude-haiku-5-5' }, 1), 'claude-haiku-5-5');
+  assert.equal(configuredModelId({ componerModel: 'claude-haiku-5-5' }, 2), 'claude-haiku-5-5');
 });

@@ -35,7 +35,7 @@ export function prepareBenchmark({ cases, phase, models, repetitions = 1, maxOut
   if (!Number.isInteger(repairs) || repairs < 0 || repairs > MAX_CONTRACT_REPAIRS) throw new Error('Invalid repair count');
   if (cases?.synthetic !== true || !Array.isArray(cases.cases) || !cases.cases.length) throw new Error('Explicit synthetic case file required');
   if (![1, 2].includes(phase) || !integer(repetitions) || !integer(maxOutputTokens) || maxOutputTokens > 32768) throw new Error('Invalid phase, repetitions or output cap');
-  if (!Array.isArray(models) || !models.length || new Set(models).size !== models.length || models.some(model => !modelSupportsPhase(model, phase))) throw new Error('Select distinct supported text models');
+  if (!Array.isArray(models) || !models.length || new Set(models).size !== models.length || models.some(model => !modelSupportsPhase(model, phase) && !MODEL_CATALOG[model]?.benchmarkPhases?.includes(phase))) throw new Error('Select distinct supported text models');
   if ((budgetUsd !== null && !positive(budgetUsd)) || (maxCalls !== null && !integer(maxCalls))) throw new Error('Invalid execution limits');
   if (cases.cases.length * models.length * repetitions > 1000) throw new Error('Plan exceeds 1000 attempts; split the experiment explicitly');
   const ids = new Set();

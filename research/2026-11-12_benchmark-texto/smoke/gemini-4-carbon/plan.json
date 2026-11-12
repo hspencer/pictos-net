@@ -1,0 +1,440 @@
+{
+  "version": 1,
+  "phase": 1,
+  "seed": "pictonet-benchmark-1",
+  "caseHash": "62319ad865869fe40a3a7ddc86f9d2d05cf6b4b7858a9000cb2b6ced3e146ace",
+  "configHash": "1f4b1226e197a877616a2f8960ffe785935571d40ebba44aa0d5ce1002028a6d",
+  "contractVersion": "1.1.0",
+  "promptVersion": "nlu-1.1.0",
+  "limits": {
+    "maxOutputTokens": 4096,
+    "budgetUsd": 0.5,
+    "maxCalls": 1,
+    "repairs": 0
+  },
+  "plannedCalls": 1,
+  "totalReservedEstimateUsd": 0.088692,
+  "warning": "Costs are estimates, not invoice ceilings. Structural validation does not establish semantic or AAC effectiveness.",
+  "attempts": [
+    {
+      "caseId": "peticion-agua",
+      "utterance": "Quiero un vaso de agua",
+      "lang": "es-419",
+      "model": "gemini-4-carbon",
+      "repetition": 0,
+      "request": {
+        "model": "gemini-4-carbon",
+        "max_tokens": 4096,
+        "system": [
+          {
+            "type": "text",
+            "text": "Operas como el nodo \"NLU Schema Engine\" en la arquitectura PictoNet.\nTu tarea es analizar la intención comunicativa y devolver el resultado JSON vía la herramienta disponible.\n\nContexto de uso:\n- Región geográfica: No especificado\n- Idioma del vocabulario: es-419\n\nOntología NSM (Goddard & Wierzbicka v19, 2017):\n*   **Substantives:** YO, TÚ~USTED, ALGUIEN, ALGO~COSA, GENTE~PERSONAS, CUERPO\n*   **Relational Substantives:** TIPO~CLASE, PARTE\n*   **Determiners:** ESTE~ESTO, EL MISMO, OTRO\n*   **Quantifiers:** UNO, DOS, ALGUNOS, TODO~TODOS, MUCHO~MUCHOS, POCO~POCOS\n*   **Evaluators:** BUENO, MALO\n*   **Descriptors:** GRANDE, PEQUEÑO\n*   **Mental Predicates:** PENSAR, SABER, QUERER, NO QUERER, SENTIR, VER, OÍR\n*   **Speech:** DECIR, PALABRAS, VERDAD\n*   **Actions Events Movement:** HACER, PASAR~OCURRIR, MOVER~MOVERSE\n*   **Existence Possession:** HAY~ESTAR, TENER\n*   **Life Death:** VIVIR, MORIR\n*   **Time:** CUÁNDO~TIEMPO, AHORA, ANTES, DESPUÉS, MUCHO TIEMPO, POCO TIEMPO, POR UN TIEMPO, MOMENTO\n*   **Space:** DÓNDE~LUGAR, AQUÍ, ARRIBA~ENCIMA, ABAJO~DEBAJO, LEJOS, CERCA, LADO, DENTRO, TOCAR\n*   **Logical Concepts:** NO, QUIZÁS~TAL VEZ, PODER, PORQUE, SI\n*   **Intensifier Augmentor:** MUY, MÁS\n*   **Similarity:** COMO~ASÍ\n\nLas explicaciones NSM (nsm_explications) deben estar escritas usando los primos en ESPAÑOL.\nFormato: clave = lema del concepto (p.ej. \"ayudar\"), valor = fórmula NSM usando SÓLO los primos en MAYÚSCULAS.\nEjemplo correcto — clave \"ayudar\": \"ALGUIEN (YO) piensa: ALGO MALO está pasando para MÍ. ESTE ALGUIEN quiere que ALGUIEN (TÚ) HAGA ALGO bueno para ESTE ALGUIEN ahora.\"\nGenera frame_label como traducción al español del frame_name.\n\nDominio — infiere uno de: transporte, salud, alimentación, educación, vida_cotidiana, trabajo, emociones, tiempo_libre, dinero, seguridad, comunicación, lugar, trámites\n\nReglas:\n1. Invoca SIEMPRE la herramienta analyze_utterance con el JSON completo.\n2. Analiza semántica y pragmática profunda, no solo la superficie.\n3. Todos los campos requeridos deben estar presentes.\n4. Conserva utterance exactamente. Usa IDs únicos cuando un frame sea referenciado; ref_frame apunta a un ID existente, nunca a frame_name.\n5. No inventes identidad del hablante ni timestamp de captura; esos datos no forman parte de la salida generada.\n6. visual_guidelines.temporal admite solo: immediate, near_future, future, past, habitual, unspecified. No existe \"present\": un estado o acción presente o en curso es immediate.",
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "tools": [
+          {
+            "name": "analyze_utterance",
+            "description": "Return the NLU semantic analysis of the communicative intention.",
+            "input_schema": {
+              "description": "Strict profile for fresh Phase 1 output; historical imports use the document validator, not this profile.",
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "utterance",
+                "lang",
+                "metadata",
+                "frames",
+                "nsm_explications",
+                "logical_form",
+                "pragmatics",
+                "visual_guidelines"
+              ],
+              "properties": {
+                "utterance": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Surface string as received.",
+                  "pattern": "\\S"
+                },
+                "lang": {
+                  "type": "string",
+                  "description": "IETF BCP-47 language tag (e.g., en-GB, es-419).",
+                  "pattern": "^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$"
+                },
+                "domain": {
+                  "type": "string",
+                  "description": "Thematic domain inferred from the utterance.",
+                  "enum": [
+                    "transporte",
+                    "salud",
+                    "alimentación",
+                    "educación",
+                    "vida_cotidiana",
+                    "trabajo",
+                    "emociones",
+                    "tiempo_libre",
+                    "dinero",
+                    "seguridad",
+                    "comunicación",
+                    "lugar",
+                    "trámites"
+                  ]
+                },
+                "metadata": {
+                  "type": "object",
+                  "description": "Lightweight communicative metadata.",
+                  "additionalProperties": false,
+                  "required": [
+                    "speech_act",
+                    "intent"
+                  ],
+                  "properties": {
+                    "speech_act": {
+                      "type": "string",
+                      "description": "Dialogue-act class.",
+                      "enum": [
+                        "assertive",
+                        "directive",
+                        "commissive",
+                        "expressive",
+                        "declarative",
+                        "interrogative"
+                      ]
+                    },
+                    "intent": {
+                      "type": "string",
+                      "description": "Sub-type of communicative intention.",
+                      "enum": [
+                        "request",
+                        "command",
+                        "suggestion",
+                        "reminder",
+                        "warning",
+                        "inform",
+                        "ask_info",
+                        "confirm",
+                        "deny",
+                        "greet",
+                        "other"
+                      ]
+                    }
+                  }
+                },
+                "frames": {
+                  "type": "array",
+                  "description": "Frame-semantic analysis units.",
+                  "minItems": 1,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "frame_name",
+                      "lexical_unit",
+                      "roles"
+                    ],
+                    "properties": {
+                      "frame_name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Canonical FrameNet-like label in English (e.g., Directed_action, Desire).",
+                        "pattern": "\\S"
+                      },
+                      "frame_label": {
+                        "type": "string",
+                        "description": "Translated label for UI display in the utterance language (e.g., 'Costo' for 'Expensiveness')."
+                      },
+                      "lexical_unit": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Triggering lemma or expression.",
+                        "pattern": "\\S"
+                      },
+                      "roles": {
+                        "type": "object",
+                        "description": "Map of frame elements to role fillers.",
+                        "minProperties": 1,
+                        "additionalProperties": {
+                          "type": "object",
+                          "description": "Participant, object, or event filling a frame role.",
+                          "additionalProperties": false,
+                          "required": [
+                            "type"
+                          ],
+                          "anyOf": [
+                            {
+                              "required": [
+                                "ref"
+                              ]
+                            },
+                            {
+                              "required": [
+                                "surface"
+                              ]
+                            },
+                            {
+                              "required": [
+                                "lemma"
+                              ]
+                            },
+                            {
+                              "required": [
+                                "ref_frame"
+                              ]
+                            }
+                          ],
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "Agent",
+                                "Addressee",
+                                "Speaker",
+                                "Experiencer",
+                                "Patient",
+                                "Theme",
+                                "Beneficiary",
+                                "Instrument",
+                                "Object",
+                                "Event",
+                                "Location",
+                                "Time",
+                                "Other"
+                              ]
+                            },
+                            "ref": {
+                              "type": "string",
+                              "description": "External or discourse reference ID.",
+                              "pattern": "\\S"
+                            },
+                            "surface": {
+                              "type": "string",
+                              "description": "Surface string span.",
+                              "pattern": "\\S"
+                            },
+                            "lemma": {
+                              "type": "string",
+                              "description": "Canonical lemma.",
+                              "pattern": "\\S"
+                            },
+                            "definiteness": {
+                              "type": "string",
+                              "enum": [
+                                "definite",
+                                "indefinite",
+                                "unspecified"
+                              ]
+                            },
+                            "ref_frame": {
+                              "type": "string",
+                              "description": "ID of another FrameObject this filler points to.",
+                              "pattern": "\\S"
+                            }
+                          }
+                        }
+                      },
+                      "id": {
+                        "type": "string",
+                        "description": "Optional local ID for cross-referencing between frames.",
+                        "pattern": "^[A-Za-z0-9_-]{1,64}$"
+                      }
+                    }
+                  }
+                },
+                "nsm_explications": {
+                  "type": "object",
+                  "description": "NSM primes or paraphrases keyed by concept label (preferred key).",
+                  "additionalProperties": {
+                    "type": "string",
+                    "pattern": "\\S"
+                  },
+                  "minProperties": 1
+                },
+                "logical_form": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "event",
+                    "modality"
+                  ],
+                  "properties": {
+                    "event": {
+                      "type": "string",
+                      "pattern": "\\S"
+                    },
+                    "modality": {
+                      "type": "string"
+                    },
+                    "negation": {
+                      "type": "boolean"
+                    },
+                    "aspect": {
+                      "type": "string",
+                      "enum": [
+                        "none",
+                        "progressive",
+                        "perfective",
+                        "habitual",
+                        "inceptive",
+                        "custom"
+                      ]
+                    },
+                    "tense": {
+                      "type": "string",
+                      "enum": [
+                        "past",
+                        "present",
+                        "future",
+                        "unspecified"
+                      ]
+                    }
+                  }
+                },
+                "pragmatics": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "politeness": {
+                      "type": "string",
+                      "enum": [
+                        "polite",
+                        "neutral",
+                        "impolite"
+                      ]
+                    },
+                    "formality": {
+                      "type": "string",
+                      "enum": [
+                        "informal",
+                        "neutral",
+                        "formal"
+                      ]
+                    },
+                    "expected_response": {
+                      "type": "string",
+                      "enum": [
+                        "compliance",
+                        "refusal",
+                        "acknowledgment",
+                        "question",
+                        "silence",
+                        "other"
+                      ]
+                    },
+                    "urgency": {
+                      "type": "string",
+                      "enum": [
+                        "low",
+                        "medium",
+                        "high"
+                      ]
+                    },
+                    "speaker_stance": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "politeness",
+                    "formality",
+                    "expected_response"
+                  ]
+                },
+                "visual_guidelines": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "focus_actor": {
+                      "type": "string"
+                    },
+                    "secondary_actor": {
+                      "type": "string"
+                    },
+                    "action_core": {
+                      "type": "string"
+                    },
+                    "object_core": {
+                      "type": "string"
+                    },
+                    "context": {
+                      "type": "string"
+                    },
+                    "temporal": {
+                      "type": "string",
+                      "enum": [
+                        "immediate",
+                        "near_future",
+                        "future",
+                        "past",
+                        "habitual",
+                        "unspecified"
+                      ]
+                    },
+                    "salience": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1
+                      }
+                    }
+                  },
+                  "required": [
+                    "focus_actor",
+                    "action_core",
+                    "object_core",
+                    "context",
+                    "temporal"
+                  ]
+                },
+                "schemaVersion": {
+                  "const": "1.1.0",
+                  "description": "Optional explicit document version; never retroactively inferred."
+                }
+              }
+            },
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "tool_choice": {
+          "type": "tool",
+          "name": "analyze_utterance"
+        },
+        "messages": [
+          {
+            "role": "user",
+            "content": "UTTERANCE: \"Quiero un vaso de agua\""
+          }
+        ]
+      },
+      "requestHash": "0cb34e3775105645c052fb555899d7b6bedd3355dec4826e9cd85e16f2145c0f",
+      "wireHash": "581041d46a2e4412fb9c22facf3a343d9558a22b28af1522c50444f06a817274",
+      "inputBound": 23866,
+      "outputBound": 4096,
+      "reservedUsd": 0.088692,
+      "pricing": {
+        "kind": "tokens",
+        "inputUsdPerMillion": 2,
+        "outputUsdPerMillion": 10,
+        "cachedInputUsdPerMillion": 0.1,
+        "scheduledChange": {
+          "from": "2026-12-01",
+          "inputUsdPerMillion": 4,
+          "outputUsdPerMillion": 20
+        }
+      },
+      "pricingCheckedAt": "2026-11-12",
+      "pricingSource": "https://aistudio.google.com/docs/pricing",
+      "contractHash": "1c43c8745ce1b75e4816deaa1de88e0a8bb288cc6d0ae7be2a4862a9f3a2488b",
+      "promptHash": "583c9f743334b66e9955f5716f94e240d85037b5c485bbd79d5be62d0270afed",
+      "reasoning": {
+        "thinkingLevel": "LOW"
+      },
+      "orderKey": "ab31bb795013650b7e39b206a01558035b7241548281e296a775c588f45b13df"
+    }
+  ],
+  "planHash": "de1198e1ed2df8fb22b57853aa980562dcc84370139dfecb10578de9d408de7e"
+}

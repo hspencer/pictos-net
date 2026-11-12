@@ -181,7 +181,7 @@ test('full pipeline preserves semantic artifacts and quality; stops on OpenAI qu
   await pipeline(event({
     libraryId: 'test-library', jobId: 'test-pipeline',
     rows: [{ rowId: 'done', utterance: 'Beber agua' }, { rowId: 'quota', utterance: 'Beber agua' }, { rowId: 'later', utterance: 'Beber agua' }],
-    config: { generationModel: 'gpt-image-2.5-flare', openaiImageQuality: 'medium' },
+    config: { nluModel: 'claude-haiku-5-5', generationModel: 'gpt-image-2.5-flare', openaiImageQuality: 'medium' },
   }), {});
   const store = getBlobStore('pipeline-jobs');
   const completed = await store.get('test-pipeline/done', { type: 'json' });
@@ -218,7 +218,7 @@ test('a composition contract failure retains accepted NLU provenance without inv
   await pipeline(event({
     libraryId: 'partial-library', jobId: 'partial-pipeline',
     rows: [{ rowId: 'partial', utterance: 'Beber agua' }],
-    config: { generationModel: 'gpt-image-2.5-flare' },
+    config: { nluModel: 'claude-haiku-5-5', generationModel: 'gpt-image-2.5-flare' },
   }), {});
   const result = await getBlobStore('pipeline-jobs').get('partial-pipeline/partial', { type: 'json' });
   assert.deepEqual(result.nluData, validNlu);

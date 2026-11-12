@@ -1,5 +1,6 @@
 import { test, mock, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
+import { modelSupportsPhase, modelAllowed } from '../netlify/functions/_shared/modelCatalog.js';
 import { prepareBenchmark, executeBenchmark } from './benchmark-models.mjs';
 const nlu = { utterance: 'Beber agua', lang: 'es-419', metadata: { speech_act: 'directive', intent: 'request' },
   frames: [{ id: 'f1', frame_name: 'Ingestion', lexical_unit: 'beber', roles: { Agent: { type: 'Agent', surface: 'persona' }, Theme: { type: 'Theme', surface: 'agua' } } }],
@@ -101,4 +102,15 @@ test('the repair loop mirrors production: first-call validity, call count and su
   assert.equal(run.attempts[0].providerCalls, 2);
   assert.equal(run.attempts[0].estimatedCostUsd, 2 * (100 * 0.1 + 50 * 0.5) / 1e6);
   assert.throws(() => prepareBenchmark({ ...options, repairs: 3 }), /repair/);
+});
+
+test('benchmark-only candidates can be planned without admitting them to production', () => {
+  for (const model of ['gemini-3.1-flash-lite', 'gemini-3.5-flash-lite', 'gemini-3.8-flash', 'gemini-4-argon', 'gemini-4-carbon']) {
+    for (const phase of [1, 2]) {
+      assert.equal(prepareBenchmark({ ...options, models: [model], phase }).attempts[0].model, model);
+      assert.equal(modelSupportsPhase(model, phase), false);
+      assert.equal(modelAllowed(model, 'gemini', [phase]), false);
+    }
+  }
+  assert.throws(() => prepareBenchmark({ ...options, models: ['unknown-model'] }), /supported/);
 });

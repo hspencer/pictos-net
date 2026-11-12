@@ -44,12 +44,12 @@ Full architecture with Mermaid diagrams: docs/ARCHITECTURE.md. Research framing 
 
 ## Pipeline
 
-### Phase 1: COMPRENDER (Claude Haiku 5.5; alternative GPT-6 Luna)
+### Phase 1: COMPRENDER (GPT-6 Luna; alternative Claude Haiku 5.5)
 - Input: utterance + GlobalConfig (lang, geoContext, domainContext)
 - Method: forced tool use (`analyze_utterance`) — guaranteed JSON
 - Output: `NLUData` (domain, frames, nsm_explications, visual_guidelines, pragmatics)
 
-### Phase 2: COMPONER (Claude Haiku 5.5; alternative GPT-6 Luna)
+### Phase 2: COMPONER (GPT-6 Luna; alternative Claude Haiku 5.5)
 - Input: NLUData + GlobalConfig
 - Method: forced tool use (`compose_pictogram`) — guaranteed JSON
 - Output: `{ elements: VisualElement[], prompt: string }`

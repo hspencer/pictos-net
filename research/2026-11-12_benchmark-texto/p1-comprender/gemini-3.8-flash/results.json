@@ -1,0 +1,3596 @@
+{
+  "planHash": "c36a32707d79fab9f27ed9ade3cf1e2bf302f4c64cb1252d222997fedf2a7dde",
+  "state": "stopped",
+  "estimatedExposureUsd": 0.15692999999999996,
+  "attempts": [
+    {
+      "state": "recorded",
+      "caseId": "manana-playa",
+      "requestedModel": "gemini-3.8-flash",
+      "returnedModel": "gemini-3.8-flash",
+      "phase": 1,
+      "repetition": 1,
+      "requestHash": "d12fd10fc86ebae04c5c4e59e4c304d4751e11f98bbf4018e16d8b3554e7a2dd",
+      "milliseconds": 11121,
+      "usage": {
+        "input_tokens": 1630,
+        "output_tokens": 425,
+        "input_tokens_details": {
+          "cached_tokens": null
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": null
+        },
+        "provider_usage": {
+          "promptTokenCount": 1630,
+          "candidatesTokenCount": 425,
+          "totalTokenCount": 2055,
+          "trafficType": "ON_DEMAND",
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 1630
+            }
+          ],
+          "candidatesTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 425
+            }
+          ]
+        }
+      },
+      "inputTokens": 1630,
+      "outputTokens": 425,
+      "estimatedCostUsd": 0.00281625,
+      "reservedUsd": 0.0997875,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "metadata": {
+          "speech_act": "assertive",
+          "intent": "inform"
+        },
+        "utterance": "Mañana vamos a la playa",
+        "schemaVersion": "1.1.0",
+        "lang": "es-419",
+        "logical_form": {
+          "modality": "declarative",
+          "negation": false,
+          "tense": "future",
+          "aspect": "none",
+          "event": "ir_a(nosotros, playa)"
+        },
+        "pragmatics": {
+          "expected_response": "acknowledgment",
+          "politeness": "neutral",
+          "formality": "neutral",
+          "urgency": "low",
+          "speaker_stance": "planning or announcing future leisure activity"
+        },
+        "domain": "tiempo_libre",
+        "frames": [
+          {
+            "frame_name": "Motion",
+            "lexical_unit": "ir",
+            "id": "frame_motion_1",
+            "frame_label": "Movimiento dirigido",
+            "roles": {
+              "Theme": {
+                "type": "Agent",
+                "surface": "vamos",
+                "lemma": "nosotros",
+                "definiteness": "definite"
+              },
+              "Goal": {
+                "type": "Location",
+                "surface": "a la playa",
+                "lemma": "playa",
+                "definiteness": "definite"
+              },
+              "Time": {
+                "type": "Time",
+                "surface": "Mañana",
+                "lemma": "mañana"
+              }
+            }
+          }
+        ],
+        "nsm_explications": {
+          "ir": "ALGUIEN se MUEVE de un LUGAR a OTRO LUGAR",
+          "playa": "un LUGAR CERCA del agua (mar), HAY arena"
+        },
+        "visual_guidelines": {
+          "secondary_actor": "ninguno",
+          "focus_actor": "grupo de personas (nosotros)",
+          "salience": {
+            "playa": 0.9,
+            "personas": 0.8,
+            "sol_o_tiempo": 0.5
+          },
+          "temporal": "near_future",
+          "action_core": "viajar o desplazarse hacia la costa/playa",
+          "context": "entorno costero con arena y mar",
+          "object_core": "playa con mar y arena"
+        }
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "analyze_utterance",
+            "input": {
+              "metadata": {
+                "speech_act": "assertive",
+                "intent": "inform"
+              },
+              "utterance": "Mañana vamos a la playa",
+              "schemaVersion": "1.1.0",
+              "lang": "es-419",
+              "logical_form": {
+                "modality": "declarative",
+                "negation": false,
+                "tense": "future",
+                "aspect": "none",
+                "event": "ir_a(nosotros, playa)"
+              },
+              "pragmatics": {
+                "expected_response": "acknowledgment",
+                "politeness": "neutral",
+                "formality": "neutral",
+                "urgency": "low",
+                "speaker_stance": "planning or announcing future leisure activity"
+              },
+              "domain": "tiempo_libre",
+              "frames": [
+                {
+                  "frame_name": "Motion",
+                  "lexical_unit": "ir",
+                  "id": "frame_motion_1",
+                  "frame_label": "Movimiento dirigido",
+                  "roles": "{\"Theme\":{\"type\":\"Agent\",\"surface\":\"vamos\",\"lemma\":\"nosotros\",\"definiteness\":\"definite\"},\"Goal\":{\"type\":\"Location\",\"surface\":\"a la playa\",\"lemma\":\"playa\",\"definiteness\":\"definite\"},\"Time\":{\"type\":\"Time\",\"surface\":\"Mañana\",\"lemma\":\"mañana\"}}"
+                }
+              ],
+              "nsm_explications": "{\"ir\":\"ALGUIEN se MUEVE de un LUGAR a OTRO LUGAR\",\"playa\":\"un LUGAR CERCA del agua (mar), HAY arena\"}",
+              "visual_guidelines": {
+                "secondary_actor": "ninguno",
+                "focus_actor": "grupo de personas (nosotros)",
+                "salience": "{\"playa\":0.9,\"personas\":0.8,\"sol_o_tiempo\":0.5}",
+                "temporal": "near_future",
+                "action_core": "viajar o desplazarse hacia la costa/playa",
+                "context": "entorno costero con arena y mar",
+                "object_core": "playa con mar y arena"
+              }
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gemini-3.8-flash",
+        "usage": {
+          "input_tokens": 1630,
+          "output_tokens": 425,
+          "input_tokens_details": {
+            "cached_tokens": null
+          },
+          "output_tokens_details": {
+            "reasoning_tokens": null
+          },
+          "provider_usage": {
+            "promptTokenCount": 1630,
+            "candidatesTokenCount": 425,
+            "totalTokenCount": 2055,
+            "trafficType": "ON_DEMAND",
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 1630
+              }
+            ],
+            "candidatesTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 425
+              }
+            ]
+          }
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "24d21a3eae1fcf224429d7ff6a00292444b65624f461bc6fb554f4a2c2518ca3"
+    },
+    {
+      "state": "recorded",
+      "caseId": "profe-cuento",
+      "requestedModel": "gemini-3.8-flash",
+      "returnedModel": "gemini-3.8-flash",
+      "phase": 1,
+      "repetition": 0,
+      "requestHash": "ed47a2adadd7b5a06da87511fd1a2daa54980d38a76afc1bde6ec1330732a310",
+      "milliseconds": 6771,
+      "usage": {
+        "input_tokens": 1633,
+        "output_tokens": 471,
+        "input_tokens_details": {
+          "cached_tokens": null
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": null
+        },
+        "provider_usage": {
+          "promptTokenCount": 1633,
+          "candidatesTokenCount": 471,
+          "totalTokenCount": 2104,
+          "trafficType": "ON_DEMAND",
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 1633
+            }
+          ],
+          "candidatesTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 471
+            }
+          ]
+        }
+      },
+      "inputTokens": 1633,
+      "outputTokens": 471,
+      "estimatedCostUsd": 0.002991,
+      "reservedUsd": 0.099873,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "utterance": "La profesora les lee un cuento a los niños",
+        "metadata": {
+          "intent": "inform",
+          "speech_act": "assertive"
+        },
+        "frames": [
+          {
+            "lexical_unit": "leer",
+            "frame_name": "Reading_aloud",
+            "frame_label": "Lectura en voz alta",
+            "id": "f1",
+            "roles": {
+              "Reader": {
+                "definiteness": "definite",
+                "lemma": "profesora",
+                "surface": "La profesora",
+                "type": "Agent"
+              },
+              "Addressee": {
+                "definiteness": "definite",
+                "lemma": "niño",
+                "surface": "a los niños",
+                "type": "Addressee"
+              },
+              "Text": {
+                "definiteness": "indefinite",
+                "lemma": "cuento",
+                "surface": "un cuento",
+                "type": "Theme"
+              }
+            }
+          }
+        ],
+        "lang": "es-419",
+        "nsm_explications": {
+          "leer": "ALGUIEN (LA PROFESORA) HACE ALGO con PALABRAS escritas en ALGO. PORQUE ESTE ALGUIEN HACE ESTO, OTRA GENTE (LOS NIÑOS) PUEDE OÍR ESTAS PALABRAS AHORA."
+        },
+        "schemaVersion": "1.1.0",
+        "logical_form": {
+          "tense": "present",
+          "aspect": "habitual",
+          "modality": "declarative",
+          "event": "leer_cuento(profesora, cuento, niños)",
+          "negation": false
+        },
+        "visual_guidelines": {
+          "temporal": "immediate",
+          "secondary_actor": "grupo de niños sentados escuchando atentamente",
+          "focus_actor": "profesora sentada con un libro abierto",
+          "action_core": "leer en voz alta un libro/cuento",
+          "salience": {
+            "libro": 0.8,
+            "niños": 0.7,
+            "profesora": 0.9
+          },
+          "object_core": "libro de cuentos con ilustraciones",
+          "context": "aula escolar o rincón de lectura infantil"
+        },
+        "pragmatics": {
+          "formality": "neutral",
+          "urgency": "low",
+          "expected_response": "acknowledgment",
+          "speaker_stance": "descriptive",
+          "politeness": "neutral"
+        },
+        "domain": "educación"
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "analyze_utterance",
+            "input": {
+              "utterance": "La profesora les lee un cuento a los niños",
+              "metadata": {
+                "intent": "inform",
+                "speech_act": "assertive"
+              },
+              "frames": [
+                {
+                  "lexical_unit": "leer",
+                  "frame_name": "Reading_aloud",
+                  "frame_label": "Lectura en voz alta",
+                  "id": "f1",
+                  "roles": "{\"Reader\":{\"definiteness\":\"definite\",\"lemma\":\"profesora\",\"surface\":\"La profesora\",\"type\":\"Agent\"},\"Addressee\":{\"definiteness\":\"definite\",\"lemma\":\"niño\",\"surface\":\"a los niños\",\"type\":\"Addressee\"},\"Text\":{\"definiteness\":\"indefinite\",\"lemma\":\"cuento\",\"surface\":\"un cuento\",\"type\":\"Theme\"}}"
+                }
+              ],
+              "lang": "es-419",
+              "nsm_explications": "{\"leer\":\"ALGUIEN (LA PROFESORA) HACE ALGO con PALABRAS escritas en ALGO. PORQUE ESTE ALGUIEN HACE ESTO, OTRA GENTE (LOS NIÑOS) PUEDE OÍR ESTAS PALABRAS AHORA.\"}",
+              "schemaVersion": "1.1.0",
+              "logical_form": {
+                "tense": "present",
+                "aspect": "habitual",
+                "modality": "declarative",
+                "event": "leer_cuento(profesora, cuento, niños)",
+                "negation": false
+              },
+              "visual_guidelines": {
+                "temporal": "immediate",
+                "secondary_actor": "grupo de niños sentados escuchando atentamente",
+                "focus_actor": "profesora sentada con un libro abierto",
+                "action_core": "leer en voz alta un libro/cuento",
+                "salience": "{\"libro\":0.8,\"niños\":0.7,\"profesora\":0.9}",
+                "object_core": "libro de cuentos con ilustraciones",
+                "context": "aula escolar o rincón de lectura infantil"
+              },
+              "pragmatics": {
+                "formality": "neutral",
+                "urgency": "low",
+                "expected_response": "acknowledgment",
+                "speaker_stance": "descriptive",
+                "politeness": "neutral"
+              },
+              "domain": "educación"
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gemini-3.8-flash",
+        "usage": {
+          "input_tokens": 1633,
+          "output_tokens": 471,
+          "input_tokens_details": {
+            "cached_tokens": null
+          },
+          "output_tokens_details": {
+            "reasoning_tokens": null
+          },
+          "provider_usage": {
+            "promptTokenCount": 1633,
+            "candidatesTokenCount": 471,
+            "totalTokenCount": 2104,
+            "trafficType": "ON_DEMAND",
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 1633
+              }
+            ],
+            "candidatesTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 471
+              }
+            ]
+          }
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "cba01246d1d3c40ef7e2563d42ebb58cc4fea176b795bf7f3e2c9cc8548971ee"
+    },
+    {
+      "state": "recorded",
+      "caseId": "hora-colegio",
+      "requestedModel": "gemini-3.8-flash",
+      "returnedModel": "gemini-3.8-flash",
+      "phase": 1,
+      "repetition": 1,
+      "requestHash": "8e0f3dd68c69537df035d0c554159ccc47b9f11f4cad005408da743ce0854990",
+      "milliseconds": 8486,
+      "usage": {
+        "input_tokens": 1630,
+        "output_tokens": 534,
+        "input_tokens_details": {
+          "cached_tokens": null
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": null
+        },
+        "provider_usage": {
+          "promptTokenCount": 1630,
+          "candidatesTokenCount": 534,
+          "totalTokenCount": 2164,
+          "trafficType": "ON_DEMAND",
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 1630
+            }
+          ],
+          "candidatesTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 534
+            }
+          ]
+        }
+      },
+      "inputTokens": 1630,
+      "outputTokens": 534,
+      "estimatedCostUsd": 0.003225,
+      "reservedUsd": 0.099819,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "metadata": {
+          "intent": "ask_info",
+          "speech_act": "interrogative"
+        },
+        "pragmatics": {
+          "expected_response": "acknowledgment",
+          "politeness": "neutral",
+          "speaker_stance": "Inquiring about departure/arrival schedule towards school",
+          "urgency": "medium",
+          "formality": "neutral"
+        },
+        "lang": "es-419",
+        "visual_guidelines": {
+          "action_core": "desplazarse hacia el colegio",
+          "salience": {
+            "colegio": 0.4,
+            "hora/tiempo": 0.4,
+            "nosotros": 0.2
+          },
+          "temporal": "near_future",
+          "focus_actor": "hablante y acompañante(s) (estudiante / familia)",
+          "object_core": "reloj indicando la hora y edificio escolar o mochila",
+          "context": "rutina escolar matutina o de tarde, preparación para salir",
+          "secondary_actor": "acompañante / adulto responsable"
+        },
+        "domain": "educación",
+        "logical_form": {
+          "tense": "future",
+          "aspect": "none",
+          "negation": false,
+          "modality": "interrogative",
+          "event": "ir_a(nosotros, colegio, ?hora)"
+        },
+        "frames": [
+          {
+            "frame_name": "Arriving",
+            "lexical_unit": "ir",
+            "frame_label": "Desplazamiento hacia un objetivo",
+            "roles": {
+              "Theme": {
+                "type": "Theme",
+                "surface": "vamos",
+                "lemma": "ir",
+                "definiteness": "unspecified"
+              },
+              "Goal": {
+                "type": "Location",
+                "surface": "al colegio",
+                "lemma": "colegio",
+                "definiteness": "definite"
+              },
+              "Time": {
+                "type": "Time",
+                "surface": "a qué hora",
+                "lemma": "hora",
+                "definiteness": "unspecified"
+              }
+            },
+            "id": "frame_arriving_01"
+          }
+        ],
+        "nsm_explications": {
+          "colegio": "UN LUGAR DONDE LA GENTE PEQUEÑA VA PORQUE QUIERE SABER MUCHAS COSAS BUENAS",
+          "hora": "CUÁNDO PASA ALGO EN EL TIEMPO",
+          "ir": "ALGUIEN SE MUEVE DE UN LUGAR A OTRO LUGAR"
+        },
+        "utterance": "¿A qué hora vamos al colegio?",
+        "schemaVersion": "1.1.0"
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "analyze_utterance",
+            "input": {
+              "metadata": {
+                "intent": "ask_info",
+                "speech_act": "interrogative"
+              },
+              "pragmatics": {
+                "expected_response": "acknowledgment",
+                "politeness": "neutral",
+                "speaker_stance": "Inquiring about departure/arrival schedule towards school",
+                "urgency": "medium",
+                "formality": "neutral"
+              },
+              "lang": "es-419",
+              "visual_guidelines": {
+                "action_core": "desplazarse hacia el colegio",
+                "salience": "{\"colegio\": 0.4, \"hora/tiempo\": 0.4, \"nosotros\": 0.2}",
+                "temporal": "near_future",
+                "focus_actor": "hablante y acompañante(s) (estudiante / familia)",
+                "object_core": "reloj indicando la hora y edificio escolar o mochila",
+                "context": "rutina escolar matutina o de tarde, preparación para salir",
+                "secondary_actor": "acompañante / adulto responsable"
+              },
+              "domain": "educación",
+              "logical_form": {
+                "tense": "future",
+                "aspect": "none",
+                "negation": false,
+                "modality": "interrogative",
+                "event": "ir_a(nosotros, colegio, ?hora)"
+              },
+              "frames": [
+                {
+                  "frame_name": "Arriving",
+                  "lexical_unit": "ir",
+                  "frame_label": "Desplazamiento hacia un objetivo",
+                  "roles": "{\"Theme\": {\"type\": \"Theme\", \"surface\": \"vamos\", \"lemma\": \"ir\", \"definiteness\": \"unspecified\"}, \"Goal\": {\"type\": \"Location\", \"surface\": \"al colegio\", \"lemma\": \"colegio\", \"definiteness\": \"definite\"}, \"Time\": {\"type\": \"Time\", \"surface\": \"a qué hora\", \"lemma\": \"hora\", \"definiteness\": \"unspecified\"}}",
+                  "id": "frame_arriving_01"
+                }
+              ],
+              "nsm_explications": "{\"colegio\": \"UN LUGAR DONDE LA GENTE PEQUEÑA VA PORQUE QUIERE SABER MUCHAS COSAS BUENAS\", \"hora\": \"CUÁNDO PASA ALGO EN EL TIEMPO\", \"ir\": \"ALGUIEN SE MUEVE DE UN LUGAR A OTRO LUGAR\"}",
+              "utterance": "¿A qué hora vamos al colegio?",
+              "schemaVersion": "1.1.0"
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gemini-3.8-flash",
+        "usage": {
+          "input_tokens": 1630,
+          "output_tokens": 534,
+          "input_tokens_details": {
+            "cached_tokens": null
+          },
+          "output_tokens_details": {
+            "reasoning_tokens": null
+          },
+          "provider_usage": {
+            "promptTokenCount": 1630,
+            "candidatesTokenCount": 534,
+            "totalTokenCount": 2164,
+            "trafficType": "ON_DEMAND",
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 1630
+              }
+            ],
+            "candidatesTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 534
+              }
+            ]
+          }
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "bef44d44809173c440dd19cfda9c71ee4cc3fa5470706db281574dff8b7efb6d"
+    },
+    {
+      "state": "recorded",
+      "caseId": "hora-colegio",
+      "requestedModel": "gemini-3.8-flash",
+      "returnedModel": "gemini-3.8-flash",
+      "phase": 1,
+      "repetition": 0,
+      "requestHash": "8e0f3dd68c69537df035d0c554159ccc47b9f11f4cad005408da743ce0854990",
+      "milliseconds": 4821,
+      "usage": {
+        "input_tokens": 1630,
+        "output_tokens": 574,
+        "input_tokens_details": {
+          "cached_tokens": null
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": null
+        },
+        "provider_usage": {
+          "promptTokenCount": 1630,
+          "candidatesTokenCount": 574,
+          "totalTokenCount": 2204,
+          "trafficType": "ON_DEMAND",
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 1630
+            }
+          ],
+          "candidatesTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 574
+            }
+          ]
+        }
+      },
+      "inputTokens": 1630,
+      "outputTokens": 574,
+      "estimatedCostUsd": 0.003375,
+      "reservedUsd": 0.099819,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "metadata": {
+          "intent": "ask_info",
+          "speech_act": "interrogative"
+        },
+        "visual_guidelines": {
+          "action_core": "ir / desplazarse hacia el colegio",
+          "focus_actor": "hablante y oyente (nosotros / estudiante y acompañante)",
+          "context": "preparación para la salida hacia la escuela o colegio",
+          "salience": {
+            "colegio": 0.8,
+            "moverse": 0.7,
+            "reloj_tiempo": 0.9
+          },
+          "temporal": "near_future",
+          "secondary_actor": "acompañante / cuidador",
+          "object_core": "reloj / indicación de tiempo o destino escolar"
+        },
+        "utterance": "¿A qué hora vamos al colegio?",
+        "logical_form": {
+          "event": "ir_a_lugar_en_tiempo(nosotros, colegio, tiempo_desconocido)",
+          "tense": "present",
+          "aspect": "none",
+          "negation": false,
+          "modality": "interrogative"
+        },
+        "schemaVersion": "1.1.0",
+        "frames": [
+          {
+            "lexical_unit": "ir",
+            "frame_name": "Motion",
+            "id": "frame_motion_0",
+            "roles": {
+              "Goal": {
+                "definiteness": "definite",
+                "lemma": "colegio",
+                "surface": "al colegio",
+                "type": "Location"
+              },
+              "Theme": {
+                "lemma": "nosotros",
+                "surface": "vamos",
+                "type": "Theme"
+              }
+            },
+            "frame_label": "Movimiento_hacia_un_lugar"
+          },
+          {
+            "frame_name": "Temporal_collocation",
+            "id": "frame_time_0",
+            "lexical_unit": "hora",
+            "frame_label": "Punto_temporal",
+            "roles": {
+              "Trajector_event": {
+                "ref_frame": "frame_motion_0",
+                "type": "Event"
+              },
+              "Trajector_period": {
+                "surface": "A qué hora",
+                "type": "Time"
+              }
+            }
+          }
+        ],
+        "lang": "es-419",
+        "pragmatics": {
+          "speaker_stance": "inquiring",
+          "formality": "informal",
+          "expected_response": "acknowledgment",
+          "urgency": "medium",
+          "politeness": "neutral"
+        },
+        "nsm_explications": {
+          "colegio": "UN LUGAR DONDE GENTE PEQUEÑA VA PORQUE QUIERE SABER MUCHAS COSAS",
+          "hora": "EN QUÉ MOMENTO DEL TIEMPO",
+          "ir": "MOVERSE DE UN LUGAR A OTRO LUGAR"
+        },
+        "domain": "educación"
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "analyze_utterance",
+            "input": {
+              "metadata": {
+                "intent": "ask_info",
+                "speech_act": "interrogative"
+              },
+              "visual_guidelines": {
+                "action_core": "ir / desplazarse hacia el colegio",
+                "focus_actor": "hablante y oyente (nosotros / estudiante y acompañante)",
+                "context": "preparación para la salida hacia la escuela o colegio",
+                "salience": "{\"colegio\": 0.8, \"moverse\": 0.7, \"reloj_tiempo\": 0.9}",
+                "temporal": "near_future",
+                "secondary_actor": "acompañante / cuidador",
+                "object_core": "reloj / indicación de tiempo o destino escolar"
+              },
+              "utterance": "¿A qué hora vamos al colegio?",
+              "logical_form": {
+                "event": "ir_a_lugar_en_tiempo(nosotros, colegio, tiempo_desconocido)",
+                "tense": "present",
+                "aspect": "none",
+                "negation": false,
+                "modality": "interrogative"
+              },
+              "schemaVersion": "1.1.0",
+              "frames": [
+                {
+                  "lexical_unit": "ir",
+                  "frame_name": "Motion",
+                  "id": "frame_motion_0",
+                  "roles": "{\"Goal\": {\"definiteness\": \"definite\", \"lemma\": \"colegio\", \"surface\": \"al colegio\", \"type\": \"Location\"}, \"Theme\": {\"lemma\": \"nosotros\", \"surface\": \"vamos\", \"type\": \"Theme\"}}",
+                  "frame_label": "Movimiento_hacia_un_lugar"
+                },
+                {
+                  "frame_name": "Temporal_collocation",
+                  "id": "frame_time_0",
+                  "lexical_unit": "hora",
+                  "frame_label": "Punto_temporal",
+                  "roles": "{\"Trajector_event\": {\"ref_frame\": \"frame_motion_0\", \"type\": \"Event\"}, \"Trajector_period\": {\"surface\": \"A qué hora\", \"type\": \"Time\"}}"
+                }
+              ],
+              "lang": "es-419",
+              "pragmatics": {
+                "speaker_stance": "inquiring",
+                "formality": "informal",
+                "expected_response": "acknowledgment",
+                "urgency": "medium",
+                "politeness": "neutral"
+              },
+              "nsm_explications": "{\"colegio\": \"UN LUGAR DONDE GENTE PEQUEÑA VA PORQUE QUIERE SABER MUCHAS COSAS\", \"hora\": \"EN QUÉ MOMENTO DEL TIEMPO\", \"ir\": \"MOVERSE DE UN LUGAR A OTRO LUGAR\"}",
+              "domain": "educación"
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gemini-3.8-flash",
+        "usage": {
+          "input_tokens": 1630,
+          "output_tokens": 574,
+          "input_tokens_details": {
+            "cached_tokens": null
+          },
+          "output_tokens_details": {
+            "reasoning_tokens": null
+          },
+          "provider_usage": {
+            "promptTokenCount": 1630,
+            "candidatesTokenCount": 574,
+            "totalTokenCount": 2204,
+            "trafficType": "ON_DEMAND",
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 1630
+              }
+            ],
+            "candidatesTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 574
+              }
+            ]
+          }
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "8ed00e020973479d65799ea3d1ce8f976aa71c3cf054e61716942c7836509111"
+    },
+    {
+      "state": "recorded",
+      "caseId": "sangre",
+      "requestedModel": "gemini-3.8-flash",
+      "returnedModel": "gemini-3.8-flash",
+      "phase": 1,
+      "repetition": 0,
+      "requestHash": "6df7886fb5b039e12d65222103f39db041a13e55857b8eb2c1f65be5e0a555c2",
+      "milliseconds": 8325,
+      "usage": {
+        "input_tokens": 1631,
+        "output_tokens": 661,
+        "input_tokens_details": {
+          "cached_tokens": null
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": null
+        },
+        "provider_usage": {
+          "promptTokenCount": 1631,
+          "candidatesTokenCount": 661,
+          "totalTokenCount": 2292,
+          "trafficType": "ON_DEMAND",
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 1631
+            }
+          ],
+          "candidatesTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 661
+            }
+          ]
+        }
+      },
+      "inputTokens": 1631,
+      "outputTokens": 661,
+      "estimatedCostUsd": 0.003702,
+      "reservedUsd": 0.099819,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "nsm_explications": {
+          "brazo": "UNA PARTE DEL CUERPO DE ALGUIEN",
+          "sacar": "ALGUIEN HACE QUE ALGO QUE ESTÁ DENTRO DE UN LUGAR NO ESTÉ DENTRO DESPUÉS",
+          "sangre": "ALGO DENTRO DEL CUERPO DE ALGUIEN, ES PARTE DEL CUERPO"
+        },
+        "frames": [
+          {
+            "id": "f1",
+            "frame_name": "Removing",
+            "frame_label": "Extracción médica",
+            "lexical_unit": "sacar",
+            "roles": {
+              "Agent": {
+                "definiteness": "indefinite",
+                "lemma": "alguien",
+                "surface": "van a",
+                "type": "Agent"
+              },
+              "Source": {
+                "definiteness": "definite",
+                "lemma": "brazo",
+                "surface": "del brazo",
+                "type": "Location"
+              },
+              "Theme": {
+                "definiteness": "unspecified",
+                "lemma": "sangre",
+                "surface": "sangre",
+                "type": "Theme"
+              }
+            }
+          },
+          {
+            "frame_name": "Observable_body_parts",
+            "lexical_unit": "brazo",
+            "id": "f2",
+            "frame_label": "Parte corporal",
+            "roles": {
+              "Body_part": {
+                "definiteness": "definite",
+                "lemma": "brazo",
+                "surface": "brazo",
+                "type": "Object"
+              },
+              "Possessor": {
+                "definiteness": "definite",
+                "lemma": "yo",
+                "surface": "Me",
+                "type": "Experiencer"
+              }
+            }
+          },
+          {
+            "frame_name": "Substance",
+            "roles": {
+              "Substance": {
+                "definiteness": "unspecified",
+                "lemma": "sangre",
+                "surface": "sangre",
+                "type": "Theme"
+              }
+            },
+            "id": "f3",
+            "lexical_unit": "sangre",
+            "frame_label": "Sustancia corporal"
+          }
+        ],
+        "schemaVersion": "1.1.0",
+        "lang": "es-419",
+        "visual_guidelines": {
+          "salience": {
+            "brazo": 0.8,
+            "jeringa_aguja": 0.8,
+            "paciente": 0.9,
+            "sangre": 0.95
+          },
+          "action_core": "extraer sangre con jeringa o tubo",
+          "temporal": "near_future",
+          "context": "entorno clínico o laboratorio médico",
+          "object_core": "sangre / aguja / jeringa",
+          "secondary_actor": "personal médico (flebotomista o enfermero)",
+          "focus_actor": "paciente (brazo extendido)"
+        },
+        "metadata": {
+          "intent": "inform",
+          "speech_act": "assertive"
+        },
+        "logical_form": {
+          "event": "sacar_sangre(Agente, Sangre, Brazo, Hablante)",
+          "aspect": "inceptive",
+          "tense": "future",
+          "negation": false,
+          "modality": "declarative"
+        },
+        "utterance": "Me van a sacar sangre del brazo",
+        "domain": "salud",
+        "pragmatics": {
+          "formality": "neutral",
+          "expected_response": "acknowledgment",
+          "speaker_stance": "anticipación de procedimiento médico / posible preocupación o mera información",
+          "politeness": "neutral",
+          "urgency": "medium"
+        }
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "analyze_utterance",
+            "input": {
+              "nsm_explications": "{\"brazo\":\"UNA PARTE DEL CUERPO DE ALGUIEN\",\"sacar\":\"ALGUIEN HACE QUE ALGO QUE ESTÁ DENTRO DE UN LUGAR NO ESTÉ DENTRO DESPUÉS\",\"sangre\":\"ALGO DENTRO DEL CUERPO DE ALGUIEN, ES PARTE DEL CUERPO\"}",
+              "frames": [
+                {
+                  "id": "f1",
+                  "frame_name": "Removing",
+                  "frame_label": "Extracción médica",
+                  "lexical_unit": "sacar",
+                  "roles": "{\"Agent\":{\"definiteness\":\"indefinite\",\"lemma\":\"alguien\",\"surface\":\"van a\",\"type\":\"Agent\"},\"Source\":{\"definiteness\":\"definite\",\"lemma\":\"brazo\",\"surface\":\"del brazo\",\"type\":\"Location\"},\"Theme\":{\"definiteness\":\"unspecified\",\"lemma\":\"sangre\",\"surface\":\"sangre\",\"type\":\"Theme\"}}"
+                },
+                {
+                  "frame_name": "Observable_body_parts",
+                  "lexical_unit": "brazo",
+                  "id": "f2",
+                  "frame_label": "Parte corporal",
+                  "roles": "{\"Body_part\":{\"definiteness\":\"definite\",\"lemma\":\"brazo\",\"surface\":\"brazo\",\"type\":\"Object\"},\"Possessor\":{\"definiteness\":\"definite\",\"lemma\":\"yo\",\"surface\":\"Me\",\"type\":\"Experiencer\"}}"
+                },
+                {
+                  "frame_name": "Substance",
+                  "roles": "{\"Substance\":{\"definiteness\":\"unspecified\",\"lemma\":\"sangre\",\"surface\":\"sangre\",\"type\":\"Theme\"}}",
+                  "id": "f3",
+                  "lexical_unit": "sangre",
+                  "frame_label": "Sustancia corporal"
+                }
+              ],
+              "schemaVersion": "1.1.0",
+              "lang": "es-419",
+              "visual_guidelines": {
+                "salience": "{\"brazo\":0.8,\"jeringa_aguja\":0.8,\"paciente\":0.9,\"sangre\":0.95}",
+                "action_core": "extraer sangre con jeringa o tubo",
+                "temporal": "near_future",
+                "context": "entorno clínico o laboratorio médico",
+                "object_core": "sangre / aguja / jeringa",
+                "secondary_actor": "personal médico (flebotomista o enfermero)",
+                "focus_actor": "paciente (brazo extendido)"
+              },
+              "metadata": {
+                "intent": "inform",
+                "speech_act": "assertive"
+              },
+              "logical_form": {
+                "event": "sacar_sangre(Agente, Sangre, Brazo, Hablante)",
+                "aspect": "inceptive",
+                "tense": "future",
+                "negation": false,
+                "modality": "declarative"
+              },
+              "utterance": "Me van a sacar sangre del brazo",
+              "domain": "salud",
+              "pragmatics": {
+                "formality": "neutral",
+                "expected_response": "acknowledgment",
+                "speaker_stance": "anticipación de procedimiento médico / posible preocupación o mera información",
+                "politeness": "neutral",
+                "urgency": "medium"
+              }
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gemini-3.8-flash",
+        "usage": {
+          "input_tokens": 1631,
+          "output_tokens": 661,
+          "input_tokens_details": {
+            "cached_tokens": null
+          },
+          "output_tokens_details": {
+            "reasoning_tokens": null
+          },
+          "provider_usage": {
+            "promptTokenCount": 1631,
+            "candidatesTokenCount": 661,
+            "totalTokenCount": 2292,
+            "trafficType": "ON_DEMAND",
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 1631
+              }
+            ],
+            "candidatesTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 661
+              }
+            ]
+          }
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "8b554cc58dab3228129a1d9f423556d40bb428e68a47bac12c3e58e9a014d197"
+    },
+    {
+      "state": "recorded",
+      "caseId": "ayer-hermano",
+      "requestedModel": "gemini-3.8-flash",
+      "returnedModel": "gemini-3.8-flash",
+      "phase": 1,
+      "repetition": 1,
+      "requestHash": "ad1292c67cc90a3d92b1a579238acb15ac09ea5bd0646b82426c570f3fc5f5ab",
+      "milliseconds": 6087,
+      "usage": {
+        "input_tokens": 1631,
+        "output_tokens": 542,
+        "input_tokens_details": {
+          "cached_tokens": null
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": null
+        },
+        "provider_usage": {
+          "promptTokenCount": 1631,
+          "candidatesTokenCount": 542,
+          "totalTokenCount": 2173,
+          "trafficType": "ON_DEMAND",
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 1631
+            }
+          ],
+          "candidatesTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 542
+            }
+          ]
+        }
+      },
+      "inputTokens": 1631,
+      "outputTokens": 542,
+      "estimatedCostUsd": 0.00325575,
+      "reservedUsd": 0.0997965,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "lang": "es-419",
+        "schemaVersion": "1.1.0",
+        "domain": "tiempo_libre",
+        "metadata": {
+          "speech_act": "assertive",
+          "intent": "inform"
+        },
+        "pragmatics": {
+          "formality": "informal",
+          "speaker_stance": "sharing personal memory/activity",
+          "urgency": "low",
+          "politeness": "neutral",
+          "expected_response": "acknowledgment"
+        },
+        "frames": [
+          {
+            "frame_label": "Juego social o recreativo",
+            "frame_name": "Social_event",
+            "roles": {
+              "Agent": {
+                "lemma": "yo",
+                "ref": "speaker",
+                "surface": "jugué",
+                "type": "Agent"
+              },
+              "Co-participant": {
+                "lemma": "hermano",
+                "surface": "mi hermano",
+                "type": "Agent"
+              },
+              "Time": {
+                "lemma": "ayer",
+                "surface": "Ayer",
+                "type": "Time"
+              }
+            },
+            "id": "f1",
+            "lexical_unit": "jugar"
+          },
+          {
+            "roles": {
+              "Alter": {
+                "lemma": "hermano",
+                "surface": "hermano",
+                "type": "Other"
+              },
+              "Ego": {
+                "lemma": "yo",
+                "ref": "speaker",
+                "surface": "mi",
+                "type": "Agent"
+              }
+            },
+            "id": "f2",
+            "lexical_unit": "hermano",
+            "frame_name": "Kinship",
+            "frame_label": "Relación de parentesco"
+          }
+        ],
+        "utterance": "Ayer jugué con mi hermano",
+        "nsm_explications": {
+          "ayer": "EN UN TIEMPO ANTES DE ESTE DÍA (UN DÍA ANTES DE AHORA)",
+          "hermano": "OTRO ALGUIEN QUE NACIÓ DE LA MISMA GENTE (MADRE/PADRE)",
+          "jugar": "YO HICE ALGO CON OTRO ALGUIEN POR UN TIEMPO PORQUE YO QUERÍA SENTIR ALGO BUENO"
+        },
+        "visual_guidelines": {
+          "salience": {
+            "hablante": 0.4,
+            "hermano": 0.4,
+            "juego": 0.2
+          },
+          "object_core": "juego o juguete compartido",
+          "temporal": "past",
+          "context": "actividad lúdica compartida en el pasado",
+          "secondary_actor": "hermano",
+          "focus_actor": "hablante (primera persona)",
+          "action_core": "jugar"
+        },
+        "logical_form": {
+          "negation": false,
+          "event": "jugar(speaker, hermano, ayer)",
+          "tense": "past",
+          "modality": "epistemic_factual",
+          "aspect": "perfective"
+        }
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "analyze_utterance",
+            "input": {
+              "lang": "es-419",
+              "schemaVersion": "1.1.0",
+              "domain": "tiempo_libre",
+              "metadata": {
+                "speech_act": "assertive",
+                "intent": "inform"
+              },
+              "pragmatics": {
+                "formality": "informal",
+                "speaker_stance": "sharing personal memory/activity",
+                "urgency": "low",
+                "politeness": "neutral",
+                "expected_response": "acknowledgment"
+              },
+              "frames": [
+                {
+                  "frame_label": "Juego social o recreativo",
+                  "frame_name": "Social_event",
+                  "roles": "{\"Agent\":{\"lemma\":\"yo\",\"ref\":\"speaker\",\"surface\":\"jugué\",\"type\":\"Agent\"},\"Co-participant\":{\"lemma\":\"hermano\",\"surface\":\"mi hermano\",\"type\":\"Agent\"},\"Time\":{\"lemma\":\"ayer\",\"surface\":\"Ayer\",\"type\":\"Time\"}}",
+                  "id": "f1",
+                  "lexical_unit": "jugar"
+                },
+                {
+                  "roles": "{\"Alter\":{\"lemma\":\"hermano\",\"surface\":\"hermano\",\"type\":\"Other\"},\"Ego\":{\"lemma\":\"yo\",\"ref\":\"speaker\",\"surface\":\"mi\",\"type\":\"Agent\"}}",
+                  "id": "f2",
+                  "lexical_unit": "hermano",
+                  "frame_name": "Kinship",
+                  "frame_label": "Relación de parentesco"
+                }
+              ],
+              "utterance": "Ayer jugué con mi hermano",
+              "nsm_explications": "{\"ayer\":\"EN UN TIEMPO ANTES DE ESTE DÍA (UN DÍA ANTES DE AHORA)\",\"hermano\":\"OTRO ALGUIEN QUE NACIÓ DE LA MISMA GENTE (MADRE/PADRE)\",\"jugar\":\"YO HICE ALGO CON OTRO ALGUIEN POR UN TIEMPO PORQUE YO QUERÍA SENTIR ALGO BUENO\"}",
+              "visual_guidelines": {
+                "salience": "{\"hablante\":0.4,\"hermano\":0.4,\"juego\":0.2}",
+                "object_core": "juego o juguete compartido",
+                "temporal": "past",
+                "context": "actividad lúdica compartida en el pasado",
+                "secondary_actor": "hermano",
+                "focus_actor": "hablante (primera persona)",
+                "action_core": "jugar"
+              },
+              "logical_form": {
+                "negation": false,
+                "event": "jugar(speaker, hermano, ayer)",
+                "tense": "past",
+                "modality": "epistemic_factual",
+                "aspect": "perfective"
+              }
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gemini-3.8-flash",
+        "usage": {
+          "input_tokens": 1631,
+          "output_tokens": 542,
+          "input_tokens_details": {
+            "cached_tokens": null
+          },
+          "output_tokens_details": {
+            "reasoning_tokens": null
+          },
+          "provider_usage": {
+            "promptTokenCount": 1631,
+            "candidatesTokenCount": 542,
+            "totalTokenCount": 2173,
+            "trafficType": "ON_DEMAND",
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 1631
+              }
+            ],
+            "candidatesTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 542
+              }
+            ]
+          }
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "4c8abb90ad8d6703a5fee978b2a65c5b6de61eab90e6a7b1433625f1d8da6e02"
+    },
+    {
+      "state": "recorded",
+      "caseId": "dolor-cabeza",
+      "requestedModel": "gemini-3.8-flash",
+      "returnedModel": "gemini-3.8-flash",
+      "phase": 1,
+      "repetition": 1,
+      "requestHash": "c6ad036b4d6b8613991513705dc34e1724a3c97485bbde43db378ea504b02689",
+      "milliseconds": 8832,
+      "usage": {
+        "input_tokens": 1629,
+        "output_tokens": 419,
+        "input_tokens_details": {
+          "cached_tokens": null
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": null
+        },
+        "provider_usage": {
+          "promptTokenCount": 1629,
+          "candidatesTokenCount": 419,
+          "totalTokenCount": 2048,
+          "trafficType": "ON_DEMAND",
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 1629
+            }
+          ],
+          "candidatesTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 419
+            }
+          ]
+        }
+      },
+      "inputTokens": 1629,
+      "outputTokens": 419,
+      "estimatedCostUsd": 0.002793,
+      "reservedUsd": 0.0997605,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "frames": [
+          {
+            "frame_name": "Perception_body",
+            "frame_label": "Percepción del dolor",
+            "lexical_unit": "doler",
+            "id": "f1",
+            "roles": {
+              "Body_part": {
+                "lemma": "cabeza",
+                "surface": "la cabeza",
+                "type": "Location"
+              },
+              "Experiencer": {
+                "lemma": "yo",
+                "ref": "speaker",
+                "surface": "Me",
+                "type": "Experiencer"
+              }
+            }
+          }
+        ],
+        "pragmatics": {
+          "politeness": "neutral",
+          "expected_response": "acknowledgment",
+          "urgency": "medium",
+          "speaker_stance": "discomfort",
+          "formality": "neutral"
+        },
+        "utterance": "Me duele la cabeza",
+        "domain": "salud",
+        "visual_guidelines": {
+          "context": "malestar físico o de salud",
+          "object_core": "cabeza",
+          "secondary_actor": "ninguno",
+          "temporal": "immediate",
+          "salience": {
+            "cabeza": 0.8,
+            "dolor": 0.9,
+            "hablante": 0.7
+          },
+          "action_core": "sentir dolor de cabeza",
+          "focus_actor": "persona tocándose la cabeza con expresión de dolor"
+        },
+        "schemaVersion": "1.1.0",
+        "logical_form": {
+          "aspect": "none",
+          "event": "doler(speaker, cabeza)",
+          "tense": "present",
+          "modality": "realis",
+          "negation": false
+        },
+        "metadata": {
+          "intent": "inform",
+          "speech_act": "assertive"
+        },
+        "nsm_explications": {
+          "cabeza": "UNA PARTE DEL CUERPO DE ALGUIEN, ARRIBA DE TODO EL CUERPO",
+          "doler": "ALGUIEN SIENTE ALGO MUY MALO EN UNA PARTE DE SU CUERPO; ESTE ALGUIEN PIENSA: 'NO QUIERO SENTIR ESTO'"
+        },
+        "lang": "es-419"
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "analyze_utterance",
+            "input": {
+              "frames": [
+                {
+                  "frame_name": "Perception_body",
+                  "frame_label": "Percepción del dolor",
+                  "lexical_unit": "doler",
+                  "id": "f1",
+                  "roles": "{\"Body_part\":{\"lemma\":\"cabeza\",\"surface\":\"la cabeza\",\"type\":\"Location\"},\"Experiencer\":{\"lemma\":\"yo\",\"ref\":\"speaker\",\"surface\":\"Me\",\"type\":\"Experiencer\"}}"
+                }
+              ],
+              "pragmatics": {
+                "politeness": "neutral",
+                "expected_response": "acknowledgment",
+                "urgency": "medium",
+                "speaker_stance": "discomfort",
+                "formality": "neutral"
+              },
+              "utterance": "Me duele la cabeza",
+              "domain": "salud",
+              "visual_guidelines": {
+                "context": "malestar físico o de salud",
+                "object_core": "cabeza",
+                "secondary_actor": "ninguno",
+                "temporal": "immediate",
+                "salience": "{\"cabeza\":0.8,\"dolor\":0.9,\"hablante\":0.7}",
+                "action_core": "sentir dolor de cabeza",
+                "focus_actor": "persona tocándose la cabeza con expresión de dolor"
+              },
+              "schemaVersion": "1.1.0",
+              "logical_form": {
+                "aspect": "none",
+                "event": "doler(speaker, cabeza)",
+                "tense": "present",
+                "modality": "realis",
+                "negation": false
+              },
+              "metadata": {
+                "intent": "inform",
+                "speech_act": "assertive"
+              },
+              "nsm_explications": "{\"cabeza\":\"UNA PARTE DEL CUERPO DE ALGUIEN, ARRIBA DE TODO EL CUERPO\",\"doler\":\"ALGUIEN SIENTE ALGO MUY MALO EN UNA PARTE DE SU CUERPO; ESTE ALGUIEN PIENSA: 'NO QUIERO SENTIR ESTO'\"}",
+              "lang": "es-419"
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gemini-3.8-flash",
+        "usage": {
+          "input_tokens": 1629,
+          "output_tokens": 419,
+          "input_tokens_details": {
+            "cached_tokens": null
+          },
+          "output_tokens_details": {
+            "reasoning_tokens": null
+          },
+          "provider_usage": {
+            "promptTokenCount": 1629,
+            "candidatesTokenCount": 419,
+            "totalTokenCount": 2048,
+            "trafficType": "ON_DEMAND",
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 1629
+              }
+            ],
+            "candidatesTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 419
+              }
+            ]
+          }
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "7cd9e2dba5e7466cf9318a5aa9d4b92bf9034ef08faa0e67a8a9424d4193ea47"
+    },
+    {
+      "state": "recorded",
+      "caseId": "miedo-tormenta",
+      "requestedModel": "gemini-3.8-flash",
+      "returnedModel": "gemini-3.8-flash",
+      "phase": 1,
+      "repetition": 1,
+      "requestHash": "c3ab6cbe99de9d09c2e4032aa763e2d012606cd1658f0198c8a4df3f135cca06",
+      "milliseconds": 7487,
+      "usage": {
+        "input_tokens": 1631,
+        "output_tokens": 572,
+        "input_tokens_details": {
+          "cached_tokens": null
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": null
+        },
+        "provider_usage": {
+          "promptTokenCount": 1631,
+          "candidatesTokenCount": 572,
+          "totalTokenCount": 2203,
+          "trafficType": "ON_DEMAND",
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 1631
+            }
+          ],
+          "candidatesTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 572
+            }
+          ]
+        }
+      },
+      "inputTokens": 1631,
+      "outputTokens": 572,
+      "estimatedCostUsd": 0.00336825,
+      "reservedUsd": 0.0997965,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "schemaVersion": "1.1.0",
+        "domain": "emociones",
+        "nsm_explications": {
+          "miedo": "ALGUIEN (YO) SIENTE ALGO MALO AHORA PORQUE PIENSA ASÍ: 'ALGO MALO PUEDE PASAR A MÍ PORQUE ESTO PASA; YO NO QUIERO QUE ESTO PASE; YO NO PUEDO HACER NADA'",
+          "tormenta": "ALGO PASA EN ESTE LUGAR; HAY MUCHA AGUA Y MUCHO VIENTO ARRIBA; LA GENTE PIENSA: 'ALGO MALO PUEDE PASAR'"
+        },
+        "utterance": "Tengo miedo de la tormenta",
+        "pragmatics": {
+          "politeness": "neutral",
+          "formality": "neutral",
+          "expected_response": "acknowledgment",
+          "urgency": "medium",
+          "speaker_stance": "El hablante expresa temor o vulnerabilidad ante un fenómeno meteorológico adverso."
+        },
+        "logical_form": {
+          "event": "miedo(hablante, tormenta)",
+          "modality": "declarative",
+          "negation": false,
+          "tense": "present",
+          "aspect": "none"
+        },
+        "lang": "es-419",
+        "visual_guidelines": {
+          "focus_actor": "persona expresando miedo",
+          "salience": {
+            "hablante_asustado": 0.6,
+            "tormenta": 0.4
+          },
+          "object_core": "tormenta eléctrica / nubes de lluvia",
+          "context": "entorno con clima tempestuoso, lluvia o rayos",
+          "temporal": "immediate",
+          "action_core": "sentir temor/miedo",
+          "secondary_actor": "tormenta"
+        },
+        "metadata": {
+          "intent": "inform",
+          "speech_act": "expressive"
+        },
+        "frames": [
+          {
+            "id": "f1",
+            "roles": {
+              "Experiencer": {
+                "definiteness": "definite",
+                "lemma": "yo",
+                "ref": "speaker",
+                "surface": "Tengo",
+                "type": "Experiencer"
+              },
+              "Stimulus": {
+                "definiteness": "definite",
+                "lemma": "tormenta",
+                "ref_frame": "f2",
+                "surface": "la tormenta",
+                "type": "Event"
+              }
+            },
+            "lexical_unit": "tener miedo",
+            "frame_label": "Emoción dirigida",
+            "frame_name": "Emotion_directed"
+          },
+          {
+            "frame_label": "Clima",
+            "roles": {
+              "Phenomenon": {
+                "definiteness": "definite",
+                "lemma": "tormenta",
+                "surface": "la tormenta",
+                "type": "Event"
+              }
+            },
+            "frame_name": "Weather",
+            "id": "f2",
+            "lexical_unit": "tormenta"
+          }
+        ]
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "analyze_utterance",
+            "input": {
+              "schemaVersion": "1.1.0",
+              "domain": "emociones",
+              "nsm_explications": "{\"miedo\":\"ALGUIEN (YO) SIENTE ALGO MALO AHORA PORQUE PIENSA ASÍ: 'ALGO MALO PUEDE PASAR A MÍ PORQUE ESTO PASA; YO NO QUIERO QUE ESTO PASE; YO NO PUEDO HACER NADA'\",\"tormenta\":\"ALGO PASA EN ESTE LUGAR; HAY MUCHA AGUA Y MUCHO VIENTO ARRIBA; LA GENTE PIENSA: 'ALGO MALO PUEDE PASAR'\"}",
+              "utterance": "Tengo miedo de la tormenta",
+              "pragmatics": {
+                "politeness": "neutral",
+                "formality": "neutral",
+                "expected_response": "acknowledgment",
+                "urgency": "medium",
+                "speaker_stance": "El hablante expresa temor o vulnerabilidad ante un fenómeno meteorológico adverso."
+              },
+              "logical_form": {
+                "event": "miedo(hablante, tormenta)",
+                "modality": "declarative",
+                "negation": false,
+                "tense": "present",
+                "aspect": "none"
+              },
+              "lang": "es-419",
+              "visual_guidelines": {
+                "focus_actor": "persona expresando miedo",
+                "salience": "{\"hablante_asustado\":0.6,\"tormenta\":0.4}",
+                "object_core": "tormenta eléctrica / nubes de lluvia",
+                "context": "entorno con clima tempestuoso, lluvia o rayos",
+                "temporal": "immediate",
+                "action_core": "sentir temor/miedo",
+                "secondary_actor": "tormenta"
+              },
+              "metadata": {
+                "intent": "inform",
+                "speech_act": "expressive"
+              },
+              "frames": [
+                {
+                  "id": "f1",
+                  "roles": "{\"Experiencer\":{\"definiteness\":\"definite\",\"lemma\":\"yo\",\"ref\":\"speaker\",\"surface\":\"Tengo\",\"type\":\"Experiencer\"},\"Stimulus\":{\"definiteness\":\"definite\",\"lemma\":\"tormenta\",\"ref_frame\":\"f2\",\"surface\":\"la tormenta\",\"type\":\"Event\"}}",
+                  "lexical_unit": "tener miedo",
+                  "frame_label": "Emoción dirigida",
+                  "frame_name": "Emotion_directed"
+                },
+                {
+                  "frame_label": "Clima",
+                  "roles": "{\"Phenomenon\":{\"definiteness\":\"definite\",\"lemma\":\"tormenta\",\"surface\":\"la tormenta\",\"type\":\"Event\"}}",
+                  "frame_name": "Weather",
+                  "id": "f2",
+                  "lexical_unit": "tormenta"
+                }
+              ]
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gemini-3.8-flash",
+        "usage": {
+          "input_tokens": 1631,
+          "output_tokens": 572,
+          "input_tokens_details": {
+            "cached_tokens": null
+          },
+          "output_tokens_details": {
+            "reasoning_tokens": null
+          },
+          "provider_usage": {
+            "promptTokenCount": 1631,
+            "candidatesTokenCount": 572,
+            "totalTokenCount": 2203,
+            "trafficType": "ON_DEMAND",
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 1631
+              }
+            ],
+            "candidatesTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 572
+              }
+            ]
+          }
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "e7864b98ab9cdf46cd30d7200bc2b7f2826e6b781ad3e430ab386a3d83f0a974"
+    },
+    {
+      "state": "recorded",
+      "caseId": "turno",
+      "requestedModel": "gemini-3.8-flash",
+      "returnedModel": "gemini-3.8-flash",
+      "phase": 1,
+      "repetition": 0,
+      "requestHash": "404e94e0d59d5b6896fe246aaa8795a363f750e05fde20ff3c9c79fbb77f03d3",
+      "milliseconds": 6354,
+      "usage": {
+        "input_tokens": 1627,
+        "output_tokens": 376,
+        "input_tokens_details": {
+          "cached_tokens": null
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": null
+        },
+        "provider_usage": {
+          "promptTokenCount": 1627,
+          "candidatesTokenCount": 376,
+          "totalTokenCount": 2003,
+          "trafficType": "ON_DEMAND",
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 1627
+            }
+          ],
+          "candidatesTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 376
+            }
+          ]
+        }
+      },
+      "inputTokens": 1627,
+      "outputTokens": 376,
+      "estimatedCostUsd": 0.00263025,
+      "reservedUsd": 0.099729,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "frames": [
+          {
+            "id": "f1",
+            "frame_label": "Turno o secuencia",
+            "frame_name": "Sequence",
+            "roles": {
+              "Entity": {
+                "type": "Speaker",
+                "surface": "mi",
+                "lemma": "yo"
+              },
+              "State": {
+                "type": "Event",
+                "surface": "turno",
+                "lemma": "turno"
+              }
+            },
+            "lexical_unit": "turno"
+          }
+        ],
+        "metadata": {
+          "speech_act": "assertive",
+          "intent": "inform"
+        },
+        "pragmatics": {
+          "politeness": "neutral",
+          "expected_response": "acknowledgment",
+          "urgency": "medium",
+          "speaker_stance": "assertive",
+          "formality": "neutral"
+        },
+        "schemaVersion": "1.1.0",
+        "nsm_explications": {
+          "turno": "AHORA es TIEMPO para MÍ (YO). OTRAS PERSONAS hicieron ALGO ANTES; AHORA YO PUEDO HACER ALGO."
+        },
+        "logical_form": {
+          "tense": "present",
+          "modality": "declarative",
+          "event": "ser_turno_de(hablante)",
+          "negation": false,
+          "aspect": "none"
+        },
+        "visual_guidelines": {
+          "salience": {
+            "hablante": 0.8,
+            "turno": 0.7
+          },
+          "action_core": "reclamar o señalar turno",
+          "temporal": "immediate",
+          "focus_actor": "hablante señalándose o dando un paso al frente",
+          "context": "espera en fila o turno de juego o atención",
+          "secondary_actor": "otras personas esperando",
+          "object_core": "indicador de turno o fila"
+        },
+        "utterance": "Es mi turno",
+        "lang": "es-419",
+        "domain": "vida_cotidiana"
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "analyze_utterance",
+            "input": {
+              "frames": [
+                {
+                  "id": "f1",
+                  "frame_label": "Turno o secuencia",
+                  "frame_name": "Sequence",
+                  "roles": "{\"Entity\":{\"type\":\"Speaker\",\"surface\":\"mi\",\"lemma\":\"yo\"},\"State\":{\"type\":\"Event\",\"surface\":\"turno\",\"lemma\":\"turno\"}}",
+                  "lexical_unit": "turno"
+                }
+              ],
+              "metadata": {
+                "speech_act": "assertive",
+                "intent": "inform"
+              },
+              "pragmatics": {
+                "politeness": "neutral",
+                "expected_response": "acknowledgment",
+                "urgency": "medium",
+                "speaker_stance": "assertive",
+                "formality": "neutral"
+              },
+              "schemaVersion": "1.1.0",
+              "nsm_explications": "{\"turno\":\"AHORA es TIEMPO para MÍ (YO). OTRAS PERSONAS hicieron ALGO ANTES; AHORA YO PUEDO HACER ALGO.\"}",
+              "logical_form": {
+                "tense": "present",
+                "modality": "declarative",
+                "event": "ser_turno_de(hablante)",
+                "negation": false,
+                "aspect": "none"
+              },
+              "visual_guidelines": {
+                "salience": "{\"hablante\":0.8,\"turno\":0.7}",
+                "action_core": "reclamar o señalar turno",
+                "temporal": "immediate",
+                "focus_actor": "hablante señalándose o dando un paso al frente",
+                "context": "espera en fila o turno de juego o atención",
+                "secondary_actor": "otras personas esperando",
+                "object_core": "indicador de turno o fila"
+              },
+              "utterance": "Es mi turno",
+              "lang": "es-419",
+              "domain": "vida_cotidiana"
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gemini-3.8-flash",
+        "usage": {
+          "input_tokens": 1627,
+          "output_tokens": 376,
+          "input_tokens_details": {
+            "cached_tokens": null
+          },
+          "output_tokens_details": {
+            "reasoning_tokens": null
+          },
+          "provider_usage": {
+            "promptTokenCount": 1627,
+            "candidatesTokenCount": 376,
+            "totalTokenCount": 2003,
+            "trafficType": "ON_DEMAND",
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 1627
+              }
+            ],
+            "candidatesTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 376
+              }
+            ]
+          }
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "7e6df8e98484f37d9d8bd5c62aed327c612f9256894251cd0db38556121682bb"
+    },
+    {
+      "state": "recorded",
+      "caseId": "micro",
+      "requestedModel": "gemini-3.8-flash",
+      "returnedModel": "gemini-3.8-flash",
+      "phase": 1,
+      "repetition": 0,
+      "requestHash": "86c8b20b979deb43633e0d86b8097f0c5c1376d67b37e761b797df559a0e3f22",
+      "milliseconds": 5643,
+      "usage": {
+        "input_tokens": 1629,
+        "output_tokens": 456,
+        "input_tokens_details": {
+          "cached_tokens": null
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": null
+        },
+        "provider_usage": {
+          "promptTokenCount": 1629,
+          "candidatesTokenCount": 456,
+          "totalTokenCount": 2085,
+          "trafficType": "ON_DEMAND",
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 1629
+            }
+          ],
+          "candidatesTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 456
+            }
+          ]
+        }
+      },
+      "inputTokens": 1629,
+      "outputTokens": 456,
+      "estimatedCostUsd": 0.00293175,
+      "reservedUsd": 0.0997785,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "domain": "transporte",
+        "lang": "es-419",
+        "frames": [
+          {
+            "id": "frame_boarding_01",
+            "roles": {
+              "Agent": {
+                "type": "Agent",
+                "surface": "Nosotros",
+                "lemma": "nosotros",
+                "definiteness": "definite"
+              },
+              "Theme": {
+                "type": "Theme",
+                "surface": "la micro",
+                "lemma": "micro",
+                "definiteness": "definite"
+              }
+            },
+            "frame_name": "Boarding",
+            "frame_label": "Embarque de transporte",
+            "lexical_unit": "tomar la micro"
+          }
+        ],
+        "logical_form": {
+          "event": "tomar_micro(Agent, Theme)",
+          "tense": "future",
+          "modality": "deontic_cohortative",
+          "negation": false,
+          "aspect": "inceptive"
+        },
+        "visual_guidelines": {
+          "secondary_actor": "conductor u otros pasajeros en la parada",
+          "context": "parada de autobús o calle urbana esperando la micro",
+          "focus_actor": "grupo de personas (hablante e interlocutor) caminando hacia la micro o preparándose para subir",
+          "action_core": "abordar un autobús de transporte público (micro)",
+          "object_core": "autobús urbano (microbus)",
+          "salience": {
+            "autobús": 0.5,
+            "hablantes": 0.5
+          },
+          "temporal": "near_future"
+        },
+        "schemaVersion": "1.1.0",
+        "metadata": {
+          "intent": "suggestion",
+          "speech_act": "directive"
+        },
+        "nsm_explications": {
+          "tomar la micro": "ALGUIEN dice a OTRO ALGUIEN: 'YO quiero que TÚ y YO HAGAMOS ALGO ahora. TÚ y YO vamos a ENTRAR a ESTA COSA GRANDE (MICRO) para MOVERNOS a OTRO LUGAR'."
+        },
+        "utterance": "Vamos a tomar la micro",
+        "pragmatics": {
+          "speaker_stance": "propósito compartido de abordar el transporte público",
+          "urgency": "medium",
+          "politeness": "neutral",
+          "expected_response": "compliance",
+          "formality": "informal"
+        }
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "analyze_utterance",
+            "input": {
+              "domain": "transporte",
+              "lang": "es-419",
+              "frames": [
+                {
+                  "id": "frame_boarding_01",
+                  "roles": "{\"Agent\":{\"type\":\"Agent\",\"surface\":\"Nosotros\",\"lemma\":\"nosotros\",\"definiteness\":\"definite\"},\"Theme\":{\"type\":\"Theme\",\"surface\":\"la micro\",\"lemma\":\"micro\",\"definiteness\":\"definite\"}}",
+                  "frame_name": "Boarding",
+                  "frame_label": "Embarque de transporte",
+                  "lexical_unit": "tomar la micro"
+                }
+              ],
+              "logical_form": {
+                "event": "tomar_micro(Agent, Theme)",
+                "tense": "future",
+                "modality": "deontic_cohortative",
+                "negation": false,
+                "aspect": "inceptive"
+              },
+              "visual_guidelines": {
+                "secondary_actor": "conductor u otros pasajeros en la parada",
+                "context": "parada de autobús o calle urbana esperando la micro",
+                "focus_actor": "grupo de personas (hablante e interlocutor) caminando hacia la micro o preparándose para subir",
+                "action_core": "abordar un autobús de transporte público (micro)",
+                "object_core": "autobús urbano (microbus)",
+                "salience": "{\"autobús\":0.5,\"hablantes\":0.5}",
+                "temporal": "near_future"
+              },
+              "schemaVersion": "1.1.0",
+              "metadata": {
+                "intent": "suggestion",
+                "speech_act": "directive"
+              },
+              "nsm_explications": "{\"tomar la micro\":\"ALGUIEN dice a OTRO ALGUIEN: 'YO quiero que TÚ y YO HAGAMOS ALGO ahora. TÚ y YO vamos a ENTRAR a ESTA COSA GRANDE (MICRO) para MOVERNOS a OTRO LUGAR'.\"}",
+              "utterance": "Vamos a tomar la micro",
+              "pragmatics": {
+                "speaker_stance": "propósito compartido de abordar el transporte público",
+                "urgency": "medium",
+                "politeness": "neutral",
+                "expected_response": "compliance",
+                "formality": "informal"
+              }
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gemini-3.8-flash",
+        "usage": {
+          "input_tokens": 1629,
+          "output_tokens": 456,
+          "input_tokens_details": {
+            "cached_tokens": null
+          },
+          "output_tokens_details": {
+            "reasoning_tokens": null
+          },
+          "provider_usage": {
+            "promptTokenCount": 1629,
+            "candidatesTokenCount": 456,
+            "totalTokenCount": 2085,
+            "trafficType": "ON_DEMAND",
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 1629
+              }
+            ],
+            "candidatesTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 456
+              }
+            ]
+          }
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "ac953f58c6e0e986f59d46c3af7c5a70a6cadaa9458d3ec88a7e0e16cf7249cb"
+    },
+    {
+      "state": "recorded",
+      "caseId": "orgullo",
+      "requestedModel": "gemini-3.8-flash",
+      "returnedModel": "gemini-3.8-flash",
+      "phase": 1,
+      "repetition": 1,
+      "requestHash": "b60edde87d8166a497cf8d46936ea87df3e738f27028e990c409dc6a3a5011c3",
+      "milliseconds": 8694,
+      "usage": {
+        "input_tokens": 1631,
+        "output_tokens": 485,
+        "input_tokens_details": {
+          "cached_tokens": null
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": null
+        },
+        "provider_usage": {
+          "promptTokenCount": 1631,
+          "candidatesTokenCount": 485,
+          "totalTokenCount": 2116,
+          "trafficType": "ON_DEMAND",
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 1631
+            }
+          ],
+          "candidatesTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 485
+            }
+          ]
+        }
+      },
+      "inputTokens": 1631,
+      "outputTokens": 485,
+      "estimatedCostUsd": 0.003042,
+      "reservedUsd": 0.0998235,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "nsm_explications": {
+          "orgulloso": "YO SIENTO ALGO BUENO DENTRO DE MÍ PORQUE PIENSO: 'HICE ALGO BUENO, ESTO ES BUENO PORQUE SOY YO'."
+        },
+        "logical_form": {
+          "tense": "present",
+          "modality": "declarative",
+          "negation": false,
+          "aspect": "none",
+          "event": "sentir_orgullo(yo, yo)"
+        },
+        "domain": "emociones",
+        "utterance": "Me siento orgulloso de mí mismo",
+        "metadata": {
+          "speech_act": "expressive",
+          "intent": "inform"
+        },
+        "lang": "es-419",
+        "visual_guidelines": {
+          "temporal": "immediate",
+          "action_core": "sentir orgullo o satisfacción personal",
+          "salience": {
+            "actor": 0.8,
+            "gesto_pecho": 0.7,
+            "sonrisa_satisfaccion": 0.6
+          },
+          "context": "expresión emocional de autoestima y logro propio",
+          "object_core": "postura erguida con mano en el pecho o gesto de autosatisfacción",
+          "focus_actor": "persona mirando o sonriendo con satisfacción hacia sí misma"
+        },
+        "pragmatics": {
+          "speaker_stance": "positive, self-affirmative",
+          "formality": "neutral",
+          "urgency": "low",
+          "politeness": "neutral",
+          "expected_response": "acknowledgment"
+        },
+        "frames": [
+          {
+            "roles": {
+              "Experiencer": {
+                "lemma": "yo",
+                "surface": "Me",
+                "type": "Experiencer"
+              },
+              "Emotion": {
+                "ref_frame": "f2",
+                "type": "Theme"
+              }
+            },
+            "frame_label": "Sentimiento",
+            "lexical_unit": "sentir",
+            "frame_name": "Feeling",
+            "id": "f1"
+          },
+          {
+            "frame_name": "Emotion_directed",
+            "lexical_unit": "orgulloso",
+            "roles": {
+              "Experiencer": {
+                "lemma": "yo",
+                "surface": "Me",
+                "type": "Experiencer"
+              },
+              "Stimulus": {
+                "lemma": "mí mismo",
+                "surface": "de mí mismo",
+                "type": "Theme"
+              }
+            },
+            "id": "f2",
+            "frame_label": "Emoción orientada a estímulo"
+          }
+        ],
+        "schemaVersion": "1.1.0"
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "analyze_utterance",
+            "input": {
+              "nsm_explications": "{\"orgulloso\":\"YO SIENTO ALGO BUENO DENTRO DE MÍ PORQUE PIENSO: 'HICE ALGO BUENO, ESTO ES BUENO PORQUE SOY YO'.\"}",
+              "logical_form": {
+                "tense": "present",
+                "modality": "declarative",
+                "negation": false,
+                "aspect": "none",
+                "event": "sentir_orgullo(yo, yo)"
+              },
+              "domain": "emociones",
+              "utterance": "Me siento orgulloso de mí mismo",
+              "metadata": {
+                "speech_act": "expressive",
+                "intent": "inform"
+              },
+              "lang": "es-419",
+              "visual_guidelines": {
+                "temporal": "immediate",
+                "action_core": "sentir orgullo o satisfacción personal",
+                "salience": "{\"actor\":0.8,\"gesto_pecho\":0.7,\"sonrisa_satisfaccion\":0.6}",
+                "context": "expresión emocional de autoestima y logro propio",
+                "object_core": "postura erguida con mano en el pecho o gesto de autosatisfacción",
+                "focus_actor": "persona mirando o sonriendo con satisfacción hacia sí misma"
+              },
+              "pragmatics": {
+                "speaker_stance": "positive, self-affirmative",
+                "formality": "neutral",
+                "urgency": "low",
+                "politeness": "neutral",
+                "expected_response": "acknowledgment"
+              },
+              "frames": [
+                {
+                  "roles": "{\"Experiencer\":{\"lemma\":\"yo\",\"surface\":\"Me\",\"type\":\"Experiencer\"},\"Emotion\":{\"ref_frame\":\"f2\",\"type\":\"Theme\"}}",
+                  "frame_label": "Sentimiento",
+                  "lexical_unit": "sentir",
+                  "frame_name": "Feeling",
+                  "id": "f1"
+                },
+                {
+                  "frame_name": "Emotion_directed",
+                  "lexical_unit": "orgulloso",
+                  "roles": "{\"Experiencer\":{\"lemma\":\"yo\",\"surface\":\"Me\",\"type\":\"Experiencer\"},\"Stimulus\":{\"lemma\":\"mí mismo\",\"surface\":\"de mí mismo\",\"type\":\"Theme\"}}",
+                  "id": "f2",
+                  "frame_label": "Emoción orientada a estímulo"
+                }
+              ],
+              "schemaVersion": "1.1.0"
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gemini-3.8-flash",
+        "usage": {
+          "input_tokens": 1631,
+          "output_tokens": 485,
+          "input_tokens_details": {
+            "cached_tokens": null
+          },
+          "output_tokens_details": {
+            "reasoning_tokens": null
+          },
+          "provider_usage": {
+            "promptTokenCount": 1631,
+            "candidatesTokenCount": 485,
+            "totalTokenCount": 2116,
+            "trafficType": "ON_DEMAND",
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 1631
+              }
+            ],
+            "candidatesTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 485
+              }
+            ]
+          }
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "39f54ee0fd67b522add7e2f9e419d3641fa380d5668d1c4d04578e830433137b"
+    },
+    {
+      "state": "recorded",
+      "caseId": "saludo",
+      "requestedModel": "gemini-3.8-flash",
+      "returnedModel": "gemini-3.8-flash",
+      "phase": 1,
+      "repetition": 1,
+      "requestHash": "d50d7dced5494aad1539d1c6c0ee0d25dd8635c3f0ce2bf6570c731c06cb4192",
+      "milliseconds": 4278,
+      "usage": {
+        "input_tokens": 1629,
+        "output_tokens": 461,
+        "input_tokens_details": {
+          "cached_tokens": null
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": null
+        },
+        "provider_usage": {
+          "promptTokenCount": 1629,
+          "candidatesTokenCount": 461,
+          "totalTokenCount": 2090,
+          "trafficType": "ON_DEMAND",
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 1629
+            }
+          ],
+          "candidatesTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 461
+            }
+          ]
+        }
+      },
+      "inputTokens": 1629,
+      "outputTokens": 461,
+      "estimatedCostUsd": 0.0029505,
+      "reservedUsd": 0.099774,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "pragmatics": {
+          "politeness": "polite",
+          "speaker_stance": "amigable y cordial",
+          "urgency": "low",
+          "expected_response": "acknowledgment",
+          "formality": "informal"
+        },
+        "nsm_explications": {
+          "hola": "YO digo: VEO a TÚ AHORA. SIENTO ALGO BUENO hacia TÚ por ESTO.",
+          "cómo estás": "YO quiero SABER CÓMO SIENTES TÚ AHORA."
+        },
+        "schemaVersion": "1.1.0",
+        "utterance": "Hola, ¿cómo estás?",
+        "domain": "comunicación",
+        "logical_form": {
+          "event": "saludar_y_preguntar_estado",
+          "negation": false,
+          "modality": "epistemic",
+          "aspect": "none",
+          "tense": "present"
+        },
+        "visual_guidelines": {
+          "action_core": "saludar",
+          "focus_actor": "hablante saludando con la mano o gesto amable",
+          "context": "encuentro interpersonal o apertura de conversación",
+          "secondary_actor": "oyente que recibe el saludo",
+          "object_core": "ninguno",
+          "temporal": "immediate",
+          "salience": {
+            "hablante": 0.5,
+            "oyente": 0.5
+          }
+        },
+        "metadata": {
+          "intent": "greet",
+          "speech_act": "expressive"
+        },
+        "lang": "es-419",
+        "frames": [
+          {
+            "lexical_unit": "hola",
+            "frame_name": "Greeting",
+            "frame_label": "Saludo",
+            "roles": {
+              "Speaker": {
+                "type": "Speaker",
+                "surface": "yo"
+              },
+              "Addressee": {
+                "type": "Addressee",
+                "surface": "tú"
+              }
+            },
+            "id": "f_greet"
+          },
+          {
+            "id": "f_state",
+            "frame_name": "State_of_entity",
+            "roles": {
+              "Experiencer": {
+                "type": "Experiencer",
+                "surface": "tú"
+              },
+              "Theme": {
+                "type": "Other",
+                "surface": "cómo"
+              }
+            },
+            "lexical_unit": "cómo estás",
+            "frame_label": "Estado_de_salud_o_ánimo"
+          }
+        ]
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "analyze_utterance",
+            "input": {
+              "pragmatics": {
+                "politeness": "polite",
+                "speaker_stance": "amigable y cordial",
+                "urgency": "low",
+                "expected_response": "acknowledgment",
+                "formality": "informal"
+              },
+              "nsm_explications": "{\"hola\":\"YO digo: VEO a TÚ AHORA. SIENTO ALGO BUENO hacia TÚ por ESTO.\",\"cómo estás\":\"YO quiero SABER CÓMO SIENTES TÚ AHORA.\"}",
+              "schemaVersion": "1.1.0",
+              "utterance": "Hola, ¿cómo estás?",
+              "domain": "comunicación",
+              "logical_form": {
+                "event": "saludar_y_preguntar_estado",
+                "negation": false,
+                "modality": "epistemic",
+                "aspect": "none",
+                "tense": "present"
+              },
+              "visual_guidelines": {
+                "action_core": "saludar",
+                "focus_actor": "hablante saludando con la mano o gesto amable",
+                "context": "encuentro interpersonal o apertura de conversación",
+                "secondary_actor": "oyente que recibe el saludo",
+                "object_core": "ninguno",
+                "temporal": "immediate",
+                "salience": "{\"hablante\":0.5,\"oyente\":0.5}"
+              },
+              "metadata": {
+                "intent": "greet",
+                "speech_act": "expressive"
+              },
+              "lang": "es-419",
+              "frames": [
+                {
+                  "lexical_unit": "hola",
+                  "frame_name": "Greeting",
+                  "frame_label": "Saludo",
+                  "roles": "{\"Speaker\":{\"type\":\"Speaker\",\"surface\":\"yo\"},\"Addressee\":{\"type\":\"Addressee\",\"surface\":\"tú\"}}",
+                  "id": "f_greet"
+                },
+                {
+                  "id": "f_state",
+                  "frame_name": "State_of_entity",
+                  "roles": "{\"Experiencer\":{\"type\":\"Experiencer\",\"surface\":\"tú\"},\"Theme\":{\"type\":\"Other\",\"surface\":\"cómo\"}}",
+                  "lexical_unit": "cómo estás",
+                  "frame_label": "Estado_de_salud_o_ánimo"
+                }
+              ]
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gemini-3.8-flash",
+        "usage": {
+          "input_tokens": 1629,
+          "output_tokens": 461,
+          "input_tokens_details": {
+            "cached_tokens": null
+          },
+          "output_tokens_details": {
+            "reasoning_tokens": null
+          },
+          "provider_usage": {
+            "promptTokenCount": 1629,
+            "candidatesTokenCount": 461,
+            "totalTokenCount": 2090,
+            "trafficType": "ON_DEMAND",
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 1629
+              }
+            ],
+            "candidatesTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 461
+              }
+            ]
+          }
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "e8a3594f3245c7409a2f2613b55fb27021268e6af8200fb6b5e53576422d4102"
+    },
+    {
+      "state": "recorded",
+      "caseId": "no-verduras",
+      "requestedModel": "gemini-3.8-flash",
+      "returnedModel": "gemini-3.8-flash",
+      "phase": 1,
+      "repetition": 0,
+      "requestHash": "7b0f132b7bdaf252a0a066ff376ddd787161cb104bc0d382f8d6654e4499be4e",
+      "milliseconds": 8047,
+      "usage": {
+        "input_tokens": 1628,
+        "output_tokens": 528,
+        "input_tokens_details": {
+          "cached_tokens": null
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": null
+        },
+        "provider_usage": {
+          "promptTokenCount": 1628,
+          "candidatesTokenCount": 528,
+          "totalTokenCount": 2156,
+          "trafficType": "ON_DEMAND",
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 1628
+            }
+          ],
+          "candidatesTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 528
+            }
+          ]
+        }
+      },
+      "inputTokens": 1628,
+      "outputTokens": 528,
+      "estimatedCostUsd": 0.003201,
+      "reservedUsd": 0.0997875,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "pragmatics": {
+          "urgency": "medium",
+          "politeness": "neutral",
+          "speaker_stance": "Rechazo explícito o aversión hacia el consumo de verduras.",
+          "formality": "neutral",
+          "expected_response": "acknowledgment"
+        },
+        "lang": "es-419",
+        "domain": "alimentación",
+        "nsm_explications": {
+          "comer": "ALGUIEN HACE que ALGO entre DENTRO de su CUERPO por la boca DESPUÉS este ALGO está DENTRO del CUERPO",
+          "no querer": "YO PIENSO: NO quiero ESTO; NO quiero que ESTO PASE",
+          "verdura": "ALGO que VIVE en el LUGAR donde HAY tierra; la GENTE PUEDE COMER ESTA PARTE"
+        },
+        "metadata": {
+          "speech_act": "assertive",
+          "intent": "inform"
+        },
+        "frames": [
+          {
+            "frame_name": "Desiring",
+            "lexical_unit": "querer",
+            "roles": {
+              "Experiencer": {
+                "lemma": "yo",
+                "surface": "No quiero",
+                "type": "Experiencer"
+              },
+              "Event": {
+                "ref_frame": "f2",
+                "type": "Event"
+              }
+            },
+            "frame_label": "Deseo",
+            "id": "f1"
+          },
+          {
+            "id": "f2",
+            "frame_name": "Ingestion",
+            "roles": {
+              "Ingestor": {
+                "lemma": "yo",
+                "type": "Agent"
+              },
+              "Ingestibles": {
+                "definiteness": "unspecified",
+                "lemma": "verdura",
+                "surface": "verduras",
+                "type": "Patient"
+              }
+            },
+            "lexical_unit": "comer",
+            "frame_label": "Ingestión"
+          }
+        ],
+        "visual_guidelines": {
+          "focus_actor": "persona que rechaza el plato",
+          "secondary_actor": "cuidador o interlocutor que ofrece comida",
+          "action_core": "rechazar comida / no comer",
+          "context": "momento de comer / mesa de comedor",
+          "salience": {
+            "actor": 0.8,
+            "negation_gesture": 0.9,
+            "vegetables": 0.85
+          },
+          "temporal": "immediate",
+          "object_core": "verduras / vegetales en el plato"
+        },
+        "schemaVersion": "1.1.0",
+        "utterance": "No quiero comer verduras",
+        "logical_form": {
+          "aspect": "none",
+          "tense": "present",
+          "negation": true,
+          "event": "comer(yo, verduras)",
+          "modality": "no_querer"
+        }
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "analyze_utterance",
+            "input": {
+              "pragmatics": {
+                "urgency": "medium",
+                "politeness": "neutral",
+                "speaker_stance": "Rechazo explícito o aversión hacia el consumo de verduras.",
+                "formality": "neutral",
+                "expected_response": "acknowledgment"
+              },
+              "lang": "es-419",
+              "domain": "alimentación",
+              "nsm_explications": "{\"comer\":\"ALGUIEN HACE que ALGO entre DENTRO de su CUERPO por la boca DESPUÉS este ALGO está DENTRO del CUERPO\",\"no querer\":\"YO PIENSO: NO quiero ESTO; NO quiero que ESTO PASE\",\"verdura\":\"ALGO que VIVE en el LUGAR donde HAY tierra; la GENTE PUEDE COMER ESTA PARTE\"}",
+              "metadata": {
+                "speech_act": "assertive",
+                "intent": "inform"
+              },
+              "frames": [
+                {
+                  "frame_name": "Desiring",
+                  "lexical_unit": "querer",
+                  "roles": "{\"Experiencer\":{\"lemma\":\"yo\",\"surface\":\"No quiero\",\"type\":\"Experiencer\"},\"Event\":{\"ref_frame\":\"f2\",\"type\":\"Event\"}}",
+                  "frame_label": "Deseo",
+                  "id": "f1"
+                },
+                {
+                  "id": "f2",
+                  "frame_name": "Ingestion",
+                  "roles": "{\"Ingestor\":{\"lemma\":\"yo\",\"type\":\"Agent\"},\"Ingestibles\":{\"definiteness\":\"unspecified\",\"lemma\":\"verdura\",\"surface\":\"verduras\",\"type\":\"Patient\"}}",
+                  "lexical_unit": "comer",
+                  "frame_label": "Ingestión"
+                }
+              ],
+              "visual_guidelines": {
+                "focus_actor": "persona que rechaza el plato",
+                "secondary_actor": "cuidador o interlocutor que ofrece comida",
+                "action_core": "rechazar comida / no comer",
+                "context": "momento de comer / mesa de comedor",
+                "salience": "{\"actor\":0.8,\"negation_gesture\":0.9,\"vegetables\":0.85}",
+                "temporal": "immediate",
+                "object_core": "verduras / vegetales en el plato"
+              },
+              "schemaVersion": "1.1.0",
+              "utterance": "No quiero comer verduras",
+              "logical_form": {
+                "aspect": "none",
+                "tense": "present",
+                "negation": true,
+                "event": "comer(yo, verduras)",
+                "modality": "no_querer"
+              }
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gemini-3.8-flash",
+        "usage": {
+          "input_tokens": 1628,
+          "output_tokens": 528,
+          "input_tokens_details": {
+            "cached_tokens": null
+          },
+          "output_tokens_details": {
+            "reasoning_tokens": null
+          },
+          "provider_usage": {
+            "promptTokenCount": 1628,
+            "candidatesTokenCount": 528,
+            "totalTokenCount": 2156,
+            "trafficType": "ON_DEMAND",
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 1628
+              }
+            ],
+            "candidatesTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 528
+              }
+            ]
+          }
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "245b5479bdc582265b8944f54443d9d115cbdb28e3190661d405794dc6283fdc"
+    },
+    {
+      "state": "recorded",
+      "caseId": "ayuda-1",
+      "requestedModel": "gemini-3.8-flash",
+      "returnedModel": "gemini-3.8-flash",
+      "phase": 1,
+      "repetition": 0,
+      "requestHash": "44f1c5e1cb18700159925605f7d0ad6482481c55258fd3208c84efcf1bcfa0ff",
+      "milliseconds": 7986,
+      "usage": {
+        "input_tokens": 1626,
+        "output_tokens": 418,
+        "input_tokens_details": {
+          "cached_tokens": null
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": null
+        },
+        "provider_usage": {
+          "promptTokenCount": 1626,
+          "candidatesTokenCount": 418,
+          "totalTokenCount": 2044,
+          "trafficType": "ON_DEMAND",
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 1626
+            }
+          ],
+          "candidatesTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 418
+            }
+          ]
+        }
+      },
+      "inputTokens": 1626,
+      "outputTokens": 418,
+      "estimatedCostUsd": 0.002787,
+      "reservedUsd": 0.099702,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "domain": "seguridad",
+        "metadata": {
+          "speech_act": "directive",
+          "intent": "request"
+        },
+        "utterance": "Ayuda",
+        "nsm_explications": {
+          "ayuda": "ALGUIEN (YO) piensa: ALGO MALO puede PASAR a MÍ. ESTE ALGUIEN (YO) NO PUEDE HACER ALGO solo. ESTE ALGUIEN (YO) quiere: TÚ HACES ALGO BUENO para MÍ AHORA."
+        },
+        "schemaVersion": "1.1.0",
+        "frames": [
+          {
+            "id": "f1",
+            "lexical_unit": "ayuda",
+            "roles": {
+              "Beneficiary": {
+                "lemma": "yo",
+                "ref": "speaker",
+                "type": "Beneficiary"
+              },
+              "Helper": {
+                "lemma": "tú",
+                "ref": "addressee",
+                "type": "Agent"
+              }
+            },
+            "frame_name": "Assistance",
+            "frame_label": "Asistencia"
+          }
+        ],
+        "logical_form": {
+          "event": "ayudar(addressee, speaker)",
+          "aspect": "none",
+          "modality": "imperative",
+          "negation": false,
+          "tense": "unspecified"
+        },
+        "lang": "es-419",
+        "visual_guidelines": {
+          "object_core": "gesto de socorro o mano extendida",
+          "focus_actor": "persona en apuros o que pide auxilio",
+          "context": "situación de emergencia o dificultad crítica",
+          "salience": {
+            "acción de auxilio": 0.9,
+            "persona afectada": 0.95
+          },
+          "temporal": "immediate",
+          "action_core": "prestar auxilio o socorrer",
+          "secondary_actor": "rescatista o persona que asiste"
+        },
+        "pragmatics": {
+          "politeness": "neutral",
+          "urgency": "high",
+          "speaker_stance": "Urgencia o necesidad inmediata de auxilio",
+          "expected_response": "compliance",
+          "formality": "neutral"
+        }
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "analyze_utterance",
+            "input": {
+              "domain": "seguridad",
+              "metadata": {
+                "speech_act": "directive",
+                "intent": "request"
+              },
+              "utterance": "Ayuda",
+              "nsm_explications": "{\"ayuda\":\"ALGUIEN (YO) piensa: ALGO MALO puede PASAR a MÍ. ESTE ALGUIEN (YO) NO PUEDE HACER ALGO solo. ESTE ALGUIEN (YO) quiere: TÚ HACES ALGO BUENO para MÍ AHORA.\"}",
+              "schemaVersion": "1.1.0",
+              "frames": [
+                {
+                  "id": "f1",
+                  "lexical_unit": "ayuda",
+                  "roles": "{\"Beneficiary\":{\"lemma\":\"yo\",\"ref\":\"speaker\",\"type\":\"Beneficiary\"},\"Helper\":{\"lemma\":\"tú\",\"ref\":\"addressee\",\"type\":\"Agent\"}}",
+                  "frame_name": "Assistance",
+                  "frame_label": "Asistencia"
+                }
+              ],
+              "logical_form": {
+                "event": "ayudar(addressee, speaker)",
+                "aspect": "none",
+                "modality": "imperative",
+                "negation": false,
+                "tense": "unspecified"
+              },
+              "lang": "es-419",
+              "visual_guidelines": {
+                "object_core": "gesto de socorro o mano extendida",
+                "focus_actor": "persona en apuros o que pide auxilio",
+                "context": "situación de emergencia o dificultad crítica",
+                "salience": "{\"acción de auxilio\":0.9,\"persona afectada\":0.95}",
+                "temporal": "immediate",
+                "action_core": "prestar auxilio o socorrer",
+                "secondary_actor": "rescatista o persona que asiste"
+              },
+              "pragmatics": {
+                "politeness": "neutral",
+                "urgency": "high",
+                "speaker_stance": "Urgencia o necesidad inmediata de auxilio",
+                "expected_response": "compliance",
+                "formality": "neutral"
+              }
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gemini-3.8-flash",
+        "usage": {
+          "input_tokens": 1626,
+          "output_tokens": 418,
+          "input_tokens_details": {
+            "cached_tokens": null
+          },
+          "output_tokens_details": {
+            "reasoning_tokens": null
+          },
+          "provider_usage": {
+            "promptTokenCount": 1626,
+            "candidatesTokenCount": 418,
+            "totalTokenCount": 2044,
+            "trafficType": "ON_DEMAND",
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 1626
+              }
+            ],
+            "candidatesTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 418
+              }
+            ]
+          }
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "933e2a579482dfd5a98915ff31840d7d9b8f78e00b4cd9a65e8592e50ef31a9b"
+    },
+    {
+      "state": "recorded",
+      "caseId": "agua-1",
+      "requestedModel": "gemini-3.8-flash",
+      "returnedModel": "gemini-3.8-flash",
+      "phase": 1,
+      "repetition": 1,
+      "requestHash": "09ba0da4836367ea1ce74bc033b7c1b4938cb4906f5aef6557dd5484cb2aeea7",
+      "milliseconds": 26556,
+      "usage": {
+        "input_tokens": 1626,
+        "output_tokens": 1638,
+        "input_tokens_details": {
+          "cached_tokens": null
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": 1223
+        },
+        "provider_usage": {
+          "promptTokenCount": 1626,
+          "candidatesTokenCount": 415,
+          "totalTokenCount": 3264,
+          "trafficType": "ON_DEMAND",
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 1626
+            }
+          ],
+          "candidatesTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 415
+            }
+          ],
+          "thoughtsTokenCount": 1223
+        }
+      },
+      "inputTokens": 1626,
+      "outputTokens": 1638,
+      "estimatedCostUsd": 0.007362,
+      "reservedUsd": 0.0996975,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "domain": "alimentación",
+        "logical_form": {
+          "modality": "desiderative",
+          "negation": false,
+          "event": "ingestion(speaker, agua)",
+          "tense": "present",
+          "aspect": "none"
+        },
+        "nsm_explications": {
+          "agua": "ALGO; la GENTE necesita poner ESTO DENTRO del CUERPO para VIVIR; si la GENTE NO tiene ESTO por MUCHO TIEMPO, PUEDE MORIR; YO SIENTO ALGO en el CUERPO AHORA, QUIERO ESTO AHORA"
+        },
+        "visual_guidelines": {
+          "secondary_actor": "persona que asiste o entrega el agua",
+          "context": "entorno doméstico o cotidiano",
+          "focus_actor": "persona señalando o pidiendo agua",
+          "action_core": "beber agua",
+          "object_core": "vaso con agua",
+          "temporal": "immediate",
+          "salience": {
+            "agua": 0.95,
+            "beber": 0.8,
+            "vaso": 0.7
+          }
+        },
+        "metadata": {
+          "intent": "request",
+          "speech_act": "directive"
+        },
+        "frames": [
+          {
+            "frame_label": "Ingestión",
+            "roles": {
+              "Ingestor": {
+                "ref": "speaker",
+                "type": "Agent"
+              },
+              "Substance": {
+                "definiteness": "unspecified",
+                "lemma": "agua",
+                "surface": "Agua",
+                "type": "Theme"
+              }
+            },
+            "lexical_unit": "agua",
+            "frame_name": "Ingestion",
+            "id": "f1"
+          }
+        ],
+        "pragmatics": {
+          "urgency": "medium",
+          "speaker_stance": "El hablante expresa una necesidad fisiológica inmediata de hidratación.",
+          "formality": "neutral",
+          "politeness": "neutral",
+          "expected_response": "compliance"
+        },
+        "utterance": "Agua",
+        "schemaVersion": "1.1.0",
+        "lang": "es-419"
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "analyze_utterance",
+            "input": {
+              "domain": "alimentación",
+              "logical_form": {
+                "modality": "desiderative",
+                "negation": false,
+                "event": "ingestion(speaker, agua)",
+                "tense": "present",
+                "aspect": "none"
+              },
+              "nsm_explications": "{\"agua\":\"ALGO; la GENTE necesita poner ESTO DENTRO del CUERPO para VIVIR; si la GENTE NO tiene ESTO por MUCHO TIEMPO, PUEDE MORIR; YO SIENTO ALGO en el CUERPO AHORA, QUIERO ESTO AHORA\"}",
+              "visual_guidelines": {
+                "secondary_actor": "persona que asiste o entrega el agua",
+                "context": "entorno doméstico o cotidiano",
+                "focus_actor": "persona señalando o pidiendo agua",
+                "action_core": "beber agua",
+                "object_core": "vaso con agua",
+                "temporal": "immediate",
+                "salience": "{\"agua\":0.95,\"beber\":0.8,\"vaso\":0.7}"
+              },
+              "metadata": {
+                "intent": "request",
+                "speech_act": "directive"
+              },
+              "frames": [
+                {
+                  "frame_label": "Ingestión",
+                  "roles": "{\"Ingestor\":{\"ref\":\"speaker\",\"type\":\"Agent\"},\"Substance\":{\"definiteness\":\"unspecified\",\"lemma\":\"agua\",\"surface\":\"Agua\",\"type\":\"Theme\"}}",
+                  "lexical_unit": "agua",
+                  "frame_name": "Ingestion",
+                  "id": "f1"
+                }
+              ],
+              "pragmatics": {
+                "urgency": "medium",
+                "speaker_stance": "El hablante expresa una necesidad fisiológica inmediata de hidratación.",
+                "formality": "neutral",
+                "politeness": "neutral",
+                "expected_response": "compliance"
+              },
+              "utterance": "Agua",
+              "schemaVersion": "1.1.0",
+              "lang": "es-419"
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gemini-3.8-flash",
+        "usage": {
+          "input_tokens": 1626,
+          "output_tokens": 1638,
+          "input_tokens_details": {
+            "cached_tokens": null
+          },
+          "output_tokens_details": {
+            "reasoning_tokens": 1223
+          },
+          "provider_usage": {
+            "promptTokenCount": 1626,
+            "candidatesTokenCount": 415,
+            "totalTokenCount": 3264,
+            "trafficType": "ON_DEMAND",
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 1626
+              }
+            ],
+            "candidatesTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 415
+              }
+            ],
+            "thoughtsTokenCount": 1223
+          }
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "32692744c0a066bf4486b861ea09f48941db9d27936b6d4e799a5676568ce4d8"
+    },
+    {
+      "state": "recorded",
+      "caseId": "bano",
+      "requestedModel": "gemini-3.8-flash",
+      "returnedModel": "gemini-3.8-flash",
+      "phase": 1,
+      "repetition": 0,
+      "requestHash": "0fedf44c7b480781feb5a60fcd347bbcf4c9b3b2374ad9f479062836ad00c792",
+      "milliseconds": 11166,
+      "usage": {
+        "input_tokens": 1629,
+        "output_tokens": 592,
+        "input_tokens_details": {
+          "cached_tokens": null
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": null
+        },
+        "provider_usage": {
+          "promptTokenCount": 1629,
+          "candidatesTokenCount": 592,
+          "totalTokenCount": 2221,
+          "trafficType": "ON_DEMAND",
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 1629
+            }
+          ],
+          "candidatesTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 592
+            }
+          ]
+        }
+      },
+      "inputTokens": 1629,
+      "outputTokens": 592,
+      "estimatedCostUsd": 0.00344175,
+      "reservedUsd": 0.0997695,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "nsm_explications": {
+          "baño": "UN LUGAR DONDE ALGUIEN PUEDE HACER ALGO CON SU CUERPO PORQUE SU CUERPO LO QUIERE AHORA",
+          "ir": "MOVERSE DE AQUÍ A OTRO LUGAR",
+          "necesitar": "YO SIENTO ALGO EN EL CUERPO; YO PIENSO: TIENE QUE PASAR AHORA; SI NO PASA, ES MUY MALO PARA MÍ"
+        },
+        "metadata": {
+          "intent": "request",
+          "speech_act": "directive"
+        },
+        "utterance": "Necesito ir al baño",
+        "lang": "es-419",
+        "domain": "vida_cotidiana",
+        "frames": [
+          {
+            "lexical_unit": "necesitar",
+            "frame_name": "Needing",
+            "roles": {
+              "Cognizer": {
+                "type": "Experiencer",
+                "surface": "Necesito",
+                "lemma": "yo"
+              },
+              "Requirement": {
+                "type": "Event",
+                "surface": "ir al baño",
+                "ref_frame": "f2"
+              }
+            },
+            "id": "f1",
+            "frame_label": "Necesidad"
+          },
+          {
+            "frame_name": "Motion",
+            "id": "f2",
+            "lexical_unit": "ir",
+            "frame_label": "Movimiento dirigido",
+            "roles": {
+              "Goal": {
+                "type": "Location",
+                "surface": "al baño",
+                "lemma": "baño",
+                "definiteness": "definite"
+              },
+              "Theme": {
+                "type": "Theme",
+                "surface": "ir",
+                "lemma": "yo"
+              }
+            }
+          }
+        ],
+        "visual_guidelines": {
+          "object_core": "inodoro o puerta con pictograma de baño",
+          "action_core": "ir caminando o desplazándose con urgencia",
+          "focus_actor": "persona/hablante expresando urgencia o señalando necesidad de ir al baño",
+          "salience": {
+            "baño": 0.9,
+            "persona": 0.8,
+            "urgencia": 0.7
+          },
+          "temporal": "immediate",
+          "context": "entorno cotidiano (casa, escuela, transporte, lugar público)",
+          "secondary_actor": "ninguno o acompañante/cuidador que asiste"
+        },
+        "schemaVersion": "1.1.0",
+        "logical_form": {
+          "negation": false,
+          "tense": "present",
+          "modality": "deontic",
+          "event": "necesitar_ir_baño",
+          "aspect": "inceptive"
+        },
+        "pragmatics": {
+          "expected_response": "compliance",
+          "urgency": "high",
+          "politeness": "polite",
+          "formality": "neutral",
+          "speaker_stance": "urgente y con necesidad fisiológica inmediata"
+        }
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "analyze_utterance",
+            "input": {
+              "nsm_explications": "{\"baño\": \"UN LUGAR DONDE ALGUIEN PUEDE HACER ALGO CON SU CUERPO PORQUE SU CUERPO LO QUIERE AHORA\", \"ir\": \"MOVERSE DE AQUÍ A OTRO LUGAR\", \"necesitar\": \"YO SIENTO ALGO EN EL CUERPO; YO PIENSO: TIENE QUE PASAR AHORA; SI NO PASA, ES MUY MALO PARA MÍ\"}",
+              "metadata": {
+                "intent": "request",
+                "speech_act": "directive"
+              },
+              "utterance": "Necesito ir al baño",
+              "lang": "es-419",
+              "domain": "vida_cotidiana",
+              "frames": [
+                {
+                  "lexical_unit": "necesitar",
+                  "frame_name": "Needing",
+                  "roles": "{\"Cognizer\": {\"type\": \"Experiencer\", \"surface\": \"Necesito\", \"lemma\": \"yo\"}, \"Requirement\": {\"type\": \"Event\", \"surface\": \"ir al baño\", \"ref_frame\": \"f2\"}}",
+                  "id": "f1",
+                  "frame_label": "Necesidad"
+                },
+                {
+                  "frame_name": "Motion",
+                  "id": "f2",
+                  "lexical_unit": "ir",
+                  "frame_label": "Movimiento dirigido",
+                  "roles": "{\"Goal\": {\"type\": \"Location\", \"surface\": \"al baño\", \"lemma\": \"baño\", \"definiteness\": \"definite\"}, \"Theme\": {\"type\": \"Theme\", \"surface\": \"ir\", \"lemma\": \"yo\"}}"
+                }
+              ],
+              "visual_guidelines": {
+                "object_core": "inodoro o puerta con pictograma de baño",
+                "action_core": "ir caminando o desplazándose con urgencia",
+                "focus_actor": "persona/hablante expresando urgencia o señalando necesidad de ir al baño",
+                "salience": "{\"baño\": 0.9, \"persona\": 0.8, \"urgencia\": 0.7}",
+                "temporal": "immediate",
+                "context": "entorno cotidiano (casa, escuela, transporte, lugar público)",
+                "secondary_actor": "ninguno o acompañante/cuidador que asiste"
+              },
+              "schemaVersion": "1.1.0",
+              "logical_form": {
+                "negation": false,
+                "tense": "present",
+                "modality": "deontic",
+                "event": "necesitar_ir_baño",
+                "aspect": "inceptive"
+              },
+              "pragmatics": {
+                "expected_response": "compliance",
+                "urgency": "high",
+                "politeness": "polite",
+                "formality": "neutral",
+                "speaker_stance": "urgente y con necesidad fisiológica inmediata"
+              }
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gemini-3.8-flash",
+        "usage": {
+          "input_tokens": 1629,
+          "output_tokens": 592,
+          "input_tokens_details": {
+            "cached_tokens": null
+          },
+          "output_tokens_details": {
+            "reasoning_tokens": null
+          },
+          "provider_usage": {
+            "promptTokenCount": 1629,
+            "candidatesTokenCount": 592,
+            "totalTokenCount": 2221,
+            "trafficType": "ON_DEMAND",
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 1629
+              }
+            ],
+            "candidatesTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 592
+              }
+            ]
+          }
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "4c56ca2308076c4a2eb1dc379e4bdd32114f9c5c764165fbbd5c02913049622b"
+    },
+    {
+      "state": "recorded",
+      "caseId": "donde-mama",
+      "requestedModel": "gemini-3.8-flash",
+      "returnedModel": "gemini-3.8-flash",
+      "phase": 1,
+      "repetition": 0,
+      "requestHash": "59d5d4f8c73de926303e8737a166d4f57899c78cc70cb153c39b287a23a8d224",
+      "milliseconds": 24892,
+      "usage": {
+        "input_tokens": 1627,
+        "output_tokens": 537,
+        "input_tokens_details": {
+          "cached_tokens": null
+        },
+        "output_tokens_details": {
+          "reasoning_tokens": null
+        },
+        "provider_usage": {
+          "promptTokenCount": 1627,
+          "candidatesTokenCount": 537,
+          "totalTokenCount": 2164,
+          "trafficType": "ON_DEMAND",
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 1627
+            }
+          ],
+          "candidatesTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 537
+            }
+          ]
+        }
+      },
+      "inputTokens": 1627,
+      "outputTokens": 537,
+      "estimatedCostUsd": 0.003234,
+      "reservedUsd": 0.099774,
+      "canonicalValid": true,
+      "firstCallValid": true,
+      "providerCalls": 1,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "failure": null,
+      "diagnostics": null,
+      "output": {
+        "visual_guidelines": {
+          "object_core": "figura_materna",
+          "context": "entorno_hogar_o_cotidiano",
+          "focus_actor": "hablante_o_niño_buscando",
+          "temporal": "immediate",
+          "action_core": "buscar_o_preguntar_ubicacion",
+          "secondary_actor": "madre_ausente",
+          "salience": {
+            "dónde": 0.8,
+            "mamá": 1
+          }
+        },
+        "utterance": "¿Dónde está mamá?",
+        "pragmatics": {
+          "politeness": "neutral",
+          "formality": "informal",
+          "speaker_stance": "búsqueda de familiar cercano",
+          "expected_response": "question",
+          "urgency": "medium"
+        },
+        "schemaVersion": "1.1.0",
+        "logical_form": {
+          "tense": "present",
+          "modality": "epistemic_interrogative",
+          "negation": false,
+          "aspect": "none",
+          "event": "estar_en_lugar(mamá, ?)"
+        },
+        "nsm_explications": {
+          "dónde": "ALGUIEN quiere SABER: en qué LUGAR ESTÁ ALGO o ALGUIEN",
+          "estar": "ALGUIEN o ALGO ESTÁ en un LUGAR AHORA",
+          "mamá": "ESTE ALGUIEN es una PERSONA; ANTES ESTA PERSONA DIO VIDA a ESTE OTRO ALGUIEN (YO); ESTA PERSONA es PARTE de la VIDA de ESTE ALGUIEN"
+        },
+        "domain": "vida_cotidiana",
+        "frames": [
+          {
+            "lexical_unit": "dónde estar",
+            "frame_label": "Ubicación",
+            "id": "f1",
+            "frame_name": "Locating",
+            "roles": {
+              "Location": {
+                "lemma": "dónde",
+                "surface": "Dónde",
+                "type": "Location"
+              },
+              "Theme": {
+                "definiteness": "definite",
+                "lemma": "mamá",
+                "surface": "mamá",
+                "type": "Theme"
+              }
+            }
+          },
+          {
+            "lexical_unit": "mamá",
+            "frame_label": "Parentesco",
+            "roles": {
+              "Alter": {
+                "definiteness": "definite",
+                "lemma": "mamá",
+                "surface": "mamá",
+                "type": "Other"
+              },
+              "Ego": {
+                "lemma": "yo",
+                "type": "Speaker"
+              }
+            },
+            "id": "f2",
+            "frame_name": "Kinship"
+          }
+        ],
+        "metadata": {
+          "speech_act": "interrogative",
+          "intent": "ask_info"
+        },
+        "lang": "es-419"
+      },
+      "rawResponse": {
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "analyze_utterance",
+            "input": {
+              "visual_guidelines": {
+                "object_core": "figura_materna",
+                "context": "entorno_hogar_o_cotidiano",
+                "focus_actor": "hablante_o_niño_buscando",
+                "temporal": "immediate",
+                "action_core": "buscar_o_preguntar_ubicacion",
+                "secondary_actor": "madre_ausente",
+                "salience": "{\"dónde\":0.8,\"mamá\":1.0}"
+              },
+              "utterance": "¿Dónde está mamá?",
+              "pragmatics": {
+                "politeness": "neutral",
+                "formality": "informal",
+                "speaker_stance": "búsqueda de familiar cercano",
+                "expected_response": "question",
+                "urgency": "medium"
+              },
+              "schemaVersion": "1.1.0",
+              "logical_form": {
+                "tense": "present",
+                "modality": "epistemic_interrogative",
+                "negation": false,
+                "aspect": "none",
+                "event": "estar_en_lugar(mamá, ?)"
+              },
+              "nsm_explications": "{\"dónde\":\"ALGUIEN quiere SABER: en qué LUGAR ESTÁ ALGO o ALGUIEN\",\"estar\":\"ALGUIEN o ALGO ESTÁ en un LUGAR AHORA\",\"mamá\":\"ESTE ALGUIEN es una PERSONA; ANTES ESTA PERSONA DIO VIDA a ESTE OTRO ALGUIEN (YO); ESTA PERSONA es PARTE de la VIDA de ESTE ALGUIEN\"}",
+              "domain": "vida_cotidiana",
+              "frames": [
+                {
+                  "lexical_unit": "dónde estar",
+                  "frame_label": "Ubicación",
+                  "id": "f1",
+                  "frame_name": "Locating",
+                  "roles": "{\"Location\":{\"lemma\":\"dónde\",\"surface\":\"Dónde\",\"type\":\"Location\"},\"Theme\":{\"definiteness\":\"definite\",\"lemma\":\"mamá\",\"surface\":\"mamá\",\"type\":\"Theme\"}}"
+                },
+                {
+                  "lexical_unit": "mamá",
+                  "frame_label": "Parentesco",
+                  "roles": "{\"Alter\":{\"definiteness\":\"definite\",\"lemma\":\"mamá\",\"surface\":\"mamá\",\"type\":\"Other\"},\"Ego\":{\"lemma\":\"yo\",\"type\":\"Speaker\"}}",
+                  "id": "f2",
+                  "frame_name": "Kinship"
+                }
+              ],
+              "metadata": {
+                "speech_act": "interrogative",
+                "intent": "ask_info"
+              },
+              "lang": "es-419"
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "model": "gemini-3.8-flash",
+        "usage": {
+          "input_tokens": 1627,
+          "output_tokens": 537,
+          "input_tokens_details": {
+            "cached_tokens": null
+          },
+          "output_tokens_details": {
+            "reasoning_tokens": null
+          },
+          "provider_usage": {
+            "promptTokenCount": 1627,
+            "candidatesTokenCount": 537,
+            "totalTokenCount": 2164,
+            "trafficType": "ON_DEMAND",
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 1627
+              }
+            ],
+            "candidatesTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 537
+              }
+            ]
+          }
+        }
+      },
+      "rawOutput": null,
+      "outputHash": "1e0bb0706128afdcaeeb27621369eca6338a8f64ecb2ee301132adc51a647e1e"
+    },
+    {
+      "state": "recorded",
+      "caseId": "orgullo",
+      "requestedModel": "gemini-3.8-flash",
+      "returnedModel": null,
+      "phase": 1,
+      "repetition": 0,
+      "requestHash": "b60edde87d8166a497cf8d46936ea87df3e738f27028e990c409dc6a3a5011c3",
+      "milliseconds": 75007,
+      "usage": null,
+      "inputTokens": null,
+      "outputTokens": null,
+      "estimatedCostUsd": null,
+      "reservedUsd": 0.0998235,
+      "canonicalValid": false,
+      "firstCallValid": false,
+      "providerCalls": 1,
+      "cacheWriteTokens": null,
+      "cacheReadTokens": null,
+      "failure": "Provider request deadline exceeded",
+      "diagnostics": null,
+      "output": null,
+      "rawResponse": null,
+      "rawOutput": null,
+      "outputHash": null
+    }
+  ],
+  "warning": "Costs are estimates, not invoice ceilings. Structural validation does not establish semantic or AAC effectiveness.",
+  "stopReason": "usage_uncertain"
+}

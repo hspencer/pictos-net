@@ -4,6 +4,14 @@ Fecha: 1 de noviembre de 2026. Rama: `feat/vectorizar-estructurar`. Base: `8486b
 
 Objetivo: reducir errores, latencia y costo del pipeline generativo comparando los modelos disponibles en cada fase con casos sintéticos, y dejar en el catálogo solo los que se justifican. Las personas usuarias no tienen cómo elegir entre modelos, así que el criterio fue ofrecer el menor número de opciones posible: una por defecto y, como mucho, una alternativa con razón de ser.
 
+## Actualización del 12-11-2026: valores predeterminados de texto
+
+**GPT-6 Luna es ahora el valor predeterminado de COMPRENDER y COMPONER; Haiku 5.5 queda como alternativa.** En las series completas más recientes, ambos lograron 48/48 válidos por fase. Luna necesitó menos reparaciones (92 % frente a 79 % al primer intento en P1; 100 % frente a 90 % en P2) y costó US$0,01204 + US$0,00779 frente a US$0,02831 + US$0,01675. La mediana de P1 fue similar (4,2 s); Haiku fue más rápido en P2 (2,2 s frente a 3,3 s). Los costos son estimaciones, con la caché observada.
+
+Las repeticiones pendientes ya terminaron: Luna P1, Haiku P2 y Gemini 3.8 P1 completaron 48 intentos cada uno; Gemini 3.5 Flash-Lite P1 volvió a detenerse por truncamiento. Las interrupciones originales se conservan. Los candidatos Gemini quedan fuera de los selectores de texto por errores de contrato, latencia o costo; Gemini 3.8 sigue disponible para detección de entidades. No cambian los valores predeterminados de PRODUCIR y ESTRUCTURAR ni las elecciones explícitas de modelos admitidos.
+
+Método, tablas y límites de las conclusiones: [informe de la ronda](../research/2026-11-12_benchmark-texto/README.md). El resto de este documento conserva los resultados históricos y las decisiones del 1 de noviembre y rondas posteriores.
+
 ## Resumen
 
 | Fase | Antes (por defecto) | Ahora (por defecto) | Alternativas que quedan |

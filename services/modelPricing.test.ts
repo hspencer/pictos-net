@@ -11,7 +11,7 @@ const t = (key: string, vars: Record<string, string | number> = {}) =>
 
 test('selectors and preserved model migration use the shared capability catalog', () => {
   assert.equal(DEFAULT_GENERATION_MODEL, 'gpt-image-2.5-flare');
-  assert.equal(DEFAULT_NLU_MODEL, 'claude-haiku-5-5');
+  assert.equal(DEFAULT_NLU_MODEL, 'gpt-6-luna');
   assert.equal(DEFAULT_PHASE5_MODEL, 'claude-sonnet-4-6');
   assert.deepEqual(modelIdsForPhase(1), modelIdsForPhase(2));
   for (const model of modelIdsForPhase(3)) {
@@ -45,8 +45,9 @@ test('prices distinguish token rates from images and retain conditional bounds',
   const checked20261101 = ['claude-haiku-5-5', 'gpt-6-luna'];
   const checked20261106 = ['gemini-3.1-flash-lite-image'];
   const checked20261110 = ['arrow-2'];
+  const checked20261112 = ['gemini-4-argon', 'gemini-4-carbon', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite'];
   for (const [id, value] of Object.entries(MODEL_CATALOG)) {
     assert.match(value.pricingSource, /^https:\/\//);
-    assert.equal(value.pricingCheckedAt, checked20261110.includes(id) ? '2026-11-10' : checked20261106.includes(id) ? '2026-11-06' : checked20261101.includes(id) ? '2026-11-01' : addedInF6.includes(id) ? '2026-10-22' : '2026-08-27', id);
+    assert.equal(value.pricingCheckedAt, checked20261112.includes(id) ? '2026-11-12' : checked20261110.includes(id) ? '2026-11-10' : checked20261106.includes(id) ? '2026-11-06' : checked20261101.includes(id) ? '2026-11-01' : addedInF6.includes(id) ? '2026-10-22' : '2026-08-27', id);
   }
 });

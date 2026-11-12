@@ -22,9 +22,9 @@ La rama de desarrollo `dev` contiene la siguiente versión:
 
 PICTOS es un pipeline de tres fases automáticas y una cuarta que inicia el usuario. Cada fase es visible, editable y regenerable por separado; editar una fase marca como desactualizadas las siguientes.
 
-**(1) Comprender** (Claude Haiku 5.5; alternativa GPT-6 Luna). Analiza el enunciado y produce un NLU según [pictos-nlu-schema](schemas/pictos-nlu-schema) 1.1.0: acto de habla e intención, dominio, frames semánticos con sus roles, explicaciones en los 65 primos del Metalenguaje Semántico Natural (NSM), forma lógica, pragmática y pautas visuales. Usa el contexto geográfico y el contexto de dominio de la librería.
+**(1) Comprender** (GPT-6 Luna; alternativa Claude Haiku 5.5). Analiza el enunciado y produce un NLU según [pictos-nlu-schema](schemas/pictos-nlu-schema) 1.1.0: acto de habla e intención, dominio, frames semánticos con sus roles, explicaciones en los 65 primos del Metalenguaje Semántico Natural (NSM), forma lógica, pragmática y pautas visuales. Usa el contexto geográfico y el contexto de dominio de la librería.
 
-**(2) Componer** (Claude Haiku 5.5; alternativa GPT-6 Luna). Traduce el NLU a un árbol de elementos visuales y a un prompt de articulación espacial. Cada elemento lleva un `concept` (Agent, Action, Object, Context, Element) que viaja hasta el `data-concept` del SVG final. Los nombres se escriben en el idioma de la librería. Si el usuario edita el árbol, puede regenerar solo el prompt.
+**(2) Componer** (GPT-6 Luna; alternativa Claude Haiku 5.5). Traduce el NLU a un árbol de elementos visuales y a un prompt de articulación espacial. Cada elemento lleva un `concept` (Agent, Action, Object, Context, Element) que viaja hasta el `data-concept` del SVG final. Los nombres se escriben en el idioma de la librería. Si el usuario edita el árbol, puede regenerar solo el prompt.
 
 **(3) Producir** (por defecto GPT Image 2.5 Flare; alternativas Nano Banana 2 Lite y la familia Recraft V4.1). Genera la imagen a partir del enunciado, el NLU, los elementos, el prompt espacial y el estilo visual de la librería. Los modelos raster entregan un bitmap; Recraft vector entrega SVG nativo.
 
@@ -250,7 +250,7 @@ Ver [docs/CONTRIBUTING.md](./docs/CONTRIBUTING.md) para instrucciones completas.
 
 - React 19, TypeScript 5.8, Vite 6, Tailwind CSS 3.4, Zustand (editor SVG)
 - Anthropic: Claude Haiku 5.5 (fases 1 y 2) y Claude Sonnet 4.6 (fase 4)
-- OpenAI: GPT Image 2.5 Flare (fase 3, por defecto) y GPT-6 Luna (fases 1 y 2, alternativa)
+- OpenAI: GPT Image 2.5 Flare (fase 3, por defecto) y GPT-6 Luna (fases 1 y 2, por defecto)
 - Google Vertex AI: Nano Banana 2 Lite (fase 3) y Gemini 3.8 Flash (detección de entidades)
 - Recraft V4.1 (fase 3, vector o raster)
 - VTracer 1.0 compilado a WebAssembly (regiones en el navegador)

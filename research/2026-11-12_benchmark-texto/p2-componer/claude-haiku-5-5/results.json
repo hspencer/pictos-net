@@ -1,0 +1,35 @@
+{
+  "planHash": "d54140bbc543daaafc2406573c08e02e6369280f9641a5bc8b916d36549db00c",
+  "state": "stopped",
+  "estimatedExposureUsd": 0.01354125,
+  "attempts": [
+    {
+      "state": "recorded",
+      "caseId": "turno",
+      "requestedModel": "claude-haiku-5-5",
+      "returnedModel": null,
+      "phase": 2,
+      "repetition": 0,
+      "requestHash": "768dee1f8f6c2e90591576d70984af23878e430d195726049163351ebc44ecd1",
+      "milliseconds": 536,
+      "usage": null,
+      "inputTokens": null,
+      "outputTokens": null,
+      "estimatedCostUsd": null,
+      "reservedUsd": 0.01354125,
+      "canonicalValid": false,
+      "firstCallValid": false,
+      "providerCalls": 1,
+      "cacheWriteTokens": null,
+      "cacheReadTokens": null,
+      "failure": "Request timed out.",
+      "diagnostics": null,
+      "output": null,
+      "rawResponse": null,
+      "rawOutput": null,
+      "outputHash": null
+    }
+  ],
+  "warning": "Costs are estimates, not invoice ceilings. Structural validation does not establish semantic or AAC effectiveness.",
+  "stopReason": "usage_uncertain"
+}

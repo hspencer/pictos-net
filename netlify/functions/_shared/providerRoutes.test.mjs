@@ -99,7 +99,7 @@ test('terminal quota in Phase 1 stops the batch before any later row or image', 
     assert.match(String(url), /api\.anthropic\.com/);
     return Response.json({ type: 'error', error: { type: 'rate_limit_error', message: 'busy' } }, { status: 429, headers: { 'retry-after': '120' } });
   });
-  await pipeline(event({ libraryId: 'quota-library', jobId: 'quota-pipeline', rows: [{ rowId: 'first', utterance: 'Beber' }, { rowId: 'later', utterance: 'Comer' }], config: { generationModel: 'recraftv4_1_vector' } }), {});
+  await pipeline(event({ libraryId: 'quota-library', jobId: 'quota-pipeline', rows: [{ rowId: 'first', utterance: 'Beber' }, { rowId: 'later', utterance: 'Comer' }], config: { nluModel: 'claude-haiku-5-5', generationModel: 'recraftv4_1_vector' } }), {});
   assert.equal(upstream.mock.callCount(), 1);
   const store = getBlobStore('pipeline-jobs');
   const failed = await store.get('quota-pipeline/first', { type: 'json' });
@@ -127,7 +127,7 @@ test('quota in composition or Recraft generation preserves accepted phases and d
         input: name === 'analyze_utterance' ? validNlu : { elements: [{ id: 'persona', concept: 'Agent' }], prompt: "'persona' bebe agua" } }] });
     });
     const jobId = `quota-phase-${failurePhase}`;
-    await pipeline(event({ libraryId: jobId, jobId, rows: [{ rowId: 'first', utterance: 'Beber agua' }, { rowId: 'later', utterance: 'Beber agua' }], config: { generationModel: 'recraftv4_1_vector' } }), {});
+    await pipeline(event({ libraryId: jobId, jobId, rows: [{ rowId: 'first', utterance: 'Beber agua' }, { rowId: 'later', utterance: 'Beber agua' }], config: { nluModel: 'claude-haiku-5-5', generationModel: 'recraftv4_1_vector' } }), {});
     assert.equal(calls, failurePhase);
     const store = getBlobStore('pipeline-jobs');
     const failed = await store.get(`${jobId}/first`, { type: 'json' });
@@ -208,7 +208,7 @@ test('canonical rejection retains known provider usage and returned model for ba
   const { runPhase1 } = await import('./pipelineRunner.js');
   mock.method(globalThis, 'fetch', async () => Response.json({ model: 'actual-snapshot', usage: { input_tokens: 30, output_tokens: 12 },
     content: [{ type: 'tool_use', name: 'analyze_utterance', id: 'tool-test', input: {} }] }));
-  await assert.rejects(runPhase1('synthetic', {}), error => {
+  await assert.rejects(runPhase1('synthetic', { nluModel: 'claude-haiku-5-5' }), error => {
     assert.equal(error.code, 'pipeline_contract_invalid');
     assert.deepEqual(error.usage, { input_tokens: 30, output_tokens: 12 });
     assert.equal(error.actualModel, 'actual-snapshot'); assert.equal(error.provider, 'claude'); assert.equal(error.attempts, 1);

@@ -17,9 +17,9 @@ The `dev` development branch contains the next version:
 
 PICTOS is a pipeline of three automatic phases and a fourth one the user starts. Each phase is visible, editable and can be regenerated on its own; editing a phase marks the later ones as outdated.
 
-**(1) Understand** (Claude Haiku 5.5; alternative GPT-6 Luna). Analyses the utterance and produces an NLU following [pictos-nlu-schema](schemas/pictos-nlu-schema) 1.1.0: speech act and intent, domain, semantic frames and their roles, explications in the 65 primes of the Natural Semantic Metalanguage (NSM), logical form, pragmatics and visual guidelines. It uses the library's geographic and domain context.
+**(1) Understand** (GPT-6 Luna; alternative Claude Haiku 5.5). Analyses the utterance and produces an NLU following [pictos-nlu-schema](schemas/pictos-nlu-schema) 1.1.0: speech act and intent, domain, semantic frames and their roles, explications in the 65 primes of the Natural Semantic Metalanguage (NSM), logical form, pragmatics and visual guidelines. It uses the library's geographic and domain context.
 
-**(2) Compose** (Claude Haiku 5.5; alternative GPT-6 Luna). Turns the NLU into a tree of visual elements and a spatial articulation prompt. Each element carries a `concept` (Agent, Action, Object, Context, Element) that reaches the `data-concept` of the final SVG. Names are written in the library's language. If the user edits the tree, they can regenerate only the prompt.
+**(2) Compose** (GPT-6 Luna; alternative Claude Haiku 5.5). Turns the NLU into a tree of visual elements and a spatial articulation prompt. Each element carries a `concept` (Agent, Action, Object, Context, Element) that reaches the `data-concept` of the final SVG. Names are written in the library's language. If the user edits the tree, they can regenerate only the prompt.
 
 **(3) Produce** (default GPT Image 2.5 Flare; alternatives Nano Banana 2 Lite and the Recraft V4.1 family). Generates the image from the utterance, the NLU, the elements, the spatial prompt and the library's visual style. Raster models return a bitmap; Recraft vector returns native SVG.
 
@@ -245,7 +245,7 @@ See [docs/CONTRIBUTING.md](./docs/CONTRIBUTING.md) for full instructions.
 
 - React 19, TypeScript 5.8, Vite 6, Tailwind CSS 3.4, Zustand (SVG editor)
 - Anthropic: Claude Haiku 5.5 (phases 1 and 2) and Claude Sonnet 4.6 (phase 4)
-- OpenAI: GPT Image 2.5 Flare (phase 3, default) and GPT-6 Luna (phases 1 and 2, alternative)
+- OpenAI: GPT Image 2.5 Flare (phase 3, default) and GPT-6 Luna (phases 1 and 2, default)
 - Google Vertex AI: Nano Banana 2 Lite (phase 3) and Gemini 3.8 Flash (entity detection)
 - Recraft V4.1 (phase 3, vector or raster)
 - VTracer 1.0 compiled to WebAssembly (regions in the browser)
