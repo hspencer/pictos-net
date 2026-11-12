@@ -3,7 +3,7 @@
 **Generative Pictograms for Augmentative and Alternative Communication (AAC)**
 
 * [![Netlify Status](https://api.netlify.com/api/v1/badges/24f068d3-f368-4526-a503-2f09af1def0b/deploy-status)](https://app.netlify.com/projects/pictos/deploys)
-* ![version](https://img.shields.io/badge/version-2.8.0-violet)
+* ![version](https://img.shields.io/badge/version-2.9.0-violet)
 * ![opensource](https://img.shields.io/badge/opensource--always-available-blue)
 
 PICTOS transforms communicative intentions expressed in natural language into pictograms using a semantic reasoning pipeline. It is part of the doctoral research of [Herbert Spencer](https://herbertspencer.net/cc) in design for Augmentative and Alternative Communication.
@@ -270,7 +270,7 @@ Most technical documents are in Spanish.
 | [docs/SECURITY.md](./docs/SECURITY.md) | Keys, proxies, authentication and quota |
 | [docs/PRIVACY_en.md](./docs/PRIVACY_en.md) | What leaves the browser and where it goes |
 | [docs/SCHEMA_PUBLICATION.md](./docs/SCHEMA_PUBLICATION.md) | Schema publication |
-| [docs/RELEASE_2.8.0.md](./docs/RELEASE_2.8.0.md) | Changes in the current version |
+| [docs/RELEASE_2.9.0.md](./docs/RELEASE_2.9.0.md) | Changes in the current version |
 | [docs/archivo/](./docs/archivo/) | Earlier plans, migrations and releases, kept as history |
 
 ### User Interface

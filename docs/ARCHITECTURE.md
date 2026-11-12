@@ -2,7 +2,7 @@
 
 **Pictogramas generativos para la Comunicación Aumentativa y Alternativa (CAA)**
 
-Versión 2.8.0. Actualizado: 2026-11-08. Este documento describe el código de la rama `dev`; cuando un documento más antiguo lo contradice, prevalece este y, por encima de este, el código. Los motivos de diseño en relación con la pregunta de investigación están en [CONTROLES_DE_EXPERTICIA.md](CONTROLES_DE_EXPERTICIA.md).
+Versión 2.9.0. Actualizado: 2026-11-12. Este documento describe el código de la rama `dev`; cuando un documento más antiguo lo contradice, prevalece este y, por encima de este, el código. Los motivos de diseño en relación con la pregunta de investigación están en [CONTROLES_DE_EXPERTICIA.md](CONTROLES_DE_EXPERTICIA.md).
 
 ## Contenido
 

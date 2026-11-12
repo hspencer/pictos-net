@@ -8,7 +8,7 @@ This document is in Spanish. For a complete English version, please see [the Eng
 **Pictogramas generativos para la Comunicación Aumentativa y Alternativa (CAA)**
 
 * [![Netlify Status](https://api.netlify.com/api/v1/badges/24f068d3-f368-4526-a503-2f09af1def0b/deploy-status)](https://app.netlify.com/projects/pictos/deploys)
-* ![version](https://img.shields.io/badge/version-2.8.0-violet)
+* ![version](https://img.shields.io/badge/version-2.9.0-violet)
 * ![opensource](https://img.shields.io/badge/opensource--always-available-blue)
 
 PICTOS transforma intenciones comunicativas expresadas en lenguaje natural en pictogramas mediante un pipeline de razonamiento semántico. Es parte de la investigación doctoral de [Herbert Spencer](https://herbertspencer.net/cc) en diseño para la Comunicación Aumentativa y Alternativa.
@@ -273,7 +273,7 @@ Ver [docs/CONTRIBUTING.md](./docs/CONTRIBUTING.md) para instrucciones completas.
 | [docs/SECURITY.md](./docs/SECURITY.md) | Claves, proxies, autenticación y cuota |
 | [docs/PRIVACY.md](./docs/PRIVACY.md) | Qué sale del navegador y hacia dónde |
 | [docs/SCHEMA_PUBLICATION.md](./docs/SCHEMA_PUBLICATION.md) | Publicación de los esquemas |
-| [docs/RELEASE_2.8.0.md](./docs/RELEASE_2.8.0.md) | Cambios de la versión actual |
+| [docs/RELEASE_2.9.0.md](./docs/RELEASE_2.9.0.md) | Cambios de la versión actual |
 | [docs/archivo/](./docs/archivo/) | Planes, migraciones y versiones anteriores, como registro histórico |
 
 ### Interfaz de usuario
