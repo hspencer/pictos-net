@@ -45,7 +45,7 @@ export const LEGACY_CONFIG_KEY  = 'pictonet_v19_config';
 
 const DEFAULT_CONFIG: Partial<GlobalConfig> = {
   lang: 'es-419',
-  license: 'CC BY 4.0',
+  license: 'cc-by-sa',
   visualStylePrompt: '',
 };
 

@@ -288,7 +288,7 @@ const DEFAULT_APP_CONFIG: GlobalConfig = {
   generationModel: DEFAULT_GENERATION_MODEL,
   name: 'PICTOS',
   credits: '',
-  license: 'CC BY 4.0',
+  license: 'cc-by-sa',
   visualStylePrompt: getDefaultStylePrompt('es-419'),
   geoContext: { lat: '-33.0245', lng: '-71.5518', region: 'Viña del Mar, CL' },
 
@@ -349,7 +349,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
   const pdfExportAbortRef = useRef<AbortController | null>(null);
   const [reduceMotion, setReduceMotion] = useState(() => {
     const stored = localStorage.getItem('pictonet_reduce_motion');
-    return stored === null ? true : stored === 'true';
+    return stored === 'true';
   });
   const [highContrast, setHighContrast] = useState(() => {
     return localStorage.getItem('pictonet_high_contrast') === 'true';
@@ -903,6 +903,8 @@ const App: React.FC<AppProps> = ({ authUser }) => {
     const lib = libraryService.createLibrary(name.trim());
     setLibraryIndex(libraryService.getLibraryIndex());
     openLibrary(lib.id);
+    setBasicConfigOpen(true);
+    setShowConfig(true);
   }, [openLibrary, t]);
 
   const handleImportLibrary = useCallback(async (file: File) => {
@@ -1181,7 +1183,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
           if (parsed.config) {
             const newConfig = { ...DEFAULT_APP_CONFIG, ...migrateConfig(parsed.config) };
             if (!newConfig.credits) newConfig.credits = '';
-            if (!newConfig.license) newConfig.license = 'cc-by';
+            if (!newConfig.license) newConfig.license = 'cc-by-sa';
             setConfig(newConfig);
             addLog('info', t('messages.configRestored'));
           }
@@ -2696,6 +2698,7 @@ const App: React.FC<AppProps> = ({ authUser }) => {
           <div id="library-btn-group" ref={libraryBtnRef} className="relative flex items-center bg-white border border-slate-200 shadow-sm rounded-md transition-all hover:border-violet-200 group">
             <button
               onClick={() => {
+                setShowConfig(false);
                 if (activeLibraryId && !viewingLibraryHome) {
                   setViewingLibraryHome(true);
                 } else if (activeLibraryId) {
@@ -2707,7 +2710,6 @@ const App: React.FC<AppProps> = ({ authUser }) => {
                 } else {
                   handleCreateLibrary();
                 }
-                setShowConfig(false);
               }}
               className="p-2.5 hover:bg-slate-50 text-slate-600 border-r border-slate-100 flex items-center gap-2"
               title={t('header.libraryTooltip')}
